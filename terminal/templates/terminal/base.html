@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MOTHERSHIP Terminal{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .terminal-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #000;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .terminal-header {
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .terminal-header h1 {
+            font-size: 24px;
+            letter-spacing: 2px;
+        }
+
+        .terminal-header .subtitle {
+            font-size: 12px;
+            color: #00cc00;
+            margin-top: 5px;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 255, 0, 0.03) 50%,
+                transparent 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        .flicker {
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        a {
+            color: #00ff00;
+            text-decoration: none;
+            border-bottom: 1px solid #00ff00;
+        }
+
+        a:hover {
+            color: #00cc00;
+            border-bottom-color: #00cc00;
+        }
+
+        .nav-links {
+            margin-bottom: 20px;
+            padding: 10px 0;
+            border-bottom: 1px solid #004400;
+        }
+
+        .nav-links a {
+            margin-right: 20px;
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body class="flicker">
+    <div class="scanline"></div>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <h1>{% block header %}MOTHERSHIP TERMINAL SYSTEM{% endblock %}</h1>
+            <div class="subtitle">{% block subtitle %}CLASSIFIED ACCESS - AUTHORIZED PERSONNEL ONLY{% endblock %}</div>
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="nav-links">
+            <a href="{% url 'terminal' %}">TERMINAL</a>
+            {% if user.is_staff %}
+            <a href="{% url 'gm_console' %}">GM CONSOLE</a>
+            <a href="/admin/">ADMIN</a>
+            {% endif %}
+            <a href="{% url 'terminal_logout' %}">LOGOUT [{{ user.username }}]</a>
+        </div>
+        {% endif %}
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</body>
+</html>

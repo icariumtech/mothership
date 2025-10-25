@@ -1,0 +1,78 @@
+{% extends 'terminal/base.html' %}
+
+{% block title %}Logout - System Access{% endblock %}
+
+{% block header %}SYSTEM LOGOUT{% endblock %}
+{% block subtitle %}TERMINATE SESSION{% endblock %}
+
+{% block extra_css %}
+<style>
+    .logout-container {
+        max-width: 500px;
+        margin: 40px auto;
+        border: 1px solid #00ff00;
+        padding: 30px;
+        background-color: #001100;
+        text-align: center;
+    }
+
+    .logout-message {
+        margin-bottom: 30px;
+        line-height: 2;
+    }
+
+    .logout-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+    }
+
+    button, .cancel-link {
+        background-color: #00ff00;
+        color: #000;
+        border: none;
+        padding: 12px 30px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    button:hover, .cancel-link:hover {
+        background-color: #00cc00;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+
+    .cancel-link {
+        background-color: #004400;
+        color: #00ff00;
+        border: 1px solid #00ff00;
+    }
+
+    .cancel-link:hover {
+        background-color: #006600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-message">
+        <p>&gt; TERMINATE CURRENT SESSION?</p>
+        <p>&gt; USER: {{ user.username }}</p>
+        <p>&gt; CONFIRM LOGOUT</p>
+    </div>
+
+    <div class="logout-buttons">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">LOGOUT</button>
+        </form>
+        <a href="{% url 'terminal' %}" class="cancel-link">CANCEL</a>
+    </div>
+</div>
+{% endblock %}

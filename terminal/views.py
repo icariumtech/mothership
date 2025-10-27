@@ -67,20 +67,39 @@ def logout_view(request):
     return render(request, 'terminal/logout.html')
 
 
-@login_required
+def display_view(request):
+    """
+    Public display view for shared table monitor.
+    No login required - read-only kiosk mode.
+    """
+    # Get all broadcast messages (no specific recipients)
+    all_messages = Message.objects.filter(
+        recipients__isnull=True
+    ).order_by('-created_at')[:50]
+
+    return render(request, 'terminal/display.html', {
+        'messages': all_messages
+    })
+
+
 def get_messages_json(request):
     """
     API endpoint to fetch messages as JSON for real-time updates.
     Optionally accepts 'since' parameter to get only new messages.
+    Public endpoint - shows broadcast messages only (no login required).
     """
     since_id = request.GET.get('since', None)
 
-    # Get messages for this user (or all messages if none specified)
-    user_messages = Message.objects.filter(
-        recipients=request.user
-    ) | Message.objects.filter(recipients__isnull=True)
-
-    user_messages = user_messages.distinct()
+    # If user is logged in, get their messages + broadcasts
+    # If not logged in (display mode), only get broadcasts
+    if request.user.is_authenticated:
+        user_messages = Message.objects.filter(
+            recipients=request.user
+        ) | Message.objects.filter(recipients__isnull=True)
+        user_messages = user_messages.distinct()
+    else:
+        # Public display mode - only broadcast messages
+        user_messages = Message.objects.filter(recipients__isnull=True)
 
     # If 'since' parameter provided, only get messages newer than that ID
     if since_id:

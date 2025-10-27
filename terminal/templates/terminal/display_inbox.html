@@ -148,6 +148,29 @@
             opacity: 0.7;
         }
 
+        .sender-button.has-new {
+            border-color: #ffff00;
+            animation: newMessagePulse 1.5s infinite;
+        }
+
+        .sender-button.has-new::before {
+            content: '⚠ ';
+            color: #ffff00;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        @keyframes newMessagePulse {
+            0%, 100% {
+                border-color: #ffff00;
+                box-shadow: 0 0 5px rgba(255, 255, 0, 0.3);
+            }
+            50% {
+                border-color: #ffaa00;
+                box-shadow: 0 0 15px rgba(255, 255, 0, 0.6);
+            }
+        }
+
         /* Message Area Styles */
         .message-area {
             flex: 1;
@@ -334,7 +357,7 @@
                 <div class="sidebar-header">SENDERS</div>
                 <div class="sender-list" id="sender-list">
                     {% for sender, count in senders.items %}
-                    <button class="sender-button{% if forloop.first %} active{% endif %}" data-sender="{{ sender }}" onclick="filterBySender('{{ sender }}')">
+                    <button class="sender-button" data-sender="{{ sender }}" onclick="filterBySender('{{ sender }}')">
                         {{ sender }}
                         <span class="message-count">({{ count }})</span>
                     </button>
@@ -345,12 +368,12 @@
             <!-- Message display area -->
             <div class="message-area">
                 <div class="message-area-header">
-                    <h2 id="current-sender-title">MESSAGES FROM: {{ first_sender }}</h2>
+                    <h2 id="current-sender-title">SELECT SENDER</h2>
                 </div>
                 <div class="messages-container" id="messages-container">
                     {% if messages %}
                         {% for message in messages %}
-                        <div class="message" data-message-id="{{ message.id }}" data-sender="{{ message.sender }}">
+                        <div class="message" data-message-id="{{ message.id }}" data-sender="{{ message.sender }}" style="display: none;">
                             <div class="message-header">
                                 <div>
                                     <span class="message-sender">{{ message.sender }}</span>
@@ -365,21 +388,21 @@
                             <div class="message-content">{{ message.content }}</div>
                         </div>
                         {% endfor %}
-                    {% else %}
-                        <div class="no-messages" id="no-messages">
-                            <p>&gt; NO NEW MESSAGES</p>
-                            <p>&gt; SYSTEM STANDBY</p>
-                            <p class="blink">&gt; _</p>
-                        </div>
                     {% endif %}
+                    <div class="no-messages" id="no-messages">
+                        <p>&gt; SELECT SENDER TO VIEW MESSAGES</p>
+                        <p>&gt; SYSTEM STANDBY</p>
+                        <p class="blink">&gt; _</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-    // Initialize with first sender
-    let currentSender = '{{ first_sender }}';
+    // Don't auto-select any sender - start with empty selection
+    let currentSender = '';
+    let sendersWithNewMessages = new Set(); // Track which senders have new unread messages
 
     // Update current time display
     function updateTime() {
@@ -394,11 +417,14 @@
     function filterBySender(sender) {
         currentSender = sender;
 
-        // Update button states
+        // Update button states and remove "new" indicator for this sender
         document.querySelectorAll('.sender-button').forEach(btn => {
             btn.classList.remove('active');
         });
-        document.querySelector(`[data-sender="${sender}"]`).classList.add('active');
+        const senderBtn = document.querySelector(`[data-sender="${sender}"]`);
+        senderBtn.classList.add('active');
+        senderBtn.classList.remove('has-new'); // Mark as read
+        sendersWithNewMessages.delete(sender); // Remove from new messages set
 
         // Update header
         const title = `MESSAGES FROM: ${sender}`;
@@ -489,6 +515,8 @@
                 // Only show if matches current filter
                 if (msg.sender !== currentSender) {
                     messageDiv.style.display = 'none';
+                    // Mark this sender as having new messages
+                    sendersWithNewMessages.add(msg.sender);
                 }
 
                 container.insertBefore(messageDiv, container.firstChild);
@@ -525,37 +553,54 @@
         }
 
         function updateSenderList() {
-            // Count messages per sender
-            const senderCounts = {};
+            // Count messages per sender and find latest message time
+            const senderData = {};
             document.querySelectorAll('.message').forEach(msg => {
                 const sender = msg.dataset.sender;
-                senderCounts[sender] = (senderCounts[sender] || 0) + 1;
+                const messageId = parseInt(msg.dataset.messageId);
+
+                if (!senderData[sender]) {
+                    senderData[sender] = {
+                        count: 0,
+                        latestId: 0
+                    };
+                }
+
+                senderData[sender].count++;
+                senderData[sender].latestId = Math.max(senderData[sender].latestId, messageId);
             });
 
-            // Update counts in sidebar
-            document.querySelectorAll('.sender-button').forEach(btn => {
-                const sender = btn.dataset.sender;
-                const countSpan = btn.querySelector('.message-count');
-
-                if (senderCounts[sender]) {
-                    countSpan.textContent = `(${senderCounts[sender]})`;
-                }
+            // Sort senders by latest message ID (most recent first)
+            const sortedSenders = Object.keys(senderData).sort((a, b) => {
+                return senderData[b].latestId - senderData[a].latestId;
             });
 
-            // Add new sender buttons if needed
-            Object.keys(senderCounts).forEach(sender => {
-                if (!document.querySelector(`[data-sender="${sender}"]`)) {
-                    const senderList = document.getElementById('sender-list');
-                    const newButton = document.createElement('button');
-                    newButton.className = 'sender-button';
-                    newButton.setAttribute('data-sender', sender);
-                    newButton.onclick = () => filterBySender(sender);
-                    newButton.innerHTML = `
-                        ${sender}
-                        <span class="message-count">(${senderCounts[sender]})</span>
-                    `;
-                    senderList.appendChild(newButton);
+            // Rebuild sender list in sorted order
+            const senderList = document.getElementById('sender-list');
+            senderList.innerHTML = '';
+
+            sortedSenders.forEach(sender => {
+                const newButton = document.createElement('button');
+                newButton.className = 'sender-button';
+
+                // Restore active state if this was the current sender
+                if (sender === currentSender) {
+                    newButton.classList.add('active');
                 }
+
+                newButton.setAttribute('data-sender', sender);
+                newButton.onclick = () => filterBySender(sender);
+                newButton.innerHTML = `
+                    ${sender}
+                    <span class="message-count">(${senderData[sender].count})</span>
+                `;
+
+                // Apply "has-new" class if this sender has new messages
+                if (sendersWithNewMessages.has(sender)) {
+                    newButton.classList.add('has-new');
+                }
+
+                senderList.appendChild(newButton);
             });
         }
 
@@ -569,12 +614,7 @@
         console.log('CHARON Inbox Mode - Real-time polling active');
     })();
 
-    // Initialize: filter messages by first sender on page load
-    window.addEventListener('DOMContentLoaded', function() {
-        if (currentSender) {
-            filterBySender(currentSender);
-        }
-    });
+    // Don't auto-select any sender on page load - user will click to view messages
     </script>
 </body>
 </html>

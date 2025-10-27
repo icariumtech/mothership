@@ -77,8 +77,23 @@ def display_view(request):
         recipients__isnull=True
     ).order_by('-created_at')[:50]
 
-    return render(request, 'terminal/display.html', {
-        'messages': all_messages
+    # Count messages per sender for sidebar
+    from django.db.models import Count
+    senders = {}
+    sender_counts = Message.objects.filter(
+        recipients__isnull=True
+    ).values('sender').annotate(count=Count('id')).order_by('sender')
+
+    for item in sender_counts:
+        senders[item['sender']] = item['count']
+
+    # Get first sender for initial display
+    first_sender = list(senders.keys())[0] if senders else ''
+
+    return render(request, 'terminal/display_inbox.html', {
+        'messages': all_messages,
+        'senders': senders,
+        'first_sender': first_sender
     })
 
 

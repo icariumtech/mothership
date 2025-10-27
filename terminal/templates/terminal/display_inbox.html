@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHARON TERMINAL - DISPLAY MODE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 255, 0, 0.03) 50%,
+                transparent 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        .flicker {
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+
+        .terminal-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            border: 3px solid #00ff00;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
+        }
+
+        .terminal-header {
+            border-bottom: 2px solid #00ff00;
+            padding: 20px 30px;
+            background-color: #001100;
+        }
+
+        .terminal-header h1 {
+            font-size: 28px;
+            letter-spacing: 4px;
+            margin-bottom: 5px;
+        }
+
+        .terminal-header .subtitle {
+            font-size: 12px;
+            color: #00cc00;
+        }
+
+        .terminal-header .timestamp {
+            font-size: 10px;
+            color: #008800;
+            margin-top: 3px;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 300px;
+            border-right: 2px solid #00ff00;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid #00ff00;
+            background-color: #001100;
+            font-size: 14px;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .sender-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .sender-button {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background-color: #001100;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .sender-button:hover {
+            background-color: #003300;
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .sender-button.active {
+            background-color: #00ff00;
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+        }
+
+        .sender-button .message-count {
+            float: right;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        /* Message Area Styles */
+        .message-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #000;
+        }
+
+        .message-area-header {
+            padding: 15px 30px;
+            border-bottom: 1px solid #004400;
+            background-color: #001100;
+        }
+
+        .message-area-header h2 {
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        .message {
+            border: 2px solid #00ff00;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #001100;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #004400;
+        }
+
+        .message-sender {
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-size: 16px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #00aa00;
+        }
+
+        .message-content {
+            white-space: pre-wrap;
+            line-height: 1.9;
+            font-size: 15px;
+        }
+
+        .priority-indicator {
+            display: inline-block;
+            padding: 3px 10px;
+            margin-left: 12px;
+            font-size: 10px;
+            border: 2px solid;
+            font-weight: bold;
+        }
+
+        .priority-LOW {
+            color: #008800;
+            border-color: #008800;
+        }
+
+        .priority-NORMAL {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        .priority-HIGH {
+            color: #ffff00;
+            border-color: #ffff00;
+            animation: pulse 1s infinite;
+        }
+
+        .priority-CRITICAL {
+            color: #ff0000;
+            border-color: #ff0000;
+            animation: pulse 0.5s infinite;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .no-messages {
+            text-align: center;
+            padding: 60px;
+            color: #006600;
+            font-size: 16px;
+        }
+
+        .blink {
+            animation: blink 1s step-start infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .new-message-alert {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background-color: #00ff00;
+            color: #000;
+            padding: 20px 35px;
+            font-weight: bold;
+            font-size: 16px;
+            letter-spacing: 3px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.9);
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .message.new-message {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+            border-left: 1px solid #004400;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #004400;
+            border: 1px solid #00ff00;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #006600;
+        }
+    </style>
+</head>
+<body class="flicker">
+    <div class="scanline"></div>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <h1>CHARON COMMUNICATIONS TERMINAL</h1>
+            <div class="subtitle">INBOX MODE - <span id="message-count">{{ messages|length }}</span> MESSAGE(S)</div>
+            <div class="timestamp" id="current-time"></div>
+        </div>
+
+        <div class="main-content">
+            <!-- Sidebar with sender list -->
+            <div class="sidebar">
+                <div class="sidebar-header">SENDERS</div>
+                <div class="sender-list" id="sender-list">
+                    {% for sender, count in senders.items %}
+                    <button class="sender-button{% if forloop.first %} active{% endif %}" data-sender="{{ sender }}" onclick="filterBySender('{{ sender }}')">
+                        {{ sender }}
+                        <span class="message-count">({{ count }})</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Message display area -->
+            <div class="message-area">
+                <div class="message-area-header">
+                    <h2 id="current-sender-title">MESSAGES FROM: {{ first_sender }}</h2>
+                </div>
+                <div class="messages-container" id="messages-container">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="message" data-message-id="{{ message.id }}" data-sender="{{ message.sender }}">
+                            <div class="message-header">
+                                <div>
+                                    <span class="message-sender">{{ message.sender }}</span>
+                                    <span class="priority-indicator priority-{{ message.priority }}">
+                                        {{ message.priority }}
+                                    </span>
+                                </div>
+                                <div class="message-time">
+                                    {{ message.created_at|date:"Y-m-d H:i:s" }} UTC
+                                </div>
+                            </div>
+                            <div class="message-content">{{ message.content }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-messages" id="no-messages">
+                            <p>&gt; NO NEW MESSAGES</p>
+                            <p>&gt; SYSTEM STANDBY</p>
+                            <p class="blink">&gt; _</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Initialize with first sender
+    let currentSender = '{{ first_sender }}';
+
+    // Update current time display
+    function updateTime() {
+        const now = new Date();
+        const timeStr = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        document.getElementById('current-time').textContent = timeStr;
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // Filter messages by sender
+    function filterBySender(sender) {
+        currentSender = sender;
+
+        // Update button states
+        document.querySelectorAll('.sender-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-sender="${sender}"]`).classList.add('active');
+
+        // Update header
+        const title = `MESSAGES FROM: ${sender}`;
+        document.getElementById('current-sender-title').textContent = title;
+
+        // Filter messages
+        const messages = document.querySelectorAll('.message');
+        let visibleCount = 0;
+
+        messages.forEach(msg => {
+            if (msg.dataset.sender === sender) {
+                msg.style.display = 'block';
+                visibleCount++;
+            } else {
+                msg.style.display = 'none';
+            }
+        });
+
+        // Show/hide no messages indicator
+        const noMessages = document.getElementById('no-messages');
+        if (visibleCount === 0 && !noMessages) {
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.innerHTML = `
+                <div class="no-messages" id="no-messages">
+                    <p>&gt; NO MESSAGES FROM ${sender}</p>
+                    <p>&gt; SYSTEM STANDBY</p>
+                    <p class="blink">&gt; _</p>
+                </div>
+            `;
+        } else if (visibleCount > 0 && noMessages) {
+            noMessages.remove();
+        }
+    }
+
+    // Real-time message polling
+    (function() {
+        let latestMessageId = {{ messages.0.id|default:0 }};
+        const pollInterval = 3000;
+
+        function checkForNewMessages() {
+            fetch('/terminal/api/messages/?since=' + latestMessageId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.count > 0) {
+                        showNewMessageAlert(data.count);
+                        addNewMessages(data.messages);
+
+                        if (data.messages.length > 0) {
+                            latestMessageId = Math.max(...data.messages.map(m => m.id));
+                        }
+
+                        updateMessageCount();
+                        updateSenderList();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking for messages:', error);
+                });
+        }
+
+        function showNewMessageAlert(count) {
+            const existingAlert = document.querySelector('.new-message-alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+
+            const alert = document.createElement('div');
+            alert.className = 'new-message-alert';
+            alert.textContent = `NEW MESSAGE${count > 1 ? 'S' : ''} RECEIVED`;
+            document.body.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 4000);
+        }
+
+        function addNewMessages(messages) {
+            const container = document.getElementById('messages-container');
+            const noMessagesDiv = document.getElementById('no-messages');
+
+            if (noMessagesDiv) {
+                noMessagesDiv.remove();
+            }
+
+            messages.reverse().forEach(msg => {
+                const messageDiv = createMessageElement(msg);
+
+                // Only show if matches current filter
+                if (msg.sender !== currentSender) {
+                    messageDiv.style.display = 'none';
+                }
+
+                container.insertBefore(messageDiv, container.firstChild);
+            });
+        }
+
+        function createMessageElement(msg) {
+            const div = document.createElement('div');
+            div.className = 'message new-message';
+            div.setAttribute('data-message-id', msg.id);
+            div.setAttribute('data-sender', msg.sender);
+
+            div.innerHTML = `
+                <div class="message-header">
+                    <div>
+                        <span class="message-sender">${escapeHtml(msg.sender)}</span>
+                        <span class="priority-indicator priority-${msg.priority}">
+                            ${msg.priority}
+                        </span>
+                    </div>
+                    <div class="message-time">
+                        ${msg.created_at} UTC
+                    </div>
+                </div>
+                <div class="message-content">${escapeHtml(msg.content)}</div>
+            `;
+
+            return div;
+        }
+
+        function updateMessageCount() {
+            const visibleMessages = document.querySelectorAll('.message[style*="display: block"], .message:not([style*="display: none"])').length;
+            document.getElementById('message-count').textContent = visibleMessages;
+        }
+
+        function updateSenderList() {
+            // Count messages per sender
+            const senderCounts = {};
+            document.querySelectorAll('.message').forEach(msg => {
+                const sender = msg.dataset.sender;
+                senderCounts[sender] = (senderCounts[sender] || 0) + 1;
+            });
+
+            // Update counts in sidebar
+            document.querySelectorAll('.sender-button').forEach(btn => {
+                const sender = btn.dataset.sender;
+                const countSpan = btn.querySelector('.message-count');
+
+                if (senderCounts[sender]) {
+                    countSpan.textContent = `(${senderCounts[sender]})`;
+                }
+            });
+
+            // Add new sender buttons if needed
+            Object.keys(senderCounts).forEach(sender => {
+                if (!document.querySelector(`[data-sender="${sender}"]`)) {
+                    const senderList = document.getElementById('sender-list');
+                    const newButton = document.createElement('button');
+                    newButton.className = 'sender-button';
+                    newButton.setAttribute('data-sender', sender);
+                    newButton.onclick = () => filterBySender(sender);
+                    newButton.innerHTML = `
+                        ${sender}
+                        <span class="message-count">(${senderCounts[sender]})</span>
+                    `;
+                    senderList.appendChild(newButton);
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        setInterval(checkForNewMessages, pollInterval);
+        console.log('CHARON Inbox Mode - Real-time polling active');
+    })();
+
+    // Initialize: filter messages by first sender on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        if (currentSender) {
+            filterBySender(currentSender);
+        }
+    });
+    </script>
+</body>
+</html>

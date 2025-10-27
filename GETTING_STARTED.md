@@ -30,7 +30,7 @@ Log in with the superuser credentials you just created.
 
 1. Navigate to the **GM Console** at http://127.0.0.1:8000/terminal/gm/
 2. Fill out the form:
-   - **Sender**: "MU-TH-UR 6000" (or customize it!)
+   - **Sender**: "CHARON" (or customize it!)
    - **Priority**: Choose from LOW, NORMAL, HIGH, or CRITICAL
    - **Message**: Write your atmospheric message
 
@@ -98,7 +98,7 @@ python manage.py createsuperuser  # For another GM
 
 ### Sender Name Ideas
 
-- MU-TH-UR 6000 (ship computer)
+- CHARON (ship computer)
 - STATION CONTROL
 - WEYLAND-YUTANI CORP
 - EMERGENCY SYSTEMS

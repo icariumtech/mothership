@@ -1,6 +1,6 @@
 # Mothership RPG - Game Master Terminal
 
-A retro-futuristic web application for game masters running Mothership RPG campaigns. Features an atmospheric terminal interface inspired by the MU-TH-UR computer from Aliens.
+A retro-futuristic web application for game masters running Mothership RPG campaigns. Features an atmospheric terminal interface inspired by the CHARON computer from Aliens.
 
 ## Features
 
@@ -57,7 +57,7 @@ Visit http://127.0.0.1:8000/terminal/ to access the terminal locally!
 1. Log in at http://127.0.0.1:8000/accounts/login/
 2. Navigate to the GM Console at http://127.0.0.1:8000/terminal/gm/
 3. Compose and send messages to players with customizable:
-   - Sender name (e.g., "MU-TH-UR 6000", "Station Control", "Ship AI")
+   - Sender name (e.g., "CHARON", "Station Control", "Ship AI")
    - Priority level (LOW, NORMAL, HIGH, CRITICAL)
    - Message content
 

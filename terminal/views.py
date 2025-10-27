@@ -30,7 +30,7 @@ def gm_console(request):
     GM interface for sending messages to players.
     """
     if request.method == 'POST':
-        sender = request.POST.get('sender', 'MU-TH-UR 6000')
+        sender = request.POST.get('sender', 'CHARON')
         content = request.POST.get('content')
         priority = request.POST.get('priority', 'NORMAL')
 

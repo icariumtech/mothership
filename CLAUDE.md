@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This tool is developed collaboratively between the game master and Claude Code. The web app provides players with:
 
 1. **Campaign Tracking**: Track player characters, missions, ship status, resources, and campaign progress
-2. **Atmospheric Messaging System**: Send in-character messages to players styled like the iconic MU-TH-UR computer from Aliens - creating immersive communication from ship computers, stations, or AI systems
+2. **Atmospheric Messaging System**: Send in-character messages to players styled like the iconic CHARON computer from Aliens - creating immersive communication from ship computers, stations, or AI systems
 3. **Universe Map**: Interactive visualization of the universe/sector the players are exploring, showing systems, stations, points of interest, and travel routes
 4. **Session Management**: Track sessions, notes, and story developments
 
@@ -40,7 +40,7 @@ This is a Python web application for game masters and players of Mothership RPG.
 
 ### Frontend
 - Interactive universe map visualization
-- Atmospheric computer terminal-style messaging interface (Aliens MU-TH-UR inspired)
+- Atmospheric computer terminal-style messaging interface (Aliens CHARON inspired)
 - Campaign dashboard for tracking characters, missions, and resources
 - Real-time updates for player notifications
 

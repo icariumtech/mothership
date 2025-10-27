@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 class Message(models.Model):
     """
     Terminal messages sent from ship/station AI to crew members.
-    Inspired by the MU-TH-UR computer system from Aliens.
+    CHARON system - ferryman between the living and the void.
     """
     PRIORITY_CHOICES = [
         ('LOW', 'Low Priority'),
@@ -16,7 +16,7 @@ class Message(models.Model):
 
     sender = models.CharField(
         max_length=100,
-        default='MU-TH-UR 6000',
+        default='CHARON',
         help_text='Name of the ship/station AI system'
     )
     content = models.TextField(

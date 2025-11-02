@@ -48,14 +48,16 @@ The script will display URLs for local and network access!
 - Share the network URL with your players (e.g., `http://192.168.1.100:8000/terminal/`)
 - See [NETWORK_ACCESS.md](NETWORK_ACCESS.md) for detailed instructions
 
-Visit http://127.0.0.1:8000/terminal/ to access the terminal locally!
+Visit the terminal:
+- **Shared Terminal** (no login): http://127.0.0.1:8000/terminal/
+- **Personal Messages** (requires login): http://127.0.0.1:8000/messages/
 
 ## Usage
 
 ### For Game Masters
 
 1. Log in at http://127.0.0.1:8000/accounts/login/
-2. Navigate to the GM Console at http://127.0.0.1:8000/terminal/gm/
+2. Navigate to the GM Console at http://127.0.0.1:8000/gmconsole/
 3. Compose and send messages to players with customizable:
    - Sender name (e.g., "CHARON", "Station Control", "Ship AI")
    - Priority level (LOW, NORMAL, HIGH, CRITICAL)
@@ -63,9 +65,13 @@ Visit http://127.0.0.1:8000/terminal/ to access the terminal locally!
 
 ### For Players
 
-1. Log in with player credentials
-2. View messages at http://127.0.0.1:8000/terminal/
-3. Messages display with atmospheric terminal styling
+View messages at:
+- **Shared Terminal** (no login required): http://127.0.0.1:8000/terminal/ - for broadcast messages to everyone
+- **Personal Messages** (requires login): http://127.0.0.1:8000/messages/ - for individual character messages
+
+Messages display with atmospheric terminal styling including CRT effects and priority indicators.
+
+**Recommended**: Use the shared terminal URL on a display at the gaming table for everyone to see!
 
 ### Admin Panel
 

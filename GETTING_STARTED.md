@@ -21,14 +21,15 @@ The script will:
 ### Step 2: Access the Terminal
 
 Once the server is running, open your browser and go to:
-- **Terminal**: http://127.0.0.1:8000/terminal/
+- **Shared Terminal** (no login required): http://127.0.0.1:8000/terminal/
+- **Personal Messages** (requires login): http://127.0.0.1:8000/messages/
 - **Login**: http://127.0.0.1:8000/accounts/login/
 
-Log in with the superuser credentials you just created.
+For the GM Console and admin panel, log in with the superuser credentials you just created.
 
 ### Step 3: Send Your First Message
 
-1. Navigate to the **GM Console** at http://127.0.0.1:8000/terminal/gm/
+1. Navigate to the **GM Console** at http://127.0.0.1:8000/gmconsole/
 2. Fill out the form:
    - **Sender**: "CHARON" (or customize it!)
    - **Priority**: Choose from LOW, NORMAL, HIGH, or CRITICAL
@@ -54,11 +55,17 @@ SPECIAL ORDER 937 IN EFFECT
 
 ### Step 4: View Messages as a Player
 
-Navigate to http://127.0.0.1:8000/terminal/ to see your messages displayed in the retro terminal interface with:
+Navigate to:
+- **http://127.0.0.1:8000/terminal/** (shared display, no login required) - for all broadcast messages
+- **http://127.0.0.1:8000/messages/** (personal messages, requires login) - for individual player character messages
+
+Messages are displayed in a retro terminal interface with:
 - Green monospaced text on black background
 - CRT scanline effects
 - Screen flicker animation
 - Priority indicators that pulse for urgent messages
+
+**Tip**: Use `/terminal/` on a shared screen at the table that all players can see without logging in!
 
 ## Creating Player Accounts
 

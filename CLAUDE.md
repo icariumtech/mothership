@@ -26,47 +26,102 @@ The goal is to create an engaging, atmospheric tool that enhances the tension an
 
 ## Current Structure
 ```
-mothership/
-├── .claude/                 # Claude Code configuration
-│   └── settings.local.json  # Local settings (git-restricted bash)
-├── .gitignore              # Comprehensive Python project patterns
-├── LICENSE                 # MIT License
-└── README.md              # Project documentation
+charon/
+├── .claude/                     # Claude Code configuration
+├── data/                        # Campaign data (file-based)
+│   └── locations/               # Location hierarchy
+│       └── {location_slug}/
+│           ├── location.yaml    # Location metadata
+│           ├── maps/            # Encounter maps
+│           └── comms/           # Communication terminals
+│               └── {terminal_slug}/
+│                   ├── terminal.yaml
+│                   ├── inbox/   # Received messages (by sender)
+│                   └── sent/    # Sent messages (by recipient)
+├── mothership_gm/              # Django project settings
+├── terminal/                   # Main Django app
+│   ├── models.py              # Message, ActiveView
+│   ├── views.py               # Terminal displays
+│   ├── data_loader.py         # File-based data loading
+│   ├── management/commands/   # Django commands
+│   └── templates/             # HTML templates
+├── db.sqlite3                 # Development database
+├── manage.py                  # Django management
+└── requirements.txt           # Python dependencies
 ```
 
-## Intended Architecture
+## Implemented Architecture
 
-This is a Python web application for game masters and players of Mothership RPG. The architecture should support:
+This is a Django-based web application implementing a multi-view terminal system:
 
-### Frontend
-- Interactive universe map visualization
-- Atmospheric computer terminal-style messaging interface (Aliens CHARON inspired)
-- Campaign dashboard for tracking characters, missions, and resources
-- Real-time updates for player notifications
+### Multi-View Terminal System (Implemented)
 
-### Backend
-- **Web Framework**: Django or Flask for serving the application
-- RESTful API for game state management
-- Database for storing campaigns, characters, ships, locations, and sessions
-- WebSocket support for real-time messaging to players
+The application supports multiple view types that can be displayed on a shared terminal:
 
-### Key Features to Implement
-1. **Player Character Management**: Stats, stress, inventory, conditions
-2. **Ship/Base Tracking**: Ship systems, crew, resources, damage
-3. **Mission/Quest Log**: Active missions, objectives, completed tasks
-4. **Computer Messaging System**: Styled terminal messages with retro-futuristic aesthetic
-5. **Universe Map**: Star systems, stations, travel routes, points of interest
-6. **Session Notes**: GM notes, important events, NPC tracking
-7. **Dice Roller**: Quick reference for Mothership dice mechanics
+**View Types:**
+1. **Broadcast Messages** (`MESSAGES`) - Traditional broadcast message system
+2. **Communication Terminals** (`COMM_TERMINAL`) - NPC terminal message logs with inbox/sent
+3. **Encounter Maps** (`ENCOUNTER_MAP`) - Tactical maps for combat scenarios
+4. **Ship Dashboard** (`SHIP_DASHBOARD`) - Ship status and systems display
+
+**Key Design Decisions:**
+- **File-based data storage**: Campaign data stored as markdown files with YAML frontmatter
+- **On-demand loading**: Data loaded from disk when needed (no DB sync required)
+- **Conversation threading**: Messages linked via `conversation_id` and `in_reply_to`
+- **Inbox/Sent structure**: Terminals organize messages by direction and contact
+- **ActiveView singleton**: Database tracks only which view is currently displayed
+
+### Data Loading System
+
+**DataLoader** (`terminal/data_loader.py`):
+- Parses location hierarchy from `data/locations/`
+- Loads terminal messages with YAML frontmatter
+- Groups messages by conversation
+- Builds conversation threads
+- No database sync needed
+
+**Message Format** (Markdown with YAML):
+```yaml
+---
+timestamp: "2183-06-15 03:52:00"
+priority: "CRITICAL"
+subject: "Containment Failure"
+from: "Dr. Sarah Chen"
+to: "Commander Drake"
+message_id: "msg_chen_003"
+conversation_id: "conv_lab_incident_001"
+in_reply_to: "msg_drake_002"
+read: false
+---
+
+Message content here...
+```
 
 ### Technical Stack
-- **Web Framework**: Django and/or Flask applications
-- **Package Management**: Support for pip, pipenv, poetry, pdm, and UV
-- **Testing Infrastructure**: pytest, tox, nox
-- **Type Checking**: mypy, pyre, pytype
-- **Linting**: Ruff
-- **Frontend**: HTML/CSS/JavaScript (potentially with HTMX for dynamic updates)
-- **Database**: SQLite for development, PostgreSQL for production
+- **Web Framework**: Django 5.2.7
+- **Database**: SQLite (stores ActiveView state and broadcast Messages only)
+- **Data Storage**: File-based (YAML + Markdown)
+- **Dependencies**: PyYAML for data parsing
+- **Frontend**: HTML/CSS with retro terminal styling
+- **Package Management**: pip + requirements.txt
+
+### Implemented Features
+✓ **Broadcast Messaging**: GM sends messages to all players via `/gmconsole/`
+✓ **Shared Terminal**: Public display at `/terminal/` (no login)
+✓ **Personal Messages**: Player-specific messages at `/messages/` (login required)
+✓ **File-based Campaigns**: Location/terminal data loaded from disk
+✓ **Conversation Threading**: Messages organized into conversational threads
+✓ **CHARON Integration**: Station AI system for automated notifications
+✓ **Multi-terminal Support**: Each location can have multiple terminals
+
+### Features To Implement
+- [ ] View switching UI in GM console
+- [ ] Terminal display renderer (conversation view)
+- [ ] Encounter map renderer
+- [ ] Ship dashboard display
+- [ ] API endpoints for real-time view updates
+- [ ] Player character management
+- [ ] Session tracking
 
 ## Development Environment
 - Python virtual environments (`.venv/`, `env/`, `venv/`)
@@ -151,11 +206,122 @@ This is a Python web application for game masters and players of Mothership RPG.
 
 # Data Models
 
-*No data models currently implemented.*
+## Implemented Models (Database)
 
-## Planned Data Models for Mothership RPG
+### ActiveView (Singleton)
+Tracks which view the shared terminal is currently displaying.
 
-The application will need the following core models:
+```python
+class ActiveView(models.Model):
+    location_slug = CharField  # e.g., "research_base_alpha"
+    view_type = CharField       # MESSAGES, COMM_TERMINAL, ENCOUNTER_MAP, SHIP_DASHBOARD
+    view_slug = CharField       # e.g., "commanders_terminal"
+    updated_at = DateTimeField
+    updated_by = ForeignKey(User)
+```
+
+### Message (Broadcast System)
+Traditional broadcast messages sent by GM to all players.
+
+```python
+class Message(models.Model):
+    sender = CharField          # e.g., "CHARON"
+    content = TextField
+    priority = CharField        # LOW, NORMAL, HIGH, CRITICAL
+    created_at = DateTimeField
+    created_by = ForeignKey(User)
+    recipients = ManyToManyField(User)  # Empty = all players
+    is_read = BooleanField
+```
+
+## File-Based Data Models
+
+Campaign data is stored as files, not in the database. The structure is:
+
+### Location (YAML File)
+`data/locations/{location_slug}/location.yaml`
+
+```yaml
+name: "Research Base Alpha"
+type: "station"  # station, ship, planet, asteroid, derelict
+description: "Remote research facility"
+coordinates: "39.47.36 N / 116.23.40 W"
+status: "OPERATIONAL"
+```
+
+### Terminal (YAML File)
+`data/locations/{location_slug}/comms/{terminal_slug}/terminal.yaml`
+
+```yaml
+owner: "Commander Drake"
+terminal_id: "CMD-001"
+access_level: "CLASSIFIED"  # PUBLIC, RESTRICTED, CLASSIFIED
+description: "Command center main terminal"
+```
+
+### Terminal Messages (Markdown Files)
+`data/locations/{location_slug}/comms/{terminal_slug}/inbox|sent/{contact_slug}/{filename}.md`
+
+Messages use markdown with YAML frontmatter:
+```markdown
+---
+timestamp: "2183-06-15 03:52:00"
+priority: "CRITICAL"
+subject: "Containment Failure"
+from: "Dr. Sarah Chen"
+to: "Commander Drake"
+message_id: "msg_chen_003"
+conversation_id: "conv_lab_incident_001"
+in_reply_to: "msg_drake_002"
+read: false
+---
+
+Message content in markdown...
+```
+
+**Key Fields:**
+- `message_id`: Unique identifier for this message
+- `conversation_id`: Groups related messages into threads
+- `in_reply_to`: Links to previous message in conversation
+- `from`/`to`: Sender and recipient
+- `folder` (auto-added): `inbox` or `sent`
+- `contact` (auto-added): Directory name (who the message is from/to)
+
+### Encounter Maps (Future)
+`data/locations/{location_slug}/maps/{map_slug}.yaml`
+
+```yaml
+name: "Main Facility"
+location_name: "Research Base Alpha - Main Level"
+image_path: "maps/main_facility.png"
+grid_size_x: 20
+grid_size_y: 20
+```
+
+## Data Access Pattern
+
+**Load on demand, don't sync to database:**
+
+```python
+from terminal.data_loader import load_location, build_conversation_thread
+
+# Load location data from disk
+location = load_location('research_base_alpha')
+
+# Access terminals
+for terminal in location['terminals']:
+    # terminal has 'inbox', 'sent', and 'messages' (combined)
+
+# Build conversation thread
+thread = build_conversation_thread(
+    terminal['messages'],
+    'conv_lab_incident_001'
+)
+```
+
+## Future Models (Database)
+
+When implementing character/campaign tracking:
 
 ### Campaign Management
 - **Campaign**: Campaign name, description, current date/time, active status
@@ -165,28 +331,8 @@ The application will need the following core models:
 - **Character**: Name, class, stats (strength, speed, intellect, combat), stress, health, saves, skills, loadout
 - **NPC**: Similar to Character but with GM-only notes and relationship tracking
 
-### Ships & Locations
+### Ships & Locations (if DB-backed)
 - **Ship**: Name, class, hull points, systems status, crew capacity, cargo
-- **Location**: Star system, station, planet, or POI with description and coordinates
-- **UniverseMap**: Visual map data, connections between locations, travel times
-
-### Missions & Story
-- **Mission**: Title, description, objectives, status, rewards
-- **Objective**: Individual mission goals, completion status
-- **Event**: Story events, encounters, discoveries with timestamps
-
-### Messaging System
-- **Message**: Computer-generated message content, sender (ship/station AI), recipients (players/crew), timestamp, priority level, read status
-- **MessageTemplate**: Reusable message formats for common ship/station communications
-
-### Best Practices
-- **Django**: Define models in `models.py` with clear field types and relationships
-- **Flask**: Use SQLAlchemy ORM for database interactions
-- Follow database normalization principles
-- Add appropriate indexes for query performance (especially for Campaign and Session lookups)
-- Use foreign keys to link Characters to Campaigns, Messages to Recipients, etc.
-- Document model relationships and constraints
-- Include created_at/updated_at timestamps for audit trails
 
 # Configuration, Security, and Authentication
 

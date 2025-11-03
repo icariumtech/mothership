@@ -1,0 +1,5 @@
+name: "Research Base Alpha"
+type: "station"
+description: "Remote research facility studying xenobiological specimens"
+coordinates: "39.47.36 N / 116.23.40 W"
+status: "OPERATIONAL"

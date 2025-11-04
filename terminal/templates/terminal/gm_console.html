@@ -7,11 +7,169 @@
 
 {% block extra_css %}
 <style>
+    .console-layout {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 20px !important;
+        margin-top: 20px;
+        width: 100%;
+    }
+
+    /* Location Tree Sidebar */
+    .location-browser {
+        border: 1px solid #00ff00;
+        padding: 12px;
+        background-color: #001100;
+        max-height: calc(100vh - 250px);
+        overflow-y: auto;
+        width: 280px;
+        flex-shrink: 0;
+    }
+
+    .location-browser h3 {
+        color: #00ff00;
+        font-size: 13px;
+        letter-spacing: 2px;
+        margin: 0 0 12px 0;
+        border-bottom: 1px solid #004400;
+        padding-bottom: 5px;
+    }
+
+    /* Tree View Styles */
+    .tree-view {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .tree-location {
+        margin-bottom: 8px;
+    }
+
+    .location-header {
+        display: flex;
+        align-items: center;
+        padding: 6px 8px;
+        background-color: #002200;
+        border: 1px solid #004400;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 2px;
+    }
+
+    .location-header:hover {
+        background-color: #003300;
+        border-color: #00ff00;
+    }
+
+    .location-header.active {
+        background-color: #004400;
+        border-color: #00ff00;
+    }
+
+    .location-toggle {
+        color: #00ff00;
+        margin-right: 8px;
+        font-size: 10px;
+        width: 12px;
+        display: inline-block;
+    }
+
+    .location-name {
+        color: #00ff00;
+        font-size: 12px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        flex-grow: 1;
+    }
+
+    .terminal-list {
+        list-style: none;
+        padding-left: 20px;
+        margin: 0;
+        display: none;
+    }
+
+    .terminal-list.expanded {
+        display: block;
+    }
+
+    .terminal-item {
+        padding: 5px 8px;
+        margin: 2px 0;
+        background-color: #001100;
+        border-left: 2px solid #004400;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .terminal-item:hover {
+        background-color: #002200;
+        border-left-color: #00ff00;
+    }
+
+    .terminal-item.active {
+        background-color: #00ff00;
+        border-left-color: #00ff00;
+    }
+
+    .terminal-item.active .terminal-name,
+    .terminal-item.active .terminal-owner {
+        color: #000;
+    }
+
+    .terminal-name {
+        color: #00ff00;
+        font-size: 11px;
+        display: block;
+    }
+
+    .terminal-owner {
+        color: #008800;
+        font-size: 9px;
+        display: block;
+        margin-top: 2px;
+    }
+
+    /* Main Console Area */
+    .console-main {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .active-view-info {
+        border: 1px solid #00ff00;
+        padding: 12px 15px;
+        background-color: #001100;
+    }
+
+    .active-view-info h3 {
+        color: #00ff00;
+        font-size: 11px;
+        letter-spacing: 2px;
+        margin: 0 0 8px 0;
+    }
+
+    .active-view-info p {
+        color: #00aa00;
+        font-size: 10px;
+        margin: 3px 0;
+    }
+
     .console-form {
         border: 1px solid #00ff00;
-        padding: 20px;
-        margin-bottom: 30px;
+        padding: 15px;
         background-color: #001100;
+    }
+
+    .console-form h2 {
+        margin: 0 0 15px 0;
+        font-size: 14px;
+        letter-spacing: 2px;
+        color: #00ff00;
     }
 
     .form-group {
@@ -47,7 +205,7 @@
     }
 
     textarea {
-        min-height: 150px;
+        min-height: 100px;
         resize: vertical;
     }
 
@@ -70,7 +228,7 @@
     }
 
     .recent-messages {
-        margin-top: 30px;
+        margin-top: 0;
     }
 
     .recent-messages h2 {
@@ -119,50 +277,158 @@
     {% endfor %}
 {% endif %}
 
-<div class="console-form">
-    <form method="post">
-        {% csrf_token %}
+<div class="console-layout" style="display: flex !important; flex-direction: row !important; gap: 20px; width: 100%;">
+    <!-- Location Tree Sidebar -->
+    <div class="location-browser" style="width: 280px; flex-shrink: 0;">
+        <h3>LOCATIONS</h3>
 
-        <div class="form-group">
-            <label for="sender">SENDER IDENTIFICATION:</label>
-            <input type="text" id="sender" name="sender" value="CHARON" placeholder="System name...">
+        <ul class="tree-view">
+            <!-- Campaign Locations -->
+            {% for location in locations %}
+            <li class="tree-location">
+                <div class="location-header {% if active_view.location_slug == location.slug %}active{% endif %}"
+                     onclick="toggleLocation('{{ location.slug }}'); selectLocation('{{ location.slug }}');">
+                    <span class="location-toggle" id="toggle-{{ location.slug }}">▶</span>
+                    <span class="location-name">{{ location.name|upper }}</span>
+                </div>
+
+                <ul class="terminal-list" id="terminals-{{ location.slug }}">
+                    {% for terminal in location.terminals %}
+                    <li class="terminal-item {% if active_view.view_type == 'COMM_TERMINAL' and active_view.view_slug == terminal.slug %}active{% endif %}"
+                        onclick="event.stopPropagation(); selectTerminal('{{ location.slug }}', '{{ terminal.slug }}');">
+                        <span class="terminal-name">{{ terminal.terminal_id|default:terminal.slug|upper }}</span>
+                        <span class="terminal-owner">{{ terminal.owner }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Main Console Area -->
+    <div class="console-main" style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+        <!-- Active View Info -->
+        <div class="active-view-info">
+            <h3>ACTIVE DISPLAY VIEW</h3>
+            {% if active_view.location_slug %}
+                {% for location in locations %}
+                    {% if location.slug == active_view.location_slug %}
+                        <p>&gt; LOCATION: {{ location.name|upper }}</p>
+                    {% endif %}
+                {% endfor %}
+                {% if active_view.view_type == 'COMM_TERMINAL' and active_view.view_slug %}
+                    <p>&gt; TERMINAL: {{ active_view.view_slug|upper }}</p>
+                {% elif active_view.view_type == 'ENCOUNTER_MAP' and active_view.view_slug %}
+                    <p>&gt; MAP: {{ active_view.view_slug|upper }}</p>
+                {% else %}
+                    <p>&gt; VIEW: LOCATION OVERVIEW</p>
+                {% endif %}
+            {% else %}
+                <p>&gt; No location selected</p>
+            {% endif %}
+            <p>&gt; UPDATED: {{ active_view.updated_at|date:"Y-m-d H:i:s" }}</p>
         </div>
 
-        <div class="form-group">
-            <label for="priority">PRIORITY LEVEL:</label>
-            <select id="priority" name="priority">
-                <option value="LOW">LOW</option>
-                <option value="NORMAL" selected>NORMAL</option>
-                <option value="HIGH">HIGH</option>
-                <option value="CRITICAL">CRITICAL</option>
-            </select>
-        </div>
+        <!-- Broadcast Message Form -->
+        <div class="console-form">
+            <h2>BROADCAST MESSAGE</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="send_message" value="1">
 
-        <div class="form-group">
-            <label for="content">MESSAGE CONTENT:</label>
-            <textarea id="content" name="content" placeholder="Enter message to broadcast to crew..." required></textarea>
-        </div>
+                <div class="form-group">
+                    <label for="sender">SENDER:</label>
+                    <input type="text" id="sender" name="sender" value="CHARON" placeholder="System name...">
+                </div>
 
-        <button type="submit">TRANSMIT MESSAGE</button>
-    </form>
+                <div class="form-group">
+                    <label for="priority">PRIORITY:</label>
+                    <select id="priority" name="priority">
+                        <option value="LOW">LOW</option>
+                        <option value="NORMAL" selected>NORMAL</option>
+                        <option value="HIGH">HIGH</option>
+                        <option value="CRITICAL">CRITICAL</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="content">MESSAGE:</label>
+                    <textarea id="content" name="content" placeholder="Enter broadcast message..." required></textarea>
+                </div>
+
+                <button type="submit">TRANSMIT</button>
+            </form>
+        </div>
+    </div>
 </div>
 
-<div class="recent-messages">
-    <h2>RECENT TRANSMISSIONS</h2>
-    {% if recent_messages %}
-        {% for msg in recent_messages %}
-        <div class="message-preview">
-            <div class="message-preview-header">
-                <span>[{{ msg.priority }}] {{ msg.sender }}</span>
-                <span>{{ msg.created_at|date:"Y-m-d H:i" }}</span>
-            </div>
-            <div class="message-preview-content">
-                {{ msg.content|truncatewords:20 }}
-            </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p>&gt; NO MESSAGES SENT YET</p>
-    {% endif %}
-</div>
+<script>
+// Toggle location tree expansion
+function toggleLocation(locationSlug) {
+    const terminalList = document.getElementById('terminals-' + locationSlug);
+    const toggle = document.getElementById('toggle-' + locationSlug);
+
+    if (terminalList.classList.contains('expanded')) {
+        terminalList.classList.remove('expanded');
+        toggle.textContent = '▶';
+    } else {
+        terminalList.classList.add('expanded');
+        toggle.textContent = '▼';
+    }
+}
+
+// Select a location (shows map or location overview)
+function selectLocation(locationSlug) {
+    // When selecting a location, show the map if available, otherwise location overview
+    submitViewSwitch(locationSlug, 'ENCOUNTER_MAP', '');  // Will update this to check for maps
+}
+
+// Select a terminal within a location
+function selectTerminal(locationSlug, terminalSlug) {
+    submitViewSwitch(locationSlug, 'COMM_TERMINAL', terminalSlug);
+}
+
+// Submit the view switch form
+function submitViewSwitch(locationSlug, viewType, viewSlug) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '';
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const fields = {
+        'csrfmiddlewaretoken': csrfToken,
+        'switch_view': '1',
+        'location_slug': locationSlug,
+        'view_type': viewType,
+        'view_slug': viewSlug
+    };
+
+    for (const [name, value] of Object.entries(fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Expand the active location on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const activeLocation = document.querySelector('.location-header.active');
+    if (activeLocation) {
+        const locationSlug = activeLocation.getAttribute('onclick').match(/toggleLocation\('([^']+)'\)/)[1];
+        const terminalList = document.getElementById('terminals-' + locationSlug);
+        const toggle = document.getElementById('toggle-' + locationSlug);
+        if (terminalList && toggle) {
+            terminalList.classList.add('expanded');
+            toggle.textContent = '▼';
+        }
+    }
+});
+</script>
 {% endblock %}

@@ -27,9 +27,25 @@ def terminal_view(request):
 @login_required
 def gm_console(request):
     """
-    GM interface for sending messages to players.
+    GM interface for sending messages to players and managing active view.
     """
-    if request.method == 'POST':
+    from terminal.data_loader import load_all_locations
+    from terminal.models import ActiveView
+
+    # Handle view switching POST
+    if request.method == 'POST' and 'switch_view' in request.POST:
+        active_view = ActiveView.get_current()
+        active_view.location_slug = request.POST.get('location_slug', '')
+        active_view.view_type = request.POST.get('view_type', 'MESSAGES')
+        active_view.view_slug = request.POST.get('view_slug', '')
+        active_view.updated_by = request.user
+        active_view.save()
+
+        django_messages.success(request, f'Active view switched to {active_view.get_view_type_display()}')
+        return redirect('gm_console')
+
+    # Handle broadcast message POST
+    if request.method == 'POST' and 'send_message' in request.POST:
         sender = request.POST.get('sender', 'CHARON')
         content = request.POST.get('content')
         priority = request.POST.get('priority', 'NORMAL')
@@ -48,10 +64,18 @@ def gm_console(request):
             django_messages.success(request, 'Message sent to all players!')
             return redirect('gm_console')
 
+    # Load all campaign data
+    locations = load_all_locations()
+
+    # Get current active view
+    active_view = ActiveView.get_current()
+
     recent_messages = Message.objects.all()[:20]
 
     return render(request, 'terminal/gm_console.html', {
-        'recent_messages': recent_messages
+        'recent_messages': recent_messages,
+        'locations': locations,
+        'active_view': active_view,
     })
 
 

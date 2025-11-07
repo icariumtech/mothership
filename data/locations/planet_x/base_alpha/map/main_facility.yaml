@@ -1,0 +1,5 @@
+name: "Main Facility"
+location_name: "Base Alpha - Main Level"
+description: "Primary mining operations floor"
+grid_size_x: 30
+grid_size_y: 20

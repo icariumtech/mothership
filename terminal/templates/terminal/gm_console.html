@@ -22,7 +22,7 @@
         background-color: #001100;
         max-height: calc(100vh - 250px);
         overflow-y: auto;
-        width: 280px;
+        width: 380px;
         flex-shrink: 0;
     }
 
@@ -42,50 +42,169 @@
         margin: 0;
     }
 
-    .tree-location {
-        margin-bottom: 8px;
+    .tree-item {
+        position: relative;
+        margin: 0;
     }
 
-    .location-header {
+    /* Tree visual connectors */
+    .tree-item::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: #004400;
+    }
+
+    .tree-item:last-child::before {
+        bottom: 50%;
+    }
+
+    .tree-root > .tree-item::before {
+        display: none;
+    }
+
+    /* Location styling */
+    .location-row {
         display: flex;
         align-items: center;
-        padding: 6px 8px;
-        background-color: #002200;
+        padding: 0;
+        margin: 4px 0;
+        position: relative;
         border: 1px solid #004400;
-        cursor: pointer;
+        background-color: #000;
         transition: all 0.2s;
-        margin-bottom: 2px;
     }
 
-    .location-header:hover {
-        background-color: #003300;
+    .location-row.displaying {
         border-color: #00ff00;
+        background-color: #001100;
     }
 
-    .location-header.active {
-        background-color: #004400;
-        border-color: #00ff00;
+    .location-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        padding: 8px 6px;
+        cursor: pointer;
     }
 
-    .location-toggle {
-        color: #00ff00;
-        margin-right: 8px;
-        font-size: 10px;
-        width: 12px;
-        display: inline-block;
+    .location-content:hover {
+        background-color: #001100;
     }
 
+    /* Tree connector graphics */
+    .tree-connector {
+        flex-shrink: 0;
+        width: 24px;
+        height: 20px;
+        position: relative;
+        margin-right: 4px;
+    }
+
+    .tree-connector::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        background: #004400;
+    }
+
+    .tree-connector::after {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        width: 10px;
+        height: 1px;
+        background: #004400;
+    }
+
+    .tree-root > .tree-item > .location-row > .tree-connector::before,
+    .tree-root > .tree-item > .location-row > .tree-connector::after {
+        display: none;
+    }
+
+    /* Toggle triangle indicator */
+    .tree-toggle {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        color: #00aa00;
+        font-size: 12px;
+        line-height: 20px;
+        text-align: center;
+        margin-right: 6px;
+        transition: transform 0.2s;
+        user-select: none;
+    }
+
+    .tree-toggle.empty {
+        visibility: hidden;
+    }
+
+    /* Location name */
     .location-name {
         color: #00ff00;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: bold;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
         flex-grow: 1;
+        user-select: none;
     }
 
+    /* Display button for locations */
+    .display-btn-container {
+        flex-shrink: 0;
+        background-color: #001100;
+        border-left: 1px solid #004400;
+        padding: 6px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+    }
+
+    .display-btn-container:hover {
+        background-color: #002200;
+    }
+
+    .display-btn-container.active {
+        background-color: #00ff00;
+    }
+
+    .display-btn-icon {
+        color: #00aa00;
+        font-size: 20px;
+    }
+
+    .display-btn-container.active .display-btn-icon {
+        color: #000;
+    }
+
+    /* Child locations */
+    .location-children {
+        list-style: none;
+        padding-left: 24px;
+        margin: 0;
+        display: none;
+    }
+
+    .location-children.expanded {
+        display: block;
+    }
+
+    /* Terminal list */
     .terminal-list {
         list-style: none;
-        padding-left: 20px;
+        padding-left: 24px;
         margin: 0;
         display: none;
     }
@@ -94,41 +213,88 @@
         display: block;
     }
 
-    .terminal-item {
-        padding: 5px 8px;
-        margin: 2px 0;
-        background-color: #001100;
-        border-left: 2px solid #004400;
-        cursor: pointer;
+    .terminal-row {
+        display: flex;
+        align-items: center;
+        padding: 0;
+        margin: 4px 0;
+        position: relative;
+        border: 1px solid #004400;
+        background-color: #000;
         transition: all 0.2s;
     }
 
-    .terminal-item:hover {
-        background-color: #002200;
-        border-left-color: #00ff00;
-    }
-
-    .terminal-item.active {
-        background-color: #00ff00;
-        border-left-color: #00ff00;
-    }
-
-    .terminal-item.active .terminal-name,
-    .terminal-item.active .terminal-owner {
-        color: #000;
+    .terminal-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        padding: 6px 6px;
     }
 
     .terminal-name {
         color: #00ff00;
-        font-size: 11px;
-        display: block;
+        font-size: 12px;
+        flex-grow: 1;
+        user-select: none;
     }
 
     .terminal-owner {
         color: #008800;
-        font-size: 9px;
-        display: block;
-        margin-top: 2px;
+        font-size: 10px;
+        margin-left: 8px;
+        margin-right: 6px;
+        user-select: none;
+    }
+
+    /* Show button for terminals */
+    .show-btn-container {
+        flex-shrink: 0;
+        background-color: #001100;
+        border-left: 1px solid #004400;
+        padding: 6px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+    }
+
+    .show-btn-container:hover {
+        background-color: #002200;
+    }
+
+    .show-btn-icon {
+        color: #00aa00;
+        font-size: 16px;
+    }
+
+    /* Momentary flash effect for terminal show */
+    @keyframes flash-show {
+        0% {
+            background-color: #00ff00;
+        }
+        100% {
+            background-color: #001100;
+        }
+    }
+
+    .show-btn-container.flashing {
+        animation: flash-show 0.5s ease-out;
+    }
+
+    .show-btn-container.flashing .show-btn-icon {
+        animation: flash-icon 0.5s ease-out;
+    }
+
+    @keyframes flash-icon {
+        0% {
+            color: #000;
+        }
+        100% {
+            color: #00aa00;
+        }
     }
 
     /* Main Console Area */
@@ -257,51 +423,18 @@
     .message-preview-content {
         color: #00ff00;
     }
-
-    .success-message {
-        background-color: #002200;
-        border: 1px solid #00ff00;
-        padding: 10px;
-        margin-bottom: 20px;
-        text-align: center;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-{% if messages %}
-    {% for message in messages %}
-    <div class="success-message">
-        &gt; {{ message }}
-    </div>
-    {% endfor %}
-{% endif %}
-
 <div class="console-layout" style="display: flex !important; flex-direction: row !important; gap: 20px; width: 100%;">
     <!-- Location Tree Sidebar -->
-    <div class="location-browser" style="width: 280px; flex-shrink: 0;">
+    <div class="location-browser" style="width: 380px; flex-shrink: 0;">
         <h3>LOCATIONS</h3>
 
-        <ul class="tree-view">
-            <!-- Campaign Locations -->
+        <ul class="tree-view tree-root">
             {% for location in locations %}
-            <li class="tree-location">
-                <div class="location-header {% if active_view.location_slug == location.slug %}active{% endif %}"
-                     onclick="toggleLocation('{{ location.slug }}'); selectLocation('{{ location.slug }}');">
-                    <span class="location-toggle" id="toggle-{{ location.slug }}">▶</span>
-                    <span class="location-name">{{ location.name|upper }}</span>
-                </div>
-
-                <ul class="terminal-list" id="terminals-{{ location.slug }}">
-                    {% for terminal in location.terminals %}
-                    <li class="terminal-item {% if active_view.view_type == 'COMM_TERMINAL' and active_view.view_slug == terminal.slug %}active{% endif %}"
-                        onclick="event.stopPropagation(); selectTerminal('{{ location.slug }}', '{{ terminal.slug }}');">
-                        <span class="terminal-name">{{ terminal.terminal_id|default:terminal.slug|upper }}</span>
-                        <span class="terminal-owner">{{ terminal.owner }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </li>
+                {% include 'terminal/tree_location.html' with location=location depth=0 %}
             {% endfor %}
         </ul>
     </div>
@@ -364,29 +497,115 @@
 </div>
 
 <script>
-// Toggle location tree expansion
-function toggleLocation(locationSlug) {
+// Tree state persistence
+const TREE_STATE_KEY = 'gm_console_tree_state';
+
+// Get expanded state from localStorage
+function getExpandedState() {
+    const stored = localStorage.getItem(TREE_STATE_KEY);
+    return stored ? JSON.parse(stored) : {};
+}
+
+// Save expanded state to localStorage
+function saveExpandedState(expandedSlugs) {
+    localStorage.setItem(TREE_STATE_KEY, JSON.stringify(expandedSlugs));
+}
+
+// Toggle tree item (location children + terminals)
+function toggleTreeItem(locationSlug) {
+    const childrenList = document.getElementById('children-' + locationSlug);
     const terminalList = document.getElementById('terminals-' + locationSlug);
     const toggle = document.getElementById('toggle-' + locationSlug);
 
-    if (terminalList.classList.contains('expanded')) {
-        terminalList.classList.remove('expanded');
-        toggle.textContent = '▶';
-    } else {
-        terminalList.classList.add('expanded');
-        toggle.textContent = '▼';
+    let isExpanded = false;
+
+    // Check if currently expanded
+    if (childrenList && childrenList.classList.contains('expanded')) {
+        isExpanded = true;
     }
+    if (terminalList && terminalList.classList.contains('expanded')) {
+        isExpanded = true;
+    }
+
+    // Get current state
+    const expandedState = getExpandedState();
+
+    // Toggle expansion
+    if (isExpanded) {
+        if (childrenList) childrenList.classList.remove('expanded');
+        if (terminalList) terminalList.classList.remove('expanded');
+        toggle.innerHTML = '&#9654;'; // Right-pointing triangle
+        delete expandedState[locationSlug];
+    } else {
+        if (childrenList) childrenList.classList.add('expanded');
+        if (terminalList) terminalList.classList.add('expanded');
+        toggle.innerHTML = '&#9660;'; // Down-pointing triangle
+        expandedState[locationSlug] = true;
+    }
+
+    // Save state
+    saveExpandedState(expandedState);
 }
 
-// Select a location (shows map or location overview)
-function selectLocation(locationSlug) {
-    // When selecting a location, show the map if available, otherwise location overview
-    submitViewSwitch(locationSlug, 'ENCOUNTER_MAP', '');  // Will update this to check for maps
+// Display a location (shows map or location overview) - clears previous selection
+function displayLocation(locationSlug) {
+    // Save current tree state before navigating
+    saveCurrentTreeState();
+    // When displaying a location, show the map if available, otherwise location overview
+    submitViewSwitch(locationSlug, 'ENCOUNTER_MAP', '');
 }
 
-// Select a terminal within a location
-function selectTerminal(locationSlug, terminalSlug) {
-    submitViewSwitch(locationSlug, 'COMM_TERMINAL', terminalSlug);
+// Show a terminal (displays terminal overlay without changing main view)
+function showTerminal(locationSlug, terminalSlug, buttonElement) {
+    // Add flashing effect to button
+    buttonElement.classList.add('flashing');
+
+    // Remove flashing class after animation completes
+    setTimeout(() => {
+        buttonElement.classList.remove('flashing');
+    }, 500);
+
+    // Submit the overlay terminal (doesn't change the main display)
+    submitTerminalOverlay(locationSlug, terminalSlug);
+}
+
+// Submit terminal overlay form (separate from view switching)
+function submitTerminalOverlay(locationSlug, terminalSlug) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '';
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const fields = {
+        'csrfmiddlewaretoken': csrfToken,
+        'show_terminal': '1',
+        'location_slug': locationSlug,
+        'terminal_slug': terminalSlug
+    };
+
+    for (const [name, value] of Object.entries(fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Save current tree state
+function saveCurrentTreeState() {
+    const expandedState = {};
+    document.querySelectorAll('.location-children.expanded, .terminal-list.expanded').forEach(el => {
+        const match = el.id.match(/(?:children|terminals)-(.+)/);
+        if (match) {
+            expandedState[match[1]] = true;
+        }
+    });
+    saveExpandedState(expandedState);
 }
 
 // Submit the view switch form
@@ -417,17 +636,56 @@ function submitViewSwitch(locationSlug, viewType, viewSlug) {
     form.submit();
 }
 
-// Expand the active location on page load
+// Restore tree state and auto-expand path to active item on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const activeLocation = document.querySelector('.location-header.active');
-    if (activeLocation) {
-        const locationSlug = activeLocation.getAttribute('onclick').match(/toggleLocation\('([^']+)'\)/)[1];
-        const terminalList = document.getElementById('terminals-' + locationSlug);
-        const toggle = document.getElementById('toggle-' + locationSlug);
-        if (terminalList && toggle) {
-            terminalList.classList.add('expanded');
-            toggle.textContent = '▼';
+    // First, restore previously expanded items from localStorage
+    const expandedState = getExpandedState();
+    for (const slug in expandedState) {
+        const childrenList = document.getElementById('children-' + slug);
+        const terminalList = document.getElementById('terminals-' + slug);
+        const toggle = document.getElementById('toggle-' + slug);
+
+        if (childrenList) childrenList.classList.add('expanded');
+        if (terminalList) terminalList.classList.add('expanded');
+        if (toggle) toggle.innerHTML = '&#9660;'; // Down-pointing triangle
+    }
+
+    // Then, ensure path to active item is expanded (and saved to state)
+    const activeItem = document.querySelector('.location-row.displaying');
+
+    if (activeItem) {
+        // Traverse up the tree and expand all parent items
+        let current = activeItem.closest('.tree-item');
+
+        while (current) {
+            // Find the toggle button for this tree item
+            const locationRow = current.querySelector(':scope > .location-row');
+            if (locationRow) {
+                const onclick = locationRow.getAttribute('onclick');
+                if (onclick) {
+                    const match = onclick.match(/toggleTreeItem\('([^']+)'\)/);
+                    if (match) {
+                        const slug = match[1];
+                        const childrenList = document.getElementById('children-' + slug);
+                        const terminalList = document.getElementById('terminals-' + slug);
+                        const toggle = document.getElementById('toggle-' + slug);
+
+                        if (childrenList) childrenList.classList.add('expanded');
+                        if (terminalList) terminalList.classList.add('expanded');
+                        if (toggle) toggle.innerHTML = '&#9660;'; // Down-pointing triangle
+
+                        // Add to expanded state
+                        expandedState[slug] = true;
+                    }
+                }
+            }
+
+            // Move up to parent tree item
+            current = current.parentElement.closest('.tree-item');
         }
+
+        // Save updated state
+        saveExpandedState(expandedState);
     }
 });
 </script>

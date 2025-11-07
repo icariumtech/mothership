@@ -1,0 +1,5 @@
+name: "Base Beta"
+type: "station"
+description: "Secondary research outpost"
+coordinates: "Planet X Surface - South Hemisphere"
+status: "OPERATIONAL"

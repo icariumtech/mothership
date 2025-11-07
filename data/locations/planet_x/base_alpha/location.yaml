@@ -1,0 +1,5 @@
+name: "Base Alpha"
+type: "station"
+description: "Primary mining operations base"
+coordinates: "Planet X Surface - North Hemisphere"
+status: "OPERATIONAL"

@@ -32,7 +32,18 @@ def gm_console(request):
     from terminal.data_loader import load_all_locations
     from terminal.models import ActiveView
 
-    # Handle view switching POST
+    # Handle terminal overlay (Show button)
+    if request.method == 'POST' and 'show_terminal' in request.POST:
+        active_view = ActiveView.get_current()
+        active_view.overlay_location_slug = request.POST.get('location_slug', '')
+        active_view.overlay_terminal_slug = request.POST.get('terminal_slug', '')
+        active_view.updated_by = request.user
+        active_view.save()
+
+        django_messages.success(request, f'Showing terminal overlay: {active_view.overlay_terminal_slug}')
+        return redirect('gm_console')
+
+    # Handle view switching POST (Display button)
     if request.method == 'POST' and 'switch_view' in request.POST:
         active_view = ActiveView.get_current()
         active_view.location_slug = request.POST.get('location_slug', '')

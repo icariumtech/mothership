@@ -1,0 +1,5 @@
+name: "Planet X"
+type: "planet"
+description: "Remote mining planet in the outer rim"
+coordinates: "Sector 7-G, Outer Rim"
+status: "OPERATIONAL"

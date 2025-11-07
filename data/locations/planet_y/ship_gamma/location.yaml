@@ -1,0 +1,5 @@
+name: "Ship Gamma"
+type: "ship"
+description: "Heavy freighter in orbit around Planet Y"
+coordinates: "Planet Y High Orbit"
+status: "DOCKED"

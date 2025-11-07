@@ -18,19 +18,51 @@ class DataLoader:
         self.locations_dir = self.data_dir / "locations"
 
     def load_all_locations(self) -> List[Dict[str, Any]]:
-        """Load all locations from the data directory."""
+        """Load all locations from the data directory, building hierarchy from nested dirs."""
         locations = []
 
         if not self.locations_dir.exists():
             return locations
 
+        # Load all root-level locations (recursively loads children)
         for location_dir in self.locations_dir.iterdir():
             if location_dir.is_dir():
-                location_data = self.load_location(location_dir.name)
+                location_data = self.load_location_recursive(location_dir)
                 if location_data:
                     locations.append(location_data)
 
         return locations
+
+    def load_location_recursive(self, location_dir: Path) -> Dict[str, Any]:
+        """Recursively load a location and all nested child locations."""
+        # Load location metadata
+        location_file = location_dir / "location.yaml"
+        if location_file.exists():
+            with open(location_file, 'r') as f:
+                location_data = yaml.safe_load(f)
+        else:
+            location_data = {"name": location_dir.name}
+
+        location_data['slug'] = location_dir.name
+
+        # Load map if exists (single map per location in map/ directory)
+        location_data['map'] = self.load_map(location_dir)
+
+        # For backwards compatibility, also set 'maps' as a list
+        location_data['maps'] = [location_data['map']] if location_data['map'] else []
+
+        # Load comm terminals at this level
+        location_data['terminals'] = self.load_terminals(location_dir)
+
+        # Recursively load child locations (subdirectories that aren't 'comms' or 'map')
+        location_data['children'] = []
+        for subdir in location_dir.iterdir():
+            if subdir.is_dir() and subdir.name not in ['comms', 'map', 'maps']:
+                child_location = self.load_location_recursive(subdir)
+                if child_location:
+                    location_data['children'].append(child_location)
+
+        return location_data
 
     def load_location(self, location_slug: str) -> Dict[str, Any]:
         """Load a single location with all its data."""
@@ -57,8 +89,37 @@ class DataLoader:
 
         return location_data
 
+    def load_map(self, location_dir: Path) -> Dict[str, Any]:
+        """Load a single map for a location from map/ directory."""
+        map_dir = location_dir / "map"
+
+        if not map_dir.exists():
+            return None
+
+        # Look for a single .yaml file in map/ directory
+        yaml_files = list(map_dir.glob("*.yaml"))
+        if not yaml_files:
+            return None
+
+        map_file = yaml_files[0]  # Use first yaml file found
+
+        with open(map_file, 'r') as f:
+            map_data = yaml.safe_load(f)
+
+        map_slug = map_file.stem
+        map_data['slug'] = map_slug
+
+        # Check for corresponding image file
+        for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
+            img_file = map_dir / f"{map_slug}{ext}"
+            if img_file.exists():
+                map_data['image_path'] = str(img_file.relative_to(self.data_dir))
+                break
+
+        return map_data
+
     def load_maps(self, location_dir: Path) -> List[Dict[str, Any]]:
-        """Load all maps for a location."""
+        """Load all maps for a location (legacy - supports maps/ directory)."""
         maps = []
         maps_dir = location_dir / "maps"
 

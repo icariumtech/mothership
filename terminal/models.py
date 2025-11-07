@@ -33,6 +33,18 @@ class ActiveView(models.Model):
         help_text='Specific terminal/map slug (e.g., commanders_terminal)'
     )
 
+    # Terminal overlay (shown on top of the main view)
+    overlay_location_slug = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Location of terminal to overlay on main view'
+    )
+    overlay_terminal_slug = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Terminal slug to show as overlay'
+    )
+
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)

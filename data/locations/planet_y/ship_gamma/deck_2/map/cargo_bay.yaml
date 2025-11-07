@@ -1,0 +1,5 @@
+name: "Cargo Bay"
+location_name: "Ship Gamma - Deck 2 Cargo"
+description: "Main cargo storage area"
+grid_size_x: 20
+grid_size_x: 25

@@ -7,4 +7,5 @@ urlpatterns = [
     path('gmconsole/', views.gm_console, name='gm_console'),  # GM controls (requires login)
     path('logout/', views.logout_view, name='terminal_logout'),
     path('api/messages/', views.get_messages_json, name='messages_api'),
+    path('api/active-view/', views.get_active_view_json, name='active_view_api'),
 ]

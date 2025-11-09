@@ -6,6 +6,20 @@ from django.http import JsonResponse
 from .models import Message
 
 
+def find_location_recursive(locations, slug):
+    """
+    Recursively search for a location by slug in a nested location structure.
+    """
+    for location in locations:
+        if location['slug'] == slug:
+            return location
+        if location.get('children'):
+            found = find_location_recursive(location['children'], slug)
+            if found:
+                return found
+    return None
+
+
 @login_required
 def terminal_view(request):
     """
@@ -106,7 +120,14 @@ def display_view(request):
     """
     Public display view for shared table monitor.
     No login required - read-only kiosk mode.
+    Displays content based on GM's active view selection.
     """
+    from terminal.models import ActiveView
+    from terminal.data_loader import load_all_locations, load_location
+
+    # Get current active view from GM console
+    active_view = ActiveView.get_current()
+
     # Get all broadcast messages (no specific recipients)
     all_messages = Message.objects.filter(
         recipients__isnull=True
@@ -128,10 +149,19 @@ def display_view(request):
     # Get first sender for initial display (though we won't auto-select)
     first_sender = list(senders.keys())[0] if senders else ''
 
+    # Load location data if active view has a location
+    location_data = None
+    if active_view.location_slug:
+        # Load all locations recursively to find the selected one
+        all_locations = load_all_locations()
+        location_data = find_location_recursive(all_locations, active_view.location_slug)
+
     return render(request, 'terminal/display_inbox.html', {
         'messages': all_messages,
         'senders': senders,
-        'first_sender': first_sender
+        'first_sender': first_sender,
+        'active_view': active_view,
+        'location_data': location_data,
     })
 
 
@@ -177,4 +207,24 @@ def get_messages_json(request):
     return JsonResponse({
         'messages': messages_data,
         'count': len(messages_data)
+    })
+
+
+def get_active_view_json(request):
+    """
+    API endpoint to get the current active view state.
+    Used by the display terminal to detect when GM changes the view.
+    Public endpoint - no login required.
+    """
+    from terminal.models import ActiveView
+
+    active_view = ActiveView.get_current()
+
+    return JsonResponse({
+        'location_slug': active_view.location_slug or '',
+        'view_type': active_view.view_type,
+        'view_slug': active_view.view_slug or '',
+        'overlay_location_slug': active_view.overlay_location_slug or '',
+        'overlay_terminal_slug': active_view.overlay_terminal_slug or '',
+        'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     })

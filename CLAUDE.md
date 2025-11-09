@@ -29,25 +29,33 @@ The goal is to create an engaging, atmospheric tool that enhances the tension an
 charon/
 ├── .claude/                     # Claude Code configuration
 ├── data/                        # Campaign data (file-based)
-│   └── locations/               # Location hierarchy
+│   └── locations/               # Location hierarchy (NESTED STRUCTURE)
 │       └── {location_slug}/
 │           ├── location.yaml    # Location metadata
-│           ├── maps/            # Encounter maps
-│           └── comms/           # Communication terminals
-│               └── {terminal_slug}/
-│                   ├── terminal.yaml
-│                   ├── inbox/   # Received messages (by sender)
-│                   └── sent/    # Sent messages (by recipient)
+│           ├── map/             # Single map per location (singular!)
+│           │   ├── {map_name}.yaml
+│           │   └── {map_name}.png
+│           ├── comms/           # Communication terminals
+│           │   └── {terminal_slug}/
+│           │       ├── terminal.yaml
+│           │       ├── inbox/   # Received messages (by sender)
+│           │       └── sent/    # Sent messages (by recipient)
+│           └── {child_location}/ # Child locations (unlimited nesting)
 ├── mothership_gm/              # Django project settings
 ├── terminal/                   # Main Django app
 │   ├── models.py              # Message, ActiveView
-│   ├── views.py               # Terminal displays
+│   ├── views.py               # Terminal displays, API endpoints
 │   ├── data_loader.py         # File-based data loading
 │   ├── management/commands/   # Django commands
 │   └── templates/             # HTML templates
+│       └── terminal/
+│           ├── gm_console.html      # GM control panel
+│           ├── tree_location.html   # Recursive tree view item
+│           └── display_inbox.html   # Terminal display (auto-switches)
 ├── db.sqlite3                 # Development database
 ├── manage.py                  # Django management
-└── requirements.txt           # Python dependencies
+├── requirements.txt           # Python dependencies
+└── generate_deck_layout.py    # Script to generate map images
 ```
 
 ## Implemented Architecture
@@ -66,10 +74,13 @@ The application supports multiple view types that can be displayed on a shared t
 
 **Key Design Decisions:**
 - **File-based data storage**: Campaign data stored as markdown files with YAML frontmatter
+- **Nested directory hierarchy**: Locations organized as nested directories (unlimited depth)
 - **On-demand loading**: Data loaded from disk when needed (no DB sync required)
+- **Recursive data loading**: `load_location_recursive()` walks nested directory structure
 - **Conversation threading**: Messages linked via `conversation_id` and `in_reply_to`
 - **Inbox/Sent structure**: Terminals organize messages by direction and contact
 - **ActiveView singleton**: Database tracks only which view is currently displayed
+- **Auto-refresh terminal**: Polls `/api/active-view/` every 2 seconds for view changes
 
 ### Data Loading System
 
@@ -101,8 +112,8 @@ Message content here...
 - **Web Framework**: Django 5.2.7
 - **Database**: SQLite (stores ActiveView state and broadcast Messages only)
 - **Data Storage**: File-based (YAML + Markdown)
-- **Dependencies**: PyYAML for data parsing
-- **Frontend**: HTML/CSS with retro terminal styling
+- **Dependencies**: PyYAML for data parsing, Pillow for image generation
+- **Frontend**: HTML/CSS with retro terminal styling, JavaScript for real-time updates
 - **Package Management**: pip + requirements.txt
 
 ### Implemented Features
@@ -110,18 +121,24 @@ Message content here...
 ✓ **Shared Terminal**: Public display at `/terminal/` (no login)
 ✓ **Personal Messages**: Player-specific messages at `/messages/` (login required)
 ✓ **File-based Campaigns**: Location/terminal data loaded from disk
+✓ **Nested Location Hierarchy**: Unlimited depth location nesting (Planet → Base → Deck → Section)
 ✓ **Conversation Threading**: Messages organized into conversational threads
 ✓ **CHARON Integration**: Station AI system for automated notifications
 ✓ **Multi-terminal Support**: Each location can have multiple terminals
+✓ **Tree View GM Console**: Expandable/collapsible location tree with touch-friendly controls
+✓ **View Switching**: DISPLAY button shows location maps, SHOW button displays terminal overlays
+✓ **Encounter Map Display**: Terminal automatically shows maps when GM clicks DISPLAY
+✓ **Auto-refresh Terminal**: Polls for view changes every 2 seconds and auto-reloads
+✓ **Map Image Generation**: Python script to generate retro sci-fi themed deck layouts
+✓ **Static File Serving**: Django serves map images from `data/` directory in development
 
 ### Features To Implement
-- [ ] View switching UI in GM console
-- [ ] Terminal display renderer (conversation view)
-- [ ] Encounter map renderer
+- [ ] Terminal overlay display (SHOW button functionality)
+- [ ] Terminal conversation view renderer
 - [ ] Ship dashboard display
-- [ ] API endpoints for real-time view updates
 - [ ] Player character management
 - [ ] Session tracking
+- [ ] Combat/encounter tracking on maps
 
 ## Development Environment
 - Python virtual environments (`.venv/`, `env/`, `venv/`)
@@ -287,16 +304,22 @@ Message content in markdown...
 - `folder` (auto-added): `inbox` or `sent`
 - `contact` (auto-added): Directory name (who the message is from/to)
 
-### Encounter Maps (Future)
-`data/locations/{location_slug}/maps/{map_slug}.yaml`
+### Encounter Maps (IMPLEMENTED)
+`data/locations/{location_slug}/map/{map_slug}.yaml` (singular `map/` directory!)
 
 ```yaml
 name: "Main Facility"
 location_name: "Research Base Alpha - Main Level"
-image_path: "maps/main_facility.png"
+description: "Main deck layout showing bridge, engineering, and crew quarters"
 grid_size_x: 20
-grid_size_y: 20
+grid_size_y: 15
 ```
+
+**Map Images:**
+- Place image with same name as YAML file in same directory
+- Supported formats: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`
+- Example: `deck_layout.yaml` + `deck_layout.png`
+- Images are served via `/data/locations/.../map/image.png` in development
 
 ## Data Access Pattern
 
@@ -317,6 +340,78 @@ thread = build_conversation_thread(
     terminal['messages'],
     'conv_lab_incident_001'
 )
+```
+
+## GM Console & Terminal Display
+
+### GM Console (`/gmconsole/`)
+**Tree View Interface:**
+- Hierarchical tree of all locations (unlimited nesting depth)
+- Triangle icons (▶/▼) to expand/collapse locations
+- Eye icon (👁) DISPLAY button on each location
+  - Toggles on/off to show location map on terminal
+  - Updates `ActiveView.view_type = 'ENCOUNTER_MAP'`
+  - Only one location can be displayed at a time
+- Play icon (▶) SHOW button on each terminal
+  - Momentary flash animation
+  - Sets overlay without clearing main display
+  - Updates `ActiveView.overlay_location_slug` and `overlay_terminal_slug`
+
+**Visual Styling:**
+- Boxed items with dark green borders (#004400)
+- Active display has bright green border (#00ff00)
+- Shaded right side for buttons (#001100 background)
+- Tree connectors and indentation for hierarchy
+- LocalStorage persistence for expanded/collapsed state
+
+### Terminal Display (`/terminal/`)
+**Auto-switching Display:**
+- Polls `/api/active-view/` every 2 seconds
+- Automatically reloads when GM changes view
+- Shows encounter map when `view_type == 'ENCOUNTER_MAP'`
+- Falls back to message inbox mode otherwise
+
+**Map Display Mode:**
+- Full-screen map image display
+- Location name, coordinates, and status in header
+- Green border and glow effect on image
+- Fallback message if no image available
+
+**Message Inbox Mode:**
+- Sidebar with sender list
+- Message area with conversations
+- Real-time polling for new messages
+
+### API Endpoints
+
+**`/api/active-view/`** (Public, no login)
+Returns current active view state:
+```json
+{
+  "location_slug": "uscss_morrigan",
+  "view_type": "ENCOUNTER_MAP",
+  "view_slug": "deck_layout",
+  "overlay_location_slug": "",
+  "overlay_terminal_slug": "",
+  "updated_at": "2025-11-09 06:20:31"
+}
+```
+
+**`/api/messages/`** (Public, no login)
+Returns broadcast messages since ID:
+```json
+{
+  "messages": [
+    {
+      "id": 5,
+      "sender": "CHARON",
+      "content": "System status: nominal",
+      "priority": "NORMAL",
+      "created_at": "2025-11-09 06:15:22"
+    }
+  ],
+  "count": 1
+}
 ```
 
 ## Future Models (Database)
@@ -382,5 +477,43 @@ The application needs a simple but effective authentication system with two user
 - Session tokens should persist across game sessions
 - Optional: GM can generate one-time invite links for players
 
+## Map Image Generation
+
+### `generate_deck_layout.py`
+Python script using Pillow to create retro sci-fi themed deck layouts:
+
+**Visual Style:**
+- Black background (#000000)
+- Dark green grid overlay (#004400) - 20px grid
+- Bright green lines and text (#00ff00)
+- Very dark green room fills (#002200)
+- Monospaced DejaVu Sans Mono font
+- CRT scanline effect (every 4px)
+
+**Usage:**
+```bash
+source .venv/bin/activate
+python generate_deck_layout.py
+```
+
+**Output:**
+- Creates PNG image in `data/locations/{location}/map/`
+- 1200x800 resolution by default
+- Includes room labels, connection corridors, and technical info
+- Can be customized for different ship/station layouts
+
+**Example Rooms:**
+- Bridge, Engineering, Crew Quarters
+- Cargo Bay, Medical, Life Support
+- Connection corridors and hatches
+
 ## Claude Code Integration
 This repository includes `.claude/settings.local.json` which restricts bash permissions to git-related commands only. When working with this repository through Claude Code, be aware of these restrictions and use appropriate tools for file operations.
+
+## Development URLs
+- **GM Console**: http://127.0.0.1:8000/gmconsole/
+- **Terminal Display**: http://127.0.0.1:8000/terminal/
+- **Player Messages**: http://127.0.0.1:8000/messages/
+- **Admin**: http://127.0.0.1:8000/admin/
+- **API - Active View**: http://127.0.0.1:8000/api/active-view/
+- **API - Messages**: http://127.0.0.1:8000/api/messages/

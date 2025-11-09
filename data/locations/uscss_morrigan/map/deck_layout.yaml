@@ -1,0 +1,5 @@
+name: "USCSS Morrigan - Main Deck"
+location_name: "USCSS Morrigan"
+description: "Main deck layout showing bridge, engineering, and crew quarters"
+grid_size_x: 20
+grid_size_y: 15

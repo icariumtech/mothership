@@ -16,9 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('terminal.urls')),  # Remove prefix so URLs are at root
     path('accounts/', include('django.contrib.auth.urls')),
 ]
+
+# Serve campaign data files (maps, images) in development
+if settings.DEBUG:
+    from django.views.static import serve
+    import os
+
+    data_root = os.path.join(settings.BASE_DIR, 'data')
+    urlpatterns += [
+        path('data/<path:path>', serve, {'document_root': data_root}),
+    ]

@@ -89,6 +89,68 @@
             overflow: hidden;
         }
 
+        /* Map Display Styles */
+        .map-display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #000;
+        }
+
+        .map-header {
+            padding: 15px 30px;
+            border-bottom: 2px solid #00ff00;
+            background-color: #001100;
+        }
+
+        .map-header h2 {
+            font-size: 20px;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+
+        .map-info {
+            font-size: 11px;
+            color: #00aa00;
+            display: flex;
+            gap: 30px;
+        }
+
+        .map-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .map-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .no-map-image {
+            text-align: center;
+            color: #006600;
+            font-size: 16px;
+            padding: 60px;
+        }
+
+        .no-map-image p {
+            margin: 10px 0;
+        }
+
+        /* Message Mode Wrapper */
+        .message-mode {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
         /* Sidebar Styles */
         .sidebar {
             width: 300px;
@@ -352,50 +414,77 @@
         </div>
 
         <div class="main-content">
-            <!-- Sidebar with sender list -->
-            <div class="sidebar">
-                <div class="sidebar-header">SENDERS</div>
-                <div class="sender-list" id="sender-list">
-                    {% for sender, count in senders.items %}
-                    <button class="sender-button" data-sender="{{ sender }}" onclick="filterBySender('{{ sender }}')">
-                        {{ sender }}
-                        <span class="message-count">({{ count }})</span>
-                    </button>
-                    {% endfor %}
+            <!-- Map Display Area (shown when location is active) -->
+            {% if active_view.view_type == 'ENCOUNTER_MAP' and location_data and location_data.map %}
+            <div class="map-display" id="map-display">
+                <div class="map-header">
+                    <h2>{{ location_data.name|upper }}</h2>
+                    <div class="map-info">
+                        <span>LOCATION: {{ location_data.coordinates|default:"UNKNOWN" }}</span>
+                        <span>STATUS: {{ location_data.status|default:"UNKNOWN" }}</span>
+                    </div>
+                </div>
+                <div class="map-container">
+                    {% if location_data.map.image_path %}
+                    <img src="/data/{{ location_data.map.image_path }}" alt="{{ location_data.map.name }}" class="map-image">
+                    {% else %}
+                    <div class="no-map-image">
+                        <p>&gt; NO MAP IMAGE AVAILABLE</p>
+                        <p>&gt; {{ location_data.map.name|upper }}</p>
+                        <p>&gt; {{ location_data.description|upper }}</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
-
-            <!-- Message display area -->
-            <div class="message-area">
-                <div class="message-area-header">
-                    <h2 id="current-sender-title">SELECT SENDER</h2>
-                </div>
-                <div class="messages-container" id="messages-container">
-                    {% if messages %}
-                        {% for message in messages %}
-                        <div class="message" data-message-id="{{ message.id }}" data-sender="{{ message.sender }}" style="display: none;">
-                            <div class="message-header">
-                                <div>
-                                    <span class="message-sender">{{ message.sender }}</span>
-                                    <span class="priority-indicator priority-{{ message.priority }}">
-                                        {{ message.priority }}
-                                    </span>
-                                </div>
-                                <div class="message-time">
-                                    {{ message.created_at|date:"Y-m-d H:i:s" }} UTC
-                                </div>
-                            </div>
-                            <div class="message-content">{{ message.content }}</div>
-                        </div>
+            {% else %}
+            <!-- Message Display Mode (default) -->
+            <div class="message-mode" id="message-mode">
+                <!-- Sidebar with sender list -->
+                <div class="sidebar">
+                    <div class="sidebar-header">SENDERS</div>
+                    <div class="sender-list" id="sender-list">
+                        {% for sender, count in senders.items %}
+                        <button class="sender-button" data-sender="{{ sender }}" onclick="filterBySender('{{ sender }}')">
+                            {{ sender }}
+                            <span class="message-count">({{ count }})</span>
+                        </button>
                         {% endfor %}
-                    {% endif %}
-                    <div class="no-messages" id="no-messages">
-                        <p>&gt; SELECT SENDER TO VIEW MESSAGES</p>
-                        <p>&gt; SYSTEM STANDBY</p>
-                        <p class="blink">&gt; _</p>
+                    </div>
+                </div>
+
+                <!-- Message display area -->
+                <div class="message-area">
+                    <div class="message-area-header">
+                        <h2 id="current-sender-title">SELECT SENDER</h2>
+                    </div>
+                    <div class="messages-container" id="messages-container">
+                        {% if messages %}
+                            {% for message in messages %}
+                            <div class="message" data-message-id="{{ message.id }}" data-sender="{{ message.sender }}" style="display: none;">
+                                <div class="message-header">
+                                    <div>
+                                        <span class="message-sender">{{ message.sender }}</span>
+                                        <span class="priority-indicator priority-{{ message.priority }}">
+                                            {{ message.priority }}
+                                        </span>
+                                    </div>
+                                    <div class="message-time">
+                                        {{ message.created_at|date:"Y-m-d H:i:s" }} UTC
+                                    </div>
+                                </div>
+                                <div class="message-content">{{ message.content }}</div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                        <div class="no-messages" id="no-messages">
+                            <p>&gt; SELECT SENDER TO VIEW MESSAGES</p>
+                            <p>&gt; SYSTEM STANDBY</p>
+                            <p class="blink">&gt; _</p>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -612,6 +701,50 @@
 
         setInterval(checkForNewMessages, pollInterval);
         console.log('CHARON Inbox Mode - Real-time polling active');
+    })();
+
+    // Poll for active view changes and reload page when GM changes display
+    (function() {
+        let currentViewState = {
+            location_slug: '{{ active_view.location_slug|default:"" }}',
+            view_type: '{{ active_view.view_type }}',
+            view_slug: '{{ active_view.view_slug|default:"" }}',
+            updated_at: '{{ active_view.updated_at|date:"Y-m-d H:i:s" }}'
+        };
+
+        async function checkForViewChanges() {
+            try {
+                const response = await fetch('/api/active-view/');
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                // Check if view has changed
+                if (data.location_slug !== currentViewState.location_slug ||
+                    data.view_type !== currentViewState.view_type ||
+                    data.view_slug !== currentViewState.view_slug) {
+
+                    console.log('Active view changed - reloading display');
+                    // Reload the page to show new view
+                    window.location.reload();
+                }
+
+                // Update current state
+                currentViewState = {
+                    location_slug: data.location_slug,
+                    view_type: data.view_type,
+                    view_slug: data.view_slug,
+                    updated_at: data.updated_at
+                };
+
+            } catch (error) {
+                console.error('Error checking active view:', error);
+            }
+        }
+
+        // Poll every 2 seconds for view changes
+        setInterval(checkForViewChanges, 2000);
+        console.log('CHARON Display - Active view polling enabled');
     })();
 
     // Don't auto-select any sender on page load - user will click to view messages

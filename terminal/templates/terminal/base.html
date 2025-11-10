@@ -5,6 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}MOTHERSHIP Terminal{% endblock %}</title>
     <style>
+        /* V2-1 Color Palette - Muted Multi-Color (Alien Romulus Style) */
+        :root {
+            /* Primary colors - muted teal and amber */
+            --color-teal: #4a6b6b;
+            --color-teal-bright: #5a7a7a;
+            --color-amber: #8b7355;
+            --color-amber-bright: #9a8065;
+
+            /* Background colors */
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #1a1a1a;
+            --color-bg-panel: #1a2525;
+            --color-bg-panel-dark: #0f1515;
+
+            /* Text colors */
+            --color-text-primary: #9a9a9a;
+            --color-text-secondary: #7a7a7a;
+            --color-text-muted: #5a5a5a;
+
+            /* Border colors */
+            --color-border-main: #4a6b6b;
+            --color-border-subtle: #2a3a3a;
+
+            /* State colors */
+            --color-active: #8b7355;
+            --color-inactive: #3a4a4a;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,8 +40,8 @@
         }
 
         body {
-            background-color: #000;
-            color: #00ff00;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
             font-family: 'Courier New', monospace;
             padding: 20px;
             line-height: 1.6;
@@ -22,14 +50,14 @@
         .terminal-container {
             max-width: 1200px;
             margin: 0 auto;
-            background-color: #000;
-            border: 2px solid #00ff00;
+            background-color: var(--color-bg-primary);
+            border: 2px solid var(--color-border-main);
             padding: 20px;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 20px rgba(74, 107, 107, 0.2);
         }
 
         .terminal-header {
-            border-bottom: 1px solid #00ff00;
+            border-bottom: 1px solid var(--color-border-main);
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
@@ -37,11 +65,12 @@
         .terminal-header h1 {
             font-size: 24px;
             letter-spacing: 2px;
+            color: var(--color-teal);
         }
 
         .terminal-header .subtitle {
             font-size: 12px;
-            color: #00cc00;
+            color: var(--color-amber);
             margin-top: 5px;
         }
 
@@ -53,10 +82,10 @@
             height: 100%;
             background: linear-gradient(
                 to bottom,
-                rgba(0, 255, 0, 0.03) 50%,
+                rgba(74, 107, 107, 0.02) 50%,
                 transparent 50%
             );
-            background-size: 100% 4px;
+            background-size: 100% 3px;
             pointer-events: none;
             z-index: 1000;
             animation: scanline 8s linear infinite;
@@ -64,7 +93,7 @@
 
         @keyframes scanline {
             0% { transform: translateY(0); }
-            100% { transform: translateY(4px); }
+            100% { transform: translateY(3px); }
         }
 
         .flicker {
@@ -83,24 +112,47 @@
         }
 
         a {
-            color: #00ff00;
+            color: var(--color-teal);
             text-decoration: none;
-            border-bottom: 1px solid #00ff00;
+            border-bottom: 1px solid var(--color-teal);
         }
 
         a:hover {
-            color: #00cc00;
-            border-bottom-color: #00cc00;
+            color: var(--color-teal-bright);
+            border-bottom-color: var(--color-teal-bright);
         }
 
         .nav-links {
             margin-bottom: 20px;
             padding: 10px 0;
-            border-bottom: 1px solid #004400;
+            border-bottom: 1px solid var(--color-border-subtle);
         }
 
         .nav-links a {
             margin-right: 20px;
+        }
+
+        /* Global scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a2525;
+            border-left: 1px solid #4a6b6b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0f1515;
+            border: 1px solid #4a6b6b;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1a2525;
+        }
+
+        ::-webkit-scrollbar-button {
+            display: none;
         }
 
         {% block extra_css %}{% endblock %}

@@ -113,8 +113,40 @@ Message content here...
 - **Database**: SQLite (stores ActiveView state and broadcast Messages only)
 - **Data Storage**: File-based (YAML + Markdown)
 - **Dependencies**: PyYAML for data parsing, Pillow for image generation
-- **Frontend**: HTML/CSS with retro terminal styling, JavaScript for real-time updates
+- **Frontend**: HTML/CSS with muted multi-color styling, JavaScript for real-time updates
 - **Package Management**: pip + requirements.txt
+
+### UI Color Scheme (V2-1: Muted Multi-Color)
+**Design Philosophy**: Inspired by Alien Romulus (2024) - realistic, muted CRT aesthetic with multiple harmonious colors
+
+**Color Palette** (defined as CSS variables in `base.html`):
+```css
+--color-teal: #4a6b6b;              /* Primary structural color */
+--color-teal-bright: #5a7a7a;       /* Hover states, emphasis */
+--color-amber: #8b7355;             /* Active/interactive elements */
+--color-amber-bright: #9a8065;      /* Hover states on amber */
+--color-bg-primary: #0a0a0a;        /* Main background */
+--color-bg-secondary: #1a1a1a;      /* Secondary surfaces */
+--color-bg-panel: #1a2525;          /* Panel backgrounds */
+--color-bg-panel-dark: #0f1515;     /* Dark panel variant */
+--color-text-primary: #9a9a9a;      /* Body text */
+--color-text-secondary: #7a7a7a;    /* Secondary text */
+--color-text-muted: #5a5a5a;        /* Disabled/muted text */
+--color-border-main: #4a6b6b;       /* Primary borders */
+--color-border-subtle: #2a3a3a;     /* Subtle dividers */
+--color-active: #8b7355;            /* Active selections */
+```
+
+**Visual Elements**:
+- **Angular Panels**: Chamfered corners using CSS `clip-path` polygons
+- **CRT Effects**: Subtle scanlines (3px spacing, very low opacity)
+- **Text Hierarchy**: Teal for structure/headers, amber for actions, gray for content
+- **No Bright Colors**: All colors are muted and realistic - no neon green
+
+**Implementation**:
+- Colors defined in [terminal/templates/terminal/base.html](terminal/templates/terminal/base.html)
+- Applied across [gm_console.html](terminal/templates/terminal/gm_console.html) and [display_inbox.html](terminal/templates/terminal/display_inbox.html)
+- Angular panel helper classes available for new components
 
 ### Implemented Features
 ✓ **Broadcast Messaging**: GM sends messages to all players via `/gmconsole/`
@@ -131,6 +163,7 @@ Message content here...
 ✓ **Auto-refresh Terminal**: Polls for view changes every 2 seconds and auto-reloads
 ✓ **Map Image Generation**: Python script to generate retro sci-fi themed deck layouts
 ✓ **Static File Serving**: Django serves map images from `data/` directory in development
+✓ **V2-1 UI Theme**: Muted multi-color design with teal/amber palette and angular panels
 
 ### Features To Implement
 - [ ] Terminal overlay display (SHOW button functionality)
@@ -150,8 +183,9 @@ Message content here...
 ## Mothership RPG-Specific Guidelines
 
 ### Atmosphere & Theme
-- **Visual Design**: Embrace retro-futuristic, 1970s-80s sci-fi aesthetic (Alien, Aliens inspiration)
-- **Terminal Interface**: Monospaced fonts, green/amber text on dark backgrounds, CRT scanline effects
+- **Visual Design**: Muted multi-color palette inspired by Alien Romulus (2024) - realistic CRT aesthetic
+- **Color Scheme (V2-1)**: Muted teal (#4a6b6b) and amber (#8b7355) - no bright neon colors
+- **Terminal Interface**: Monospaced fonts, angular panels with chamfered corners, subtle CRT scanline effects
 - **Computer Messages**: Write in-character as ship/station AI systems - terse, technical, sometimes ominous
 - **Sound Design**: Consider adding subtle ambient sounds or notification beeps for messages
 

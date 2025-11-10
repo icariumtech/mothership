@@ -6,7 +6,35 @@
 {% block subtitle %}MESSAGE BROADCASTING SYSTEM{% endblock %}
 
 {% block extra_css %}
-<style>
+    /* Angular panel with chamfered corners */
+    .angular-panel {
+        clip-path: polygon(
+            12px 0, 100% 0, 100% calc(100% - 12px),
+            calc(100% - 12px) 100%, 0 100%, 0 12px
+        );
+        position: relative;
+    }
+
+    .angular-panel-border {
+        border: 2px solid var(--color-border-main);
+        position: relative;
+    }
+
+    .angular-panel-border::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        clip-path: polygon(
+            12px 0, 100% 0, 100% calc(100% - 12px),
+            calc(100% - 12px) 100%, 0 100%, 0 12px
+        );
+        border: inherit;
+        pointer-events: none;
+    }
+
     .console-layout {
         display: flex !important;
         flex-direction: row !important;
@@ -15,24 +43,92 @@
         width: 100%;
     }
 
-    /* Location Tree Sidebar */
-    .location-browser {
-        border: 1px solid #00ff00;
-        padding: 12px;
-        background-color: #001100;
-        max-height: calc(100vh - 250px);
-        overflow-y: auto;
+    /* Location Tree Sidebar - Outer wrapper with border */
+    .location-browser-wrapper {
+        position: relative;
         width: 380px;
+        flex-shrink: 0;
+        background-color: var(--color-bg-panel);
+        max-height: calc(100vh - 250px);
+        display: flex;
+        flex-direction: column;
+        clip-path: polygon(
+            0 12px,
+            12px 0,
+            100% 0,
+            100% calc(100% - 12px),
+            calc(100% - 12px) 100%,
+            0 100%
+        );
+
+        /* Draw borders using box-shadow to avoid clip-path cutting them */
+        box-shadow:
+            /* Top border */
+            inset 0 2px 0 0 var(--color-border-main),
+            /* Right border */
+            inset -2px 0 0 0 var(--color-border-main),
+            /* Bottom border */
+            inset 0 -2px 0 0 var(--color-border-main),
+            /* Left border */
+            inset 2px 0 0 0 var(--color-border-main);
+    }
+
+    /* Draw the diagonal corner lines using linear gradients */
+    .location-browser-wrapper::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        background: linear-gradient(
+            to bottom right,
+            transparent calc(50% - 2px),
+            var(--color-border-main) calc(50% - 2px),
+            var(--color-border-main) calc(50% + 2px),
+            transparent calc(50% + 2px)
+        );
+        pointer-events: none;
+    }
+
+    .location-browser-wrapper::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        background: linear-gradient(
+            to bottom right,
+            transparent calc(50% - 2px),
+            var(--color-border-main) calc(50% - 2px),
+            var(--color-border-main) calc(50% + 2px),
+            transparent calc(50% + 2px)
+        );
+        pointer-events: none;
+    }
+
+    /* Fixed header */
+    .location-browser-header {
+        padding: 12px 12px 0 12px;
         flex-shrink: 0;
     }
 
-    .location-browser h3 {
-        color: #00ff00;
+    .location-browser-header h3 {
+        color: var(--color-teal);
         font-size: 13px;
         letter-spacing: 2px;
         margin: 0 0 12px 0;
-        border-bottom: 1px solid #004400;
+        border-bottom: 1px solid var(--color-border-subtle);
         padding-bottom: 5px;
+    }
+
+    /* Scrollable content area */
+    .location-browser {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0 12px 12px 12px;
     }
 
     /* Tree View Styles */
@@ -55,7 +151,7 @@
         top: 0;
         bottom: 0;
         width: 1px;
-        background: #004400;
+        background: var(--color-border-subtle);
     }
 
     .tree-item:last-child::before {
@@ -73,14 +169,14 @@
         padding: 0;
         margin: 4px 0;
         position: relative;
-        border: 1px solid #004400;
-        background-color: #000;
+        border: 1px solid var(--color-border-subtle);
+        background-color: var(--color-bg-primary);
         transition: all 0.2s;
     }
 
     .location-row.displaying {
-        border-color: #00ff00;
-        background-color: #001100;
+        border-color: var(--color-active);
+        background-color: var(--color-bg-panel-dark);
     }
 
     .location-content {
@@ -92,7 +188,7 @@
     }
 
     .location-content:hover {
-        background-color: #001100;
+        background-color: var(--color-bg-panel-dark);
     }
 
     /* Tree connector graphics */
@@ -111,7 +207,7 @@
         top: 0;
         width: 1px;
         height: 100%;
-        background: #004400;
+        background: var(--color-border-subtle);
     }
 
     .tree-connector::after {
@@ -121,7 +217,7 @@
         top: 50%;
         width: 10px;
         height: 1px;
-        background: #004400;
+        background: var(--color-border-subtle);
     }
 
     .tree-root > .tree-item > .location-row > .tree-connector::before,
@@ -134,7 +230,7 @@
         flex-shrink: 0;
         width: 20px;
         height: 20px;
-        color: #00aa00;
+        color: var(--color-teal);
         font-size: 12px;
         line-height: 20px;
         text-align: center;
@@ -149,7 +245,7 @@
 
     /* Location name */
     .location-name {
-        color: #00ff00;
+        color: var(--color-teal-bright);
         font-size: 13px;
         font-weight: bold;
         letter-spacing: 0.5px;
@@ -160,8 +256,8 @@
     /* Display button for locations */
     .display-btn-container {
         flex-shrink: 0;
-        background-color: #001100;
-        border-left: 1px solid #004400;
+        background-color: var(--color-bg-panel-dark);
+        border-left: 1px solid var(--color-border-subtle);
         padding: 6px 8px;
         display: flex;
         align-items: center;
@@ -173,20 +269,20 @@
     }
 
     .display-btn-container:hover {
-        background-color: #002200;
+        background-color: var(--color-bg-panel);
     }
 
     .display-btn-container.active {
-        background-color: #00ff00;
+        background-color: var(--color-active);
     }
 
     .display-btn-icon {
-        color: #00aa00;
+        color: var(--color-teal);
         font-size: 20px;
     }
 
     .display-btn-container.active .display-btn-icon {
-        color: #000;
+        color: var(--color-bg-primary);
     }
 
     /* Child locations */
@@ -219,8 +315,8 @@
         padding: 0;
         margin: 4px 0;
         position: relative;
-        border: 1px solid #004400;
-        background-color: #000;
+        border: 1px solid var(--color-border-subtle);
+        background-color: var(--color-bg-primary);
         transition: all 0.2s;
     }
 
@@ -232,14 +328,14 @@
     }
 
     .terminal-name {
-        color: #00ff00;
+        color: var(--color-teal-bright);
         font-size: 12px;
         flex-grow: 1;
         user-select: none;
     }
 
     .terminal-owner {
-        color: #008800;
+        color: var(--color-text-secondary);
         font-size: 10px;
         margin-left: 8px;
         margin-right: 6px;
@@ -249,8 +345,8 @@
     /* Show button for terminals */
     .show-btn-container {
         flex-shrink: 0;
-        background-color: #001100;
-        border-left: 1px solid #004400;
+        background-color: var(--color-bg-panel-dark);
+        border-left: 1px solid var(--color-border-subtle);
         padding: 6px 8px;
         display: flex;
         align-items: center;
@@ -262,21 +358,21 @@
     }
 
     .show-btn-container:hover {
-        background-color: #002200;
+        background-color: var(--color-bg-panel);
     }
 
     .show-btn-icon {
-        color: #00aa00;
+        color: var(--color-teal);
         font-size: 16px;
     }
 
     /* Momentary flash effect for terminal show */
     @keyframes flash-show {
         0% {
-            background-color: #00ff00;
+            background-color: var(--color-active);
         }
         100% {
-            background-color: #001100;
+            background-color: var(--color-bg-panel-dark);
         }
     }
 
@@ -290,10 +386,10 @@
 
     @keyframes flash-icon {
         0% {
-            color: #000;
+            color: var(--color-bg-primary);
         }
         100% {
-            color: #00aa00;
+            color: var(--color-teal);
         }
     }
 
@@ -307,35 +403,129 @@
     }
 
     .active-view-info {
-        border: 1px solid #00ff00;
+        position: relative;
         padding: 12px 15px;
-        background-color: #001100;
+        background-color: var(--color-bg-panel);
+        clip-path: polygon(
+            0 12px,
+            12px 0,
+            100% 0,
+            100% calc(100% - 12px),
+            calc(100% - 12px) 100%,
+            0 100%
+        );
+        box-shadow:
+            inset 0 2px 0 0 var(--color-border-main),
+            inset -2px 0 0 0 var(--color-border-main),
+            inset 0 -2px 0 0 var(--color-border-main),
+            inset 2px 0 0 0 var(--color-border-main);
+    }
+
+    .active-view-info::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        background: linear-gradient(
+            to bottom right,
+            transparent calc(50% - 2px),
+            var(--color-border-main) calc(50% - 2px),
+            var(--color-border-main) calc(50% + 2px),
+            transparent calc(50% + 2px)
+        );
+        pointer-events: none;
+    }
+
+    .active-view-info::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        background: linear-gradient(
+            to bottom right,
+            transparent calc(50% - 2px),
+            var(--color-border-main) calc(50% - 2px),
+            var(--color-border-main) calc(50% + 2px),
+            transparent calc(50% + 2px)
+        );
+        pointer-events: none;
     }
 
     .active-view-info h3 {
-        color: #00ff00;
+        color: var(--color-amber);
         font-size: 11px;
         letter-spacing: 2px;
         margin: 0 0 8px 0;
     }
 
     .active-view-info p {
-        color: #00aa00;
+        color: var(--color-text-secondary);
         font-size: 10px;
         margin: 3px 0;
     }
 
     .console-form {
-        border: 1px solid #00ff00;
+        position: relative;
         padding: 15px;
-        background-color: #001100;
+        background-color: var(--color-bg-panel);
+        clip-path: polygon(
+            0 12px,
+            12px 0,
+            100% 0,
+            100% calc(100% - 12px),
+            calc(100% - 12px) 100%,
+            0 100%
+        );
+        box-shadow:
+            inset 0 2px 0 0 var(--color-border-main),
+            inset -2px 0 0 0 var(--color-border-main),
+            inset 0 -2px 0 0 var(--color-border-main),
+            inset 2px 0 0 0 var(--color-border-main);
+    }
+
+    .console-form::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        background: linear-gradient(
+            to bottom right,
+            transparent calc(50% - 2px),
+            var(--color-border-main) calc(50% - 2px),
+            var(--color-border-main) calc(50% + 2px),
+            transparent calc(50% + 2px)
+        );
+        pointer-events: none;
+    }
+
+    .console-form::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        background: linear-gradient(
+            to bottom right,
+            transparent calc(50% - 2px),
+            var(--color-border-main) calc(50% - 2px),
+            var(--color-border-main) calc(50% + 2px),
+            transparent calc(50% + 2px)
+        );
+        pointer-events: none;
     }
 
     .console-form h2 {
         margin: 0 0 15px 0;
         font-size: 14px;
         letter-spacing: 2px;
-        color: #00ff00;
+        color: var(--color-teal);
     }
 
     .form-group {
@@ -345,7 +535,7 @@
     label {
         display: block;
         margin-bottom: 5px;
-        color: #00ff00;
+        color: var(--color-teal);
         font-size: 12px;
         letter-spacing: 1px;
     }
@@ -354,9 +544,9 @@
     textarea,
     select {
         width: 100%;
-        background-color: #000;
-        color: #00ff00;
-        border: 1px solid #00ff00;
+        background-color: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border-main);
         padding: 10px;
         font-family: 'Courier New', monospace;
         font-size: 14px;
@@ -366,8 +556,8 @@
     textarea:focus,
     select:focus {
         outline: none;
-        border-color: #00cc00;
-        box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        border-color: var(--color-teal-bright);
+        box-shadow: 0 0 5px rgba(74, 107, 107, 0.3);
     }
 
     textarea {
@@ -376,9 +566,9 @@
     }
 
     button {
-        background-color: #00ff00;
-        color: #000;
-        border: none;
+        background-color: var(--color-active);
+        color: var(--color-bg-primary);
+        border: 2px solid var(--color-active);
         padding: 12px 30px;
         font-family: 'Courier New', monospace;
         font-size: 14px;
@@ -389,8 +579,9 @@
     }
 
     button:hover {
-        background-color: #00cc00;
-        box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        background-color: var(--color-amber-bright);
+        border-color: var(--color-amber-bright);
+        box-shadow: 0 0 10px rgba(139, 115, 85, 0.3);
     }
 
     .recent-messages {
@@ -398,18 +589,19 @@
     }
 
     .recent-messages h2 {
-        border-bottom: 1px solid #00ff00;
+        border-bottom: 1px solid var(--color-border-main);
         padding-bottom: 10px;
         margin-bottom: 20px;
         font-size: 18px;
         letter-spacing: 2px;
+        color: var(--color-teal);
     }
 
     .message-preview {
-        border: 1px solid #004400;
+        border: 1px solid var(--color-border-subtle);
         padding: 10px;
         margin-bottom: 10px;
-        background-color: #000800;
+        background-color: var(--color-bg-secondary);
         font-size: 12px;
     }
 
@@ -417,26 +609,28 @@
         display: flex;
         justify-content: space-between;
         margin-bottom: 5px;
-        color: #00aa00;
+        color: var(--color-text-secondary);
     }
 
     .message-preview-content {
-        color: #00ff00;
+        color: var(--color-text-primary);
     }
-</style>
 {% endblock %}
 
 {% block content %}
 <div class="console-layout" style="display: flex !important; flex-direction: row !important; gap: 20px; width: 100%;">
     <!-- Location Tree Sidebar -->
-    <div class="location-browser" style="width: 380px; flex-shrink: 0;">
-        <h3>LOCATIONS</h3>
-
-        <ul class="tree-view tree-root">
-            {% for location in locations %}
-                {% include 'terminal/tree_location.html' with location=location depth=0 %}
-            {% endfor %}
-        </ul>
+    <div class="location-browser-wrapper">
+        <div class="location-browser-header">
+            <h3>LOCATIONS</h3>
+        </div>
+        <div class="location-browser">
+            <ul class="tree-view tree-root">
+                {% for location in locations %}
+                    {% include 'terminal/tree_location.html' with location=location depth=0 %}
+                {% endfor %}
+            </ul>
+        </div>
     </div>
 
     <!-- Main Console Area -->

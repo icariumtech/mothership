@@ -138,15 +138,123 @@ Message content here...
 ```
 
 **Visual Elements**:
-- **Angular Panels**: Chamfered corners using CSS `clip-path` polygons
+- **Angular Panels**: Chamfered corners using CSS `clip-path` polygons (12px chamfer size)
 - **CRT Effects**: Subtle scanlines (3px spacing, very low opacity)
 - **Text Hierarchy**: Teal for structure/headers, amber for actions, gray for content
 - **No Bright Colors**: All colors are muted and realistic - no neon green
+- **Diagonal Corner Lines**: 4px wide diagonal lines using linear gradients at chamfered corners
 
 **Implementation**:
 - Colors defined in [terminal/templates/terminal/base.html](terminal/templates/terminal/base.html)
 - Applied across [gm_console.html](terminal/templates/terminal/gm_console.html) and [display_inbox.html](terminal/templates/terminal/display_inbox.html)
 - Angular panel helper classes available for new components
+
+### UI Layout Standards
+
+**Top Navigation Bar** (`terminal-header`):
+- **Height**: 52px fixed
+- **Background**: #1a2828 with horizontal scanline pattern
+  - Pattern: `repeating-linear-gradient(to bottom, transparent, transparent 1px, rgba(0, 0, 0, 0.3) 1px, rgba(0, 0, 0, 0.3) 2px)`
+- **Position**: Sticky, anchored to top of viewport
+- **Padding**: 0 40px 0 22px (22px from left edge, 40px from right)
+- **Font**: Cascadia Code (fallback: Courier New, monospace)
+- **Text Sizes**:
+  - Title/Subtitle: 18px, letter-spacing 3px, color #5a7575 (muted teal)
+  - Right side text (LOGOUT/STATION ACCESS): 11px, letter-spacing 3px, color #8b7355 (amber)
+- **Border**: 1px solid var(--color-border-subtle) at bottom
+
+**Content Layout Spacing**:
+- **Content padding**: Remove default padding, controlled by page-specific CSS
+- **GM Console spacing**: 30px from left edge, 30px below header
+- **Panel gaps**: 20px between major UI components
+
+**Angular Panel Styling** (all chamfered panels):
+- **Chamfer size**: 12px (top-left and bottom-right corners)
+- **Border method**: Use `box-shadow` inset (not `border` property) to prevent clipping
+  - Syntax: `inset 0 2px 0 0 var(--color-border-main)` (for 2px borders)
+- **Diagonal corner lines**:
+  - Size: 12px × 12px pseudo-elements
+  - Thickness: 4px diagonal line (`calc(50% ± 2px)`)
+  - Method: Linear gradient `to bottom right`
+  - Position: `top: 0; left: 0` (top-left), `bottom: 0; right: 0` (bottom-right)
+
+**Standard Panel Template** (default for all new panels):
+
+This is the standard layout pattern for panels in the application. See the Locations panel in [gm_console.html](terminal/templates/terminal/gm_console.html:56-185) as the reference implementation.
+
+**Outer Wrapper** (`.panel-wrapper`):
+- Chamfered angular panel with 12px corners
+- Background: `var(--color-bg-panel)` (#1a2525)
+- Borders: 2px inset box-shadow in teal (`var(--color-border-main)`)
+- Diagonal corner lines at chamfered corners
+- Flexbox container with `display: flex; flex-direction: column`
+
+**Fixed Header** (`.panel-header`):
+- Padding: `12px 2px 0 2px` (extends title underline to edges)
+- Non-scrolling header with `flex-shrink: 0`
+- Title styling can vary by panel (color, size, letter-spacing)
+- Underline: `border-bottom: 1px solid var(--color-border-subtle)`
+- Title padding: `0 10px 5px 10px` (inset from panel edges)
+
+**Scrollable Content Area** (`.panel-content`):
+- Flex: `flex: 1` (fills remaining space)
+- Overflow: `overflow-y: auto; overflow-x: hidden`
+- Padding: `12px 12px 12px 12px`
+- Margins: `margin-bottom: 2px; margin-left: 2px; margin-right: 5px`
+  - Right margin creates 3px gap between content and right panel border
+- Background: Scanline pattern on dark background
+  - Base: `#171717`
+  - Scanlines: `repeating-linear-gradient(to bottom, transparent, transparent 2px, #1a1a1a 2px, #1a1a1a 3px)`
+
+**Panel Scrollbar Styling** (floating style):
+```css
+.panel-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: #171717;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 2px,
+        #1a1a1a 2px,
+        #1a1a1a 3px
+    );
+    border: none;  /* Override global styles */
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: #0f1515;
+    border: 1px solid #4a6b6b;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+    background: #1a2525;
+}
+
+.panel-content::-webkit-scrollbar-button {
+    display: none;
+}
+```
+
+**Key Features:**
+- **Floating scrollbar**: Track has no borders, blends with scanline background
+- **Bordered thumb**: Only the scrollbar thumb has teal border
+- **3px spacing**: Scrollbar is inset 3px from panel's right edge
+- **Matching background**: Track background matches content area scanlines
+- **No left track border**: `border: none` overrides global scrollbar styles
+
+**Scrollbar Styling** (global fallback):
+- **Width**: 10px
+- **Track**: Background #1a2525, border-left 1px solid #4a6b6b
+- **Thumb**: Background #0f1515, border 1px solid #4a6b6b
+- **Thumb hover**: Background #1a2525
+- **Arrows**: Hidden (`display: none`)
+- **Implementation**: Use webkit pseudo-elements, avoid `scrollbar-width` and `scrollbar-color` (Chrome 121+ conflict)
+- **Note**: Individual panels should override these with the floating scrollbar style above
 
 ### Implemented Features
 ✓ **Broadcast Messaging**: GM sends messages to all players via `/gmconsole/`

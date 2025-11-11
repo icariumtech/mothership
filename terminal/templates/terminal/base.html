@@ -43,35 +43,99 @@
             background-color: var(--color-bg-primary);
             color: var(--color-text-primary);
             font-family: 'Courier New', monospace;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
             line-height: 1.6;
         }
 
         .terminal-container {
-            max-width: 1200px;
-            margin: 0 auto;
+            max-width: 100%;
+            margin: 0;
             background-color: var(--color-bg-primary);
-            border: 2px solid var(--color-border-main);
-            padding: 20px;
-            box-shadow: 0 0 20px rgba(74, 107, 107, 0.2);
+            padding: 0;
         }
 
         .terminal-header {
-            border-bottom: 1px solid var(--color-border-main);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 52px;
+            padding: 0 40px 0 22px;
+            background-color: #1a2828;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 1px,
+                rgba(0, 0, 0, 0.3) 1px,
+                rgba(0, 0, 0, 0.3) 2px
+            );
+            border-bottom: 1px solid var(--color-border-subtle);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .terminal-header-left {
+            display: flex;
+            gap: 20px;
+            align-items: baseline;
         }
 
         .terminal-header h1 {
-            font-size: 24px;
-            letter-spacing: 2px;
-            color: var(--color-teal);
+            font-size: 18px;
+            letter-spacing: 3px;
+            color: #5a7575;
+            margin: 0;
+            font-weight: normal;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
         }
 
         .terminal-header .subtitle {
-            font-size: 12px;
-            color: var(--color-amber);
-            margin-top: 5px;
+            font-size: 18px;
+            letter-spacing: 3px;
+            color: #5a7575;
+            margin: 0;
+            font-weight: normal;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+        }
+
+        .terminal-header-right {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: #8b7355;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+        }
+
+        .terminal-header-right a {
+            color: #8b7355;
+            text-decoration: none;
+            border: none;
+            font-size: 11px;
+            letter-spacing: 3px;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+        }
+
+        .terminal-header-right a:hover {
+            color: var(--color-amber-bright);
+            border: none;
+        }
+
+        .terminal-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background-color: #1a2828;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 1px,
+                rgba(0, 0, 0, 0.3) 1px,
+                rgba(0, 0, 0, 0.3) 2px
+            );
+            border-top: 1px solid var(--color-border-subtle);
+            z-index: 100;
         }
 
         .scanline {
@@ -122,15 +186,6 @@
             border-bottom-color: var(--color-teal-bright);
         }
 
-        .nav-links {
-            margin-bottom: 20px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--color-border-subtle);
-        }
-
-        .nav-links a {
-            margin-right: 20px;
-        }
 
         /* Global scrollbar styles */
         ::-webkit-scrollbar {
@@ -162,23 +217,24 @@
     <div class="scanline"></div>
     <div class="terminal-container">
         <div class="terminal-header">
-            <h1>{% block header %}MOTHERSHIP TERMINAL SYSTEM{% endblock %}</h1>
-            <div class="subtitle">{% block subtitle %}CLASSIFIED ACCESS - AUTHORIZED PERSONNEL ONLY{% endblock %}</div>
+            <div class="terminal-header-left">
+                <h1>{% block header %}MOTHERSHIP TERMINAL SYSTEM{% endblock %}</h1>
+                <div class="subtitle">{% block subtitle %}{% endblock %}</div>
+            </div>
+            <div class="terminal-header-right">
+                {% if user.is_authenticated %}
+                <a href="{% url 'terminal_logout' %}">LOGOUT</a>
+                {% else %}
+                STATION ACCESS
+                {% endif %}
+            </div>
         </div>
-
-        {% if user.is_authenticated %}
-        <div class="nav-links">
-            <a href="{% url 'terminal' %}">TERMINAL</a>
-            {% if user.is_staff %}
-            <a href="{% url 'gm_console' %}">GM CONSOLE</a>
-            <a href="/admin/">ADMIN</a>
-            {% endif %}
-            <a href="{% url 'terminal_logout' %}">LOGOUT [{{ user.username }}]</a>
-        </div>
-        {% endif %}
 
         <div class="content">
             {% block content %}{% endblock %}
+        </div>
+
+        <div class="terminal-footer">
         </div>
     </div>
 </body>

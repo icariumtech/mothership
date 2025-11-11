@@ -3,7 +3,7 @@
 {% block title %}GM Console - Send Messages{% endblock %}
 
 {% block header %}GAME MASTER CONTROL CONSOLE{% endblock %}
-{% block subtitle %}MESSAGE BROADCASTING SYSTEM{% endblock %}
+{% block subtitle %}{% endblock %}
 
 {% block extra_css %}
     /* Angular panel with chamfered corners */
@@ -35,21 +35,29 @@
         pointer-events: none;
     }
 
+    .content {
+        padding: 0 !important;
+    }
+
     .console-layout {
         display: flex !important;
         flex-direction: row !important;
         gap: 20px !important;
-        margin-top: 20px;
-        width: 100%;
+        margin-top: 30px;
+        margin-left: 30px;
+        margin-right: 30px;
+        margin-bottom: 60px; /* 30px gap + 30px bottom bar */
+        width: calc(100% - 60px);
+        height: calc(100vh - 52px - 30px - 60px); /* viewport - header - top margin - bottom spacing */
     }
 
     /* Location Tree Sidebar - Outer wrapper with border */
     .location-browser-wrapper {
         position: relative;
         width: 380px;
+        height: 100%;
         flex-shrink: 0;
         background-color: var(--color-bg-panel);
-        max-height: calc(100vh - 250px);
         display: flex;
         flex-direction: column;
         clip-path: polygon(
@@ -110,7 +118,7 @@
 
     /* Fixed header */
     .location-browser-header {
-        padding: 12px 12px 0 12px;
+        padding: 12px 2px 0 2px;
         flex-shrink: 0;
     }
 
@@ -118,9 +126,9 @@
         color: var(--color-teal);
         font-size: 13px;
         letter-spacing: 2px;
-        margin: 0 0 12px 0;
+        margin: 0 0 0 0;
+        padding: 0 10px 5px 10px;
         border-bottom: 1px solid var(--color-border-subtle);
-        padding-bottom: 5px;
     }
 
     /* Scrollable content area */
@@ -128,7 +136,51 @@
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
-        padding: 0 12px 12px 12px;
+        padding: 12px 12px 12px 12px;
+        /* Prevent content from overlapping bottom border */
+        margin-bottom: 2px;
+        margin-left: 2px;
+        margin-right: 5px;  /* 3px gap + 2px panel border = 5px from edge */
+        background-color: #171717;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent 2px,
+            #1a1a1a 2px,
+            #1a1a1a 3px
+        );
+    }
+
+    /* Custom scrollbar for location browser - floating style */
+    .location-browser::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .location-browser::-webkit-scrollbar-track {
+        background: #171717;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent 2px,
+            #1a1a1a 2px,
+            #1a1a1a 3px
+        );
+        border: none;
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+
+    .location-browser::-webkit-scrollbar-thumb {
+        background: #0f1515;
+        border: 1px solid #4a6b6b;
+    }
+
+    .location-browser::-webkit-scrollbar-thumb:hover {
+        background: #1a2525;
+    }
+
+    .location-browser::-webkit-scrollbar-button {
+        display: none;
     }
 
     /* Tree View Styles */
@@ -400,12 +452,14 @@
         gap: 15px;
         flex: 1;
         min-width: 0;
+        height: 100%;
     }
 
     .active-view-info {
         position: relative;
         padding: 12px 15px;
         background-color: var(--color-bg-panel);
+        flex-shrink: 0;
         clip-path: polygon(
             0 12px,
             12px 0,
@@ -472,6 +526,10 @@
         position: relative;
         padding: 15px;
         background-color: var(--color-bg-panel);
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         clip-path: polygon(
             0 12px,
             12px 0,
@@ -618,7 +676,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="console-layout" style="display: flex !important; flex-direction: row !important; gap: 20px; width: 100%;">
+<div class="console-layout">
     <!-- Location Tree Sidebar -->
     <div class="location-browser-wrapper">
         <div class="location-browser-header">
@@ -634,7 +692,7 @@
     </div>
 
     <!-- Main Console Area -->
-    <div class="console-main" style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+    <div class="console-main">
         <!-- Active View Info -->
         <div class="active-view-info">
             <h3>ACTIVE DISPLAY VIEW</h3>

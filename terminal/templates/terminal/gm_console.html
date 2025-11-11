@@ -413,11 +413,14 @@
         height: 100%;
     }
 
-    .active-view-info {
+    /* Active View Info Panel - Outer wrapper */
+    .active-view-info-wrapper {
         position: relative;
-        padding: 12px 15px;
         background-color: var(--color-bg-panel);
         flex-shrink: 0;
+        height: 150px;
+        display: flex;
+        flex-direction: column;
         clip-path: polygon(
             0 12px,
             12px 0,
@@ -433,7 +436,7 @@
             inset 2px 0 0 0 var(--color-border-main);
     }
 
-    .active-view-info::before {
+    .active-view-info-wrapper::before {
         content: '';
         position: absolute;
         top: 0;
@@ -450,7 +453,7 @@
         pointer-events: none;
     }
 
-    .active-view-info::after {
+    .active-view-info-wrapper::after {
         content: '';
         position: absolute;
         bottom: 0;
@@ -467,22 +470,81 @@
         pointer-events: none;
     }
 
-    .active-view-info h3 {
+    /* Fixed header for active view info */
+    .active-view-info-header {
+        padding: 12px 2px 0 2px;
+        flex-shrink: 0;
+    }
+
+    .active-view-info-header h3 {
         color: var(--color-amber);
         font-size: 11px;
         letter-spacing: 2px;
-        margin: 0 0 8px 0;
+        margin: 0 0 0 0;
+        padding: 0 10px 5px 10px;
+        border-bottom: 1px solid var(--color-border-subtle);
     }
 
-    .active-view-info p {
+    /* Scrollable content area */
+    .active-view-info-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 12px 12px 12px 12px;
+        margin-bottom: 2px;
+        margin-left: 2px;
+        margin-right: 5px;
+        background-color: #171717;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent 2px,
+            #1a1a1a 2px,
+            #1a1a1a 3px
+        );
+    }
+
+    /* Floating scrollbar for active view info */
+    .active-view-info-content::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .active-view-info-content::-webkit-scrollbar-track {
+        background: #171717;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent 2px,
+            #1a1a1a 2px,
+            #1a1a1a 3px
+        );
+        border: none;
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+
+    .active-view-info-content::-webkit-scrollbar-thumb {
+        background: #0f1515;
+        border: 1px solid #4a6b6b;
+    }
+
+    .active-view-info-content::-webkit-scrollbar-thumb:hover {
+        background: #1a2525;
+    }
+
+    .active-view-info-content::-webkit-scrollbar-button {
+        display: none;
+    }
+
+    .active-view-info-content p {
         color: var(--color-text-secondary);
         font-size: 10px;
         margin: 3px 0;
     }
 
-    .console-form {
+    /* Broadcast Message Panel - Outer wrapper */
+    .console-form-wrapper {
         position: relative;
-        padding: 15px;
         background-color: var(--color-bg-panel);
         flex: 1;
         min-height: 0;
@@ -503,7 +565,7 @@
             inset 2px 0 0 0 var(--color-border-main);
     }
 
-    .console-form::before {
+    .console-form-wrapper::before {
         content: '';
         position: absolute;
         top: 0;
@@ -520,7 +582,7 @@
         pointer-events: none;
     }
 
-    .console-form::after {
+    .console-form-wrapper::after {
         content: '';
         position: absolute;
         bottom: 0;
@@ -537,11 +599,70 @@
         pointer-events: none;
     }
 
-    .console-form h2 {
-        margin: 0 0 15px 0;
+    /* Fixed header for broadcast message */
+    .console-form-header {
+        padding: 12px 2px 0 2px;
+        flex-shrink: 0;
+    }
+
+    .console-form-header h2 {
+        color: var(--color-teal);
         font-size: 14px;
         letter-spacing: 2px;
-        color: var(--color-teal);
+        margin: 0 0 0 0;
+        padding: 0 10px 5px 10px;
+        border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    /* Scrollable content area */
+    .console-form-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 12px 12px 12px 12px;
+        margin-bottom: 2px;
+        margin-left: 2px;
+        margin-right: 5px;
+        background-color: #171717;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent 2px,
+            #1a1a1a 2px,
+            #1a1a1a 3px
+        );
+    }
+
+    /* Floating scrollbar for broadcast message */
+    .console-form-content::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .console-form-content::-webkit-scrollbar-track {
+        background: #171717;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent 2px,
+            #1a1a1a 2px,
+            #1a1a1a 3px
+        );
+        border: none;
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+
+    .console-form-content::-webkit-scrollbar-thumb {
+        background: #0f1515;
+        border: 1px solid #4a6b6b;
+    }
+
+    .console-form-content::-webkit-scrollbar-thumb:hover {
+        background: #1a2525;
+    }
+
+    .console-form-content::-webkit-scrollbar-button {
+        display: none;
     }
 
     .form-group {
@@ -652,56 +773,64 @@
     <!-- Main Console Area -->
     <div class="console-main">
         <!-- Active View Info -->
-        <div class="active-view-info">
-            <h3>ACTIVE DISPLAY VIEW</h3>
-            {% if active_view.location_slug %}
-                {% for location in locations %}
-                    {% if location.slug == active_view.location_slug %}
-                        <p>&gt; LOCATION: {{ location.name|upper }}</p>
+        <div class="active-view-info-wrapper">
+            <div class="active-view-info-header">
+                <h3>ACTIVE DISPLAY VIEW</h3>
+            </div>
+            <div class="active-view-info-content">
+                {% if active_view.location_slug %}
+                    {% for location in locations %}
+                        {% if location.slug == active_view.location_slug %}
+                            <p>&gt; LOCATION: {{ location.name|upper }}</p>
+                        {% endif %}
+                    {% endfor %}
+                    {% if active_view.view_type == 'COMM_TERMINAL' and active_view.view_slug %}
+                        <p>&gt; TERMINAL: {{ active_view.view_slug|upper }}</p>
+                    {% elif active_view.view_type == 'ENCOUNTER_MAP' and active_view.view_slug %}
+                        <p>&gt; MAP: {{ active_view.view_slug|upper }}</p>
+                    {% else %}
+                        <p>&gt; VIEW: LOCATION OVERVIEW</p>
                     {% endif %}
-                {% endfor %}
-                {% if active_view.view_type == 'COMM_TERMINAL' and active_view.view_slug %}
-                    <p>&gt; TERMINAL: {{ active_view.view_slug|upper }}</p>
-                {% elif active_view.view_type == 'ENCOUNTER_MAP' and active_view.view_slug %}
-                    <p>&gt; MAP: {{ active_view.view_slug|upper }}</p>
                 {% else %}
-                    <p>&gt; VIEW: LOCATION OVERVIEW</p>
+                    <p>&gt; No location selected</p>
                 {% endif %}
-            {% else %}
-                <p>&gt; No location selected</p>
-            {% endif %}
-            <p>&gt; UPDATED: {{ active_view.updated_at|date:"Y-m-d H:i:s" }}</p>
+                <p>&gt; UPDATED: {{ active_view.updated_at|date:"Y-m-d H:i:s" }}</p>
+            </div>
         </div>
 
         <!-- Broadcast Message Form -->
-        <div class="console-form">
-            <h2>BROADCAST MESSAGE</h2>
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="send_message" value="1">
+        <div class="console-form-wrapper">
+            <div class="console-form-header">
+                <h2>BROADCAST MESSAGE</h2>
+            </div>
+            <div class="console-form-content">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="send_message" value="1">
 
-                <div class="form-group">
-                    <label for="sender">SENDER:</label>
-                    <input type="text" id="sender" name="sender" value="CHARON" placeholder="System name...">
-                </div>
+                    <div class="form-group">
+                        <label for="sender">SENDER:</label>
+                        <input type="text" id="sender" name="sender" value="CHARON" placeholder="System name...">
+                    </div>
 
-                <div class="form-group">
-                    <label for="priority">PRIORITY:</label>
-                    <select id="priority" name="priority">
-                        <option value="LOW">LOW</option>
-                        <option value="NORMAL" selected>NORMAL</option>
-                        <option value="HIGH">HIGH</option>
-                        <option value="CRITICAL">CRITICAL</option>
-                    </select>
-                </div>
+                    <div class="form-group">
+                        <label for="priority">PRIORITY:</label>
+                        <select id="priority" name="priority">
+                            <option value="LOW">LOW</option>
+                            <option value="NORMAL" selected>NORMAL</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label for="content">MESSAGE:</label>
-                    <textarea id="content" name="content" placeholder="Enter broadcast message..." required></textarea>
-                </div>
+                    <div class="form-group">
+                        <label for="content">MESSAGE:</label>
+                        <textarea id="content" name="content" placeholder="Enter broadcast message..." required></textarea>
+                    </div>
 
-                <button type="submit">TRANSMIT</button>
-            </form>
+                    <button type="submit">TRANSMIT</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

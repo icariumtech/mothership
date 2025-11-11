@@ -54,7 +54,7 @@
     /* Location Tree Sidebar - Outer wrapper with border */
     .location-browser-wrapper {
         position: relative;
-        width: 380px;
+        width: 430px;
         height: 100%;
         flex-shrink: 0;
         background-color: var(--color-bg-panel);
@@ -195,24 +195,7 @@
         margin: 0;
     }
 
-    /* Tree visual connectors */
-    .tree-item::before {
-        content: '';
-        position: absolute;
-        left: 10px;
-        top: 0;
-        bottom: 0;
-        width: 1px;
-        background: var(--color-border-subtle);
-    }
-
-    .tree-item:last-child::before {
-        bottom: 50%;
-    }
-
-    .tree-root > .tree-item::before {
-        display: none;
-    }
+    /* Tree visual connectors - removed */
 
     /* Location styling */
     .location-row {
@@ -243,38 +226,13 @@
         background-color: var(--color-bg-panel-dark);
     }
 
-    /* Tree connector graphics */
+    /* Tree connector graphics - removed */
     .tree-connector {
         flex-shrink: 0;
         width: 24px;
         height: 20px;
         position: relative;
         margin-right: 4px;
-    }
-
-    .tree-connector::before {
-        content: '';
-        position: absolute;
-        left: 10px;
-        top: 0;
-        width: 1px;
-        height: 100%;
-        background: var(--color-border-subtle);
-    }
-
-    .tree-connector::after {
-        content: '';
-        position: absolute;
-        left: 10px;
-        top: 50%;
-        width: 10px;
-        height: 1px;
-        background: var(--color-border-subtle);
-    }
-
-    .tree-root > .tree-item > .location-row > .tree-connector::before,
-    .tree-root > .tree-item > .location-row > .tree-connector::after {
-        display: none;
     }
 
     /* Toggle triangle indicator */
@@ -809,6 +767,30 @@ function displayLocation(locationSlug) {
 
 // Show a terminal (displays terminal overlay without changing main view)
 function showTerminal(locationSlug, terminalSlug, buttonElement) {
+    // First, ensure the parent location is expanded
+    const terminalList = document.getElementById('terminals-' + locationSlug);
+    if (terminalList && !terminalList.classList.contains('expanded')) {
+        // Expand the parent location
+        const toggle = document.getElementById('toggle-' + locationSlug);
+        const childrenList = document.getElementById('children-' + locationSlug);
+
+        if (terminalList) terminalList.classList.add('expanded');
+        if (childrenList) childrenList.classList.add('expanded');
+        if (toggle) toggle.innerHTML = '&#9660;'; // Down-pointing triangle
+
+        // Update expanded state
+        const expandedState = getExpandedState();
+        expandedState[locationSlug] = true;
+        saveExpandedState(expandedState);
+    }
+
+    // Save scroll position and tree state before submitting
+    saveCurrentTreeState();
+    const locationBrowser = document.querySelector('.location-browser');
+    if (locationBrowser) {
+        localStorage.setItem('location_browser_scroll', locationBrowser.scrollTop);
+    }
+
     // Add flashing effect to button
     buttonElement.classList.add('flashing');
 
@@ -817,12 +799,42 @@ function showTerminal(locationSlug, terminalSlug, buttonElement) {
         buttonElement.classList.remove('flashing');
     }, 500);
 
-    // Submit the overlay terminal (doesn't change the main display)
-    submitTerminalOverlay(locationSlug, terminalSlug);
+    // Submit both the location display AND terminal overlay in a single form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '';
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const fields = {
+        'csrfmiddlewaretoken': csrfToken,
+        'location_slug': locationSlug,
+        'view_type': 'ENCOUNTER_MAP',
+        'view_slug': '',
+        'overlay_location_slug': locationSlug,
+        'overlay_terminal_slug': terminalSlug
+    };
+
+    for (const [key, value] of Object.entries(fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // Submit terminal overlay form (separate from view switching)
 function submitTerminalOverlay(locationSlug, terminalSlug) {
+    // Save scroll position before submitting
+    const locationBrowser = document.querySelector('.location-browser');
+    if (locationBrowser) {
+        localStorage.setItem('location_browser_scroll', locationBrowser.scrollTop);
+    }
+
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '';
@@ -862,6 +874,12 @@ function saveCurrentTreeState() {
 
 // Submit the view switch form
 function submitViewSwitch(locationSlug, viewType, viewSlug) {
+    // Save scroll position before submitting
+    const locationBrowser = document.querySelector('.location-browser');
+    if (locationBrowser) {
+        localStorage.setItem('location_browser_scroll', locationBrowser.scrollTop);
+    }
+
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '';
@@ -938,6 +956,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Save updated state
         saveExpandedState(expandedState);
+    }
+
+    // Restore scroll position
+    const savedScroll = localStorage.getItem('location_browser_scroll');
+    if (savedScroll !== null) {
+        const locationBrowser = document.querySelector('.location-browser');
+        if (locationBrowser) {
+            locationBrowser.scrollTop = parseInt(savedScroll, 10);
+        }
+        // Clear the saved scroll position after restoring
+        localStorage.removeItem('location_browser_scroll');
     }
 });
 </script>

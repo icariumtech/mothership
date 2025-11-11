@@ -4,10 +4,6 @@
     <div class="location-row {% if active_view.location_slug == location.slug and active_view.view_type == 'ENCOUNTER_MAP' %}displaying{% endif %}">
 
         <div class="location-content" onclick="toggleTreeItem('{{ location.slug }}');">
-            {% if depth > 0 %}
-            <span class="tree-connector"></span>
-            {% endif %}
-
             <!-- Toggle triangle for expand/collapse -->
             <span class="tree-toggle {% if not location.children and not location.terminals %}empty{% endif %}"
                   id="toggle-{{ location.slug }}">
@@ -42,7 +38,6 @@
             <div class="terminal-row">
 
                 <div class="terminal-content">
-                    <span class="tree-connector"></span>
                     <span class="tree-toggle empty"></span>
                     <span class="terminal-name">{{ terminal.terminal_id|default:terminal.slug|upper }}</span>
                     <span class="terminal-owner">{{ terminal.owner }}</span>

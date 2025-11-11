@@ -46,7 +46,27 @@ def gm_console(request):
     from terminal.data_loader import load_all_locations
     from terminal.models import ActiveView
 
-    # Handle terminal overlay (Show button)
+    # Handle combined view switch + terminal overlay (Show terminal button)
+    # This happens when showing a terminal - we set both the location display AND the overlay
+    if request.method == 'POST' and 'overlay_terminal_slug' in request.POST and 'location_slug' in request.POST:
+        active_view = ActiveView.get_current()
+
+        # Set the main display view (location map)
+        active_view.location_slug = request.POST.get('location_slug', '')
+        active_view.view_type = request.POST.get('view_type', 'MESSAGES')
+        active_view.view_slug = request.POST.get('view_slug', '')
+
+        # Set the overlay (terminal)
+        active_view.overlay_location_slug = request.POST.get('overlay_location_slug', '')
+        active_view.overlay_terminal_slug = request.POST.get('overlay_terminal_slug', '')
+
+        active_view.updated_by = request.user
+        active_view.save()
+
+        django_messages.success(request, f'Displaying {active_view.location_slug} with terminal overlay: {active_view.overlay_terminal_slug}')
+        return redirect('gm_console')
+
+    # Handle terminal overlay only (Show button)
     if request.method == 'POST' and 'show_terminal' in request.POST:
         active_view = ActiveView.get_current()
         active_view.overlay_location_slug = request.POST.get('location_slug', '')

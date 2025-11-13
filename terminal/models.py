@@ -9,9 +9,11 @@ class ActiveView(models.Model):
     Singleton model - only one record should exist.
     """
     VIEW_TYPE_CHOICES = [
-        ('MESSAGES', 'Broadcast Messages'),
-        ('COMM_TERMINAL', 'Communications Terminal'),
+        ('STANDBY', 'Standby Screen'),
+        ('CAMPAIGN_DASHBOARD', 'Campaign Dashboard'),
         ('ENCOUNTER_MAP', 'Encounter Map'),
+        ('COMM_TERMINAL', 'Communications Terminal'),
+        ('MESSAGES', 'Broadcast Messages'),
         ('SHIP_DASHBOARD', 'Ship Dashboard'),
     ]
 
@@ -24,7 +26,7 @@ class ActiveView(models.Model):
     view_type = models.CharField(
         max_length=50,
         choices=VIEW_TYPE_CHOICES,
-        default='MESSAGES',
+        default='STANDBY',
         help_text='Type of view to display'
     )
     view_slug = models.CharField(

@@ -33,7 +33,7 @@ def terminal_view(request):
 
     user_messages = user_messages.distinct().order_by('-created_at')[:50]
 
-    return render(request, 'terminal/terminal.html', {
+    return render(request, 'terminal/player_console.html', {
         'messages': user_messages
     })
 
@@ -83,6 +83,11 @@ def gm_console(request):
         active_view.location_slug = request.POST.get('location_slug', '')
         active_view.view_type = request.POST.get('view_type', 'MESSAGES')
         active_view.view_slug = request.POST.get('view_slug', '')
+
+        # Clear terminal overlay when location changes
+        active_view.overlay_location_slug = ''
+        active_view.overlay_terminal_slug = ''
+
         active_view.updated_by = request.user
         active_view.save()
 
@@ -115,12 +120,27 @@ def gm_console(request):
     # Get current active view
     active_view = ActiveView.get_current()
 
+    # Find the currently selected location data for detailed display
+    current_location_data = None
+    current_terminal_data = None
+    if active_view.location_slug:
+        current_location_data = find_location_recursive(locations, active_view.location_slug)
+
+        # Find the terminal data if overlay is active
+        if active_view.overlay_terminal_slug and current_location_data:
+            for terminal in current_location_data.get('terminals', []):
+                if terminal['slug'] == active_view.overlay_terminal_slug:
+                    current_terminal_data = terminal
+                    break
+
     recent_messages = Message.objects.all()[:20]
 
     return render(request, 'terminal/gm_console.html', {
         'recent_messages': recent_messages,
         'locations': locations,
         'active_view': active_view,
+        'current_location_data': current_location_data,
+        'current_terminal_data': current_terminal_data,
     })
 
 
@@ -176,7 +196,7 @@ def display_view(request):
         all_locations = load_all_locations()
         location_data = find_location_recursive(all_locations, active_view.location_slug)
 
-    return render(request, 'terminal/display_inbox.html', {
+    return render(request, 'terminal/shared_console.html', {
         'messages': all_messages,
         'senders': senders,
         'first_sender': first_sender,

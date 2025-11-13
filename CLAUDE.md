@@ -51,7 +51,8 @@ charon/
 │       └── terminal/
 │           ├── gm_console.html      # GM control panel
 │           ├── tree_location.html   # Recursive tree view item
-│           └── display_inbox.html   # Terminal display (auto-switches)
+│           ├── shared_console.html  # Shared display (auto-switches views)
+│           └── player_console.html  # Player message inbox (login required)
 ├── db.sqlite3                 # Development database
 ├── manage.py                  # Django management
 ├── requirements.txt           # Python dependencies
@@ -146,7 +147,7 @@ Message content here...
 
 **Implementation**:
 - Colors defined in [terminal/templates/terminal/base.html](terminal/templates/terminal/base.html)
-- Applied across [gm_console.html](terminal/templates/terminal/gm_console.html) and [display_inbox.html](terminal/templates/terminal/display_inbox.html)
+- Applied across [gm_console.html](terminal/templates/terminal/gm_console.html) and [shared_console.html](terminal/templates/terminal/shared_console.html)
 - Angular panel helper classes available for new components
 
 ### UI Layout Standards

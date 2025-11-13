@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOTHERSHIP TERMINAL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        /* V2-1 Color Palette */
+        :root {
+            --color-teal: #4a6b6b;
+            --color-teal-bright: #5a7a7a;
+            --color-amber: #8b7355;
+            --color-amber-bright: #9a8065;
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #1a1a1a;
+            --color-bg-panel: #1a2525;
+            --color-bg-panel-dark: #0f1515;
+            --color-text-primary: #9a9a9a;
+            --color-text-secondary: #7a7a7a;
+            --color-text-muted: #5a5a5a;
+            --color-border-main: #4a6b6b;
+            --color-border-subtle: #2a3a3a;
+            --color-active: #8b7355;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #2b2b2b; /* Charcoal background matching logo */
+            color: var(--color-text-primary);
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Scanline overlay - covers entire screen */
+        .scanline-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.1) 2px,
+                rgba(0, 0, 0, 0.1) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ===================
+           STANDBY VIEW
+           =================== */
+        .standby-view {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            background-color: #2b2b2b; /* Charcoal background */
+        }
+
+        .standby-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .standby-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 96px;
+            font-weight: 900;
+            letter-spacing: 16px;
+            color: #e0e0e0;
+            text-align: center;
+            opacity: 0.9;
+            animation: aggressiveGlitch 3s infinite;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            /* CSS variables for random glitch direction */
+            --glitch-x1: -35px;
+            --glitch-y1: 0px;
+            --glitch-x2: 30px;
+            --glitch-y2: 0px;
+            --glitch-x3: -20px;
+            --glitch-y3: 0px;
+        }
+
+        .standby-subtitle {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            color: #8b7355;
+            text-align: center;
+            opacity: 0.8;
+            text-shadow: 0 0 15px rgba(139, 115, 85, 0.4);
+            animation: aggressiveGlitch 3s infinite;
+            animation-delay: 1.5s; /* Offset by half cycle so it glitches at different time */
+            /* CSS variables for random glitch direction */
+            --glitch-x1: -35px;
+            --glitch-y1: 0px;
+            --glitch-x2: 30px;
+            --glitch-y2: 0px;
+            --glitch-x3: -20px;
+            --glitch-y3: 0px;
+        }
+
+        /* Aggressive random glitch effect with motion blur */
+        @keyframes aggressiveGlitch {
+            0%, 88%, 90%, 92%, 100% {
+                transform: translate(0, 0) skewX(0deg);
+                filter: brightness(1) blur(0px);
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            }
+            89% {
+                transform: translate(var(--glitch-x1), var(--glitch-y1)) skewX(-5deg);
+                filter: brightness(1.3) contrast(1.2) blur(1.5px);
+                text-shadow:
+                    -5px 0 10px rgba(255, 0, 0, 0.5),
+                    5px 0 10px rgba(0, 255, 255, 0.5),
+                    -10px 0 15px rgba(255, 0, 0, 0.3),
+                    -15px 0 20px rgba(255, 0, 0, 0.2),
+                    -20px 0 25px rgba(255, 0, 0, 0.1);
+            }
+            89.5% {
+                transform: translate(var(--glitch-x2), var(--glitch-y2)) skewX(5deg);
+                filter: brightness(0.7) contrast(1.5) blur(1.5px);
+                text-shadow:
+                    5px 0 10px rgba(0, 255, 0, 0.5),
+                    -5px 0 10px rgba(255, 0, 255, 0.5),
+                    10px 0 15px rgba(0, 255, 0, 0.3),
+                    15px 0 20px rgba(0, 255, 0, 0.2),
+                    20px 0 25px rgba(0, 255, 0, 0.1);
+            }
+            91% {
+                transform: translate(var(--glitch-x3), var(--glitch-y3)) skewX(3deg);
+                filter: brightness(1.4) blur(1px);
+                text-shadow:
+                    0 0 30px rgba(255, 255, 255, 0.6),
+                    -10px 0 20px rgba(255, 255, 255, 0.3),
+                    -15px 0 25px rgba(255, 255, 255, 0.2);
+            }
+        }
+
+        /* Random text blocks that appear around the screen */
+        .text-block {
+            position: absolute;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            color: white;
+            white-space: pre-line;
+            line-height: 1.4;
+            pointer-events: none;
+            opacity: 0;
+            animation: fadeInOut 6s ease-in-out forwards;
+            mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 30%, transparent 80%);
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.7;
+            }
+            80% {
+                opacity: 0.7;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* ===================
+           CAMPAIGN DASHBOARD VIEW
+           =================== */
+        .campaign-dashboard {
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--color-bg-primary);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .dashboard-header {
+            color: var(--color-teal);
+            font-size: 24px;
+            letter-spacing: 4px;
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--color-border-main);
+        }
+
+        .dashboard-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .dashboard-panel {
+            background-color: var(--color-bg-panel);
+            border: 2px solid var(--color-border-main);
+            padding: 20px;
+            clip-path: polygon(
+                12px 0, 100% 0, 100% calc(100% - 12px),
+                calc(100% - 12px) 100%, 0 100%, 0 12px
+            );
+        }
+
+        .dashboard-panel h3 {
+            color: var(--color-teal);
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--color-border-subtle);
+        }
+
+        /* ===================
+           ENCOUNTER MAP VIEW
+           =================== */
+        .map-view {
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--color-bg-primary);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .map-header {
+            color: var(--color-teal);
+            font-size: 20px;
+            letter-spacing: 3px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--color-border-main);
+        }
+
+        .map-info-bar {
+            display: flex;
+            justify-content: space-between;
+            color: var(--color-text-secondary);
+            font-size: 11px;
+            letter-spacing: 1px;
+            padding-bottom: 10px;
+        }
+
+        .map-container {
+            flex: 1;
+            background-color: var(--color-bg-panel-dark);
+            border: 2px solid var(--color-border-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            clip-path: polygon(
+                12px 0, 100% 0, 100% calc(100% - 12px),
+                calc(100% - 12px) 100%, 0 100%, 0 12px
+            );
+            position: relative;
+        }
+
+        .map-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .no-map-message {
+            color: var(--color-text-muted);
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        /* Corner diagonal lines for angular panels */
+        .map-container::before,
+        .map-container::after,
+        .dashboard-panel::before,
+        .dashboard-panel::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .map-container::before {
+            top: 0;
+            left: 0;
+        }
+
+        .map-container::after {
+            bottom: 0;
+            right: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Scanline overlay covers entire screen -->
+    <div class="scanline-overlay"></div>
+
+    <!-- STANDBY VIEW -->
+    {% if active_view.view_type == 'STANDBY' %}
+    <div class="standby-view" id="standby-container">
+        <div class="standby-logo">
+            <div class="standby-text" data-text="MOTHERSHIP">MOTHERSHIP</div>
+            <div class="standby-subtitle">The Outer Veil</div>
+        </div>
+    </div>
+
+    <script>
+    // Randomize glitch direction on each animation iteration
+    (function() {
+        const mainText = document.querySelector('.standby-text');
+        const subtitle = document.querySelector('.standby-subtitle');
+
+        function randomizeGlitchDirection(element) {
+            // Random displacement between -35px and 35px
+            const x1 = (Math.random() * 70 - 35).toFixed(0);
+            const y1 = (Math.random() * 40 - 20).toFixed(0); // Less vertical range
+            const x2 = (Math.random() * 60 - 30).toFixed(0);
+            const y2 = (Math.random() * 40 - 20).toFixed(0);
+            const x3 = (Math.random() * 40 - 20).toFixed(0);
+            const y3 = (Math.random() * 30 - 15).toFixed(0);
+
+            element.style.setProperty('--glitch-x1', `${x1}px`);
+            element.style.setProperty('--glitch-y1', `${y1}px`);
+            element.style.setProperty('--glitch-x2', `${x2}px`);
+            element.style.setProperty('--glitch-y2', `${y2}px`);
+            element.style.setProperty('--glitch-x3', `${x3}px`);
+            element.style.setProperty('--glitch-y3', `${y3}px`);
+        }
+
+        // Randomize on animation iteration (each time animation completes a cycle)
+        if (mainText) {
+            mainText.addEventListener('animationiteration', () => {
+                randomizeGlitchDirection(mainText);
+            });
+            // Randomize on load
+            randomizeGlitchDirection(mainText);
+        }
+
+        if (subtitle) {
+            subtitle.addEventListener('animationiteration', () => {
+                randomizeGlitchDirection(subtitle);
+            });
+            // Randomize on load
+            randomizeGlitchDirection(subtitle);
+        }
+    })();
+
+    // Random text blocks generator for STANDBY view
+    (function() {
+        const container = document.getElementById('standby-container');
+        if (!container) return;
+
+        // Track active blocks for collision detection
+        const activeBlocks = [];
+
+        // Individual line snippets (will be randomly combined)
+        const lineSnippets = [
+            'SYSTEM ONLINE', 'ALL SYSTEMS NOMINAL', 'STANDBY MODE', 'AWAITING ORDERS',
+            'QUANTUM FLUX DETECTED', 'STABILIZING FIELD', 'NEURAL INTERFACE ACTIVE',
+            'SYNAPTIC LINK STABLE', 'BIOMETRIC SCAN COMPLETE', 'IDENTITY CONFIRMED',
+            'HULL INTEGRITY: 98%', 'MINOR BREACH SEALED', 'LIFE SUPPORT: NOMINAL',
+            'O2 LEVELS: OPTIMAL', 'REACTOR CORE: STABLE', 'POWER OUTPUT: 100%',
+            'NAVIGATION READY', 'COORDINATES LOCKED', 'COMMS ARRAY: ONLINE',
+            'SIGNAL STRENGTH: FULL', 'SENSOR SWEEP: CLEAR', 'NO CONTACTS DETECTED',
+            'ENGINES: IDLE', 'FUEL: 87%', 'CARGO BAY: SECURE', 'CONTAINMENT HOLDING',
+            'ATMOSPHERIC PRESSURE: STABLE', 'GRAVITY: 1.0G', 'SCANNING...',
+            'ANALYSIS IN PROGRESS', 'PROCESSING...', 'DECRYPTING DATA',
+            'INITIALIZING...', 'BOOT SEQUENCE ACTIVE', 'CRYO BAY: EMPTY',
+            'ALL PODS DORMANT', 'MEDICAL: STANDBY', 'AUTO-DOC READY',
+            'WEAPONS: OFFLINE', 'SAFETY PROTOCOLS ENGAGED', 'SHIELDS: CHARGING',
+            '42% CAPACITY', 'JUMP DRIVE: READY', 'FTL AVAILABLE',
+            'RADIATION LEVELS: SAFE', 'DOSE: 0.3 mSv', 'TARGETING SYSTEMS: OFFLINE',
+            'PEACE MODE ACTIVE', 'DRONE BAY: SEALED', '3 UNITS READY',
+            'MINING LASER: STANDBY', 'CAPACITOR CHARGED', 'EMERGENCY BEACON: ACTIVE',
+            'BROADCASTING SOS', 'WARP CORE: STABLE', 'CONTAINMENT AT 100%',
+            'AIRLOCK STATUS: SECURE', 'PRESSURE NOMINAL', 'LABORATORY: SEALED',
+            'QUARANTINE ACTIVE', 'BRIDGE ACCESS: GRANTED', 'WELCOME COMMANDER',
+            'UNKNOWN SIGNAL DETECTED', 'TRACKING SOURCE', 'HEAT SIGNATURE: ANOMALOUS',
+            'INVESTIGATING', 'PROXIMITY ALERT', 'OBJECT AT 200M',
+            'SYSTEM DIAGNOSTICS COMPLETE', 'NO ERRORS FOUND', 'FIRMWARE UPDATE AVAILABLE',
+            'VERSION 3.7.2', 'BACKUP POWER: 100%', 'BATTERIES FULL',
+            'WASTE RECYCLING: ACTIVE', 'EFFICIENCY: 94%', 'FOOD STORES: ADEQUATE',
+            '142 DAYS REMAINING', 'WATER PURIFICATION: ONLINE', 'RESERVES: 89%',
+            'SUIT TELEMETRY: NOMINAL', 'ALL CREW ACCOUNTED FOR', 'BLACK BOX: RECORDING',
+            'FLIGHT DATA LOGGED', 'AUTO-PILOT: ENGAGED', 'COURSE LOCKED',
+            'STELLAR CARTOGRAPHY', 'MAP UPDATE: 99%', 'ANOMALY DETECTED',
+            'CLASSIFICATION: UNKNOWN', 'TEMPORAL DRIFT: MINIMAL', 'CHRONOMETER SYNCED',
+            'EXOTIC MATTER: DETECTED', 'ANALYSIS PENDING', 'VOID EXPOSURE: MINIMAL',
+            'CREW SAFETY: GREEN', 'DARK MATTER READINGS', 'THRESHOLD EXCEEDED',
+            'SUBSPACE INTERFERENCE', 'COMPENSATING', 'ALIEN ARTIFACT DETECTED',
+            'ORIGIN: UNKNOWN', 'DISTRESS CALL RECEIVED', 'INVESTIGATING TRANSMISSION'
+        ];
+
+        function getRandomLines() {
+            // Random number of lines (1-4)
+            const lineCount = Math.floor(Math.random() * 4) + 1;
+            const selectedLines = [];
+
+            // Pick random lines without repetition
+            const availableLines = [...lineSnippets];
+            for (let i = 0; i < lineCount; i++) {
+                const randomIndex = Math.floor(Math.random() * availableLines.length);
+                selectedLines.push('> ' + availableLines[randomIndex]);
+                availableLines.splice(randomIndex, 1);
+            }
+
+            return selectedLines.join('\n');
+        }
+
+        function checkCollision(x, y, width, height) {
+            // Check if this position overlaps with any existing blocks
+            for (const block of activeBlocks) {
+                if (!(x + width < block.x ||
+                      x > block.x + block.width ||
+                      y + height < block.y ||
+                      y > block.y + block.height)) {
+                    return true; // Collision detected
+                }
+            }
+            return false;
+        }
+
+        function findSafePosition(width, height) {
+            const maxAttempts = 50;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                // Random position (avoid center where main title is)
+                let x = Math.random() * 80 + 10; // 10-90%
+                let y = Math.random() * 80 + 10; // 10-90%
+
+                // Avoid center area (30-70% range - larger exclusion zone)
+                if (x > 30 && x < 70 && y > 30 && y < 70) {
+                    // Push to edges if in center
+                    if (Math.random() > 0.5) {
+                        x = x < 50 ? x - 35 : x + 35;
+                    } else {
+                        y = y < 50 ? y - 35 : y + 35;
+                    }
+                }
+
+                // Check collision
+                if (!checkCollision(x, y, width, height)) {
+                    return { x, y };
+                }
+            }
+
+            // If we can't find a safe spot, return null
+            return null;
+        }
+
+        function createTextBlock() {
+            const text = getRandomLines();
+
+            // Estimate size (rough approximation)
+            const lineCount = text.split('\n').length;
+            const maxLineLength = Math.max(...text.split('\n').map(line => line.length));
+            const estimatedWidth = maxLineLength * 0.6; // Rough % of viewport width
+            const estimatedHeight = lineCount * 2; // Rough % of viewport height
+
+            // Find safe position
+            const position = findSafePosition(estimatedWidth, estimatedHeight);
+            if (!position) {
+                // If no safe position found, skip this block
+                return;
+            }
+
+            const block = document.createElement('div');
+            block.className = 'text-block';
+            block.style.left = position.x + '%';
+            block.style.top = position.y + '%';
+
+            container.appendChild(block);
+
+            // Track this block
+            const blockData = {
+                element: block,
+                x: position.x,
+                y: position.y,
+                width: estimatedWidth,
+                height: estimatedHeight
+            };
+            activeBlocks.push(blockData);
+
+            // Type out text character by character
+            let currentText = '';
+            let charIndex = 0;
+
+            const typeInterval = setInterval(() => {
+                if (charIndex < text.length) {
+                    currentText += text[charIndex];
+                    block.textContent = currentText;
+                    charIndex++;
+                } else {
+                    clearInterval(typeInterval);
+                }
+            }, 50); // 50ms per character
+
+            // Remove after fade animation completes
+            setTimeout(() => {
+                block.remove();
+                // Remove from active blocks array
+                const index = activeBlocks.indexOf(blockData);
+                if (index > -1) {
+                    activeBlocks.splice(index, 1);
+                }
+            }, 6000);
+        }
+
+        // Create text blocks at random intervals
+        function spawnTextBlocks() {
+            createTextBlock();
+
+            // Schedule next block (random interval between 400ms and 1000ms - faster spawning)
+            const nextDelay = Math.random() * 600 + 400;
+            setTimeout(spawnTextBlocks, nextDelay);
+        }
+
+        // Start spawning after a short delay
+        setTimeout(spawnTextBlocks, 500);
+    })();
+    </script>
+
+    <!-- CAMPAIGN DASHBOARD VIEW -->
+    {% elif active_view.view_type == 'CAMPAIGN_DASHBOARD' %}
+    <div class="campaign-dashboard">
+        <div class="dashboard-header">CAMPAIGN DASHBOARD</div>
+        <div class="dashboard-content">
+            <div class="dashboard-panel">
+                <h3>PLAYERS</h3>
+                <p>&gt; Coming soon...</p>
+            </div>
+            <div class="dashboard-panel">
+                <h3>DISCOVERED SYSTEMS</h3>
+                <p>&gt; Coming soon...</p>
+            </div>
+            <div class="dashboard-panel">
+                <h3>CURRENT GEAR</h3>
+                <p>&gt; Coming soon...</p>
+            </div>
+            <div class="dashboard-panel">
+                <h3>MISSION STATUS</h3>
+                <p>&gt; Coming soon...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENCOUNTER MAP VIEW -->
+    {% elif active_view.view_type == 'ENCOUNTER_MAP' and location_data %}
+    <div class="map-view">
+        <div class="map-header">{{ location_data.name|upper }}</div>
+        <div class="map-info-bar">
+            <span>LOCATION: {{ location_data.coordinates|default:"UNKNOWN" }}</span>
+            <span>TYPE: {{ location_data.type|default:"UNKNOWN"|upper }}</span>
+            <span>STATUS: {{ location_data.status|default:"UNKNOWN"|upper }}</span>
+        </div>
+        <div class="map-container">
+            {% if location_data.map.image_path %}
+                <img src="/data/{{ location_data.map.image_path }}" alt="{{ location_data.map.name }}" class="map-image">
+            {% else %}
+                <div class="no-map-message">
+                    <p>&gt; NO MAP AVAILABLE</p>
+                    <p>&gt; {{ location_data.name|upper }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- FALLBACK -->
+    {% else %}
+    <div class="standby-view">
+        <div class="no-map-message">
+            <p>&gt; TERMINAL STANDBY</p>
+            <p>&gt; NO ACTIVE VIEW</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Auto-refresh script -->
+    <script>
+    (function() {
+        let currentViewState = {
+            location_slug: '{{ active_view.location_slug|default:"" }}',
+            view_type: '{{ active_view.view_type }}',
+            view_slug: '{{ active_view.view_slug|default:"" }}',
+            updated_at: '{{ active_view.updated_at|date:"Y-m-d H:i:s" }}'
+        };
+
+        function checkForViewChanges() {
+            fetch('/api/active-view/')
+                .then(response => response.json())
+                .then(data => {
+                    // Check if view has changed
+                    if (data.location_slug !== currentViewState.location_slug ||
+                        data.view_type !== currentViewState.view_type ||
+                        data.view_slug !== currentViewState.view_slug) {
+
+                        console.log('View changed - reloading');
+                        window.location.reload();
+                    }
+
+                    // Update current state
+                    currentViewState = {
+                        location_slug: data.location_slug,
+                        view_type: data.view_type,
+                        view_slug: data.view_slug,
+                        updated_at: data.updated_at
+                    };
+                })
+                .catch(error => {
+                    console.error('Error checking active view:', error);
+                });
+        }
+
+        // Poll every 2 seconds
+        setInterval(checkForViewChanges, 2000);
+    })();
+    </script>
+</body>
+</html>

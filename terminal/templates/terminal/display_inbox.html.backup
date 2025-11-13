@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -431,6 +432,48 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #006600;
         }
+
+        /* Standby Screen Styles */
+        .standby-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-bg-primary);
+            position: relative;
+        }
+
+        .logo-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: glitchEffect 8s infinite;
+        }
+
+        .mothership-logo {
+            max-width: 70%;
+            height: auto;
+            filter: brightness(0.9);
+            opacity: 0.85;
+        }
+
+        /* Subtle glitch effect - horizontal displacement */
+        @keyframes glitchEffect {
+            0%, 90%, 92%, 100% {
+                transform: translateX(0);
+                filter: brightness(0.9);
+            }
+            91% {
+                transform: translateX(-8px);
+                filter: brightness(1.1);
+            }
+            91.5% {
+                transform: translateX(8px);
+                filter: brightness(0.7);
+            }
+        }
     </style>
 </head>
 <body class="flicker">
@@ -443,8 +486,16 @@
         </div>
 
         <div class="main-content">
+            <!-- Standby Screen (MOTHERSHIP logo with scanline animation) -->
+            {% if active_view.view_type == 'STANDBY' %}
+            <div class="standby-screen" id="standby-screen">
+                <div class="logo-container">
+                    <img src="{% static 'terminal/images/mothership_logo.png' %}" alt="MOTHERSHIP" class="mothership-logo">
+                </div>
+            </div>
+
             <!-- Map Display Area (shown when location is active) -->
-            {% if active_view.view_type == 'ENCOUNTER_MAP' and location_data and location_data.map %}
+            {% elif active_view.view_type == 'ENCOUNTER_MAP' and location_data and location_data.map %}
             <div class="map-display" id="map-display">
                 <div class="map-header">
                     <h2>{{ location_data.name|upper }}</h2>

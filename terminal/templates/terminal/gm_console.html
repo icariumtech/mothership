@@ -120,6 +120,7 @@
     .location-browser-header {
         padding: 12px 2px 0 2px;
         flex-shrink: 0;
+        border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .location-browser-header h3 {
@@ -128,7 +129,45 @@
         letter-spacing: 2px;
         margin: 0 0 0 0;
         padding: 0 10px 5px 10px;
+    }
+
+    /* View control buttons section */
+    .view-control-buttons {
+        padding: 0 0 12px 0;
+        margin-bottom: 12px;
+        display: flex;
+        gap: 10px;
         border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .view-button {
+        background-color: var(--color-bg-panel-dark);
+        border: 1px solid var(--color-border-main);
+        color: var(--color-amber);
+        padding: 6px 16px;
+        font-size: 10px;
+        letter-spacing: 2px;
+        cursor: pointer;
+        flex: 1;
+        transition: all 0.2s ease;
+    }
+
+    .view-button:hover {
+        background-color: var(--color-bg-panel);
+        color: var(--color-amber-bright);
+        border-color: var(--color-teal-bright);
+    }
+
+    .view-button.active {
+        background-color: var(--color-amber);
+        color: #000;
+        border-color: var(--color-amber-bright);
+        font-weight: bold;
+    }
+
+    .view-button.active:hover {
+        background-color: var(--color-amber-bright);
+        border-color: var(--color-amber-bright);
     }
 
     /* Scrollable content area */
@@ -417,8 +456,8 @@
     .active-view-info-wrapper {
         position: relative;
         background-color: var(--color-bg-panel);
-        flex-shrink: 0;
-        height: 150px;
+        flex: 1;
+        min-height: 0;
         display: flex;
         flex-direction: column;
         clip-path: polygon(
@@ -542,11 +581,15 @@
         margin: 3px 0;
     }
 
+    .terminal-none {
+        color: #8b5555;  /* Muted red */
+    }
+
     /* Broadcast Message Panel - Outer wrapper */
     .console-form-wrapper {
         position: relative;
         background-color: var(--color-bg-panel);
-        flex: 1;
+        flex: 2;
         min-height: 0;
         display: flex;
         flex-direction: column;
@@ -759,9 +802,13 @@
     <!-- Location Tree Sidebar -->
     <div class="location-browser-wrapper">
         <div class="location-browser-header">
-            <h3>LOCATIONS</h3>
+            <h3>VIEW CONTROL</h3>
         </div>
         <div class="location-browser">
+            <div class="view-control-buttons">
+                <button type="button" class="view-button" id="standby-button" onclick="switchToStandby()">STANDBY</button>
+                <button type="button" class="view-button" id="dashboard-button" onclick="switchToDashboard()">DASHBOARD</button>
+            </div>
             <ul class="tree-view tree-root">
                 {% for location in locations %}
                     {% include 'terminal/tree_location.html' with location=location depth=0 %}
@@ -778,23 +825,20 @@
                 <h3>ACTIVE DISPLAY VIEW</h3>
             </div>
             <div class="active-view-info-content">
-                {% if active_view.location_slug %}
-                    {% for location in locations %}
-                        {% if location.slug == active_view.location_slug %}
-                            <p>&gt; LOCATION: {{ location.name|upper }}</p>
+                {% if current_location_data %}
+                    {% for key, value in current_location_data.items %}
+                        {% if key != 'slug' and key != 'children' and key != 'terminals' and key != 'map' and key != 'maps' %}
+                            <p>&gt; {{ key|upper }}: {{ value|upper }}</p>
                         {% endif %}
                     {% endfor %}
-                    {% if active_view.view_type == 'COMM_TERMINAL' and active_view.view_slug %}
-                        <p>&gt; TERMINAL: {{ active_view.view_slug|upper }}</p>
-                    {% elif active_view.view_type == 'ENCOUNTER_MAP' and active_view.view_slug %}
-                        <p>&gt; MAP: {{ active_view.view_slug|upper }}</p>
+                    {% if current_terminal_data %}
+                        <p>&gt; TERMINAL: {{ current_terminal_data.terminal_id|default:current_terminal_data.slug|upper }} - {{ current_terminal_data.owner|upper }}</p>
                     {% else %}
-                        <p>&gt; VIEW: LOCATION OVERVIEW</p>
+                        <p>&gt; TERMINAL: <span class="terminal-none">NONE</span></p>
                     {% endif %}
                 {% else %}
                     <p>&gt; No location selected</p>
                 {% endif %}
-                <p>&gt; UPDATED: {{ active_view.updated_at|date:"Y-m-d H:i:s" }}</p>
             </div>
         </div>
 
@@ -892,6 +936,16 @@ function displayLocation(locationSlug) {
     saveCurrentTreeState();
     // When displaying a location, show the map if available, otherwise location overview
     submitViewSwitch(locationSlug, 'ENCOUNTER_MAP', '');
+}
+
+// Switch to standby screen
+function switchToStandby() {
+    submitViewSwitch('', 'STANDBY', '');
+}
+
+// Switch to campaign dashboard
+function switchToDashboard() {
+    submitViewSwitch('', 'CAMPAIGN_DASHBOARD', '');
 }
 
 // Show a terminal (displays terminal overlay without changing main view)
@@ -1037,6 +1091,17 @@ function submitViewSwitch(locationSlug, viewType, viewSlug) {
 
 // Restore tree state and auto-expand path to active item on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Set active state for view control buttons
+    const currentViewType = '{{ active_view.view_type }}';
+    const standbyButton = document.getElementById('standby-button');
+    const dashboardButton = document.getElementById('dashboard-button');
+
+    if (currentViewType === 'STANDBY' && standbyButton) {
+        standbyButton.classList.add('active');
+    } else if (currentViewType === 'CAMPAIGN_DASHBOARD' && dashboardButton) {
+        dashboardButton.classList.add('active');
+    }
+
     // First, restore previously expanded items from localStorage
     const expandedState = getExpandedState();
     for (const slug in expandedState) {

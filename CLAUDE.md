@@ -24,7 +24,7 @@ The goal is to create an engaging, atmospheric tool that enhances the tension an
 
 # Architecture & Patterns
 
-## Current Structure
+## Directory Structure
 ```
 charon/
 ├── .claude/                     # Claude Code configuration
@@ -59,19 +59,27 @@ charon/
 └── generate_deck_layout.py    # Script to generate map images
 ```
 
-## Implemented Architecture
+## Technical Stack
+- **Web Framework**: Django 5.2.7
+- **Database**: SQLite (stores ActiveView state and broadcast Messages only)
+- **Data Storage**: File-based (YAML + Markdown)
+- **Dependencies**: PyYAML for data parsing, Pillow for image generation
+- **Frontend**: HTML/CSS with muted multi-color styling, JavaScript for real-time updates
+- **Package Management**: pip + requirements.txt
+- **Development**: Python virtual environments (`.venv/`, `env/`, `venv/`)
+- **IDE Support**: VS Code, Cursor IDE, and PyCharm
 
-This is a Django-based web application implementing a multi-view terminal system:
-
-### Multi-View Terminal System (Implemented)
+## Multi-View Terminal System
 
 The application supports multiple view types that can be displayed on a shared terminal:
 
 **View Types:**
-1. **Broadcast Messages** (`MESSAGES`) - Traditional broadcast message system
-2. **Communication Terminals** (`COMM_TERMINAL`) - NPC terminal message logs with inbox/sent
-3. **Encounter Maps** (`ENCOUNTER_MAP`) - Tactical maps for combat scenarios
-4. **Ship Dashboard** (`SHIP_DASHBOARD`) - Ship status and systems display
+1. **Standby Screen** (`STANDBY`) - Default idle state with animated text
+2. **Campaign Dashboard** (`CAMPAIGN_DASHBOARD`) - Campaign overview with crew, missions, ship status
+3. **Broadcast Messages** (`MESSAGES`) - Traditional broadcast message system
+4. **Communication Terminals** (`COMM_TERMINAL`) - NPC terminal message logs with inbox/sent
+5. **Encounter Maps** (`ENCOUNTER_MAP`) - Tactical maps for combat scenarios
+6. **Ship Dashboard** (`SHIP_DASHBOARD`) - Ship status and systems display
 
 **Key Design Decisions:**
 - **File-based data storage**: Campaign data stored as markdown files with YAML frontmatter
@@ -83,7 +91,7 @@ The application supports multiple view types that can be displayed on a shared t
 - **ActiveView singleton**: Database tracks only which view is currently displayed
 - **Auto-refresh terminal**: Polls `/api/active-view/` every 2 seconds for view changes
 
-### Data Loading System
+## Data Loading System
 
 **DataLoader** (`terminal/data_loader.py`):
 - Parses location hierarchy from `data/locations/`
@@ -109,18 +117,13 @@ read: false
 Message content here...
 ```
 
-### Technical Stack
-- **Web Framework**: Django 5.2.7
-- **Database**: SQLite (stores ActiveView state and broadcast Messages only)
-- **Data Storage**: File-based (YAML + Markdown)
-- **Dependencies**: PyYAML for data parsing, Pillow for image generation
-- **Frontend**: HTML/CSS with muted multi-color styling, JavaScript for real-time updates
-- **Package Management**: pip + requirements.txt
+# UI Design System
 
-### UI Color Scheme (V2-1: Muted Multi-Color)
+## Color Scheme (V2-1: Muted Multi-Color)
+
 **Design Philosophy**: Inspired by Alien Romulus (2024) - realistic, muted CRT aesthetic with multiple harmonious colors
 
-**Color Palette** (defined as CSS variables in `base.html`):
+**Color Palette** (defined as CSS variables in [base.html](terminal/templates/terminal/base.html)):
 ```css
 --color-teal: #4a6b6b;              /* Primary structural color */
 --color-teal-bright: #5a7a7a;       /* Hover states, emphasis */
@@ -145,14 +148,12 @@ Message content here...
 - **No Bright Colors**: All colors are muted and realistic - no neon green
 - **Diagonal Corner Lines**: 4px wide diagonal lines using linear gradients at chamfered corners
 
-**Implementation**:
-- Colors defined in [terminal/templates/terminal/base.html](terminal/templates/terminal/base.html)
-- Applied across [gm_console.html](terminal/templates/terminal/gm_console.html) and [shared_console.html](terminal/templates/terminal/shared_console.html)
-- Angular panel helper classes available for new components
+## Layout Standards
 
-### UI Layout Standards
+### Top Navigation Bar
+Class: `terminal-header`
 
-**Top Navigation Bar** (`terminal-header`):
+**Specifications:**
 - **Height**: 52px fixed
 - **Background**: #1a2828 with horizontal scanline pattern
   - Pattern: `repeating-linear-gradient(to bottom, transparent, transparent 1px, rgba(0, 0, 0, 0.3) 1px, rgba(0, 0, 0, 0.3) 2px)`
@@ -164,50 +165,192 @@ Message content here...
   - Right side text (LOGOUT/STATION ACCESS): 11px, letter-spacing 3px, color #8b7355 (amber)
 - **Border**: 1px solid var(--color-border-subtle) at bottom
 
-**Content Layout Spacing**:
+### Content Layout
 - **Content padding**: Remove default padding, controlled by page-specific CSS
 - **GM Console spacing**: 30px from left edge, 30px below header
-- **Panel gaps**: 20px between major UI components
+- **Panel gaps**: 20px between major UI components (30px for campaign dashboard)
 
-**Angular Panel Styling** (all chamfered panels):
-- **Chamfer size**: 12px (top-left and bottom-right corners)
-- **Border method**: Use `box-shadow` inset (not `border` property) to prevent clipping
-  - Syntax: `inset 0 2px 0 0 var(--color-border-main)` (for 2px borders)
-- **Diagonal corner lines**:
-  - Size: 12px × 12px pseudo-elements
-  - Thickness: 4px diagonal line (`calc(50% ± 2px)`)
-  - Method: Linear gradient `to bottom right`
-  - Position: `top: 0; left: 0` (top-left), `bottom: 0; right: 0` (bottom-right)
+## Panel Design Patterns
 
-**Standard Panel Template** (default for all new panels):
+### Standard Panel Template
 
-This is the standard layout pattern for panels in the application. See the Locations panel in [gm_console.html](terminal/templates/terminal/gm_console.html:56-185) as the reference implementation.
+**Usage**: Default layout pattern for all new panels
 
-**Outer Wrapper** (`.panel-wrapper`):
-- Chamfered angular panel with 12px corners
-- Background: `var(--color-bg-panel)` (#1a2525)
-- Borders: 2px inset box-shadow in teal (`var(--color-border-main)`)
-- Diagonal corner lines at chamfered corners
-- Flexbox container with `display: flex; flex-direction: column`
+**Reference Implementation**: Locations panel in [gm_console.html](terminal/templates/terminal/gm_console.html:56-185)
 
-**Fixed Header** (`.panel-header`):
-- Padding: `12px 2px 0 2px` (extends title underline to edges)
-- Non-scrolling header with `flex-shrink: 0`
-- Title styling can vary by panel (color, size, letter-spacing)
-- Underline: `border-bottom: 1px solid var(--color-border-subtle)`
-- Title padding: `0 10px 5px 10px` (inset from panel edges)
+**HTML Structure**:
+```html
+<div class="panel-wrapper">
+    <div class="panel-header">
+        <h3>PANEL TITLE</h3>
+    </div>
+    <div class="panel-content">
+        <!-- Panel content here -->
+    </div>
+</div>
+```
 
-**Scrollable Content Area** (`.panel-content`):
-- Flex: `flex: 1` (fills remaining space)
-- Overflow: `overflow-y: auto; overflow-x: hidden`
-- Padding: `12px 12px 12px 12px`
-- Margins: `margin-bottom: 2px; margin-left: 2px; margin-right: 5px`
-  - Right margin creates 3px gap between content and right panel border
-- Background: Scanline pattern on dark background
-  - Base: `#171717`
-  - Scanlines: `repeating-linear-gradient(to bottom, transparent, transparent 2px, #1a1a1a 2px, #1a1a1a 3px)`
+**CSS Pattern**:
+```css
+/* Outer Wrapper */
+.panel-wrapper {
+    background-color: var(--color-bg-panel);
+    position: relative;
+    display: flex;
+    flex-direction: column;
 
-**Panel Scrollbar Styling** (floating style):
+    /* Chamfered corners (top-left and bottom-right) */
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+
+    /* Borders using box-shadow (prevents clipping) */
+    box-shadow:
+        inset 0 2px 0 0 var(--color-border-main),
+        inset -2px 0 0 0 var(--color-border-main),
+        inset 0 -2px 0 0 var(--color-border-main),
+        inset 2px 0 0 0 var(--color-border-main);
+}
+
+/* Diagonal corner lines */
+.panel-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(
+        to bottom right,
+        transparent calc(50% - 2px),
+        var(--color-border-main) calc(50% - 2px),
+        var(--color-border-main) calc(50% + 2px),
+        transparent calc(50% + 2px)
+    );
+}
+
+.panel-wrapper::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(
+        to bottom right,
+        transparent calc(50% - 2px),
+        var(--color-border-main) calc(50% - 2px),
+        var(--color-border-main) calc(50% + 2px),
+        transparent calc(50% + 2px)
+    );
+}
+
+/* Fixed Header */
+.panel-header {
+    padding: 12px 2px 0 2px;
+    flex-shrink: 0;
+}
+
+.panel-header h3 {
+    color: var(--color-teal);
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin: 0;
+    padding: 0 10px 5px 10px;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* Scrollable Content Area */
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    margin: 2px 5px 2px 2px;  /* 3px gap on right for scrollbar */
+    background-color: #171717;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 2px,
+        #1a1a1a 2px,
+        #1a1a1a 3px
+    );
+    color: var(--color-text-primary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+```
+
+### Custom Chamfered Panels
+
+**Usage**: "Create a panel with [corners] chamfered and title '[TITLE]'"
+
+**Corner Options**: `top-left`, `top-right`, `bottom-left`, `bottom-right`
+
+**Diagonal Line Direction Reference**:
+
+| Corner Position | Gradient Direction |
+|----------------|-------------------|
+| `top-left`     | `to bottom right` |
+| `top-right`    | `to bottom left`  |
+| `bottom-left`  | `to bottom left`  |
+| `bottom-right` | `to bottom right` |
+
+**Clip-Path Patterns** (12px chamfer size):
+
+**Top-left corner only**:
+```css
+clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
+```
+
+**Top-right corner only**:
+```css
+clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+```
+
+**Bottom-left corner only**:
+```css
+clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+```
+
+**Bottom-right corner only**:
+```css
+clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+```
+
+**Top-left and bottom-right (default)**:
+```css
+clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+```
+
+**Top-right and bottom-left**:
+```css
+clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+```
+
+**All four corners**:
+```css
+clip-path: polygon(
+    12px 0, calc(100% - 12px) 0,
+    100% 12px, 100% calc(100% - 12px),
+    calc(100% - 12px) 100%, 12px 100%,
+    0 calc(100% - 12px), 0 12px
+);
+```
+*Note: For 4 corners, you'll need additional HTML elements for top-right and bottom-left diagonal lines (see campaign dashboard center panel example in [shared_console.html](terminal/templates/terminal/shared_console.html:574-578)).*
+
+**Header Border Adjustments** (to avoid diagonal corners):
+
+Add extra padding (12px) to the h3 element on sides with chamfered top corners:
+
+- Top-left chamfered: `padding-left: 22px` (10px base + 12px)
+- Top-right chamfered: `padding-right: 22px` (10px base + 12px)
+- Both top corners: Both left and right padding
+
+## Scrollbar Styling
+
+### Floating Scrollbar (Panel Content)
+
+Use this style for scrollable panel content areas:
+
 ```css
 .panel-content::-webkit-scrollbar {
     width: 10px;
@@ -222,14 +365,14 @@ This is the standard layout pattern for panels in the application. See the Locat
         #1a1a1a 2px,
         #1a1a1a 3px
     );
-    border: none;  /* Override global styles */
+    border: none;  /* Override global styles - no borders */
     margin-top: 2px;
     margin-bottom: 2px;
 }
 
 .panel-content::-webkit-scrollbar-thumb {
     background: #0f1515;
-    border: 1px solid #4a6b6b;
+    border: 1px solid #4a6b6b;  /* Only thumb has border */
 }
 
 .panel-content::-webkit-scrollbar-thumb:hover {
@@ -242,26 +385,30 @@ This is the standard layout pattern for panels in the application. See the Locat
 ```
 
 **Key Features:**
-- **Floating scrollbar**: Track has no borders, blends with scanline background
-- **Bordered thumb**: Only the scrollbar thumb has teal border
-- **3px spacing**: Scrollbar is inset 3px from panel's right edge
-- **Matching background**: Track background matches content area scanlines
-- **No left track border**: `border: none` overrides global scrollbar styles
+- Track has no borders, blends with scanline background
+- Only scrollbar thumb has teal border
+- 3px spacing between scrollbar and panel edge (via content margin-right)
+- Track background matches content area scanlines
 
-**Scrollbar Styling** (global fallback):
+### Global Scrollbar (Fallback)
+
+Default scrollbar styling for other elements:
+
 - **Width**: 10px
 - **Track**: Background #1a2525, border-left 1px solid #4a6b6b
 - **Thumb**: Background #0f1515, border 1px solid #4a6b6b
 - **Thumb hover**: Background #1a2525
 - **Arrows**: Hidden (`display: none`)
 - **Implementation**: Use webkit pseudo-elements, avoid `scrollbar-width` and `scrollbar-color` (Chrome 121+ conflict)
-- **Note**: Individual panels should override these with the floating scrollbar style above
 
-### Implemented Features
+# Implemented Features
+
+## Current Features
+✓ **Multi-View Terminal System**: Dynamic view switching between standby, maps, terminals, dashboards
 ✓ **Broadcast Messaging**: GM sends messages to all players via `/gmconsole/`
-✓ **Shared Terminal**: Public display at `/terminal/` (no login)
+✓ **Shared Terminal Display**: Public display at `/terminal/` (no login required)
 ✓ **Personal Messages**: Player-specific messages at `/messages/` (login required)
-✓ **File-based Campaigns**: Location/terminal data loaded from disk
+✓ **File-based Campaign Data**: Location/terminal data loaded from disk (no DB sync)
 ✓ **Nested Location Hierarchy**: Unlimited depth location nesting (Planet → Base → Deck → Section)
 ✓ **Conversation Threading**: Messages organized into conversational threads
 ✓ **CHARON Integration**: Station AI system for automated notifications
@@ -269,113 +416,41 @@ This is the standard layout pattern for panels in the application. See the Locat
 ✓ **Tree View GM Console**: Expandable/collapsible location tree with touch-friendly controls
 ✓ **View Switching**: DISPLAY button shows location maps, SHOW button displays terminal overlays
 ✓ **Encounter Map Display**: Terminal automatically shows maps when GM clicks DISPLAY
+✓ **Campaign Dashboard**: Multi-panel dashboard showing crew, missions, ship status, campaign info
 ✓ **Auto-refresh Terminal**: Polls for view changes every 2 seconds and auto-reloads
 ✓ **Map Image Generation**: Python script to generate retro sci-fi themed deck layouts
 ✓ **Static File Serving**: Django serves map images from `data/` directory in development
 ✓ **V2-1 UI Theme**: Muted multi-color design with teal/amber palette and angular panels
+✓ **Terminal Overlay System**: SHOW button displays terminal overlay without clearing main view
 
-### Features To Implement
-- [ ] Terminal overlay display (SHOW button functionality)
+## Planned Features
 - [ ] Terminal conversation view renderer
-- [ ] Ship dashboard display
+- [ ] Ship dashboard display (different from campaign dashboard)
 - [ ] Player character management
 - [ ] Session tracking
 - [ ] Combat/encounter tracking on maps
-
-## Development Environment
-- Python virtual environments (`.venv/`, `env/`, `venv/`)
-- IDE support for VS Code, Cursor IDE, and PyCharm
-- CI/CD ready with comprehensive ignore patterns
-
-# Stack Best Practices
-
-## Mothership RPG-Specific Guidelines
-
-### Atmosphere & Theme
-- **Visual Design**: Muted multi-color palette inspired by Alien Romulus (2024) - realistic CRT aesthetic
-- **Color Scheme (V2-1)**: Muted teal (#4a6b6b) and amber (#8b7355) - no bright neon colors
-- **Terminal Interface**: Monospaced fonts, angular panels with chamfered corners, subtle CRT scanline effects
-- **Computer Messages**: Write in-character as ship/station AI systems - terse, technical, sometimes ominous
-- **Sound Design**: Consider adding subtle ambient sounds or notification beeps for messages
-
-### Game Mechanics Integration
-- **Stress System**: Prominently display character stress levels (core Mothership mechanic)
-- **Panic Effects**: Track and display panic results and conditions
-- **Stats**: Follow official Mothership character sheet format (Strength, Speed, Intellect, Combat)
-- **Saves**: Sanity Save, Fear Save, Body Save with clear UI indicators
-- **Damage**: Track wounds, critical injuries, and conditions
-
-### GM Tools
-- **Quick Reference**: Include tables for panic, critical injuries, ship damage
-- **NPC Generator**: Quick tools to generate crew, colonists, or threats
-- **Random Encounters**: Space for GM to prep and trigger random events
-- **Hidden Information**: GM-only notes that players cannot see
-
-### Player Experience
-- **Mobile Friendly**: Players should access from phones/tablets at the table
-- **Quick Updates**: Character updates should be fast and not interrupt gameplay
-- **Notifications**: Subtle alerts when GM sends messages or updates
-- **Read-Only Mode**: Players see their info but can't modify without GM approval
-
-## Python Development
-- Use virtual environments for dependency isolation
-- Follow PEP 8 style guidelines (enforced by Ruff)
-- Implement type hints for better code maintainability
-- Write comprehensive tests using pytest
-- Use `.env` files for environment-specific configuration (never commit these)
-
-## Package Management
-- Choose one primary package manager (pip, pipenv, poetry, pdm, or UV) and document the choice
-- Keep dependencies minimal and well-documented
-- Pin dependency versions for reproducible builds
-
-## Testing
-- Maintain test coverage with pytest
-- Use tox or nox for multi-environment testing
-- Run tests before committing changes
-
-## Type Safety
-- Use mypy, pyre, or pytype for static type checking
-- Add type hints to all public APIs
-- Run type checkers in CI/CD pipeline
-
-## Code Quality
-- Use Ruff for linting and formatting
-- Configure pre-commit hooks for automated checks
-- Keep code modular and maintainable
-
-# Anti-Patterns
-
-## Avoid
-- Committing virtual environment directories (`venv/`, `.venv/`, `env/`)
-- Committing environment files (`.env`, `.envrc`)
-- Committing IDE-specific settings that aren't universal
-- Committing Python bytecode files (`__pycache__/`, `*.pyc`)
-- Committing build artifacts (`dist/`, `build/`, `*.egg-info/`)
-- Committing database files in development (`db.sqlite3`)
-- Committing credentials or API keys (use `.pypirc`, `.env`)
-- Hard-coding configuration values (use environment variables)
-- Skipping type hints in public APIs
-- Writing untested code
-
-## Security
-- Never commit secrets, tokens, or credentials
-- Use environment variables for sensitive configuration
-- Keep `.env` files out of version control
-- Review `.gitignore` before committing new file types
+- [ ] Sound effects and ambient audio
+- [ ] GM tools (NPC generator, random encounters, quick reference tables)
 
 # Data Models
 
-## Implemented Models (Database)
+## Database Models
 
 ### ActiveView (Singleton)
 Tracks which view the shared terminal is currently displaying.
 
 ```python
 class ActiveView(models.Model):
-    location_slug = CharField  # e.g., "research_base_alpha"
-    view_type = CharField       # MESSAGES, COMM_TERMINAL, ENCOUNTER_MAP, SHIP_DASHBOARD
-    view_slug = CharField       # e.g., "commanders_terminal"
+    # Main display
+    location_slug = CharField       # e.g., "research_base_alpha"
+    view_type = CharField           # STANDBY, CAMPAIGN_DASHBOARD, MESSAGES, COMM_TERMINAL, ENCOUNTER_MAP, SHIP_DASHBOARD
+    view_slug = CharField           # e.g., "commanders_terminal"
+
+    # Overlay (terminal on top of map)
+    overlay_location_slug = CharField
+    overlay_terminal_slug = CharField
+
+    # Metadata
     updated_at = DateTimeField
     updated_by = ForeignKey(User)
 ```
@@ -385,9 +460,9 @@ Traditional broadcast messages sent by GM to all players.
 
 ```python
 class Message(models.Model):
-    sender = CharField          # e.g., "CHARON"
+    sender = CharField              # e.g., "CHARON"
     content = TextField
-    priority = CharField        # LOW, NORMAL, HIGH, CRITICAL
+    priority = CharField            # LOW, NORMAL, HIGH, CRITICAL
     created_at = DateTimeField
     created_by = ForeignKey(User)
     recipients = ManyToManyField(User)  # Empty = all players
@@ -396,7 +471,7 @@ class Message(models.Model):
 
 ## File-Based Data Models
 
-Campaign data is stored as files, not in the database. The structure is:
+Campaign data is stored as files, not in the database.
 
 ### Location (YAML File)
 `data/locations/{location_slug}/location.yaml`
@@ -447,7 +522,7 @@ Message content in markdown...
 - `folder` (auto-added): `inbox` or `sent`
 - `contact` (auto-added): Directory name (who the message is from/to)
 
-### Encounter Maps (IMPLEMENTED)
+### Encounter Maps
 `data/locations/{location_slug}/map/{map_slug}.yaml` (singular `map/` directory!)
 
 ```yaml
@@ -485,9 +560,25 @@ thread = build_conversation_thread(
 )
 ```
 
-## GM Console & Terminal Display
+## Planned Models (Database)
 
-### GM Console (`/gmconsole/`)
+When implementing character/campaign tracking:
+
+### Campaign Management
+- **Campaign**: Campaign name, description, current date/time, active status
+- **Session**: Session number, date, notes, GM summary
+
+### Characters & Crew
+- **Character**: Name, class, stats (strength, speed, intellect, combat), stress, health, saves, skills, loadout
+- **NPC**: Similar to Character but with GM-only notes and relationship tracking
+
+### Ships & Locations (if DB-backed)
+- **Ship**: Name, class, hull points, systems status, crew capacity, cargo
+
+# User Interfaces
+
+## GM Console (`/gmconsole/`)
+
 **Tree View Interface:**
 - Hierarchical tree of all locations (unlimited nesting depth)
 - Triangle icons (▶/▼) to expand/collapse locations
@@ -501,23 +592,31 @@ thread = build_conversation_thread(
   - Updates `ActiveView.overlay_location_slug` and `overlay_terminal_slug`
 
 **Visual Styling:**
-- Boxed items with dark green borders (#004400)
-- Active display has bright green border (#00ff00)
-- Shaded right side for buttons (#001100 background)
+- Boxed items with teal borders
+- Active display has bright teal border
+- Shaded right side for buttons
 - Tree connectors and indentation for hierarchy
 - LocalStorage persistence for expanded/collapsed state
 
-### Terminal Display (`/terminal/`)
+## Terminal Display (`/terminal/`)
+
 **Auto-switching Display:**
 - Polls `/api/active-view/` every 2 seconds
 - Automatically reloads when GM changes view
-- Shows encounter map when `view_type == 'ENCOUNTER_MAP'`
-- Falls back to message inbox mode otherwise
+- Displays appropriate view based on `view_type`
+
+**View Types:**
+- **Standby**: Animated text blocks with system messages
+- **Campaign Dashboard**: 5-panel layout with crew, missions, ship status
+- **Encounter Map**: Full-screen map image display with location info
+- **Messages**: Sidebar with sender list and message conversations
+- **Comm Terminal**: Terminal conversation view (planned)
+- **Ship Dashboard**: Ship systems display (planned)
 
 **Map Display Mode:**
 - Full-screen map image display
 - Location name, coordinates, and status in header
-- Green border and glow effect on image
+- Teal border and glow effect on image
 - Fallback message if no image available
 
 **Message Inbox Mode:**
@@ -525,9 +624,9 @@ thread = build_conversation_thread(
 - Message area with conversations
 - Real-time polling for new messages
 
-### API Endpoints
+## API Endpoints
 
-**`/api/active-view/`** (Public, no login)
+### `/api/active-view/` (Public, no login)
 Returns current active view state:
 ```json
 {
@@ -540,7 +639,7 @@ Returns current active view state:
 }
 ```
 
-**`/api/messages/`** (Public, no login)
+### `/api/messages/` (Public, no login)
 Returns broadcast messages since ID:
 ```json
 {
@@ -557,31 +656,80 @@ Returns broadcast messages since ID:
 }
 ```
 
-## Future Models (Database)
+# Development Practices
 
-When implementing character/campaign tracking:
+## Mothership RPG-Specific Guidelines
 
-### Campaign Management
-- **Campaign**: Campaign name, description, current date/time, active status
-- **Session**: Session number, date, notes, GM summary
+### Atmosphere & Theme
+- **Visual Design**: Muted multi-color palette inspired by Alien Romulus (2024) - realistic CRT aesthetic
+- **Color Scheme (V2-1)**: Muted teal (#4a6b6b) and amber (#8b7355) - no bright neon colors
+- **Terminal Interface**: Monospaced fonts, angular panels with chamfered corners, subtle CRT scanline effects
+- **Computer Messages**: Write in-character as ship/station AI systems - terse, technical, sometimes ominous
+- **Sound Design**: Consider adding subtle ambient sounds or notification beeps for messages
 
-### Characters & Crew
-- **Character**: Name, class, stats (strength, speed, intellect, combat), stress, health, saves, skills, loadout
-- **NPC**: Similar to Character but with GM-only notes and relationship tracking
+### Game Mechanics Integration
+- **Stress System**: Prominently display character stress levels (core Mothership mechanic)
+- **Panic Effects**: Track and display panic results and conditions
+- **Stats**: Follow official Mothership character sheet format (Strength, Speed, Intellect, Combat)
+- **Saves**: Sanity Save, Fear Save, Body Save with clear UI indicators
+- **Damage**: Track wounds, critical injuries, and conditions
 
-### Ships & Locations (if DB-backed)
-- **Ship**: Name, class, hull points, systems status, crew capacity, cargo
+### GM Tools
+- **Quick Reference**: Include tables for panic, critical injuries, ship damage
+- **NPC Generator**: Quick tools to generate crew, colonists, or threats
+- **Random Encounters**: Space for GM to prep and trigger random events
+- **Hidden Information**: GM-only notes that players cannot see
 
-# Configuration, Security, and Authentication
+### Player Experience
+- **Mobile Friendly**: Players should access from phones/tablets at the table
+- **Quick Updates**: Character updates should be fast and not interrupt gameplay
+- **Notifications**: Subtle alerts when GM sends messages or updates
+- **Read-Only Mode**: Players see their info but can't modify without GM approval
 
-## Configuration
-- Use environment variables for configuration (`.env` files)
-- Keep environment-specific settings separate from code
-- Never commit sensitive configuration to version control
-- Django: Use `local_settings.py` for development overrides (excluded from git)
-- Flask: Use instance folders for configuration (excluded from git)
+## Python Development
+- Use virtual environments for dependency isolation
+- Follow PEP 8 style guidelines (enforced by Ruff)
+- Implement type hints for better code maintainability
+- Write comprehensive tests using pytest
+- Use `.env` files for environment-specific configuration (never commit these)
+
+## Package Management
+- Primary package manager: pip with requirements.txt
+- Keep dependencies minimal and well-documented
+- Pin dependency versions for reproducible builds
+
+## Testing
+- Maintain test coverage with pytest
+- Use tox or nox for multi-environment testing
+- Run tests before committing changes
+
+## Type Safety
+- Use mypy, pyre, or pytype for static type checking
+- Add type hints to all public APIs
+- Run type checkers in CI/CD pipeline
+
+## Code Quality
+- Use Ruff for linting and formatting
+- Configure pre-commit hooks for automated checks
+- Keep code modular and maintainable
+
+## Anti-Patterns to Avoid
+- Committing virtual environment directories (`venv/`, `.venv/`, `env/`)
+- Committing environment files (`.env`, `.envrc`)
+- Committing IDE-specific settings that aren't universal
+- Committing Python bytecode files (`__pycache__/`, `*.pyc`)
+- Committing build artifacts (`dist/`, `build/`, `*.egg-info/`)
+- Committing database files in development (`db.sqlite3`)
+- Committing credentials or API keys (use `.pypirc`, `.env`)
+- Hard-coding configuration values (use environment variables)
+- Skipping type hints in public APIs
+- Writing untested code
 
 ## Security Best Practices
+- Never commit secrets, tokens, or credentials
+- Use environment variables for sensitive configuration
+- Keep `.env` files out of version control
+- Review `.gitignore` before committing new file types
 - Store secrets in environment variables
 - Use secure credential management for API keys and tokens
 - Keep `.pypirc` out of version control
@@ -589,7 +737,10 @@ When implementing character/campaign tracking:
 - Implement proper input validation and sanitization
 - Follow OWASP security guidelines for web applications
 
+# Configuration & Tools
+
 ## Authentication
+
 *No authentication currently implemented.*
 
 ### Planned Authentication Model
@@ -649,6 +800,12 @@ python generate_deck_layout.py
 - Bridge, Engineering, Crew Quarters
 - Cargo Bay, Medical, Life Support
 - Connection corridors and hatches
+
+## Environment Configuration
+- Use environment variables for configuration (`.env` files)
+- Keep environment-specific settings separate from code
+- Never commit sensitive configuration to version control
+- Django: Use `local_settings.py` for development overrides (excluded from git)
 
 ## Claude Code Integration
 This repository includes `.claude/settings.local.json` which restricts bash permissions to git-related commands only. When working with this repository through Claude Code, be aware of these restrictions and use appropriate tools for file operations.

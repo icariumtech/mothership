@@ -190,47 +190,409 @@
         .campaign-dashboard {
             width: 100vw;
             height: 100vh;
-            background-color: var(--color-bg-primary);
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .dashboard-header {
-            color: var(--color-teal);
-            font-size: 24px;
-            letter-spacing: 4px;
-            text-align: center;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--color-border-main);
-        }
-
-        .dashboard-content {
-            flex: 1;
+            background-color: #2b2b2b; /* Charcoal background like STANDBY */
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            overflow-y: auto;
+            grid-template-columns: 250px 1fr 250px;
+            grid-template-rows: 80px 1fr 120px;
+            grid-template-areas:
+                "top-left top-center top-right"
+                "left center right"
+                "bottom-left bottom-center bottom-right";
+            gap: 30px;
         }
 
-        .dashboard-panel {
+        /* Top Panel - spans full width */
+        .dashboard-top {
+            grid-area: top-left / top-left / top-right / span 3;
             background-color: var(--color-bg-panel);
-            border: 2px solid var(--color-border-main);
-            padding: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            /* Chamfer bottom-left and bottom-right corners */
             clip-path: polygon(
-                12px 0, 100% 0, 100% calc(100% - 12px),
-                calc(100% - 12px) 100%, 0 100%, 0 12px
+                0 0, 100% 0,
+                100% calc(100% - 12px), calc(100% - 12px) 100%,
+                12px 100%, 0 calc(100% - 12px)
+            );
+
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
+        }
+
+        /* Diagonal corner lines for top panel */
+        .dashboard-top::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
             );
         }
 
-        .dashboard-panel h3 {
+        .dashboard-top::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .dashboard-top-content {
             color: var(--color-teal);
-            font-size: 14px;
+            font-size: 18px;
+            letter-spacing: 3px;
+        }
+
+        /* Left Panel - CREW */
+        .dashboard-left {
+            grid-area: left;
+            background-color: var(--color-bg-panel);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+
+            /* Chamfer top-right and bottom-right corners */
+            clip-path: polygon(
+                0 0, calc(100% - 12px) 0,
+                100% 12px, 100% calc(100% - 12px),
+                calc(100% - 12px) 100%, 0 100%
+            );
+
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
+        }
+
+        .dashboard-left::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .dashboard-left::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        /* Right Panel - MISSIONS */
+        .dashboard-right {
+            grid-area: right;
+            background-color: var(--color-bg-panel);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+
+            /* Chamfer top-left and bottom-left corners */
+            clip-path: polygon(
+                12px 0, 100% 0,
+                100% 100%, 12px 100%,
+                0 calc(100% - 12px), 0 12px
+            );
+
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
+        }
+
+        .dashboard-right::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .dashboard-right::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        /* Center Panel */
+        .dashboard-center {
+            grid-area: center;
+            background-color: var(--color-bg-primary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px;
+
+            /* Chamfer all four corners */
+            clip-path: polygon(
+                12px 0, calc(100% - 12px) 0,
+                100% 12px, 100% calc(100% - 12px),
+                calc(100% - 12px) 100%, 12px 100%,
+                0 calc(100% - 12px), 0 12px
+            );
+
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
+        }
+
+        /* All four corner diagonals for center */
+        .dashboard-center::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+            z-index: 1;
+        }
+
+        .dashboard-center::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+            z-index: 1;
+        }
+
+        /* Additional pseudo-elements for top-right and bottom-left corners */
+        .dashboard-center-corner-tr,
+        .dashboard-center-corner-bl {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .dashboard-center-corner-tr {
+            top: 0;
+            right: 0;
+        }
+
+        .dashboard-center-corner-bl {
+            bottom: 0;
+            left: 0;
+        }
+
+        /* Bottom Panel - spans full width */
+        .dashboard-bottom {
+            grid-area: bottom-left / bottom-left / bottom-right / span 3;
+            background-color: var(--color-bg-panel);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+
+            /* Chamfer top-left and top-right corners */
+            clip-path: polygon(
+                0 12px, 12px 0,
+                calc(100% - 12px) 0, 100% 12px,
+                100% 100%, 0 100%
+            );
+
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
+        }
+
+        .dashboard-bottom::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .dashboard-bottom::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        /* Panel Headers */
+        .dashboard-panel-header {
+            padding: 12px 2px 0 2px;
+            flex-shrink: 0;
+        }
+
+        .dashboard-panel-header h3 {
+            color: var(--color-teal);
+            font-size: 13px;
             letter-spacing: 2px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
+            margin: 0;
+            padding: 0 10px 5px 10px;
             border-bottom: 1px solid var(--color-border-subtle);
+        }
+
+        /* Adjust h3 borders to avoid diagonal corners */
+        .dashboard-left .dashboard-panel-header h3 {
+            padding-right: 22px; /* 10px base + 12px for corner */
+        }
+
+        .dashboard-right .dashboard-panel-header h3 {
+            padding-left: 22px; /* 10px base + 12px for corner */
+        }
+
+        .dashboard-bottom .dashboard-panel-header h3 {
+            padding-left: 22px; /* 10px base + 12px for corner */
+            padding-right: 22px; /* 10px base + 12px for corner */
+        }
+
+        /* Panel Content Areas */
+        .dashboard-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px 12px 12px 12px;
+            margin-bottom: 2px;
+            margin-left: 2px;
+            margin-right: 5px;
+            background-color: #171717;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 2px,
+                #1a1a1a 2px,
+                #1a1a1a 3px
+            );
+            color: var(--color-text-primary);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        /* Scrollbar styling for dashboard panels - floating style */
+        .dashboard-panel-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .dashboard-panel-content::-webkit-scrollbar-track {
+            background: #171717;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 2px,
+                #1a1a1a 2px,
+                #1a1a1a 3px
+            );
+            border: none;
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+
+        .dashboard-panel-content::-webkit-scrollbar-thumb {
+            background: #0f1515;
+            border: 1px solid #4a6b6b;
+        }
+
+        .dashboard-panel-content::-webkit-scrollbar-thumb:hover {
+            background: #1a2525;
+        }
+
+        .dashboard-panel-content::-webkit-scrollbar-button {
+            display: none;
         }
 
         /* ===================
@@ -552,23 +914,77 @@
     <!-- CAMPAIGN DASHBOARD VIEW -->
     {% elif active_view.view_type == 'CAMPAIGN_DASHBOARD' %}
     <div class="campaign-dashboard">
-        <div class="dashboard-header">CAMPAIGN DASHBOARD</div>
-        <div class="dashboard-content">
-            <div class="dashboard-panel">
-                <h3>PLAYERS</h3>
-                <p>&gt; Coming soon...</p>
+        <!-- Top Panel -->
+        <div class="dashboard-top">
+            <div class="dashboard-top-content">THE OUTER VEIL CAMPAIGN</div>
+        </div>
+
+        <!-- Left Panel - CREW -->
+        <div class="dashboard-left">
+            <div class="dashboard-panel-header">
+                <h3>CREW</h3>
             </div>
-            <div class="dashboard-panel">
-                <h3>DISCOVERED SYSTEMS</h3>
-                <p>&gt; Coming soon...</p>
+            <div class="dashboard-panel-content">
+                <p>&gt; Dr. Elena Vasquez - Science Officer</p>
+                <p>&gt; Marcus "Wrench" Chen - Engineer</p>
+                <p>&gt; Lt. Sarah Kim - Security</p>
+                <p>&gt; Alex Novak - Pilot</p>
             </div>
-            <div class="dashboard-panel">
-                <h3>CURRENT GEAR</h3>
-                <p>&gt; Coming soon...</p>
+        </div>
+
+        <!-- Center Panel - Main Content -->
+        <div class="dashboard-center">
+            <!-- Need two extra corner divs for top-right and bottom-left -->
+            <div class="dashboard-center-corner-tr"></div>
+            <div class="dashboard-center-corner-bl"></div>
+
+            <h2 style="color: var(--color-teal); font-size: 16px; letter-spacing: 2px; margin-bottom: 20px;">MISSION BRIEFING</h2>
+            <p style="margin-bottom: 15px;">&gt; SYSTEM: Kepler-442</p>
+            <p style="margin-bottom: 15px;">&gt; LOCATION: Research Station Prometheus</p>
+            <p style="margin-bottom: 15px;">&gt; STATUS: Critical Alert</p>
+            <p style="margin-bottom: 20px;">&gt; PRIORITY: HIGH</p>
+
+            <p style="margin-bottom: 15px;">All communications from Research Station Prometheus ceased 72 hours ago. Last transmission indicated containment breach in xenobiology lab. Your crew has been dispatched to investigate and secure any survivors.</p>
+
+            <p style="margin-top: 20px; color: var(--color-amber);">&gt; WARNING: Approach with extreme caution</p>
+        </div>
+
+        <!-- Right Panel - MISSIONS -->
+        <div class="dashboard-right">
+            <div class="dashboard-panel-header">
+                <h3>MISSIONS</h3>
             </div>
-            <div class="dashboard-panel">
-                <h3>MISSION STATUS</h3>
-                <p>&gt; Coming soon...</p>
+            <div class="dashboard-panel-content">
+                <p style="margin-bottom: 10px;">&gt; [ACTIVE] Station Prometheus</p>
+                <p style="margin-bottom: 10px;">&gt; [PENDING] Cargo Retrieval</p>
+                <p style="margin-bottom: 10px;">&gt; [COMPLETED] Colony Supply Run</p>
+            </div>
+        </div>
+
+        <!-- Bottom Panel -->
+        <div class="dashboard-bottom">
+            <div class="dashboard-panel-header">
+                <h3>SHIP STATUS - USCSS MORRIGAN</h3>
+            </div>
+            <div class="dashboard-panel-content">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+                    <div>
+                        <p>&gt; HULL: 100%</p>
+                        <p>&gt; ENGINES: NOMINAL</p>
+                    </div>
+                    <div>
+                        <p>&gt; LIFE SUPPORT: OK</p>
+                        <p>&gt; O2 RESERVES: 94%</p>
+                    </div>
+                    <div>
+                        <p>&gt; FUEL: 78%</p>
+                        <p>&gt; POWER: STABLE</p>
+                    </div>
+                    <div>
+                        <p>&gt; WEAPONS: OFFLINE</p>
+                        <p>&gt; SHIELDS: CHARGING</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

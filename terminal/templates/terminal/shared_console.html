@@ -187,13 +187,19 @@
         /* ===================
            CAMPAIGN DASHBOARD VIEW
            =================== */
+
+        /* STEP 1: GRID LAYOUT
+           Easy to modify panel positions and sizes here! */
         .campaign-dashboard {
             width: 100vw;
             height: 100vh;
-            background-color: transparent; /* Transparent to show star map */
+            background-color: transparent;
             display: grid;
+            /* COLUMNS: left-width | center-width | right-width */
             grid-template-columns: 300px 1fr 300px;
+            /* ROWS: top-height | main-height | bottom-height */
             grid-template-rows: 52px 1fr 120px;
+            /* NAME each grid area */
             grid-template-areas:
                 "top-left top-center top-right"
                 "left center right"
@@ -201,39 +207,150 @@
             gap: 30px;
         }
 
-        /* Top Panel - centered 1/4 width */
+        /* STEP 2: PANEL POSITIONING
+           Just assign grid-area + specific sizing */
         .dashboard-top {
             grid-area: top-center;
-            width: 25vw;
+            width: 25vw;  /* Top panel width */
             justify-self: center;
+        }
+
+        .dashboard-left {
+            grid-area: left;
+        }
+
+        .dashboard-right {
+            grid-area: right;
+        }
+
+        .dashboard-bottom {
+            grid-area: bottom-left / bottom-left / bottom-right / span 3;
+            width: 50vw;  /* Bottom panel width */
+            justify-self: center;
+        }
+
+        /* STEP 3: REUSABLE PANEL STYLING */
+
+        /* Base panel appearance */
+        .panel-base {
             background-color: var(--color-bg-panel);
             position: relative;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            flex-direction: column;
+        }
 
-            /* Chamfer bottom-left and bottom-right corners */
+        /* Chamfered corner utilities (mix and match!) */
+        .chamfer-tl {  /* Top-left chamfer */
+            clip-path: polygon(
+                12px 0, 100% 0, 100% 100%, 0 100%, 0 12px
+            );
+        }
+
+        .chamfer-tr {  /* Top-right chamfer */
+            clip-path: polygon(
+                0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%
+            );
+        }
+
+        .chamfer-bl {  /* Bottom-left chamfer */
+            clip-path: polygon(
+                0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px)
+            );
+        }
+
+        .chamfer-br {  /* Bottom-right chamfer */
+            clip-path: polygon(
+                0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%
+            );
+        }
+
+        .chamfer-tr-br {  /* Top-right + Bottom-right */
+            clip-path: polygon(
+                0 0, calc(100% - 12px) 0,
+                100% 12px, 100% calc(100% - 12px),
+                calc(100% - 12px) 100%, 0 100%
+            );
+        }
+
+        .chamfer-tl-bl {  /* Top-left + Bottom-left */
+            clip-path: polygon(
+                12px 0, 100% 0,
+                100% 100%, 12px 100%,
+                0 calc(100% - 12px), 0 12px
+            );
+        }
+
+        .chamfer-bl-br {  /* Bottom-left + Bottom-right */
             clip-path: polygon(
                 0 0, 100% 0,
                 100% calc(100% - 12px), calc(100% - 12px) 100%,
                 12px 100%, 0 calc(100% - 12px)
             );
+        }
 
+        .chamfer-tl-tr {  /* Top-left + Top-right */
+            clip-path: polygon(
+                0 12px, 12px 0,
+                calc(100% - 12px) 0, 100% 12px,
+                100% 100%, 0 100%
+            );
+        }
+
+        /* Border utilities */
+        .border-top    { box-shadow: inset 0 2px 0 0 var(--color-border-main); }
+        .border-right  { box-shadow: inset -2px 0 0 0 var(--color-border-main); }
+        .border-bottom { box-shadow: inset 0 -2px 0 0 var(--color-border-main); }
+        .border-left   { box-shadow: inset 2px 0 0 0 var(--color-border-main); }
+
+        /* Combine borders (common combinations) */
+        .border-inner-top-right-bottom {  /* All except left */
             box-shadow:
-                inset 0 0 0 0 var(--color-border-main),
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main);
+        }
+
+        .border-inner-top-left-bottom {  /* All except right */
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main);
+        }
+
+        .border-inner-left-right-bottom {  /* All except top */
+            box-shadow:
                 inset -2px 0 0 0 var(--color-border-main),
                 inset 0 -2px 0 0 var(--color-border-main),
                 inset 2px 0 0 0 var(--color-border-main);
         }
 
-        /* Diagonal corner lines for top panel */
-        .dashboard-top::before {
+        .border-inner-top-left-right {  /* All except bottom */
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
+        }
+
+        /* Diagonal corner lines */
+        .corner-line-tl::before {  /* Top-left */
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 12px;
-            height: 12px;
+            top: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tr::before {  /* Top-right */
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 12px; height: 12px;
             background: linear-gradient(
                 to bottom left,
                 transparent calc(50% - 2px),
@@ -243,13 +360,25 @@
             );
         }
 
-        .dashboard-top::after {
+        .corner-line-bl::after {  /* Bottom-left */
             content: '';
             position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 12px;
-            height: 12px;
+            bottom: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-br::after {  /* Bottom-right */
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 12px; height: 12px;
             background: linear-gradient(
                 to bottom right,
                 transparent calc(50% - 2px),
@@ -257,179 +386,131 @@
                 var(--color-border-main) calc(50% + 2px),
                 transparent calc(50% + 2px)
             );
+        }
+
+        /* For panels with 2 diagonal corners, use pseudo-classes */
+        .corner-line-tr-br::before {  /* Top-right */
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tr-br::after {  /* Bottom-right */
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tl-bl::before {  /* Top-left */
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tl-bl::after {  /* Bottom-left */
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-bl-br::before {  /* Bottom-left */
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-bl-br::after {  /* Bottom-right */
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tl-tr::before {  /* Top-left */
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tl-tr::after {  /* Top-right */
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        /* Panel-specific styles */
+        .dashboard-top {
+            align-items: center;
+            justify-content: center;
         }
 
         .dashboard-top-content {
             color: var(--color-teal);
             font-size: 18px;
             letter-spacing: 3px;
-        }
-
-        /* Left Panel - CREW */
-        .dashboard-left {
-            grid-area: left;
-            background-color: var(--color-bg-panel);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            margin-left: 0px;
-
-
-            /* Chamfer top-right and bottom-right corners */
-            clip-path: polygon(
-                0 0, calc(100% - 12px) 0,
-                100% 12px, 100% calc(100% - 12px),
-                calc(100% - 12px) 100%, 0 100%
-            );
-
-            box-shadow:
-                inset 0 2px 0 0 var(--color-border-main),
-                inset -2px 0 0 0 var(--color-border-main),
-                inset 0 -2px 0 0 var(--color-border-main),
-                inset 0 0 0 0 var(--color-border-main);
-        }
-
-        .dashboard-left::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom left,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-        }
-
-        .dashboard-left::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom right,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-        }
-
-        /* Right Panel - MISSIONS */
-        .dashboard-right {
-            grid-area: right;
-            background-color: var(--color-bg-panel);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            margin-right: 0px;
-
-            /* Chamfer top-left and bottom-left corners */
-            clip-path: polygon(
-                12px 0, 100% 0,
-                100% 100%, 12px 100%,
-                0 calc(100% - 12px), 0 12px
-            );
-
-            box-shadow:
-                inset 0 2px 0 0 var(--color-border-main),
-                inset 0 0 0 0 var(--color-border-main),
-                inset 0 -2px 0 0 var(--color-border-main),
-                inset 2px 0 0 0 var(--color-border-main);
-        }
-
-        .dashboard-right::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom right,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-        }
-
-        .dashboard-right::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom left,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-        }
-
-        /* Bottom Panel - spans full width */
-        .dashboard-bottom {
-            grid-area: bottom-left / bottom-left / bottom-right / span 3;
-            background-color: var(--color-bg-panel);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            width: 50vw;
-            justify-self: center;
-
-            /* Chamfer top-left and top-right corners */
-            clip-path: polygon(
-                0 12px, 12px 0,
-                calc(100% - 12px) 0, 100% 12px,
-                100% 100%, 0 100%
-            );
-
-            box-shadow:
-                inset 0 2px 0 0 var(--color-border-main),
-                inset -2px 0 0 0 var(--color-border-main),
-                inset 0 0 0 0 var(--color-border-main),
-                inset 2px 0 0 0 var(--color-border-main);
-        }
-
-        .dashboard-bottom::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom right,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-        }
-
-        .dashboard-bottom::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom left,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
         }
 
         /* Panel Headers */
@@ -447,18 +528,20 @@
             border-bottom: 1px solid var(--color-border-subtle);
         }
 
-        /* Adjust h3 borders to avoid diagonal corners */
-        .dashboard-left .dashboard-panel-header h3 {
+        /* Adjust h3 padding for chamfered corners */
+        .chamfer-tr .dashboard-panel-header h3,
+        .chamfer-tr-br .dashboard-panel-header h3 {
             padding-right: 22px; /* 10px base + 12px for corner */
         }
 
-        .dashboard-right .dashboard-panel-header h3 {
+        .chamfer-tl .dashboard-panel-header h3,
+        .chamfer-tl-bl .dashboard-panel-header h3,
+        .chamfer-tl-tr .dashboard-panel-header h3 {
             padding-left: 22px; /* 10px base + 12px for corner */
         }
 
-        .dashboard-bottom .dashboard-panel-header h3 {
-            padding-left: 22px; /* 10px base + 12px for corner */
-            padding-right: 22px; /* 10px base + 12px for corner */
+        .chamfer-tl-tr .dashboard-panel-header h3 {
+            padding-right: 22px; /* Both corners */
         }
 
         /* Panel Content Areas */
@@ -466,7 +549,7 @@
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 12px 12px 12px 12px;
+            padding: 12px;
             margin-bottom: 2px;
             margin-left: 2px;
             margin-right: 2px;
@@ -483,7 +566,7 @@
             line-height: 1.6;
         }
 
-        /* Scrollbar styling for dashboard panels - floating style */
+        /* Scrollbar styling */
         .dashboard-panel-content::-webkit-scrollbar {
             width: 10px;
         }
@@ -513,6 +596,70 @@
 
         .dashboard-panel-content::-webkit-scrollbar-button {
             display: none;
+        }
+
+        /* Right panel subsections */
+        .right-section {
+            background-color: var(--color-bg-panel-dark);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-section .dashboard-panel-header {
+            padding: 12px 2px 0 2px;
+            flex-shrink: 0;
+        }
+
+        .right-section .dashboard-panel-header h3 {
+            color: var(--color-teal);
+            font-size: 11px;
+            letter-spacing: 2px;
+            margin: 0;
+            padding: 0 22px 5px 22px;
+            border-bottom: 1px solid var(--color-border-subtle);
+        }
+
+        .right-section .dashboard-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px;
+            margin: 2px 5px 2px 2px;
+            background-color: #171717;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 2px,
+                #1a1a1a 2px,
+                #1a1a1a 3px
+            );
+            color: var(--color-text-primary);
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        /* Star system buttons */
+        .system-button {
+            display: block;
+            width: 100%;
+            background-color: #0f1515;
+            border: 1px solid var(--color-border-main);
+            color: var(--color-text-primary);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .system-button:hover {
+            background-color: #1a2525;
+            border-color: var(--color-teal-bright);
+            color: var(--color-teal-bright);
         }
 
         /* ===================
@@ -865,12 +1012,12 @@
     {% elif active_view.view_type == 'CAMPAIGN_DASHBOARD' %}
     <div class="campaign-dashboard">
         <!-- Top Panel -->
-        <div class="dashboard-top">
+        <div class="dashboard-top panel-base chamfer-bl-br border-inner-left-right-bottom corner-line-bl-br">
             <div class="dashboard-top-content">THE OUTER VEIL CAMPAIGN</div>
         </div>
 
         <!-- Left Panel - CREW -->
-        <div class="dashboard-left">
+        <div class="dashboard-left panel-base chamfer-tr-br border-inner-top-right-bottom corner-line-tr-br">
             <div class="dashboard-panel-header">
                 <h3>CREW</h3>
             </div>
@@ -883,7 +1030,7 @@
         </div>
 
         <!-- Right Panel - MISSIONS -->
-        <div class="dashboard-right">
+        <div class="dashboard-right panel-base chamfer-tl-bl border-inner-top-left-bottom corner-line-tl-bl">
             <div class="dashboard-panel-header">
                 <h3>MISSIONS</h3>
             </div>
@@ -895,7 +1042,7 @@
         </div>
 
         <!-- Bottom Panel -->
-        <div class="dashboard-bottom">
+        <div class="dashboard-bottom panel-base chamfer-tl-tr border-inner-top-left-right corner-line-tl-tr">
             <div class="dashboard-panel-header">
                 <h3>SHIP STATUS - USCSS MORRIGAN</h3>
             </div>

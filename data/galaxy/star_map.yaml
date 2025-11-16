@@ -1,0 +1,253 @@
+# Star Map Configuration
+# Defines the 3D positions, colors, and properties of stars/systems in the universe
+
+# Camera settings
+camera:
+  position: [0, 0, 100]  # x, y, z
+  lookAt: [0, 0, 0]
+  fov: 75  # Field of view in degrees
+
+# Ambient lighting
+ambient_light:
+  color: 0x222244
+  intensity: 0.3
+
+# Star systems and locations
+# Position coordinates: [x, y, z] in 3D space
+# Color: hex color code (0xRRGGBB)
+# Size: radius of the star sphere
+# Type: star, nebula, station, planet
+
+systems:
+  # Core system - Humanity's origin
+  - name: "Sol"
+    position: [0, 0, 0]
+    color: 0xFFFFAA
+    size: 2.5
+    type: "star"
+    label: true
+    location_slug: "sol"
+    has_system_map: true
+    info:
+      description: "Earth's home system"
+      population: "~8 billion"
+
+  # Close neighbors (4-12 light years)
+  - name: "Proxima Centauri"
+    position: [30, -15, 10]
+    color: 0xFF6B4A
+    size: 1.8
+    type: "star"
+    label: true
+    location_slug: "proxima-centauri"
+    has_system_map: true
+    info:
+      description: "Nearest star, research outpost"
+      population: "~2,500"
+
+  - name: "Tau Ceti"
+    position: [-35, 45, 5]
+    color: 0xFFFFBB
+    size: 2.3
+    type: "star"
+    label: true
+    location_slug: "tau-ceti"
+    has_system_map: true
+    info:
+      description: "Major colony system"
+      population: "~185,000"
+
+  - name: "Epsilon Eridani"
+    position: [25, -35, -15]
+    color: 0xFFCC99
+    size: 2.1
+    type: "star"
+    label: true
+    location_slug: "epsilon-eridani"
+    has_system_map: true
+    info:
+      description: "Asteroid mining hub"
+      population: "~8,500"
+
+  - name: "Ross 128"
+    position: [45, -25, 18]
+    color: 0xFF5533
+    size: 1.6
+    type: "star"
+    label: true
+    location_slug: "ross-128"
+    has_system_map: true
+    info:
+      description: "Mining operations"
+      population: "~1,800"
+
+  - name: "Luyten's Star"
+    position: [-30, 50, -12]
+    color: 0xFF6644
+    size: 1.9
+    type: "star"
+    label: true
+    location_slug: "luyten-star"
+    has_system_map: true
+    info:
+      description: "Regional trade hub"
+      population: "~45,000"
+
+  # Distant systems
+  - name: "Kepler-442"
+    position: [95, -55, 35]
+    color: 0xFFAA88
+    size: 1.8
+    type: "star"
+    label: true
+    location_slug: "kepler-442"
+    has_system_map: true
+    info:
+      description: "Frontier colonies"
+      population: "~50,000"
+
+  - name: "TRAPPIST-1"
+    position: [-110, -80, 55]
+    color: 0xFF4422
+    size: 1.5
+    type: "star"
+    label: true
+    location_slug: "trappist-1"
+    has_system_map: true
+    info:
+      description: "Seven-planet system, research priority"
+      population: "~3,200"
+
+  - name: "LV-426"
+    position: [-20, 8, -15]
+    color: 0x88FF88
+    size: 1.0
+    type: "planet"
+    label: false
+
+  - name: "Acheron System"
+    position: [-18, 10, -14]
+    color: 0xFFDD88
+    size: 1.5
+    type: "star"
+    label: true
+
+  # Scattered background stars
+  - name: "Distant Star 1"
+    position: [40, 30, -20]
+    color: 0xCCCCFF
+    size: 0.8
+    type: "star"
+    label: false
+
+  - name: "Distant Star 2"
+    position: [-35, -25, 18]
+    color: 0xFFCCCC
+    size: 0.7
+    type: "star"
+    label: false
+
+  - name: "Distant Star 3"
+    position: [30, -40, -25]
+    color: 0xFFFFCC
+    size: 0.9
+    type: "star"
+    label: false
+
+  - name: "Distant Star 4"
+    position: [-45, 20, 30]
+    color: 0xCCFFCC
+    size: 0.6
+    type: "star"
+    label: false
+
+# Nebula clouds (particle fields)
+# Large nebula centered at Sol encompassing all star systems
+nebulae:
+  # The expanding nebula barrier around all inhabited systems
+  - name: "The Veil"
+    position: [0, 0, 0]
+    color: 0x5aaa9a
+    size: 65
+    particle_count: 3500
+    opacity: 0.14
+    type: "emission"
+
+# Connection lines between systems (trade routes, patrol routes, etc.)
+routes:
+  # Sol to close neighbors
+  - from: "Sol"
+    to: "Proxima Centauri"
+    from_slug: "sol"
+    to_slug: "proxima-centauri"
+    color: 0x5a7a9a
+    route_type: "primary_route"
+    travel_time_days: 18
+    info:
+      description: "Primary route to nearest system"
+
+  - from: "Sol"
+    to: "Tau Ceti"
+    from_slug: "sol"
+    to_slug: "tau-ceti"
+    color: 0x5a7a9a
+    route_type: "major_trade"
+    travel_time_days: 52
+    info:
+      description: "Major colonial trade route"
+
+  - from: "Sol"
+    to: "Epsilon Eridani"
+    from_slug: "sol"
+    to_slug: "epsilon-eridani"
+    color: 0x7a6a5a
+    route_type: "industrial"
+    travel_time_days: 45
+    info:
+      description: "Resource supply route"
+
+  # Regional connections
+  - from: "Tau Ceti"
+    to: "Luyten's Star"
+    from_slug: "tau-ceti"
+    to_slug: "luyten-star"
+    color: 0x5a7a9a
+    route_type: "trade_route"
+    travel_time_days: 28
+
+  - from: "Proxima Centauri"
+    to: "Ross 128"
+    from_slug: "proxima-centauri"
+    to_slug: "ross-128"
+    color: 0x7a6a5a
+    route_type: "industrial"
+    travel_time_days: 35
+
+  - from: "Luyten's Star"
+    to: "Ross 128"
+    from_slug: "luyten-star"
+    to_slug: "ross-128"
+    color: 0x6a7a8a
+    route_type: "secondary_route"
+    travel_time_days: 22
+
+  # Frontier routes
+  - from: "Tau Ceti"
+    to: "Kepler-442"
+    from_slug: "tau-ceti"
+    to_slug: "kepler-442"
+    color: 0x6a7a8a
+    route_type: "frontier"
+    travel_time_days: 120
+    info:
+      description: "Long frontier route to distant colonies"
+
+  - from: "Epsilon Eridani"
+    to: "TRAPPIST-1"
+    from_slug: "epsilon-eridani"
+    to_slug: "trappist-1"
+    color: 0x6a7a8a
+    route_type: "exploration"
+    travel_time_days: 145
+    info:
+      description: "Deep space exploration route"

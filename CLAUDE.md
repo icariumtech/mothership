@@ -17,7 +17,7 @@ This tool is developed collaboratively between the game master and Claude Code. 
 
 1. **Campaign Tracking**: Track player characters, missions, ship status, resources, and campaign progress
 2. **Atmospheric Messaging System**: Send in-character messages to players styled like the iconic CHARON computer from Aliens - creating immersive communication from ship computers, stations, or AI systems
-3. **Universe Map**: Interactive visualization of the universe/sector the players are exploring, showing systems, stations, points of interest, and travel routes
+3. **Galaxy Map**: Interactive visualization of the galaxy/sector the players are exploring, showing systems, stations, points of interest, and travel routes
 4. **Session Management**: Track sessions, notes, and story developments
 
 The goal is to create an engaging, atmospheric tool that enhances the tension and immersion of Mothership's sci-fi horror gameplay.
@@ -29,23 +29,37 @@ The goal is to create an engaging, atmospheric tool that enhances the tension an
 charon/
 ├── .claude/                     # Claude Code configuration
 ├── data/                        # Campaign data (file-based)
-│   └── locations/               # Location hierarchy (NESTED STRUCTURE)
-│       └── {location_slug}/
-│           ├── location.yaml    # Location metadata
-│           ├── map/             # Single map per location (singular!)
-│           │   ├── {map_name}.yaml
-│           │   └── {map_name}.png
-│           ├── comms/           # Communication terminals
-│           │   └── {terminal_slug}/
-│           │       ├── terminal.yaml
-│           │       ├── inbox/   # Received messages (by sender)
-│           │       └── sent/    # Sent messages (by recipient)
-│           └── {child_location}/ # Child locations (unlimited nesting)
+│   └── galaxy/
+│       ├── star_map.yaml        # 3D star map visualization
+│       └── # Galaxy hierarchy (NESTED STRUCTURE)
+│           └── {system_slug}/   # Solar System (e.g., sol, kepler-442)
+│               ├── location.yaml    # Star metadata (type: "system")
+│               └── {body_slug}/     # Planet/Moon (e.g., earth, mars)
+│                   ├── location.yaml    # Planet metadata (type: "planet")
+│                   └── {facility_slug}/ # Station/Base/Ship
+│                       ├── location.yaml    # Facility metadata (type: "station"/"base"/"ship")
+│                       ├── map/             # Facility overview map (singular!)
+│                       │   ├── {map_name}.yaml
+│                       │   └── {map_name}.png
+│                       ├── comms/           # Facility-level terminals
+│                       │   └── {terminal_slug}/
+│                       │       ├── terminal.yaml
+│                       │       ├── inbox/   # Received messages (by sender)
+│                       │       └── sent/    # Sent messages (by recipient)
+│                       └── {deck_slug}/     # Deck/Level
+│                           ├── location.yaml    # Deck metadata (type: "deck")
+│                           ├── map/             # Deck layout map
+│                           │   ├── {map_name}.yaml
+│                           │   └── {map_name}.png
+│                           ├── comms/           # Deck-level terminals
+│                           └── {room_slug}/     # Room/Section
+│                               ├── location.yaml    # Room metadata (type: "room")
+│                               └── comms/           # Room-level terminals
 ├── mothership_gm/              # Django project settings
 ├── terminal/                   # Main Django app
 │   ├── models.py              # Message, ActiveView
 │   ├── views.py               # Terminal displays, API endpoints
-│   ├── data_loader.py         # File-based data loading
+│   ├── data_loader.py         # File-based data loading (galaxy-aware)
 │   ├── management/commands/   # Django commands
 │   └── templates/             # HTML templates
 │       └── terminal/
@@ -57,6 +71,32 @@ charon/
 ├── manage.py                  # Django management
 ├── requirements.txt           # Python dependencies
 └── generate_deck_layout.py    # Script to generate map images
+```
+
+### Galaxy Hierarchy Example
+
+**Sol System → Earth → Research Base Alpha → Main Deck → Commander's Office**
+
+```
+data/galaxy/locations/
+└── sol/                        # Solar System
+    ├── location.yaml           # Star metadata
+    └── earth/                  # Planet
+        ├── location.yaml       # Planet metadata
+        ├── research_base_alpha/    # Surface Base
+        │   ├── location.yaml
+        │   ├── map/exterior.yaml+png
+        │   ├── comms/station-ai/   # CHARON terminal
+        │   └── main-deck/          # Deck
+        │       ├── location.yaml
+        │       ├── map/deck_layout.yaml+png
+        │       ├── comms/
+        │       └── commanders-office/  # Room
+        │           └── comms/terminal-001/
+        └── uscss_morrigan/     # Ship on surface
+            ├── location.yaml
+            ├── map/
+            └── comms/
 ```
 
 ## Technical Stack
@@ -94,10 +134,14 @@ The application supports multiple view types that can be displayed on a shared t
 ## Data Loading System
 
 **DataLoader** (`terminal/data_loader.py`):
-- Parses location hierarchy from `data/locations/`
+- Parses galaxy hierarchy from `data/galaxy/locations/`
+- Recursively loads Systems → Bodies (planets) → Facilities (stations/bases/ships) → Decks → Rooms
+- Each level can have maps, terminals, and child locations
 - Loads terminal messages with YAML frontmatter
 - Groups messages by conversation
 - Builds conversation threads
+- Helper methods to find locations by slug or path in hierarchy
+- Loads star map data and links to location hierarchy
 - No database sync needed
 
 **Message Format** (Markdown with YAML):
@@ -422,6 +466,8 @@ Default scrollbar styling for other elements:
 ✓ **Static File Serving**: Django serves map images from `data/` directory in development
 ✓ **V2-1 UI Theme**: Muted multi-color design with teal/amber palette and angular panels
 ✓ **Terminal Overlay System**: SHOW button displays terminal overlay without clearing main view
+✓ **3D Galaxy Map**: Interactive Three.js visualization with stars, travel routes, and nebulae
+✓ **Nebula System**: Type-specific nebulae (emission, reflection, planetary, dark) with unique particle distributions and animations
 
 ## Planned Features
 - [ ] Terminal conversation view renderer
@@ -474,18 +520,130 @@ class Message(models.Model):
 Campaign data is stored as files, not in the database.
 
 ### Location (YAML File)
-`data/locations/{location_slug}/location.yaml`
 
+Locations form a hierarchical galaxy structure. Each level has different metadata based on type.
+
+**Solar System** - `data/galaxy/locations/{system_slug}/location.yaml`
 ```yaml
-name: "Research Base Alpha"
-type: "station"  # station, ship, planet, asteroid, derelict
-description: "Remote research facility"
-coordinates: "39.47.36 N / 116.23.40 W"
-status: "OPERATIONAL"
+name: "Sol System"
+type: "system"
+star_type: "G-type main-sequence (G2V)"
+galactic_coordinates: [0, 0, 0]
+status: "INHABITED"
+description: "Humanity's home star system"
 ```
 
+**Planet/Moon** - `data/galaxy/locations/{system_slug}/{body_slug}/location.yaml`
+```yaml
+name: "Earth"
+type: "planet"  # or "moon"
+parent_system: "sol"
+orbital_position: 3
+mass: "5.972 × 10^24 kg"
+gravity: "1.0 G"
+atmosphere: "Nitrogen-Oxygen (breathable)"
+status: "INHABITED"
+population: "8.2 billion"
+```
+
+**Facility** - `data/galaxy/locations/{system}/{body}/{facility_slug}/location.yaml`
+```yaml
+name: "Research Base Alpha"
+type: "base"  # or "station" or "ship"
+parent_body: "earth"
+coordinates: "39.47.36 N / 116.23.40 W"
+status: "OPERATIONAL"
+crew_capacity: 50
+description: "Remote research facility"
+```
+
+**Deck/Level** - `data/galaxy/locations/{...}/{deck_slug}/location.yaml`
+```yaml
+name: "Main Deck"
+type: "deck"
+level: 1
+description: "Primary operations level"
+```
+
+**Room/Section** - `data/galaxy/locations/{...}/{room_slug}/location.yaml`
+```yaml
+name: "Commander's Office"
+type: "room"
+description: "Command center"
+```
+
+**Location Types**: `system`, `planet`, `moon`, `station`, `base`, `ship`, `deck`, `level`, `room`, `section`
+
+### Star Map (YAML File)
+`data/galaxy/star_map.yaml`
+
+Defines the 3D visualization of the galaxy with systems, stations, and routes.
+
+```yaml
+camera:
+  position: [0, 0, 100]
+  lookAt: [0, 0, 0]
+  fov: 75
+
+systems:
+  - name: "Sol"
+    position: [0, 0, 0]
+    color: 0xFFFFAA
+    size: 2.5
+    type: "star"
+    label: true
+    location_slug: "sol"  # Links to location hierarchy
+
+routes:
+  - from: "Sol"
+    to: "Alpha Centauri"
+    from_slug: "sol"
+    to_slug: "alpha-centauri"
+    color: 0x5a7a9a
+    route_type: "trade_route"
+
+nebulae:
+  - name: "Azure Expanse"
+    position: [-50, 35, -25]
+    color: 0x5a7a9a
+    size: 30
+    particle_count: 600
+    opacity: 0.05
+    type: "reflection"
+```
+
+**Nebula Types and Behaviors:**
+
+Nebulae add atmospheric depth to the galaxy map with type-specific visual characteristics:
+
+- **`emission`** - Ionized gas nebulae (typically red/maroon/amber colors)
+  - Particle distribution: Concentrated toward center (denser core)
+  - Animation: Gentle pulsing (15% opacity variation, slow)
+  - Use case: Star-forming regions, ionized hydrogen clouds
+
+- **`reflection`** - Nebulae reflecting starlight (typically blue/teal colors)
+  - Particle distribution: Uniform throughout volume
+  - Animation: Very subtle shimmer (8% opacity variation)
+  - Use case: Dust clouds illuminated by nearby stars
+
+- **`planetary`** - Ring nebulae from dying stars (any color)
+  - Particle distribution: Ring/torus shape (hollow center, flattened disk)
+  - Animation: Slow rotation around center axis
+  - Use case: Planetary nebulae, supernova remnants
+
+- **`dark`** - Obscuring dust clouds (very dark colors)
+  - Particle distribution: Standard spherical
+  - Material: Uses NormalBlending (doesn't glow)
+  - Animation: None (static)
+  - Use case: Dust clouds, molecular clouds
+
+**Nebula Color Guidelines:**
+Use muted colors that match the terminal UI palette (teal #5a7a9a, amber #8b7355, muted purples/reds). Opacity should typically be 0.04-0.08 for subtle atmospheric effect.
+
 ### Terminal (YAML File)
-`data/locations/{location_slug}/comms/{terminal_slug}/terminal.yaml`
+`data/galaxy/locations/{path...}/comms/{terminal_slug}/terminal.yaml`
+
+Terminals can exist at any level (facility, deck, room).
 
 ```yaml
 owner: "Commander Drake"
@@ -495,7 +653,7 @@ description: "Command center main terminal"
 ```
 
 ### Terminal Messages (Markdown Files)
-`data/locations/{location_slug}/comms/{terminal_slug}/inbox|sent/{contact_slug}/{filename}.md`
+`data/galaxy/locations/{path...}/comms/{terminal_slug}/inbox|sent/{contact_slug}/{filename}.md`
 
 Messages use markdown with YAML frontmatter:
 ```markdown
@@ -523,7 +681,9 @@ Message content in markdown...
 - `contact` (auto-added): Directory name (who the message is from/to)
 
 ### Encounter Maps
-`data/locations/{location_slug}/map/{map_slug}.yaml` (singular `map/` directory!)
+`data/galaxy/locations/{path...}/map/{map_slug}.yaml` (singular `map/` directory!)
+
+Maps can exist at system, facility, or deck levels.
 
 ```yaml
 name: "Main Facility"
@@ -537,23 +697,39 @@ grid_size_y: 15
 - Place image with same name as YAML file in same directory
 - Supported formats: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`
 - Example: `deck_layout.yaml` + `deck_layout.png`
-- Images are served via `/data/locations/.../map/image.png` in development
+- Images are served via `/data/galaxy/locations/.../map/image.png` in development
 
 ## Data Access Pattern
 
 **Load on demand, don't sync to database:**
 
 ```python
-from terminal.data_loader import load_location, build_conversation_thread
+from terminal.data_loader import DataLoader
 
-# Load location data from disk
-location = load_location('research_base_alpha')
+loader = DataLoader()
+
+# Load all locations (entire galaxy hierarchy)
+all_locations = loader.load_all_locations()
+
+# Find a location anywhere in the hierarchy
+location = loader.find_location_by_slug('research_base_alpha')
+
+# Get location by full path
+location = loader.get_location_by_path(['sol', 'earth', 'research_base_alpha'])
+
+# Get hierarchical path for a location
+path = loader.get_location_path('research_base_alpha')
+# Returns: ['sol', 'earth', 'research_base_alpha']
+
+# Load star map
+star_map = loader.load_star_map()
 
 # Access terminals
 for terminal in location['terminals']:
     # terminal has 'inbox', 'sent', and 'messages' (combined)
 
 # Build conversation thread
+from terminal.data_loader import build_conversation_thread
 thread = build_conversation_thread(
     terminal['messages'],
     'conv_lab_incident_001'

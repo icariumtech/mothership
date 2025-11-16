@@ -1,0 +1,28 @@
+name: "TRAPPIST-1e"
+type: "planet"
+parent_system: "trappist-1"
+orbital_position: 4
+
+mass: "0.69 Earth masses"
+radius: "0.92 Earth radii"
+gravity: "0.9 G"
+atmosphere: "Nitrogen-Oxygen mix, breathable with adaptation"
+temperature_range: "-5°C to 20°C (terminator zone)"
+
+status: "RESEARCH COLONY"
+population: "~2,800"
+established: "2180"
+tidally_locked: true
+
+description: "The most Earth-like of the TRAPPIST-1 planets. Tidally locked with one side facing the star perpetually. The terminator zone between light and dark has mild temperatures and is the focus of colonization efforts."
+
+surface_facilities:
+  - "Eden Research Station (terminator zone)"
+
+orbital_stations: []
+
+research_priority: "HIGH"
+research_focus:
+  - "Tidal locking ecology"
+  - "Compact system dynamics"
+  - "Multiple habitable world interactions"

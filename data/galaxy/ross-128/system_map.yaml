@@ -1,0 +1,33 @@
+star:
+  name: "Ross 128"
+  type: "M4V red dwarf"
+  color: 0xFF5533
+  size: 2.8
+  corona_intensity: 0.3
+  light_color: 0xFF7755
+
+camera:
+  position: [0, 0, 80]
+  lookAt: [0, 0, 0]
+  fov: 75
+
+bodies:
+  - name: "Ross 128 b"
+    type: "planet"
+    location_slug: "ross-128-b"
+    orbital_radius: 12
+    orbital_period: 9.9
+    orbital_angle: 180
+    size: 1.4
+    color: 0x8B4513
+    tidally_locked: true
+    clickable: true
+    has_orbit_map: true
+    info:
+      description: "Rocky mining world, tidally locked"
+      industry: "Heavy metals, rare earths"
+
+orbits:
+  show: true
+  color: 0x774444
+  opacity: 0.2

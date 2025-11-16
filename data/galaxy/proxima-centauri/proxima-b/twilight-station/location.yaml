@@ -1,0 +1,21 @@
+name: "Twilight Research Station"
+type: "base"
+parent_body: "proxima-b"
+coordinates: "Terminator Zone, 0.0°N 90.0°W"
+status: "OPERATIONAL"
+crew_capacity: 150
+current_population: 142
+established: "2175"
+
+description: "Primary research facility on Proxima b, located in the habitable terminator zone between permanent day and night. Specializes in extremophile biology and stellar radiation studies."
+
+research_focus:
+  - "Tidally locked planet ecology"
+  - "Stellar flare prediction and shielding"
+  - "Extremophile life forms"
+
+facilities:
+  - "Biology labs"
+  - "Radiation shielding complex"
+  - "Underground hydroponics"
+  - "Flare bunkers"

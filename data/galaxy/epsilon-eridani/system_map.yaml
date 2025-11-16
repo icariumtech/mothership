@@ -1,0 +1,65 @@
+star:
+  name: "Epsilon Eridani"
+  type: "K2V main-sequence"
+  color: 0xFFCC99
+  size: 4.2
+  corona_intensity: 0.6
+  light_color: 0xFFDD99
+
+camera:
+  position: [0, 0, 200]
+  lookAt: [0, 0, 0]
+  fov: 75
+
+bodies:
+  # Inner asteroid belt
+  - name: "Inner Belt"
+    type: "asteroid_belt"
+    inner_radius: 25
+    outer_radius: 40
+    particle_count: 8000
+    color: 0x8B7355
+    opacity: 0.4
+    clickable: false
+    info:
+      description: "Dense asteroid belt, heavy mining activity"
+
+  # Gas giants
+  - name: "Epsilon Eridani b"
+    type: "gas_giant"
+    location_slug: "epsilon-eridani-b"
+    orbital_radius: 80
+    orbital_period: 2502
+    orbital_angle: 90
+    size: 3.8
+    color: 0xDEB887
+    clickable: true
+    has_orbit_map: false
+    info:
+      description: "Gas giant with helium-3 extraction operations"
+
+  # Outer asteroid belt
+  - name: "Outer Belt"
+    type: "asteroid_belt"
+    inner_radius: 110
+    outer_radius: 140
+    particle_count: 6000
+    color: 0x696969
+    opacity: 0.35
+    clickable: false
+
+orbits:
+  show: true
+  color: 0x666666
+  opacity: 0.2
+
+# Mining stations
+structures:
+  - name: "Belt Mining Station Alpha"
+    type: "station"
+    position: [32, 0, 5]
+    size: 0.4
+    color: 0xC0C0C0
+    clickable: false
+    info:
+      description: "Asteroid mining hub"

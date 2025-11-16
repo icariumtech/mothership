@@ -1,0 +1,82 @@
+# Proxima Centauri System Visualization
+
+# The star at the center
+star:
+  name: "Proxima Centauri"
+  type: "M5.5Ve red dwarf"
+  color: 0xFF6B4A  # Reddish
+  size: 3.0
+  corona_intensity: 0.4
+  light_color: 0xFF8866
+  flare_activity: true  # Red dwarfs have frequent flares
+
+# View configuration
+camera:
+  position: [0, 0, 120]
+  lookAt: [0, 0, 0]
+  fov: 75
+  zoom_limits: [40, 200]
+
+# Orbital mechanics
+time:
+  current_day: 2183.165
+  speed_multiplier: 1.0
+
+# Planets and celestial bodies
+bodies:
+  - name: "Proxima b"
+    type: "planet"
+    location_slug: "proxima-b"
+
+    # Orbital parameters (very close orbit for red dwarf habitable zone)
+    orbital_radius: 15
+    orbital_period: 11.2  # Days
+    orbital_angle: 90
+    orbital_inclination: 0
+
+    # Visual properties
+    size: 1.4
+    color: 0x8B6F47  # Reddish-brown (tidally locked)
+    atmosphere_color: 0xCC5544
+    atmosphere_intensity: 0.2
+
+    # Interaction
+    clickable: true
+    has_orbit_map: true
+    tidally_locked: true
+
+    info:
+      description: "Rocky planet in habitable zone, tidally locked to star"
+      habitability: "Marginal - permanent day/night sides"
+
+  - name: "Proxima c"
+    type: "planet"
+    location_slug: "proxima-c"
+
+    orbital_radius: 40
+    orbital_period: 1928  # ~5.3 years
+    orbital_angle: 200
+    size: 1.8
+    color: 0x5A7A9A  # Icy blue-grey
+
+    clickable: true
+    has_orbit_map: false
+
+    info:
+      description: "Cold super-Earth, likely icy surface"
+      habitability: "None - frozen"
+
+# Orbital paths
+orbits:
+  show: true
+  color: 0x664444
+  opacity: 0.25
+  style: "solid"
+
+# Hazards
+stellar_activity:
+  flare_zones:
+    - radius: 18
+      color: 0xFF4444
+      opacity: 0.1
+      warning: "Stellar flare radiation hazard"

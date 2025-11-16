@@ -1,0 +1,21 @@
+name: "Eden Research Station"
+type: "base"
+parent_body: "trappist-1e"
+coordinates: "Terminator Zone, 0.0°N 90.0°W"
+status: "OPERATIONAL"
+crew_capacity: 3000
+current_population: 2780
+established: "2180"
+
+description: "Primary research station on TRAPPIST-1e, located in the habitable terminator zone. Studies the unique properties of the compact seven-planet system and potential for multi-world colonization."
+
+research_focus:
+  - "Comparative planetology across seven worlds"
+  - "Tidally locked planet habitability"
+  - "Potential indigenous life detection"
+
+facilities:
+  - "Exobiology labs"
+  - "Atmospheric research"
+  - "Inter-planetary observation array"
+  - "Terminator zone greenhouses"

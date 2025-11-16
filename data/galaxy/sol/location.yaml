@@ -1,0 +1,27 @@
+# Sol System
+# The cradle of humanity
+
+name: "Sol System"
+type: "system"
+star_type: "G-type main-sequence (G2V)"
+star_name: "Sol"
+mass: "1.989 × 10^30 kg"
+age: "4.6 billion years"
+
+# Position in the galaxy (for star_map.yaml reference)
+galactic_coordinates: [0, 0, 0]
+
+# Status
+status: "INHABITED"
+description: "Humanity's home star system, containing Earth and the inner colonies"
+
+# Notable features
+planets:
+  - earth
+  - mars
+  - jupiter
+  - saturn
+
+stations:
+  - "Gateway Station (Earth orbit)"
+  - "Mars Colonial Authority HQ"

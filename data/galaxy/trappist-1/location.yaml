@@ -1,0 +1,30 @@
+name: "TRAPPIST-1"
+type: "system"
+star_type: "M-type ultra-cool dwarf (M8V)"
+mass: "0.09 solar masses"
+age: "7.6 billion years"
+
+distance_from_sol: "40.7 light years"
+galactic_coordinates: [-30, -25, 18]
+
+status: "EXPLORATION/RESEARCH"
+established: "2180"
+population: "~3,200"
+
+description: "Remarkable ultra-compact system containing seven Earth-sized planets, three within the habitable zone. The planets orbit extraordinarily close to their dim star, with year-lengths measured in days. All planets are likely tidally locked."
+
+planets:
+  - "TRAPPIST-1b (too hot)"
+  - "TRAPPIST-1c (too hot)"
+  - "TRAPPIST-1d (habitable zone - research outpost)"
+  - "TRAPPIST-1e (habitable zone - primary colony)"
+  - "TRAPPIST-1f (habitable zone - under study)"
+  - "TRAPPIST-1g (outer edge)"
+  - "TRAPPIST-1h (too cold)"
+
+status_note: "One of humanity's most exciting discoveries - a compact system with multiple potentially habitable worlds"
+
+economy:
+  - "Exobiology research"
+  - "Habitability studies"
+  - "Long-term colonization prospects"

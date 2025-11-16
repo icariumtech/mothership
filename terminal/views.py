@@ -4,6 +4,9 @@ from django.contrib.auth import logout
 from django.contrib import messages as django_messages
 from django.http import JsonResponse
 from .models import Message
+import yaml
+import os
+from django.conf import settings
 
 
 def find_location_recursive(locations, slug):
@@ -268,3 +271,72 @@ def get_active_view_json(request):
         'overlay_terminal_slug': active_view.overlay_terminal_slug or '',
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     })
+
+
+def get_star_map_json(request):
+    """
+    API endpoint to get the star map data from YAML file.
+    Returns star systems, routes, and other 3D map data.
+    Public endpoint - no login required.
+    """
+    # Path to star map YAML file
+    star_map_path = os.path.join(settings.BASE_DIR, 'data', 'galaxy', 'star_map.yaml')
+
+    try:
+        with open(star_map_path, 'r') as f:
+            star_map_data = yaml.safe_load(f)
+
+        return JsonResponse(star_map_data)
+    except FileNotFoundError:
+        return JsonResponse({
+            'error': 'Star map data not found',
+            'systems': [],
+            'routes': []
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error loading star map: {str(e)}',
+            'systems': [],
+            'routes': []
+        }, status=500)
+
+
+def get_system_map_json(request, system_slug):
+    """
+    API endpoint to get solar system visualization data.
+    Returns planets, orbits, and structures within a star system.
+    Public endpoint - no login required.
+    """
+    from terminal.data_loader import DataLoader
+
+    loader = DataLoader()
+    system_map = loader.load_system_map(system_slug)
+
+    if system_map:
+        return JsonResponse(system_map)
+    else:
+        return JsonResponse({
+            'error': f'System map not found for {system_slug}',
+            'system_slug': system_slug
+        }, status=404)
+
+
+def get_orbit_map_json(request, system_slug, body_slug):
+    """
+    API endpoint to get orbital visualization for a planet/body.
+    Returns satellites, stations, and orbital structures.
+    Public endpoint - no login required.
+    """
+    from terminal.data_loader import DataLoader
+
+    loader = DataLoader()
+    orbit_map = loader.load_orbit_map(system_slug, body_slug)
+
+    if orbit_map:
+        return JsonResponse(orbit_map)
+    else:
+        return JsonResponse({
+            'error': f'Orbit map not found for {system_slug}/{body_slug}',
+            'system_slug': system_slug,
+            'body_slug': body_slug
+        }, status=404)

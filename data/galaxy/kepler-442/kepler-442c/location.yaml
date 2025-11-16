@@ -1,0 +1,28 @@
+# Kepler-442c
+# Outer planet in the Kepler-442 system
+
+name: "Kepler-442c"
+type: "planet"
+parent_system: "kepler-442"
+orbital_position: 2
+
+# Physical properties
+mass: "0.8 Earth masses"
+radius: "0.95 Earth radii"
+gravity: "0.9 G"
+atmosphere: "Thin, not breathable (CO2 dominant)"
+temperature_range: "-80°C to -30°C"
+
+# Status
+status: "RESEARCH OUTPOST"
+population: "~150 (research personnel)"
+
+description: "Cold, barren world in the outer reaches of the Kepler-442 system. Used primarily for deep space research and as a staging point for outer system exploration."
+
+# Facilities
+surface_facilities: []
+
+orbital_stations: []
+
+ships_in_orbit:
+  - "Ship Gamma (research vessel)"

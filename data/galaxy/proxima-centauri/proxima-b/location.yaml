@@ -1,0 +1,39 @@
+# Proxima Centauri b
+# Tidally locked world in the habitable zone
+
+name: "Proxima b"
+type: "planet"
+parent_system: "proxima-centauri"
+orbital_position: 1
+
+# Physical properties
+mass: "1.27 Earth masses"
+radius: "1.1 Earth radii"
+gravity: "1.05 G"
+atmosphere: "Thin, breathable in pressurized zones"
+temperature_range: "-50°C (dark side) to 70°C (day side)"
+
+# Tidal locking
+tidally_locked: true
+terminator_zone: "Habitable band between permanent day and night"
+
+# Status
+status: "RESEARCH OUTPOST"
+population: "~2,200"
+established: "2175"
+
+description: "The closest potentially habitable exoplanet to Earth. Tidally locked to Proxima Centauri, one side faces perpetual scorching daylight while the other freezes in eternal darkness. Human habitation is concentrated in the terminator zone - the twilight band between the two extremes."
+
+# Facilities
+surface_facilities:
+  - "Twilight Research Station (terminator zone)"
+  - "Darkside Observatory"
+
+orbital_stations:
+  - "Proxima Gateway Station"
+
+# Challenges
+hazards:
+  - "Stellar flares from Proxima Centauri"
+  - "Extreme temperature gradients"
+  - "High radiation levels"

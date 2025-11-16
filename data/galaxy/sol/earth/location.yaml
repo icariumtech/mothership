@@ -1,0 +1,31 @@
+# Earth
+# Homeworld of humanity
+
+name: "Earth"
+type: "planet"
+parent_system: "sol"
+orbital_position: 3
+
+# Physical properties
+mass: "5.972 × 10^24 kg"
+radius: "6,371 km"
+gravity: "1.0 G"
+atmosphere: "Nitrogen-Oxygen (breathable)"
+temperature_range: "-88°C to 58°C"
+
+# Status
+status: "INHABITED"
+population: "8.2 billion (2183 estimate)"
+government: "United Earth Government"
+
+description: "The cradle of human civilization. Despite extensive colonization of the solar system and beyond, Earth remains the political and cultural center of humanity."
+
+# Facilities on Earth
+surface_facilities:
+  - "USCSS Morrigan (landed at Edwards AFB)"
+  - "Research Base Alpha (classified location)"
+  - "Cape Canaveral Spaceport"
+
+orbital_stations:
+  - "Gateway Station"
+  - "Earth Defense Grid Array"

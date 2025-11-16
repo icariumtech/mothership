@@ -1,0 +1,30 @@
+# Proxima Centauri System
+# Nearest star system to Sol
+
+name: "Proxima Centauri"
+type: "system"
+star_type: "M-type red dwarf (M5.5Ve)"
+star_name: "Proxima Centauri"
+mass: "0.12 solar masses"
+age: "4.85 billion years"
+
+# Position
+distance_from_sol: "4.24 light years"
+galactic_coordinates: [10, -5, 3]
+
+# Status
+status: "FRONTIER RESEARCH"
+established: "2175"
+population: "~2,500 (system-wide)"
+
+description: "The closest star system to Sol. Despite its proximity, Proxima Centauri's dim red dwarf nature makes its planets challenging for colonization. The system hosts important research facilities studying extremophile life and red dwarf habitability."
+
+# Notable features
+planets:
+  - "Proxima b (habitable zone)"
+  - "Proxima c (outer system)"
+
+research_focus:
+  - "Extremophile biology"
+  - "Tidally locked planet habitability"
+  - "Red dwarf stellar activity"

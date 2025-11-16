@@ -1,0 +1,24 @@
+name: "Epsilon Eridani"
+type: "system"
+star_type: "K-type main-sequence (K2V)"
+mass: "0.82 solar masses"
+age: "~800 million years"
+
+distance_from_sol: "10.5 light years"
+galactic_coordinates: [5, -8, -4]
+
+status: "INDUSTRIAL/MINING"
+established: "2176"
+population: "~8,500"
+
+description: "A young star system with extensive asteroid belts and gas giants. Primary economic activity is asteroid mining and helium-3 extraction from gas giants. No habitable planets, but rich in resources."
+
+bodies:
+  - "Extensive inner and outer asteroid belts"
+  - "Epsilon Eridani b (gas giant)"
+  - "Epsilon Eridani c (gas giant)"
+
+economy:
+  - "Asteroid mining"
+  - "Helium-3 extraction"
+  - "Rare minerals"

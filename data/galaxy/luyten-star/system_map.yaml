@@ -1,0 +1,34 @@
+star:
+  name: "Luyten's Star"
+  type: "M3.5V red dwarf"
+  color: 0xFF6644
+  size: 3.2
+  corona_intensity: 0.45
+  light_color: 0xFF8866
+
+camera:
+  position: [0, 0, 100]
+  lookAt: [0, 0, 0]
+  fov: 75
+
+bodies:
+  - name: "Luyten b"
+    type: "planet"
+    location_slug: "luyten-b"
+    orbital_radius: 16
+    orbital_period: 18.6
+    orbital_angle: 145
+    size: 1.5
+    color: 0x6495ED
+    atmosphere_color: 0xB0C4DE
+    atmosphere_intensity: 0.35
+    clickable: true
+    has_orbit_map: true
+    info:
+      description: "Established colony world with multiple orbital facilities"
+      population: "~45,000"
+
+orbits:
+  show: true
+  color: 0x665544
+  opacity: 0.25

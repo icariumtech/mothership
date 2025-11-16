@@ -1,0 +1,23 @@
+name: "Luyten b"
+type: "planet"
+parent_system: "luyten-star"
+
+mass: "2.89 Earth masses"
+radius: "1.5 Earth radii"
+gravity: "1.28 G"
+atmosphere: "Nitrogen-Oxygen (breathable)"
+temperature_range: "2°C to 28°C"
+
+status: "ESTABLISHED COLONY"
+population: "~45,000"
+established: "2170"
+
+description: "A cool, stable world that has developed into a well-established colony and regional hub. Multiple orbital stations provide services to passing ships and neighboring systems."
+
+surface_facilities:
+  - "Haven City (main settlement)"
+
+orbital_stations:
+  - "Trade Station One"
+  - "Defense Platform Aegis"
+  - "Medical Station Hope"

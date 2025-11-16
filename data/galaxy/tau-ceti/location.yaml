@@ -1,0 +1,26 @@
+name: "Tau Ceti"
+type: "system"
+star_type: "G-type main-sequence (G8V)"
+star_name: "Tau Ceti"
+mass: "0.78 solar masses"
+age: "5.8 billion years"
+
+distance_from_sol: "11.9 light years"
+galactic_coordinates: [-8, 15, 2]
+
+status: "MAJOR COLONY"
+established: "2168"
+population: "~185,000 (system-wide)"
+
+description: "One of the most successful colonial systems, Tau Ceti hosts multiple habitable worlds and serves as a major hub for the outer colonies. Its sun-like star and multiple Earth-like planets made it an early colonization target."
+
+planets:
+  - "Tau Ceti e (primary colony)"
+  - "Tau Ceti f (secondary colony)"
+  - "Tau Ceti g (gas giant with moons)"
+  - "Tau Ceti h (ice giant)"
+
+economy:
+  - "Agricultural exports"
+  - "Ship construction"
+  - "Colonial administration"

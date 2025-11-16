@@ -1,0 +1,22 @@
+name: "Luyten's Star"
+type: "system"
+star_type: "M-type red dwarf (M3.5V)"
+mass: "0.26 solar masses"
+age: "~7 billion years"
+
+distance_from_sol: "12.39 light years"
+galactic_coordinates: [-5, 18, -3]
+
+status: "ESTABLISHED COLONY"
+established: "2170"
+population: "~45,000"
+
+description: "An old, stable red dwarf system with one habitable world. Known for its well-established colonial infrastructure and multiple orbital facilities serving as a regional hub."
+
+planets:
+  - "Luyten b (colony world)"
+
+economy:
+  - "Regional trade hub"
+  - "Ship servicing and repair"
+  - "Administrative services"

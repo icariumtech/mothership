@@ -1,0 +1,15 @@
+name: "New Terra City"
+type: "base"
+parent_body: "tau-ceti-e"
+coordinates: "23.5°N 45.2°E"
+status: "OPERATIONAL"
+population: 125000
+established: "2168"
+
+description: "Capital city of Tau Ceti e and administrative center for the entire Tau Ceti colonial system. A thriving metropolis built to accommodate the planet's higher gravity."
+
+functions:
+  - "Colonial government headquarters"
+  - "Major spaceport"
+  - "Industrial manufacturing"
+  - "Cultural center"

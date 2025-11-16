@@ -15,19 +15,21 @@ class DataLoader:
 
     def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
-        self.locations_dir = self.data_dir / "locations"
+        self.galaxy_dir = self.data_dir / "galaxy"
+        # Systems are directly under galaxy/ (no intermediate dirs)
+        self.systems_dir = self.galaxy_dir
 
     def load_all_locations(self) -> List[Dict[str, Any]]:
         """Load all locations from the data directory, building hierarchy from nested dirs."""
         locations = []
 
-        if not self.locations_dir.exists():
+        if not self.systems_dir.exists():
             return locations
 
-        # Load all root-level locations (recursively loads children)
-        for location_dir in self.locations_dir.iterdir():
-            if location_dir.is_dir():
-                location_data = self.load_location_recursive(location_dir)
+        # Load all systems (solar systems are top level)
+        for system_dir in self.systems_dir.iterdir():
+            if system_dir.is_dir() and system_dir.name != '__pycache__':
+                location_data = self.load_location_recursive(system_dir)
                 if location_data:
                     locations.append(location_data)
 
@@ -247,6 +249,102 @@ class DataLoader:
                 pass
 
         return message_data
+
+    def find_location_by_slug(self, slug: str, locations: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Find a location by slug anywhere in the hierarchy.
+        Searches recursively through all locations and their children.
+        """
+        if locations is None:
+            locations = self.load_all_locations()
+
+        for location in locations:
+            if location['slug'] == slug:
+                return location
+
+            # Search children recursively
+            if location.get('children'):
+                found = self.find_location_by_slug(slug, location['children'])
+                if found:
+                    return found
+
+        return None
+
+    def get_location_path(self, slug: str, locations: List[Dict[str, Any]] = None, path: List[str] = None) -> List[str]:
+        """
+        Get the full hierarchical path to a location as a list of slugs.
+        Returns: ['sol', 'earth', 'research_base_alpha'] for a base on Earth in Sol system.
+        """
+        if locations is None:
+            locations = self.load_all_locations()
+        if path is None:
+            path = []
+
+        for location in locations:
+            current_path = path + [location['slug']]
+
+            if location['slug'] == slug:
+                return current_path
+
+            # Search children recursively
+            if location.get('children'):
+                found_path = self.get_location_path(slug, location['children'], current_path)
+                if found_path:
+                    return found_path
+
+        return None
+
+    def get_location_by_path(self, path_slugs: List[str]) -> Dict[str, Any]:
+        """
+        Get a location by following a path of slugs.
+        Example: ['sol', 'earth', 'research_base_alpha'] -> location data for Research Base Alpha
+        """
+        if not path_slugs:
+            return None
+
+        # Start at systems level (universe dir)
+        location_dir = self.systems_dir
+
+        # Navigate through the path
+        for slug in path_slugs:
+            location_dir = location_dir / slug
+            if not location_dir.exists():
+                return None
+
+        # Load the final location
+        return self.load_location_recursive(location_dir)
+
+    def load_star_map(self) -> Dict[str, Any]:
+        """Load the star map visualization data (galaxy-level view)."""
+        star_map_file = self.galaxy_dir / "star_map.yaml"
+
+        if not star_map_file.exists():
+            return {}
+
+        with open(star_map_file, 'r') as f:
+            star_map_data = yaml.safe_load(f)
+
+        return star_map_data
+
+    def load_system_map(self, system_slug: str) -> Dict[str, Any]:
+        """Load solar system visualization for a star system."""
+        system_map_file = self.systems_dir / system_slug / "system_map.yaml"
+
+        if not system_map_file.exists():
+            return None
+
+        with open(system_map_file, 'r') as f:
+            return yaml.safe_load(f)
+
+    def load_orbit_map(self, system_slug: str, body_slug: str) -> Dict[str, Any]:
+        """Load orbital visualization for a planet/body."""
+        orbit_map_file = self.systems_dir / system_slug / body_slug / "orbit_map.yaml"
+
+        if not orbit_map_file.exists():
+            return None
+
+        with open(orbit_map_file, 'r') as f:
+            return yaml.safe_load(f)
 
 
 def group_messages_by_conversation(messages: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:

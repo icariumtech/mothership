@@ -1,0 +1,24 @@
+name: "Tau Ceti e"
+type: "planet"
+parent_system: "tau-ceti"
+orbital_position: 4
+
+mass: "3.6 Earth masses"
+radius: "1.6 Earth radii"
+gravity: "1.4 G"
+atmosphere: "Nitrogen-Oxygen (breathable)"
+temperature_range: "5°C to 35°C"
+
+status: "MAJOR COLONY"
+population: "~165,000"
+established: "2168"
+
+description: "The jewel of the Tau Ceti system. A super-Earth with a breathable atmosphere, stable climate, and abundant water. Despite higher gravity, it has become one of humanity's most successful extra-solar colonies."
+
+surface_facilities:
+  - "New Terra City (capital)"
+  - "Agricultural zones"
+  - "Spaceports"
+
+orbital_stations:
+  - "Orbital Construction Yards"

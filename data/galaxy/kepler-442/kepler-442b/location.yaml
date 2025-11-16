@@ -1,0 +1,30 @@
+# Kepler-442b
+# Primary habitable planet in the Kepler-442 system
+
+name: "Kepler-442b"
+type: "planet"
+parent_system: "kepler-442"
+orbital_position: 1
+
+# Physical properties
+mass: "1.3 Earth masses"
+radius: "1.34 Earth radii"
+gravity: "1.2 G"
+atmosphere: "Nitrogen-Oxygen mix (breathable with mild adaptation)"
+temperature_range: "-20°C to 35°C"
+
+# Status
+status: "COLONIAL SETTLEMENT"
+population: "~45,000"
+established: "2165"
+
+description: "Super-Earth in the habitable zone of Kepler-442. The first major colonial settlement outside of the Sol system's inner planets. Rocky terrain with extensive underground cave systems."
+
+# Facilities
+surface_facilities:
+  - "Base Alpha (primary settlement)"
+  - "Base Beta (mining outpost)"
+  - "Colonial Administration Complex"
+
+orbital_stations:
+  - "Research Station Prometheus"

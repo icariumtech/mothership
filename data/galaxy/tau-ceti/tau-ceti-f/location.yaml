@@ -1,0 +1,21 @@
+name: "Tau Ceti f"
+type: "planet"
+parent_system: "tau-ceti"
+orbital_position: 5
+
+mass: "3.9 Earth masses"
+radius: "1.7 Earth radii"
+gravity: "1.35 G"
+atmosphere: "Nitrogen-Oxygen, high humidity"
+temperature_range: "18°C to 42°C"
+
+status: "GROWING COLONY"
+population: "~18,000"
+established: "2172"
+
+description: "A hot, humid world covered in dense vegetation and shallow seas. Less developed than Tau Ceti e but shows great promise for agricultural development."
+
+surface_facilities:
+  - "Verdant Base (main settlement)"
+
+orbital_stations: []

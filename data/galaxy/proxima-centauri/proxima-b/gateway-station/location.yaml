@@ -1,0 +1,16 @@
+name: "Proxima Gateway Station"
+type: "station"
+parent_body: "proxima-b"
+orbital_altitude: "450 km"
+status: "OPERATIONAL"
+crew_capacity: 80
+current_population: 68
+established: "2174"
+
+description: "Orbital station serving as the primary gateway to Proxima b. Provides radiation shielding, cargo transfer, and emergency evacuation capabilities during stellar flare events."
+
+functions:
+  - "Cargo transfer and customs"
+  - "Flare early warning system"
+  - "Emergency evacuation shelter"
+  - "Ship repair and refueling"

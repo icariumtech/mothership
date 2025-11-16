@@ -1,0 +1,9 @@
+name: "Haven City"
+type: "base"
+parent_body: "luyten-b"
+coordinates: "12°S 87°E"
+status: "OPERATIONAL"
+population: 38000
+established: "2170"
+
+description: "Main settlement on Luyten b. A well-planned city serving as a regional administrative and commercial center for the outer colonies."

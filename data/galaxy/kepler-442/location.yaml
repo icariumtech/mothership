@@ -1,0 +1,30 @@
+# Kepler-442 System
+# Remote colony system
+
+name: "Kepler-442"
+type: "system"
+star_type: "K-type main-sequence (K5V)"
+star_name: "Kepler-442"
+mass: "0.61 solar masses"
+age: "2.9 billion years"
+
+# Position in the galaxy
+galactic_coordinates: [25, -15, 10]
+distance_from_sol: "1,206 light years"
+
+# Status
+status: "FRONTIER COLONY"
+description: "Remote star system with habitable planets, site of several research outposts and colonial facilities"
+
+# Notable bodies
+planets:
+  - "Kepler-442b (habitable zone)"
+  - "Kepler-442c"
+
+stations:
+  - "Research Station Prometheus (in orbit of Kepler-442b)"
+
+# Colonization
+colonial_status: "Active"
+established: "2165"
+population: "~50,000 (system-wide)"

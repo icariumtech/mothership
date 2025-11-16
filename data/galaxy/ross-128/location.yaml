@@ -1,0 +1,21 @@
+name: "Ross 128"
+type: "system"
+star_type: "M-type red dwarf (M4V)"
+mass: "0.17 solar masses"
+age: "~5 billion years"
+
+distance_from_sol: "10.94 light years"
+galactic_coordinates: [8, -10, 5]
+
+status: "MINING OPERATIONS"
+established: "2177"
+population: "~1,800"
+
+description: "Small red dwarf system with a close-orbiting rocky planet. Primarily used for heavy metal mining operations. The planet's proximity to its star results in tidal locking and extreme radiation exposure."
+
+planets:
+  - "Ross 128 b (tidally locked miner)"
+
+economy:
+  - "Rare earth mining"
+  - "Heavy metals extraction"

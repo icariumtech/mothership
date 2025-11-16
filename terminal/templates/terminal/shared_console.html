@@ -33,7 +33,7 @@
         }
 
         body {
-            background-color: #2b2b2b; /* Charcoal background matching logo */
+            background-color: #000000; /* Black to match star map canvas */
             color: var(--color-text-primary);
             font-family: 'Cascadia Code', 'Courier New', monospace;
             overflow: hidden;
@@ -190,10 +190,10 @@
         .campaign-dashboard {
             width: 100vw;
             height: 100vh;
-            background-color: #2b2b2b; /* Charcoal background like STANDBY */
+            background-color: transparent; /* Transparent to show star map */
             display: grid;
-            grid-template-columns: 250px 1fr 250px;
-            grid-template-rows: 80px 1fr 120px;
+            grid-template-columns: 275px 1fr 275px;
+            grid-template-rows: 52px 1fr 120px;
             grid-template-areas:
                 "top-left top-center top-right"
                 "left center right"
@@ -201,9 +201,11 @@
             gap: 30px;
         }
 
-        /* Top Panel - spans full width */
+        /* Top Panel - centered 1/4 width */
         .dashboard-top {
-            grid-area: top-left / top-left / top-right / span 3;
+            grid-area: top-center;
+            width: 25vw;
+            justify-self: center;
             background-color: var(--color-bg-panel);
             position: relative;
             display: flex;
@@ -369,93 +371,6 @@
                 var(--color-border-main) calc(50% + 2px),
                 transparent calc(50% + 2px)
             );
-        }
-
-        /* Center Panel */
-        .dashboard-center {
-            grid-area: center;
-            background-color: var(--color-bg-primary);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            padding: 20px;
-
-            /* Chamfer all four corners */
-            clip-path: polygon(
-                12px 0, calc(100% - 12px) 0,
-                100% 12px, 100% calc(100% - 12px),
-                calc(100% - 12px) 100%, 12px 100%,
-                0 calc(100% - 12px), 0 12px
-            );
-
-            box-shadow:
-                inset 0 2px 0 0 var(--color-border-main),
-                inset -2px 0 0 0 var(--color-border-main),
-                inset 0 -2px 0 0 var(--color-border-main),
-                inset 2px 0 0 0 var(--color-border-main);
-        }
-
-        /* All four corner diagonals for center */
-        .dashboard-center::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom right,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-            z-index: 1;
-        }
-
-        .dashboard-center::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom right,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-            z-index: 1;
-        }
-
-        /* Additional pseudo-elements for top-right and bottom-left corners */
-        .dashboard-center-corner-tr,
-        .dashboard-center-corner-bl {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: linear-gradient(
-                to bottom left,
-                transparent calc(50% - 2px),
-                var(--color-border-main) calc(50% - 2px),
-                var(--color-border-main) calc(50% + 2px),
-                transparent calc(50% + 2px)
-            );
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .dashboard-center-corner-tr {
-            top: 0;
-            right: 0;
-        }
-
-        .dashboard-center-corner-bl {
-            bottom: 0;
-            left: 0;
         }
 
         /* Bottom Panel - spans full width */
@@ -680,9 +595,39 @@
             bottom: 0;
             right: 0;
         }
+
+        /* 3D Star Map Background */
+        #starmap-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;  /* Background layer */
+            background-color: #000000;
+        }
+
+        /* Ensure all view content is above the star map */
+        .standby-view,
+        .campaign-dashboard,
+        .map-container,
+        .terminal-view {
+            position: relative;
+            z-index: 10;
+        }
+
+        .scanline-overlay {
+            z-index: 100;  /* Scanlines on top of everything */
+        }
     </style>
+
+    <!-- Three.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
+    <!-- 3D Star Map Background Canvas -->
+    <canvas id="starmap-canvas"></canvas>
+
     <!-- Scanline overlay covers entire screen -->
     <div class="scanline-overlay"></div>
 
@@ -932,23 +877,6 @@
             </div>
         </div>
 
-        <!-- Center Panel - Main Content -->
-        <div class="dashboard-center">
-            <!-- Need two extra corner divs for top-right and bottom-left -->
-            <div class="dashboard-center-corner-tr"></div>
-            <div class="dashboard-center-corner-bl"></div>
-
-            <h2 style="color: var(--color-teal); font-size: 16px; letter-spacing: 2px; margin-bottom: 20px;">MISSION BRIEFING</h2>
-            <p style="margin-bottom: 15px;">&gt; SYSTEM: Kepler-442</p>
-            <p style="margin-bottom: 15px;">&gt; LOCATION: Research Station Prometheus</p>
-            <p style="margin-bottom: 15px;">&gt; STATUS: Critical Alert</p>
-            <p style="margin-bottom: 20px;">&gt; PRIORITY: HIGH</p>
-
-            <p style="margin-bottom: 15px;">All communications from Research Station Prometheus ceased 72 hours ago. Last transmission indicated containment breach in xenobiology lab. Your crew has been dispatched to investigate and secure any survivors.</p>
-
-            <p style="margin-top: 20px; color: var(--color-amber);">&gt; WARNING: Approach with extreme caution</p>
-        </div>
-
         <!-- Right Panel - MISSIONS -->
         <div class="dashboard-right">
             <div class="dashboard-panel-header">
@@ -1058,6 +986,658 @@
 
         // Poll every 2 seconds
         setInterval(checkForViewChanges, 2000);
+    })();
+    </script>
+
+    <!-- 3D Star Map Initialization -->
+    <script>
+    (function() {
+        // Get the canvas
+        const canvas = document.getElementById('starmap-canvas');
+        if (!canvas) return;
+
+        // Create scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        // Array to store stars for animation
+        const stars = [];
+
+        // Create camera
+        const camera = new THREE.PerspectiveCamera(
+            75,  // FOV
+            window.innerWidth / window.innerHeight,  // Aspect ratio
+            0.1,  // Near plane
+            1000  // Far plane
+        );
+        camera.position.set(0, 0, 100);
+        camera.lookAt(0, 0, 0);
+
+        // Create renderer
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0x222244, 0.3);
+        scene.add(ambientLight);
+
+        // Create a simple starburst texture (like in the reference image)
+        function createStarTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const centerX = 64;
+            const centerY = 64;
+
+            // Draw bright center core with glow
+            const coreGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 25);
+            coreGradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+            coreGradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+            coreGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+            coreGradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+            ctx.fillStyle = coreGradient;
+            ctx.fillRect(0, 0, 128, 128);
+
+            // Draw simple 4-point cross
+            ctx.globalCompositeOperation = 'lighter';
+            drawSpike(ctx, centerX, centerY, 0, 50, 3);      // North
+            drawSpike(ctx, centerX, centerY, 90, 50, 3);     // East
+            drawSpike(ctx, centerX, centerY, 180, 50, 3);    // South
+            drawSpike(ctx, centerX, centerY, 270, 50, 3);    // West
+
+            // Apply blur for soft glow
+            ctx.filter = 'blur(2px)';
+            ctx.drawImage(canvas, 0, 0);
+            ctx.filter = 'none';
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Helper function to draw a spike/ray
+        function drawSpike(ctx, x, y, angle, length, width) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate((angle * Math.PI) / 180);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, length);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-width, length);
+            ctx.lineTo(width, length);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // Create the star texture once for reuse
+        const starTexture = createStarTexture();
+
+        // Create background star field using sprites (same texture as main stars)
+        const starFieldCount = 5000;  // Number of background stars
+        const backgroundStars = [];
+
+        for (let i = 0; i < starFieldCount; i++) {
+            // Random position in a large sphere
+            const radius = 150 + Math.random() * 300;  // Distance from center
+            const theta = Math.random() * Math.PI * 2;  // Horizontal angle
+            const phi = Math.acos(2 * Math.random() - 1);  // Vertical angle (uniform distribution)
+
+            const position = new THREE.Vector3(
+                radius * Math.sin(phi) * Math.cos(theta),
+                radius * Math.sin(phi) * Math.sin(theta),
+                radius * Math.cos(phi)
+            );
+
+            // Create sprite with starburst texture
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: starTexture,
+                color: 0xFFFFFF,
+                transparent: true,
+                opacity: 0.4 + Math.random() * 0.4,  // Random opacity 0.4-0.8
+                blending: THREE.AdditiveBlending
+            });
+
+            const sprite = new THREE.Sprite(spriteMaterial);
+
+            // Random size variation (smaller than main stars)
+            const size = 0.5 + Math.random() * 1.5;  // Size 0.5 to 2.0
+            sprite.scale.set(size, size, 1);
+            sprite.position.copy(position);
+
+            // Random rotation for variety
+            sprite.material.rotation = Math.random() * Math.PI * 2;
+
+            // Store for potential animation
+            sprite.userData.baseOpacity = sprite.material.opacity;
+            sprite.userData.pulseOffset = Math.random() * Math.PI * 2;
+
+            scene.add(sprite);
+            backgroundStars.push(sprite);
+        }
+
+        function createStar(size, position) {
+            // Just use a sprite - no sphere core
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: starTexture,
+                color: 0xFFFFFF,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending
+            });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(size * 6, size * 6, 1);
+            sprite.position.copy(position);
+
+            // Random rotation for variety
+            sprite.material.rotation = Math.random() * Math.PI * 2;
+
+            // Store sprite reference for animation
+            sprite.userData.baseOpacity = 0.9;
+            sprite.userData.pulseOffset = Math.random() * Math.PI * 2;
+
+            return sprite;
+        }
+
+        // Load star map data and create stars
+        fetch('/api/star-map/')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Star map data loaded:', data);
+
+                // Create stars from data
+                if (data.systems) {
+                    data.systems.forEach(system => {
+                        const position = new THREE.Vector3(
+                            system.position[0],
+                            system.position[1],
+                            system.position[2]
+                        );
+
+                        const star = createStar(system.size || 1, position);
+
+                        star.userData = {
+                            name: system.name,
+                            type: system.type
+                        };
+
+                        scene.add(star);
+
+                        // Store star for animation
+                        stars.push(star);
+
+                        // Add point light at star position for subtle illumination
+                        const starLight = new THREE.PointLight(0xFFFFFF, 0.3, 40);  // Pure white
+                        starLight.position.copy(position);
+                        scene.add(starLight);
+                    });
+
+                    console.log(`Loaded ${stars.length} stars for pulsing animation`);
+                }
+
+                // Create connection routes
+                if (data.routes) {
+                    const systemPositions = {};
+                    data.systems.forEach(sys => {
+                        systemPositions[sys.name] = sys.position;
+                    });
+
+                    data.routes.forEach(route => {
+                        const fromPos = systemPositions[route.from];
+                        const toPos = systemPositions[route.to];
+
+                        if (fromPos && toPos) {
+                            // Create start and end points
+                            const start = new THREE.Vector3(fromPos[0], fromPos[1], fromPos[2]);
+                            const end = new THREE.Vector3(toPos[0], toPos[1], toPos[2]);
+
+                            // Calculate direction and distance
+                            const direction = end.clone().sub(start);
+                            const distance = direction.length();
+                            direction.normalize();
+
+                            // Shorten the line on both ends so it doesn't reach star centers
+                            // Move start point away from star by 8 units
+                            // Move end point away from star by 8 units
+                            const offset = 8;
+                            const shortenedStart = start.clone().add(direction.clone().multiplyScalar(offset));
+                            const shortenedEnd = end.clone().sub(direction.clone().multiplyScalar(offset));
+
+                            // Only create route if there's enough distance after shortening
+                            if (distance > offset * 2) {
+                                // Create a curve from start to end (full length for gradient)
+                                const curve = new THREE.LineCurve3(start, end);
+
+                                // Create tube geometry with more segments for smooth fade
+                                const segments = 64;  // More segments for smooth gradient
+                                const tubeGeometry = new THREE.TubeGeometry(
+                                    curve,
+                                    segments,  // Segments along the length
+                                    0.3,       // Tube radius (thickness)
+                                    8,         // Radial segments (smoothness)
+                                    false      // Not closed
+                                );
+
+                                // Add vertex alpha values for fade effect
+                                const positions = tubeGeometry.attributes.position;
+                                const alphas = [];
+                                const fadeDistance = 15;  // Distance over which to fade (in units)
+
+                                // Calculate alpha for each vertex
+                                for (let i = 0; i < positions.count; i++) {
+                                    const vertex = new THREE.Vector3(
+                                        positions.getX(i),
+                                        positions.getY(i),
+                                        positions.getZ(i)
+                                    );
+
+                                    // Calculate distance from both ends
+                                    const distFromStart = vertex.distanceTo(start);
+                                    const distFromEnd = vertex.distanceTo(end);
+
+                                    // Calculate alpha from both ends (handles overlapping fades)
+                                    let alphaFromStart = 1.0;
+                                    let alphaFromEnd = 1.0;
+
+                                    if (distFromStart < fadeDistance) {
+                                        alphaFromStart = distFromStart / fadeDistance;
+                                    }
+                                    if (distFromEnd < fadeDistance) {
+                                        alphaFromEnd = distFromEnd / fadeDistance;
+                                    }
+
+                                    // Use the minimum (most transparent) alpha
+                                    const alpha = Math.min(alphaFromStart, alphaFromEnd);
+
+                                    alphas.push(alpha);
+                                }
+
+                                tubeGeometry.setAttribute('alpha', new THREE.Float32BufferAttribute(alphas, 1));
+
+                                // Custom shader material for vertex alpha
+                                const material = new THREE.ShaderMaterial({
+                                    uniforms: {
+                                        color: { value: new THREE.Color(route.color || 0x5a7a9a) }
+                                    },
+                                    vertexShader: `
+                                        attribute float alpha;
+                                        varying float vAlpha;
+                                        void main() {
+                                            vAlpha = alpha;
+                                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                                        }
+                                    `,
+                                    fragmentShader: `
+                                        uniform vec3 color;
+                                        varying float vAlpha;
+                                        void main() {
+                                            gl_FragColor = vec4(color, vAlpha);
+                                        }
+                                    `,
+                                    transparent: true,
+                                    depthWrite: false
+                                });
+
+                                const tube = new THREE.Mesh(tubeGeometry, material);
+                                scene.add(tube);
+                            }
+                        }
+                    });
+                }
+
+                // Create nebulae clouds
+                if (data.nebulae) {
+                    // Create soft cloud texture for nebula particles (diffuse, no bright center)
+                    function createNebulaTexture() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 64;
+                        canvas.height = 64;
+                        const ctx = canvas.getContext('2d');
+
+                        // Create soft gradient (visible but not too bright at center)
+                        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+                        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');    // Soft center
+                        gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');  // Mid region
+                        gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.1)');  // Fade
+                        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');    // Transparent edge
+
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 0, 64, 64);
+
+                        return new THREE.CanvasTexture(canvas);
+                    }
+
+                    const nebulaTexture = createNebulaTexture();
+                    const nebulaParticles = [];  // Store for animation
+
+                    data.nebulae.forEach(nebula => {
+                        const position = new THREE.Vector3(
+                            nebula.position[0],
+                            nebula.position[1],
+                            nebula.position[2]
+                        );
+
+                        // Create spherical shell of particles
+                        // Target radius for bright expansion front
+                        const targetRadius = nebula.size * 0.85;
+                        const shellThickness = nebula.size * 0.25;
+
+                        for (let i = 0; i < nebula.particle_count; i++) {
+                            // Random point on sphere using uniform distribution
+                            const theta = Math.random() * Math.PI * 2;  // Azimuth: 0 to 2π
+                            const phi = Math.acos(2 * Math.random() - 1);  // Elevation: 0 to π (uniform)
+
+                            // Distance from center (concentrated around target radius)
+                            const radiusOffset = (Math.random() - 0.5) * shellThickness;
+                            const radius = targetRadius + radiusOffset;
+
+                            // Convert spherical to Cartesian coordinates
+                            const x = radius * Math.sin(phi) * Math.cos(theta);
+                            const y = radius * Math.sin(phi) * Math.sin(theta);
+                            const z = radius * Math.cos(phi);
+
+                            const particlePos = new THREE.Vector3(
+                                position.x + x,
+                                position.y + y,
+                                position.z + z
+                            );
+
+                            // Particles closer to target radius are brighter (expansion front)
+                            const distanceFromFront = Math.abs(radiusOffset);
+                            const brightnessFactor = 1.0 - (distanceFromFront / (shellThickness / 2));
+                            const particleOpacity = nebula.opacity * Math.max(0.3, brightnessFactor) * (0.6 + Math.random() * 0.4);
+
+                            const spriteMaterial = new THREE.SpriteMaterial({
+                                map: nebulaTexture,
+                                color: nebula.color,
+                                transparent: true,
+                                opacity: particleOpacity,
+                                blending: THREE.AdditiveBlending,
+                                depthWrite: false
+                            });
+
+                            const sprite = new THREE.Sprite(spriteMaterial);
+
+                            // Vary particle size
+                            const size = (nebula.size / 5) * (0.5 + Math.random() * 0.8);
+                            sprite.scale.set(size, size, 1);
+                            sprite.position.copy(particlePos);
+
+                            // Store metadata for animation
+                            sprite.userData.nebulaType = nebula.type;
+                            sprite.userData.baseOpacity = particleOpacity;
+                            sprite.userData.pulseOffset = Math.random() * Math.PI * 2;
+
+                            scene.add(sprite);
+                            nebulaParticles.push(sprite);
+                        }
+                    });
+                }
+
+                console.log('Star map rendered');
+            })
+            .catch(error => {
+                console.error('Error loading star map:', error);
+            });
+
+        // Animation loop with star pulsing
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Pulse stars
+            const time = Date.now() * 0.001; // Time in seconds
+            stars.forEach(star => {
+                if (star.userData.sprite) {
+                    // Pulse between 0.4 and 1.0 opacity using sine wave (more dramatic)
+                    const pulseSpeed = 2.0; // Speed of pulsing (faster)
+                    const pulseAmount = 0.3; // How much to pulse (30% variation)
+                    const pulse = Math.sin(time * pulseSpeed + star.userData.pulseOffset) * pulseAmount;
+
+                    // Set opacity between 0.4 and 1.0
+                    const newOpacity = 0.7 + pulse;
+                    star.userData.sprite.material.opacity = Math.max(0.4, Math.min(1.0, newOpacity));
+                }
+            });
+
+            // Animate nebula particles based on type
+            if (typeof nebulaParticles !== 'undefined') {
+                nebulaParticles.forEach(particle => {
+                    const type = particle.userData.nebulaType;
+
+                    if (type === 'emission') {
+                        // Emission nebulae: Gentle pulsing (flickering ionized gas)
+                        const pulseSpeed = 0.5;  // Slow pulse
+                        const pulseAmount = 0.15;  // Subtle variation (15%)
+                        const pulse = Math.sin(time * pulseSpeed + particle.userData.pulseOffset) * pulseAmount;
+                        particle.material.opacity = particle.userData.baseOpacity * (1.0 + pulse);
+
+                    } else if (type === 'planetary') {
+                        // Planetary nebulae: Slow rotation around center
+                        const angle = time * particle.userData.rotationSpeed;
+                        const currentOffset = particle.position.clone().sub(particle.userData.nebulaCenter);
+                        const distance = currentOffset.length();
+
+                        // Rotate around Y-axis
+                        const rotatedX = currentOffset.x * Math.cos(angle * 0.1) - currentOffset.z * Math.sin(angle * 0.1);
+                        const rotatedZ = currentOffset.x * Math.sin(angle * 0.1) + currentOffset.z * Math.cos(angle * 0.1);
+
+                        particle.position.set(
+                            particle.userData.nebulaCenter.x + rotatedX,
+                            particle.userData.nebulaCenter.y + currentOffset.y,
+                            particle.userData.nebulaCenter.z + rotatedZ
+                        );
+
+                    } else if (type === 'reflection') {
+                        // Reflection nebulae: Very subtle shimmer
+                        const pulseSpeed = 0.3;
+                        const pulseAmount = 0.08;  // Very subtle (8%)
+                        const pulse = Math.sin(time * pulseSpeed + particle.userData.pulseOffset) * pulseAmount;
+                        particle.material.opacity = particle.userData.baseOpacity * (1.0 + pulse);
+                    }
+                    // Dark nebulae: No animation (static dust clouds)
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Track where camera is looking (center point for rotation)
+        const lookAtTarget = new THREE.Vector3(0, 0, 0);
+
+        // Simple mouse wheel zoom
+        let zoomSpeed = 5;      // Units to zoom per scroll
+        let minDistance = 20;   // Minimum distance from center
+        let maxDistance = 300;  // Maximum distance from center
+
+        window.addEventListener('wheel', (event) => {
+            event.preventDefault();
+
+            // Calculate direction from camera to target
+            const direction = lookAtTarget.clone().sub(camera.position).normalize();
+            const currentDistance = camera.position.distanceTo(lookAtTarget);
+
+            // Zoom in or out
+            if (event.deltaY < 0) {
+                // Zoom in
+                const newDistance = currentDistance - zoomSpeed;
+                if (newDistance >= minDistance) {
+                    camera.position.add(direction.multiplyScalar(zoomSpeed));
+                }
+            } else {
+                // Zoom out
+                const newDistance = currentDistance + zoomSpeed;
+                if (newDistance <= maxDistance) {
+                    camera.position.add(direction.multiplyScalar(-zoomSpeed));
+                }
+            }
+        }, { passive: false });
+
+        // Touch pinch zoom (for mobile/tablet)
+        let lastTouchDistance = 0;
+
+        canvas.addEventListener('touchstart', (event) => {
+            if (event.touches.length === 2) {
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                lastTouchDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+            }
+        });
+
+        canvas.addEventListener('touchmove', (event) => {
+            if (event.touches.length === 2) {
+                event.preventDefault();
+
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                const distance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+
+                const delta = lastTouchDistance - distance;
+                lastTouchDistance = distance;
+
+                // Apply zoom
+                if (delta > 0) {
+                    // Pinch in (zoom out)
+                    camera.position.z = Math.min(camera.position.z + zoomSpeed * 0.5, maxZoom);
+                } else if (delta < 0) {
+                    // Pinch out (zoom in)
+                    camera.position.z = Math.max(camera.position.z - zoomSpeed * 0.5, minZoom);
+                }
+            }
+        }, { passive: false });
+
+        // Mouse and touch rotation controls
+        let isDragging = false;
+        let previousPosition = { x: 0, y: 0 };
+        let rotateSpeed = 0.005;
+
+        // Mouse rotation
+        window.addEventListener('mousedown', (event) => {
+            if (event.button === 0) {  // Left click only
+                isDragging = true;
+                previousPosition = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
+            }
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (!isDragging) return;
+
+            const deltaX = event.clientX - previousPosition.x;
+            const deltaY = event.clientY - previousPosition.y;
+
+            // Rotate camera around center
+            const offset = camera.position.clone().sub(lookAtTarget);
+            const radius = offset.length();
+
+            // Convert to spherical coordinates
+            let theta = Math.atan2(offset.x, offset.z);
+            let phi = Math.acos(offset.y / radius);
+
+            // Update angles
+            theta -= deltaX * rotateSpeed;
+            phi -= deltaY * rotateSpeed;
+
+            // Clamp phi to prevent flipping
+            phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+            // Convert back to cartesian
+            offset.x = radius * Math.sin(phi) * Math.sin(theta);
+            offset.y = radius * Math.cos(phi);
+            offset.z = radius * Math.sin(phi) * Math.cos(theta);
+
+            camera.position.copy(lookAtTarget).add(offset);
+            camera.lookAt(lookAtTarget);
+
+            previousPosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        window.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        // Touch rotation (single finger drag)
+        let isTouching = false;
+
+        canvas.addEventListener('touchstart', (event) => {
+            if (event.touches.length === 1) {
+                isTouching = true;
+                previousPosition = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+            }
+        });
+
+        canvas.addEventListener('touchmove', (event) => {
+            if (isTouching && event.touches.length === 1) {
+                event.preventDefault();
+
+                const touch = event.touches[0];
+                const deltaX = touch.clientX - previousPosition.x;
+                const deltaY = touch.clientY - previousPosition.y;
+
+                // Same rotation logic as mouse
+                const offset = camera.position.clone().sub(lookAtTarget);
+                const radius = offset.length();
+
+                let theta = Math.atan2(offset.x, offset.z);
+                let phi = Math.acos(offset.y / radius);
+
+                theta -= deltaX * rotateSpeed;
+                phi -= deltaY * rotateSpeed;
+
+                phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+                offset.x = radius * Math.sin(phi) * Math.sin(theta);
+                offset.y = radius * Math.cos(phi);
+                offset.z = radius * Math.sin(phi) * Math.cos(theta);
+
+                camera.position.copy(lookAtTarget).add(offset);
+                camera.lookAt(lookAtTarget);
+
+                previousPosition = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            isTouching = false;
+        });
     })();
     </script>
 </body>

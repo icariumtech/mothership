@@ -1,0 +1,18 @@
+name: "Darkside Mining Complex"
+type: "base"
+parent_body: "ross-128-b"
+coordinates: "Dark Side Hemisphere"
+status: "OPERATIONAL"
+crew_capacity: 2000
+current_population: 1780
+established: "2177"
+
+description: "Large-scale mining operation located on the perpetually dark hemisphere of Ross 128 b. Extracts valuable heavy metals and rare earth elements from deep underground deposits."
+
+facilities:
+  - "Deep shaft mines"
+  - "Ore processing plants"
+  - "Worker habitation modules"
+  - "Automated excavation systems"
+
+hazard_rating: "HIGH"

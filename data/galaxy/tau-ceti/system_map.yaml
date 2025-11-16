@@ -1,0 +1,96 @@
+star:
+  name: "Tau Ceti"
+  type: "G8V main-sequence"
+  color: 0xFFFFBB
+  size: 4.5
+  corona_intensity: 0.7
+  light_color: 0xFFF8DC
+
+camera:
+  position: [0, 0, 180]
+  lookAt: [0, 0, 0]
+  fov: 75
+  zoom_limits: [60, 300]
+
+time:
+  current_day: 2183.165
+  speed_multiplier: 1.0
+
+bodies:
+  # Inner rocky planets (not habitable)
+  - name: "Tau Ceti b"
+    type: "planet"
+    orbital_radius: 18
+    orbital_period: 14
+    orbital_angle: 45
+    size: 1.0
+    color: 0x9B7653
+    clickable: false
+    info:
+      description: "Hot rocky planet, too close to star"
+
+  - name: "Tau Ceti c"
+    type: "planet"
+    orbital_radius: 28
+    orbital_period: 35
+    orbital_angle: 120
+    size: 1.2
+    color: 0xAA8866
+    clickable: false
+
+  # HABITABLE ZONE
+  - name: "Tau Ceti e"
+    type: "planet"
+    location_slug: "tau-ceti-e"
+    orbital_radius: 50
+    orbital_period: 168
+    orbital_angle: 200
+    size: 1.6
+    color: 0x4682B4
+    atmosphere_color: 0x87CEEB
+    atmosphere_intensity: 0.4
+    clickable: true
+    has_orbit_map: true
+    info:
+      description: "Primary colony world - Earth-like"
+      population: "~165,000"
+
+  - name: "Tau Ceti f"
+    type: "planet"
+    location_slug: "tau-ceti-f"
+    orbital_radius: 70
+    orbital_period: 274
+    orbital_angle: 310
+    size: 1.7
+    color: 0x6B8E23
+    atmosphere_color: 0x9ACD32
+    atmosphere_intensity: 0.3
+    clickable: true
+    has_orbit_map: true
+    info:
+      description: "Secondary colony - Warm, humid climate"
+      population: "~18,000"
+
+  # Outer system
+  - name: "Tau Ceti g"
+    type: "gas_giant"
+    location_slug: "tau-ceti-g"
+    orbital_radius: 120
+    orbital_period: 800
+    orbital_angle: 80
+    size: 4.0
+    color: 0xDAA520
+    has_rings: true
+    ring_inner: 4.2
+    ring_outer: 5.0
+    ring_color: 0xD2B48C
+    clickable: true
+    has_orbit_map: false
+    info:
+      description: "Gas giant with industrial moons"
+
+orbits:
+  show: true
+  color: 0x555555
+  opacity: 0.25
+  style: "solid"

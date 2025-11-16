@@ -1,0 +1,26 @@
+name: "Ross 128 b"
+type: "planet"
+parent_system: "ross-128"
+orbital_position: 1
+
+mass: "1.35 Earth masses"
+radius: "1.1 Earth radii"
+gravity: "1.1 G"
+atmosphere: "Thin, toxic"
+temperature_range: "-45°C (dark side) to 95°C (day side)"
+
+status: "MINING OPERATION"
+population: "~1,800"
+tidally_locked: true
+
+description: "A tidally locked mining world rich in heavy metals and rare earth elements. Miners work in sealed facilities on the dark side to avoid the scorching heat and radiation of the permanent dayside."
+
+surface_facilities:
+  - "Darkside Mining Complex"
+
+orbital_stations: []
+
+hazards:
+  - "High radiation on dayside"
+  - "Extreme temperature variations"
+  - "Toxic atmosphere"

@@ -60,6 +60,62 @@
         }
 
         /* ===================
+           TERMINAL HEADER
+           =================== */
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 52px;
+            padding: 0 40px 0 22px;
+            background-color: #1a2828;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 1px,
+                rgba(0, 0, 0, 0.3) 1px,
+                rgba(0, 0, 0, 0.3) 2px
+            );
+            border-bottom: 1px solid var(--color-border-subtle);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .terminal-header-left {
+            display: flex;
+            gap: 20px;
+            align-items: baseline;
+        }
+
+        .terminal-header h1 {
+            font-size: 18px;
+            letter-spacing: 3px;
+            color: #5a7575;
+            margin: 0;
+            font-weight: normal;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+        }
+
+        .terminal-header .subtitle {
+            font-size: 18px;
+            letter-spacing: 3px;
+            color: #5a7575;
+            margin: 0;
+            font-weight: normal;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+        }
+
+        .terminal-header-right {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: #8b7355;
+            font-family: 'Cascadia Code', 'Courier New', monospace;
+        }
+
+        /* ===================
            STANDBY VIEW
            =================== */
         .standby-view {
@@ -197,14 +253,14 @@
             display: grid;
             /* COLUMNS: left-width | center-width | right-width */
             grid-template-columns: 300px 1fr 300px;
-            /* ROWS: top-height | main-height | bottom-height */
-            grid-template-rows: 52px 1fr 120px;
+            /* ROWS: top-height | main-height */
+            grid-template-rows: 52px 1fr;
             /* NAME each grid area */
             grid-template-areas:
                 "top-left top-center top-right"
-                "left center right"
-                "bottom-left bottom-center bottom-right";
+                "left center right";
             gap: 30px;
+            padding: 0 30px 30px 30px;  /* 30px spacing from edges (top right bottom left) */
         }
 
         /* STEP 2: PANEL POSITIONING
@@ -217,16 +273,16 @@
 
         .dashboard-left {
             grid-area: left;
+            display: grid;
+            grid-template-rows: 1fr 1fr;  /* Two equal-height panels */
+            gap: 30px;  /* 30px between panels */
         }
 
         .dashboard-right {
             grid-area: right;
-        }
-
-        .dashboard-bottom {
-            grid-area: bottom-left / bottom-left / bottom-right / span 3;
-            width: 50vw;  /* Bottom panel width */
-            justify-self: center;
+            display: grid;
+            grid-template-rows: 1fr 1fr;  /* Two equal-height panels */
+            gap: 30px;  /* 30px between panels */
         }
 
         /* STEP 3: REUSABLE PANEL STYLING */
@@ -296,11 +352,36 @@
             );
         }
 
+        .chamfer-tr-bl {  /* Top-right + Bottom-left */
+            clip-path: polygon(
+                0 0, calc(100% - 12px) 0,
+                100% 12px, 100% 100%,
+                12px 100%, 0 calc(100% - 12px)
+            );
+        }
+
+        .chamfer-tl-br {  /* Top-left + Bottom-right */
+            clip-path: polygon(
+                12px 0, 100% 0,
+                100% calc(100% - 12px), calc(100% - 12px) 100%,
+                0 100%, 0 12px
+            );
+        }
+
         /* Border utilities */
         .border-top    { box-shadow: inset 0 2px 0 0 var(--color-border-main); }
         .border-right  { box-shadow: inset -2px 0 0 0 var(--color-border-main); }
         .border-bottom { box-shadow: inset 0 -2px 0 0 var(--color-border-main); }
         .border-left   { box-shadow: inset 2px 0 0 0 var(--color-border-main); }
+
+        /* All borders */
+        .border-all {
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
+        }
 
         /* Combine borders (common combinations) */
         .border-inner-top-right-bottom {  /* All except left */
@@ -494,6 +575,62 @@
             width: 12px; height: 12px;
             background: linear-gradient(
                 to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tr-bl::before {  /* Top-right */
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tr-bl::after {  /* Bottom-left */
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom left,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tl-br::before {  /* Top-left */
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+        }
+
+        .corner-line-tl-br::after {  /* Bottom-right */
+            content: '';
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 12px; height: 12px;
+            background: linear-gradient(
+                to bottom right,
                 transparent calc(50% - 2px),
                 var(--color-border-main) calc(50% - 2px),
                 var(--color-border-main) calc(50% + 2px),
@@ -777,6 +914,17 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 </head>
 <body>
+    <!-- Terminal Header -->
+    <div class="terminal-header">
+        <div class="terminal-header-left">
+            <h1>MOTHERSHIP TERMINAL SYSTEM</h1>
+            <div class="subtitle"></div>
+        </div>
+        <div class="terminal-header-right">
+            STATION ACCESS
+        </div>
+    </div>
+
     <!-- 3D Star Map Background Canvas -->
     <canvas id="starmap-canvas"></canvas>
 
@@ -1012,58 +1160,59 @@
     {% elif active_view.view_type == 'CAMPAIGN_DASHBOARD' %}
     <div class="campaign-dashboard">
         <!-- Top Panel -->
-        <div class="dashboard-top panel-base chamfer-bl-br border-inner-left-right-bottom corner-line-bl-br">
+        <div class="dashboard-top panel-base chamfer-bl-br border-all corner-line-bl-br">
             <div class="dashboard-top-content">THE OUTER VEIL CAMPAIGN</div>
         </div>
 
-        <!-- Left Panel - CREW -->
-        <div class="dashboard-left panel-base chamfer-tr-br border-inner-top-right-bottom corner-line-tr-br">
-            <div class="dashboard-panel-header">
-                <h3>CREW</h3>
+        <!-- Left Column - Two Panels -->
+        <div class="dashboard-left">
+            <!-- Left Top Panel - CREW -->
+            <div class="panel-base chamfer-tr-bl border-all corner-line-tr-bl">
+                <div class="dashboard-panel-header">
+                    <h3>CREW</h3>
+                </div>
+                <div class="dashboard-panel-content">
+                    <p>&gt; Dr. Elena Vasquez - Science Officer</p>
+                    <p>&gt; Marcus "Wrench" Chen - Engineer</p>
+                    <p>&gt; Lt. Sarah Kim - Security</p>
+                    <p>&gt; Alex Novak - Pilot</p>
+                </div>
             </div>
-            <div class="dashboard-panel-content">
-                <p>&gt; Dr. Elena Vasquez - Science Officer</p>
-                <p>&gt; Marcus "Wrench" Chen - Engineer</p>
-                <p>&gt; Lt. Sarah Kim - Security</p>
-                <p>&gt; Alex Novak - Pilot</p>
+
+            <!-- Left Bottom Panel - NOTES -->
+            <div class="panel-base chamfer-tr-bl border-all corner-line-tr-bl">
+                <div class="dashboard-panel-header">
+                    <h3>NOTES</h3>
+                </div>
+                <div class="dashboard-panel-content">
+                    <p>&gt; Investigating anomalous readings</p>
+                    <p>&gt; Specimen requires containment</p>
+                </div>
             </div>
         </div>
 
-        <!-- Right Panel - MISSIONS -->
-        <div class="dashboard-right panel-base chamfer-tl-bl border-inner-top-left-bottom corner-line-tl-bl">
-            <div class="dashboard-panel-header">
-                <h3>MISSIONS</h3>
+        <!-- Right Column - Two Panels -->
+        <div class="dashboard-right">
+            <!-- Right Top Panel - MISSIONS -->
+            <div class="panel-base chamfer-tl-br border-all corner-line-tl-br">
+                <div class="dashboard-panel-header">
+                    <h3>MISSIONS</h3>
+                </div>
+                <div class="dashboard-panel-content">
+                    <p style="margin-bottom: 10px;">&gt; [ACTIVE] Station Prometheus</p>
+                    <p style="margin-bottom: 10px;">&gt; [PENDING] Cargo Retrieval</p>
+                    <p style="margin-bottom: 10px;">&gt; [COMPLETED] Colony Supply Run</p>
+                </div>
             </div>
-            <div class="dashboard-panel-content">
-                <p style="margin-bottom: 10px;">&gt; [ACTIVE] Station Prometheus</p>
-                <p style="margin-bottom: 10px;">&gt; [PENDING] Cargo Retrieval</p>
-                <p style="margin-bottom: 10px;">&gt; [COMPLETED] Colony Supply Run</p>
-            </div>
-        </div>
 
-        <!-- Bottom Panel -->
-        <div class="dashboard-bottom panel-base chamfer-tl-tr border-inner-top-left-right corner-line-tl-tr">
-            <div class="dashboard-panel-header">
-                <h3>SHIP STATUS - USCSS MORRIGAN</h3>
-            </div>
-            <div class="dashboard-panel-content">
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
-                    <div>
-                        <p>&gt; HULL: 100%</p>
-                        <p>&gt; ENGINES: NOMINAL</p>
-                    </div>
-                    <div>
-                        <p>&gt; LIFE SUPPORT: OK</p>
-                        <p>&gt; O2 RESERVES: 94%</p>
-                    </div>
-                    <div>
-                        <p>&gt; FUEL: 78%</p>
-                        <p>&gt; POWER: STABLE</p>
-                    </div>
-                    <div>
-                        <p>&gt; WEAPONS: OFFLINE</p>
-                        <p>&gt; SHIELDS: CHARGING</p>
-                    </div>
+            <!-- Right Bottom Panel - STATUS -->
+            <div class="panel-base chamfer-tl-br border-all corner-line-tl-br">
+                <div class="dashboard-panel-header">
+                    <h3>STATUS</h3>
+                </div>
+                <div class="dashboard-panel-content">
+                    <p>&gt; All systems nominal</p>
+                    <p>&gt; Course steady</p>
                 </div>
             </div>
         </div>

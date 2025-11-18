@@ -777,26 +777,117 @@
         }
 
         /* Star system buttons */
-        .system-button {
-            display: block;
-            width: 100%;
-            background-color: #0f1515;
-            border: 1px solid var(--color-border-main);
-            color: var(--color-text-primary);
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            font-family: 'Cascadia Code', 'Courier New', monospace;
-            font-size: 11px;
-            letter-spacing: 1px;
-            cursor: pointer;
-            text-align: left;
+        /* Star system buttons - styled like GM console location rows */
+        .star-system-row {
+            display: flex;
+            align-items: center;
+            padding: 0;
+            margin: 4px 0;
+            border: 1px solid var(--color-border-subtle);
+            background-color: var(--color-bg-primary);
             transition: all 0.2s;
         }
 
-        .system-button:hover {
-            background-color: #1a2525;
-            border-color: var(--color-teal-bright);
+        .star-system-row:hover {
+            background-color: var(--color-bg-panel-dark);
+        }
+
+        .star-system-row.checked {
+            border-color: var(--color-active);
+            background-color: var(--color-bg-panel-dark);
+        }
+
+        .star-system-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 8px 6px;
+            cursor: pointer;
+        }
+
+        .star-system-checkbox {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--color-teal);
+            background-color: var(--color-bg-primary);
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            border-radius: 50%;  /* Make it circular like a radio button */
+        }
+
+        .star-system-row.checked .star-system-checkbox {
+            background-color: var(--color-active);
+            border-color: var(--color-active);
+        }
+
+        .star-system-checkbox::after {
+            content: '●';
+            color: var(--color-bg-primary);
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .star-system-row.checked .star-system-checkbox::after {
+            opacity: 1;
+        }
+
+        .star-system-name {
             color: var(--color-teal-bright);
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            flex-grow: 1;
+            user-select: none;
+        }
+
+        /* System Info Panel */
+        .system-info-panel {
+            position: absolute;
+            right: calc(300px + 30px + 30px);  /* right panel width + gap + margin */
+            top: 82px;  /* 52px header + 30px gap to align with star map panel */
+            width: 350px;
+            height: auto;  /* Dynamic height based on content */
+            max-height: calc(100vh - 82px - 30px);  /* Don't exceed viewport minus top offset and bottom margin */
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .system-info-panel.visible {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+
+        .system-info-panel .dashboard-panel-content {
+            max-height: none;  /* Override default, let parent control height */
+            overflow-y: auto;  /* Enable scrolling if content is too tall */
+        }
+
+        #system-info-content {
+            line-height: 1.8;
+        }
+
+        #system-info-content p {
+            margin: 8px 0;
+            color: var(--color-text-primary);
+            font-size: 12px;
+        }
+
+        #system-info-content .info-label {
+            color: var(--color-teal);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        #system-info-content .info-value {
+            color: var(--color-amber);
         }
 
         /* ===================
@@ -1193,15 +1284,26 @@
 
         <!-- Right Column - Two Panels -->
         <div class="dashboard-right">
-            <!-- Right Top Panel - MISSIONS -->
+            <!-- Right Top Panel - Star Map -->
             <div class="panel-base chamfer-tl-br border-all corner-line-tl-br">
                 <div class="dashboard-panel-header">
-                    <h3>MISSIONS</h3>
+                    <h3>STAR MAP</h3>
                 </div>
-                <div class="dashboard-panel-content">
-                    <p style="margin-bottom: 10px;">&gt; [ACTIVE] Station Prometheus</p>
-                    <p style="margin-bottom: 10px;">&gt; [PENDING] Cargo Retrieval</p>
-                    <p style="margin-bottom: 10px;">&gt; [COMPLETED] Colony Supply Run</p>
+                <div class="dashboard-panel-content" id="star-map-panel">
+                    {% if star_systems %}
+                        {% for system in star_systems %}
+                            {% if system.label %}
+                                <div class="star-system-row" data-system="{{ system.name }}">
+                                    <div class="star-system-content">
+                                        <div class="star-system-checkbox"></div>
+                                        <div class="star-system-name">{{ system.name }}</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p>&gt; No star systems found</p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -1216,7 +1318,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- System Info Panel (appears when star is selected) -->
+        <div id="system-info-panel" class="system-info-panel panel-base chamfer-tl-br border-all corner-line-tl-br">
+            <div class="dashboard-panel-header">
+                <h3 id="system-info-name">SYSTEM INFO</h3>
+            </div>
+            <div class="dashboard-panel-content">
+                <div id="system-info-content">
+                    <!-- Dynamic content will be inserted here -->
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Store star systems data in JavaScript -->
+    <script>
+    window.starSystemsData = {{ star_systems_json|safe }};
+    </script>
 
     <!-- ENCOUNTER MAP VIEW -->
     {% elif active_view.view_type == 'ENCOUNTER_MAP' and location_data %}
@@ -1292,6 +1411,17 @@
 
     <!-- 3D Star Map Initialization -->
     <script>
+    // Global star map state (accessible to other scripts)
+    window.starMapState = {
+        starPositions: new Map(),  // Map of system name to position
+        camera: null,
+        lookAtTarget: null,
+        animating: false,
+        animationFrameId: null,  // Store animation frame ID for cancellation
+        autoRotate: false,  // Auto-rotate around selected star
+        autoRotateSpeed: 0.0005  // Rotation speed (radians per frame)
+    };
+
     (function() {
         // Get the canvas
         const canvas = document.getElementById('starmap-canvas');
@@ -1313,6 +1443,9 @@
         );
         camera.position.set(0, 0, 100);
         camera.lookAt(0, 0, 0);
+
+        // Store camera reference globally
+        window.starMapState.camera = camera;
 
         // Create renderer
         const renderer = new THREE.WebGLRenderer({
@@ -1383,6 +1516,71 @@
 
         // Create the star texture once for reuse
         const starTexture = createStarTexture();
+
+        // Create targeting reticle texture (two concentric circles with cross cutout)
+        function createReticleTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            const centerX = size / 2;
+            const centerY = size / 2;
+
+            // Amber color (muted yellow) - #8b7355
+            const amberColor = 'rgba(139, 115, 85, 1.0)';
+
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+
+            // Use compositing to create cutout effect
+            ctx.globalCompositeOperation = 'source-over';
+
+            // Draw outer circle
+            ctx.strokeStyle = amberColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Draw inner circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Use destination-out to cut out the cross
+            ctx.globalCompositeOperation = 'destination-out';
+
+            // Horizontal cross bar
+            ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+            ctx.fillRect(centerX - 90, centerY - 4, 180, 8);
+
+            // Vertical cross bar
+            ctx.fillRect(centerX - 4, centerY - 90, 8, 180);
+
+            // Reset composite operation
+            ctx.globalCompositeOperation = 'source-over';
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const reticleTexture = createReticleTexture();
+
+        // Create selection reticle sprite (initially hidden)
+        const selectionReticle = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: reticleTexture,
+            transparent: true,
+            opacity: 0.8,
+            depthTest: false,  // Always render on top
+            depthWrite: false
+        }));
+        selectionReticle.scale.set(20, 20, 1);  // Size of the reticle
+        selectionReticle.visible = false;  // Hidden by default
+        scene.add(selectionReticle);
+
+        // Store reticle reference globally
+        window.starMapState.selectionReticle = selectionReticle;
 
         // Create background star field using sprites (same texture as main stars)
         const starFieldCount = 5000;  // Number of background stars
@@ -1476,6 +1674,9 @@
 
                         // Store star for animation
                         stars.push(star);
+
+                        // Store star position globally for camera navigation
+                        window.starMapState.starPositions.set(system.name, position);
 
                         // Add point light at star position for subtle illumination
                         const starLight = new THREE.PointLight(0xFFFFFF, 0.3, 40);  // Pure white
@@ -1749,6 +1950,29 @@
                 });
             }
 
+            // Auto-rotate camera around selected star
+            if (window.starMapState.autoRotate && !window.starMapState.animating) {
+                const offset = camera.position.clone().sub(lookAtTarget);
+                const radius = offset.length();
+
+                // Get current angle
+                let theta = Math.atan2(offset.x, offset.z);
+
+                // Increment angle for rotation
+                theta += window.starMapState.autoRotateSpeed;
+
+                // Keep current elevation (phi)
+                const phi = Math.acos(offset.y / radius);
+
+                // Calculate new position
+                offset.x = radius * Math.sin(phi) * Math.sin(theta);
+                offset.y = radius * Math.cos(phi);
+                offset.z = radius * Math.sin(phi) * Math.cos(theta);
+
+                camera.position.copy(lookAtTarget).add(offset);
+                camera.lookAt(lookAtTarget);
+            }
+
             renderer.render(scene, camera);
         }
         animate();
@@ -1763,6 +1987,63 @@
         // Track where camera is looking (center point for rotation)
         const lookAtTarget = new THREE.Vector3(0, 0, 0);
 
+        // Store lookAtTarget reference globally
+        window.starMapState.lookAtTarget = lookAtTarget;
+
+        // Camera animation function
+        function animateCameraToTarget(targetPosition, duration = 2000) {
+            // Cancel any ongoing animation
+            if (window.starMapState.animationFrameId) {
+                cancelAnimationFrame(window.starMapState.animationFrameId);
+                window.starMapState.animationFrameId = null;
+            }
+
+            window.starMapState.animating = true;
+
+            // Use current camera position as start (for smooth interruption)
+            const startPosition = camera.position.clone();
+            const startLookAt = lookAtTarget.clone();
+            const startTime = Date.now();
+
+            // Calculate optimal camera position (offset from target)
+            const distance = 80;  // Distance from target
+            const angle = Math.atan2(startPosition.x - startLookAt.x, startPosition.z - startLookAt.z);
+            const endPosition = new THREE.Vector3(
+                targetPosition.x + Math.sin(angle) * distance,
+                targetPosition.y + 30,  // Slight elevation
+                targetPosition.z + Math.cos(angle) * distance
+            );
+
+            function updateCamera() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Easing function (ease-in-out)
+                const eased = progress < 0.5
+                    ? 2 * progress * progress
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+                // Interpolate camera position
+                camera.position.lerpVectors(startPosition, endPosition, eased);
+
+                // Interpolate lookAt target
+                lookAtTarget.lerpVectors(startLookAt, targetPosition, eased);
+                camera.lookAt(lookAtTarget);
+
+                if (progress < 1) {
+                    window.starMapState.animationFrameId = requestAnimationFrame(updateCamera);
+                } else {
+                    window.starMapState.animating = false;
+                    window.starMapState.animationFrameId = null;
+                }
+            }
+
+            updateCamera();
+        }
+
+        // Make animation function globally accessible
+        window.starMapState.animateCameraToTarget = animateCameraToTarget;
+
         // Simple mouse wheel zoom
         let zoomSpeed = 5;      // Units to zoom per scroll
         let minDistance = 20;   // Minimum distance from center
@@ -1770,6 +2051,9 @@
 
         window.addEventListener('wheel', (event) => {
             event.preventDefault();
+
+            // Disable auto-rotation when user zooms
+            window.starMapState.autoRotate = false;
 
             // Calculate direction from camera to target
             const direction = lookAtTarget.clone().sub(camera.position).normalize();
@@ -1809,6 +2093,9 @@
             if (event.touches.length === 2) {
                 event.preventDefault();
 
+                // Disable auto-rotation when user pinch zooms
+                window.starMapState.autoRotate = false;
+
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
                 const distance = Math.hypot(
@@ -1839,6 +2126,8 @@
         window.addEventListener('mousedown', (event) => {
             if (event.button === 0) {  // Left click only
                 isDragging = true;
+                // Disable auto-rotation when user manually rotates
+                window.starMapState.autoRotate = false;
                 previousPosition = {
                     x: event.clientX,
                     y: event.clientY
@@ -1895,6 +2184,8 @@
         canvas.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
                 isTouching = true;
+                // Disable auto-rotation when user manually rotates
+                window.starMapState.autoRotate = false;
                 previousPosition = {
                     x: event.touches[0].clientX,
                     y: event.touches[0].clientY
@@ -1939,6 +2230,380 @@
         canvas.addEventListener('touchend', () => {
             isTouching = false;
         });
+    })();
+    </script>
+
+    <!-- Star System Selection Script -->
+    <script>
+    (function() {
+        // Typewriter effect for system info panel
+        function typewriteContent(element, html, speed = 15) {
+            return new Promise((resolve) => {
+                // Create a temporary div to parse the HTML and extract text
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+
+                // Clear the element
+                element.innerHTML = '';
+
+                // We'll build up the content with proper HTML structure
+                let currentHTML = '';
+                let charIndex = 0;
+                const fullText = tempDiv.textContent;
+
+                function typeNextChar() {
+                    if (charIndex < fullText.length) {
+                        // Get the next character
+                        const char = fullText[charIndex];
+                        charIndex++;
+
+                        // Rebuild HTML up to current position
+                        currentHTML = '';
+                        let textSoFar = fullText.substring(0, charIndex);
+                        let textIndex = 0;
+
+                        // Parse through original HTML structure and insert characters
+                        function buildHTML(node) {
+                            if (node.nodeType === Node.TEXT_NODE) {
+                                const nodeText = node.textContent;
+                                const charsToShow = Math.min(nodeText.length, Math.max(0, textSoFar.length - textIndex));
+                                textIndex += nodeText.length;
+                                return nodeText.substring(0, charsToShow);
+                            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                                const tagName = node.tagName.toLowerCase();
+                                const className = node.className ? ` class="${node.className}"` : '';
+                                let innerHTML = '';
+
+                                for (let child of node.childNodes) {
+                                    innerHTML += buildHTML(child);
+                                }
+
+                                if (innerHTML.length > 0) {
+                                    return `<${tagName}${className}>${innerHTML}</${tagName}>`;
+                                }
+                                return '';
+                            }
+                            return '';
+                        }
+
+                        currentHTML = '';
+                        textIndex = 0;
+                        for (let child of tempDiv.childNodes) {
+                            currentHTML += buildHTML(child);
+                        }
+
+                        element.innerHTML = currentHTML;
+
+                        setTimeout(typeNextChar, speed);
+                    } else {
+                        resolve();
+                    }
+                }
+
+                typeNextChar();
+            });
+        }
+
+        // Handle star system radio button selection (only one at a time)
+        const starSystemRows = document.querySelectorAll('.star-system-row');
+
+        starSystemRows.forEach(row => {
+            row.addEventListener('click', function() {
+                // Get the system name
+                const systemName = this.dataset.system;
+
+                // If this system is already checked, uncheck it
+                if (this.classList.contains('checked')) {
+                    this.classList.remove('checked');
+                    // Remove from localStorage (no system selected)
+                    localStorage.removeItem('selected_star_system');
+                    console.log('No star system selected');
+
+                    // Disable auto-rotation
+                    if (window.starMapState) {
+                        window.starMapState.autoRotate = false;
+                    }
+
+                    // Hide selection reticle
+                    if (window.starMapState && window.starMapState.selectionReticle) {
+                        window.starMapState.selectionReticle.visible = false;
+                    }
+
+                    // Hide system info panel
+                    const infoPanel = document.getElementById('system-info-panel');
+                    if (infoPanel) {
+                        infoPanel.classList.remove('visible');
+                    }
+
+                    // Animate camera back to origin (0, 0, 0)
+                    if (window.starMapState && window.starMapState.animateCameraToTarget) {
+                        window.starMapState.animateCameraToTarget(new THREE.Vector3(0, 0, 0));
+                    }
+                    return;
+                }
+
+                // Uncheck all other systems
+                starSystemRows.forEach(otherRow => {
+                    otherRow.classList.remove('checked');
+                });
+
+                // Check this system
+                this.classList.add('checked');
+
+                // Store selected system in localStorage for persistence
+                localStorage.setItem('selected_star_system', systemName);
+
+                console.log(`Star system ${systemName} selected`);
+
+                // Get system data and populate info panel
+                if (window.starSystemsData && window.starSystemsData[systemName]) {
+                    const systemData = window.starSystemsData[systemName];
+                    const infoPanel = document.getElementById('system-info-panel');
+                    const infoPanelName = document.getElementById('system-info-name');
+                    const infoPanelContent = document.getElementById('system-info-content');
+
+                    if (infoPanel && infoPanelName && infoPanelContent) {
+                        // Check if panel is already visible
+                        const wasVisible = infoPanel.classList.contains('visible');
+
+                        // Build info content HTML
+                        let contentHTML = '';
+
+                        // Type
+                        if (systemData.type) {
+                            contentHTML += '<p><span class="info-label">TYPE:</span> <span class="info-value">' +
+                                systemData.type.toUpperCase() + '</span></p>';
+                        }
+
+                        // Description
+                        if (systemData.description) {
+                            contentHTML += '<p><span class="info-label">DESCRIPTION:</span> <span class="info-value">' +
+                                systemData.description + '</span></p>';
+                        }
+
+                        // Population
+                        if (systemData.population) {
+                            contentHTML += '<p><span class="info-label">POPULATION:</span> <span class="info-value">' +
+                                systemData.population + '</span></p>';
+                        }
+
+                        // Position coordinates
+                        if (systemData.position) {
+                            contentHTML += '<p><span class="info-label">COORDINATES:</span> <span class="info-value">' +
+                                systemData.position.join(', ') + '</span></p>';
+                        }
+
+                        // Location slug
+                        if (systemData.location_slug) {
+                            contentHTML += '<p><span class="info-label">LOCATION ID:</span> <span class="info-value">' +
+                                systemData.location_slug + '</span></p>';
+                        }
+
+                        // System map availability
+                        if (systemData.has_system_map) {
+                            contentHTML += '<p><span class="info-label">SYSTEM MAP:</span> <span class="info-value">AVAILABLE</span></p>';
+                        }
+
+                        // Update content with typewriter effect
+                        async function updatePanel() {
+                            if (wasVisible) {
+                                // Fade out old content
+                                infoPanelContent.style.opacity = '0';
+                                infoPanelContent.style.transition = 'opacity 0.3s ease';
+
+                                // Wait for fade out
+                                await new Promise(resolve => setTimeout(resolve, 300));
+                            } else {
+                                // Show panel first so fade-in happens while typing
+                                infoPanel.classList.add('visible');
+                            }
+
+                            // Update header
+                            infoPanelName.textContent = systemData.name.toUpperCase();
+
+                            // Reset opacity and typewrite new content
+                            infoPanelContent.style.opacity = '1';
+                            await typewriteContent(infoPanelContent, contentHTML);
+                        }
+
+                        updatePanel();
+                    }
+                }
+
+                // Animate camera to selected star system
+                if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
+                    const position = window.starMapState.starPositions.get(systemName);
+                    if (position) {
+                        // Show and position selection reticle
+                        if (window.starMapState.selectionReticle) {
+                            window.starMapState.selectionReticle.position.copy(position);
+                            window.starMapState.selectionReticle.visible = true;
+                        }
+
+                        // Enable auto-rotation around the selected star
+                        window.starMapState.autoRotate = true;
+
+                        // Animate camera
+                        window.starMapState.animateCameraToTarget(position);
+                        console.log(`Animating camera to ${systemName} at position:`, position);
+                    } else {
+                        console.warn(`Position not found for system: ${systemName}`);
+                    }
+                }
+            });
+        });
+
+        // Restore selected system from localStorage on page load
+        const selectedSystem = localStorage.getItem('selected_star_system');
+
+        if (selectedSystem) {
+            // Find and check the stored system
+            starSystemRows.forEach(row => {
+                if (row.dataset.system === selectedSystem) {
+                    row.classList.add('checked');
+                } else {
+                    row.classList.remove('checked');
+                }
+            });
+
+            // Populate and show info panel for selected system
+            if (window.starSystemsData && window.starSystemsData[selectedSystem]) {
+                const systemData = window.starSystemsData[selectedSystem];
+                const infoPanel = document.getElementById('system-info-panel');
+                const infoPanelName = document.getElementById('system-info-name');
+                const infoPanelContent = document.getElementById('system-info-content');
+
+                if (infoPanel && infoPanelName && infoPanelContent) {
+                    // Build info content HTML
+                    let contentHTML = '';
+
+                    if (systemData.type) {
+                        contentHTML += '<p><span class="info-label">TYPE:</span> <span class="info-value">' +
+                            systemData.type.toUpperCase() + '</span></p>';
+                    }
+                    if (systemData.description) {
+                        contentHTML += '<p><span class="info-label">DESCRIPTION:</span> <span class="info-value">' +
+                            systemData.description + '</span></p>';
+                    }
+                    if (systemData.population) {
+                        contentHTML += '<p><span class="info-label">POPULATION:</span> <span class="info-value">' +
+                            systemData.population + '</span></p>';
+                    }
+                    if (systemData.position) {
+                        contentHTML += '<p><span class="info-label">COORDINATES:</span> <span class="info-value">' +
+                            systemData.position.join(', ') + '</span></p>';
+                    }
+                    if (systemData.location_slug) {
+                        contentHTML += '<p><span class="info-label">LOCATION ID:</span> <span class="info-value">' +
+                            systemData.location_slug + '</span></p>';
+                    }
+                    if (systemData.has_system_map) {
+                        contentHTML += '<p><span class="info-label">SYSTEM MAP:</span> <span class="info-value">AVAILABLE</span></p>';
+                    }
+
+                    // Update panel with typewriter effect
+                    async function initPanel() {
+                        infoPanelName.textContent = systemData.name.toUpperCase();
+                        await typewriteContent(infoPanelContent, contentHTML);
+                        infoPanel.classList.add('visible');
+                    }
+
+                    initPanel();
+                }
+            }
+
+            // Wait for star map to load, then animate to selected system
+            setTimeout(() => {
+                if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
+                    const position = window.starMapState.starPositions.get(selectedSystem);
+                    if (position) {
+                        // Show and position selection reticle
+                        if (window.starMapState.selectionReticle) {
+                            window.starMapState.selectionReticle.position.copy(position);
+                            window.starMapState.selectionReticle.visible = true;
+                        }
+
+                        // Enable auto-rotation around the selected star
+                        window.starMapState.autoRotate = true;
+
+                        // Animate camera
+                        window.starMapState.animateCameraToTarget(position, 3000);  // Slower initial animation
+                        console.log(`Restoring view to ${selectedSystem}`);
+                    }
+                }
+            }, 1000);  // Wait 1 second for star map to load
+        } else if (starSystemRows.length > 0) {
+            // If no stored selection, select the first system by default
+            const firstSystemName = starSystemRows[0].dataset.system;
+            starSystemRows[0].classList.add('checked');
+
+            // Populate and show info panel for first system
+            if (window.starSystemsData && window.starSystemsData[firstSystemName]) {
+                const systemData = window.starSystemsData[firstSystemName];
+                const infoPanel = document.getElementById('system-info-panel');
+                const infoPanelName = document.getElementById('system-info-name');
+                const infoPanelContent = document.getElementById('system-info-content');
+
+                if (infoPanel && infoPanelName && infoPanelContent) {
+                    // Build info content HTML
+                    let contentHTML = '';
+
+                    if (systemData.type) {
+                        contentHTML += '<p><span class="info-label">TYPE:</span> <span class="info-value">' +
+                            systemData.type.toUpperCase() + '</span></p>';
+                    }
+                    if (systemData.description) {
+                        contentHTML += '<p><span class="info-label">DESCRIPTION:</span> <span class="info-value">' +
+                            systemData.description + '</span></p>';
+                    }
+                    if (systemData.population) {
+                        contentHTML += '<p><span class="info-label">POPULATION:</span> <span class="info-value">' +
+                            systemData.population + '</span></p>';
+                    }
+                    if (systemData.position) {
+                        contentHTML += '<p><span class="info-label">COORDINATES:</span> <span class="info-value">' +
+                            systemData.position.join(', ') + '</span></p>';
+                    }
+                    if (systemData.location_slug) {
+                        contentHTML += '<p><span class="info-label">LOCATION ID:</span> <span class="info-value">' +
+                            systemData.location_slug + '</span></p>';
+                    }
+                    if (systemData.has_system_map) {
+                        contentHTML += '<p><span class="info-label">SYSTEM MAP:</span> <span class="info-value">AVAILABLE</span></p>';
+                    }
+
+                    // Update panel with typewriter effect
+                    async function initPanel() {
+                        infoPanelName.textContent = systemData.name.toUpperCase();
+                        await typewriteContent(infoPanelContent, contentHTML);
+                        infoPanel.classList.add('visible');
+                    }
+
+                    initPanel();
+                }
+            }
+
+            // Animate to first system
+            setTimeout(() => {
+                if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
+                    const position = window.starMapState.starPositions.get(firstSystemName);
+                    if (position) {
+                        // Show and position selection reticle
+                        if (window.starMapState.selectionReticle) {
+                            window.starMapState.selectionReticle.position.copy(position);
+                            window.starMapState.selectionReticle.visible = true;
+                        }
+
+                        // Enable auto-rotation around the selected star
+                        window.starMapState.autoRotate = true;
+
+                        // Animate camera
+                        window.starMapState.animateCameraToTarget(position, 3000);
+                        console.log(`Initial view: ${firstSystemName}`);
+                    }
+                }
+            }, 1000);
+        }
     })();
     </script>
 </body>

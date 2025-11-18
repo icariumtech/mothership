@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from .models import Message
 import yaml
 import os
+import json
 from django.conf import settings
 
 
@@ -199,12 +200,41 @@ def display_view(request):
         all_locations = load_all_locations()
         location_data = find_location_recursive(all_locations, active_view.location_slug)
 
+    # Load star map data for star system buttons
+    star_map_path = os.path.join(settings.BASE_DIR, 'data', 'galaxy', 'star_map.yaml')
+    star_systems = []
+    star_systems_json = '{}'
+    try:
+        with open(star_map_path, 'r') as f:
+            star_map_data = yaml.safe_load(f)
+            star_systems = star_map_data.get('systems', [])
+
+            # Create a JSON-safe dictionary for JavaScript
+            systems_dict = {}
+            for system in star_systems:
+                systems_dict[system['name']] = {
+                    'name': system['name'],
+                    'type': system.get('type', ''),
+                    'description': system.get('info', {}).get('description', ''),
+                    'population': system.get('info', {}).get('population', 'Unknown'),
+                    'position': system.get('position', [0, 0, 0]),
+                    'color': system.get('color', ''),
+                    'size': system.get('size', 1),
+                    'location_slug': system.get('location_slug', ''),
+                    'has_system_map': system.get('has_system_map', False)
+                }
+            star_systems_json = json.dumps(systems_dict)
+    except (FileNotFoundError, Exception):
+        pass  # If star map not found, just show empty list
+
     return render(request, 'terminal/shared_console.html', {
         'messages': all_messages,
         'senders': senders,
         'first_sender': first_sender,
         'active_view': active_view,
         'location_data': location_data,
+        'star_systems': star_systems,
+        'star_systems_json': star_systems_json,
     })
 
 

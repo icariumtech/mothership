@@ -445,6 +445,51 @@ Default scrollbar styling for other elements:
 - **Arrows**: Hidden (`display: none`)
 - **Implementation**: Use webkit pseudo-elements, avoid `scrollbar-width` and `scrollbar-color` (Chrome 121+ conflict)
 
+## Decorative UI Elements
+
+### System Information Panel Decorations
+
+The system information panel (displayed when selecting stars on the galaxy map) includes decorative elements positioned below the panel.
+
+**Indicator Boxes**:
+- **Count**: Exactly 12 boxes
+- **Size**: 14×14px each
+- **Spacing**: 10px between boxes
+- **Color**: Muted burgundy/wine (#6b4a4a)
+- **Opacity**: 0.7 when visible
+- **Implementation**: CSS `repeating-linear-gradient` pattern
+- **Width Calculation**: (12 × 14px) + (11 × 10px) = 278px total
+- **Positioning**: 5px below panel bottom border, left-aligned with panel
+
+**Rectangle Decoration**:
+- **Height**: 14px (matches indicator boxes)
+- **Width**: Extends from boxes to panel right edge
+- **Color**: Same burgundy (#6b4a4a)
+- **Opacity**: 0.6 when visible
+- **Spacing**: 10px gap from rightmost indicator box
+
+**Triangle Decoration**:
+- **Type**: Isosceles right triangle (45-45-90 degrees)
+- **Legs**: 35×35px (both legs equal length)
+- **Hypotenuse**: Left side (diagonal from bottom-left to top-right)
+- **Right Angle**: Bottom-right corner
+- **Color**: Same burgundy (#6b4a4a)
+- **Opacity**: 0.6 when visible
+- **Positioning**: 5px above rectangle top edge, right-aligned with panel
+- **Implementation**: CSS `clip-path: polygon(0 100%, 100% 100%, 100% 0)`
+
+**Dynamic Positioning**:
+All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function to:
+- Recalculate positions when panel resizes (ResizeObserver)
+- Recalculate positions when window resizes
+- Use `getBoundingClientRect()` for accurate viewport-relative positioning
+- Position elements as siblings outside panel to avoid `clip-path` clipping
+
+**Visibility Logic**:
+- Show when system info panel is visible
+- Hide when no system is selected
+- Fade in/out with 0.3s transition
+
 # Implemented Features
 
 ## Current Features
@@ -468,6 +513,12 @@ Default scrollbar styling for other elements:
 ✓ **Terminal Overlay System**: SHOW button displays terminal overlay without clearing main view
 ✓ **3D Galaxy Map**: Interactive Three.js visualization with stars, travel routes, and nebulae
 ✓ **Nebula System**: Type-specific nebulae (emission, reflection, planetary, dark) with unique particle distributions and animations
+✓ **System Info Panel Decorations**: Indicator boxes, rectangle, and triangle decorations for galaxy map system selection
+✓ **Standby Mode Header Hiding**: Top navigation bar automatically hidden in standby mode
+✓ **Smart Dashboard Reset**: Dashboard resets to default state (no selection, centered on Sol) only when GM clicks dashboard button, not on page refresh
+✓ **View Change Detection**: Uses URL parameter `?viewchange=1` to distinguish GM-triggered view changes from manual refreshes
+✓ **Auto-Rotation Feature**: Galaxy map automatically rotates around origin when no system is selected, stops on user interaction (zoom/drag)
+✓ **Configurable Rotation Speed**: Auto-rotation speed of 0.002 radians/frame (~52 seconds per full rotation)
 
 ## Planned Features
 - [ ] Terminal conversation view renderer

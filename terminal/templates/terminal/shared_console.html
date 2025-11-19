@@ -115,6 +115,11 @@
             font-family: 'Cascadia Code', 'Courier New', monospace;
         }
 
+        /* Hide header in standby mode */
+        body.standby-mode .terminal-header {
+            display: none;
+        }
+
         /* ===================
            STANDBY VIEW
            =================== */
@@ -857,6 +862,23 @@
             transform: translateX(20px);
             transition: opacity 0.3s ease, transform 0.3s ease;
             pointer-events: none;
+            background-color: var(--color-bg-panel);
+            display: flex;
+            flex-direction: column;
+
+            /* Larger bottom-right chamfer (48px), keep top-left at 12px */
+            clip-path: polygon(
+                12px 0, 100% 0,
+                100% calc(100% - 48px), calc(100% - 48px) 100%,
+                0 100%, 0 12px
+            );
+
+            /* Borders using box-shadow to prevent clipping */
+            box-shadow:
+                inset 0 2px 0 0 var(--color-border-main),
+                inset -2px 0 0 0 var(--color-border-main),
+                inset 0 -2px 0 0 var(--color-border-main),
+                inset 2px 0 0 0 var(--color-border-main);
         }
 
         .system-info-panel.visible {
@@ -865,9 +887,34 @@
             pointer-events: auto;
         }
 
+        .system-info-panel .dashboard-panel-header {
+            padding: 12px 2px 0 2px;
+            flex-shrink: 0;
+        }
+
+        .system-info-panel .dashboard-panel-header h3 {
+            color: var(--color-teal);
+            font-size: 13px;
+            letter-spacing: 2px;
+            margin: 0;
+            padding: 0 10px 5px 22px;  /* Extra left padding to avoid top-left chamfer */
+            border-bottom: 1px solid var(--color-border-subtle);
+        }
+
         .system-info-panel .dashboard-panel-content {
-            max-height: none;  /* Override default, let parent control height */
-            overflow-y: auto;  /* Enable scrolling if content is too tall */
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px;
+            margin: 2px 5px 2px 2px;
+            background-color: #171717;
+            background-image: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 2px,
+                #1a1a1a 2px,
+                #1a1a1a 3px
+            );
         }
 
         #system-info-content {
@@ -888,6 +935,93 @@
 
         #system-info-content .info-value {
             color: var(--color-amber);
+        }
+
+        /* Indicator boxes along bottom of system info panel */
+        .system-info-indicator-boxes {
+            position: absolute;
+            right: calc(300px + 30px + 30px + 58px);  /* Panel right + space for chamfer (48px) + margin (10px) */
+            width: 278px;  /* Exactly 12 boxes: (12 × 14px boxes) + (11 × 10px gaps) = 278px */
+            height: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background: repeating-linear-gradient(
+                to right,
+                #6b4a4a 0px,  /* Muted burgundy/wine color */
+                #6b4a4a 14px,
+                transparent 14px,
+                transparent 24px
+            );
+            pointer-events: none;
+        }
+
+        .system-info-indicator-boxes.visible {
+            opacity: 0.7;
+        }
+
+        /* Rectangle decoration extending from boxes to panel edge */
+        .system-info-rectangle {
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            height: 14px;  /* Same height as indicator boxes */
+            background-color: #6b4a4a;
+        }
+
+        .system-info-rectangle.visible {
+            opacity: 0.6;
+        }
+
+        /* Triangle decoration on top of rectangle */
+        .system-info-triangle {
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            height: 35px;  /* Triangle height */
+            background-color: #6b4a4a;
+            clip-path: polygon(0 100%, 100% 100%, 100% 0);  /* Right triangle: bottom-left, bottom-right, top-right */
+        }
+
+        .system-info-triangle.visible {
+            opacity: 0.6;
+        }
+
+        /* Top-left corner line (12px) */
+        .system-info-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+            z-index: 1;
+        }
+
+        /* Bottom-right corner line (48px) */
+        .system-info-panel::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(
+                to bottom right,
+                transparent calc(50% - 2px),
+                var(--color-border-main) calc(50% - 2px),
+                var(--color-border-main) calc(50% + 2px),
+                transparent calc(50% + 2px)
+            );
+            z-index: 1;
         }
 
         /* ===================
@@ -1004,7 +1138,7 @@
     <!-- Three.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 </head>
-<body>
+<body{% if active_view.view_type == 'STANDBY' %} class="standby-mode"{% endif %}>
     <!-- Terminal Header -->
     <div class="terminal-header">
         <div class="terminal-header-left">
@@ -1320,7 +1454,7 @@
         </div>
 
         <!-- System Info Panel (appears when star is selected) -->
-        <div id="system-info-panel" class="system-info-panel panel-base chamfer-tl-br border-all corner-line-tl-br">
+        <div id="system-info-panel" class="system-info-panel">
             <div class="dashboard-panel-header">
                 <h3 id="system-info-name">SYSTEM INFO</h3>
             </div>
@@ -1330,6 +1464,15 @@
                 </div>
             </div>
         </div>
+
+        <!-- Indicator boxes (sibling to avoid clip-path) -->
+        <div class="system-info-indicator-boxes"></div>
+
+        <!-- Rectangle decoration extending to panel edge -->
+        <div class="system-info-rectangle"></div>
+
+        <!-- Triangle decoration on top of rectangle -->
+        <div class="system-info-triangle"></div>
     </div>
 
     <!-- Store star systems data in JavaScript -->
@@ -1387,8 +1530,9 @@
                         data.view_type !== currentViewState.view_type ||
                         data.view_slug !== currentViewState.view_slug) {
 
-                        console.log('View changed - reloading');
-                        window.location.reload();
+                        console.log('View changed - reloading with reset flag');
+                        // Add reset parameter to indicate this is a view change, not a manual refresh
+                        window.location.href = window.location.pathname + '?viewchange=1';
                     }
 
                     // Update current state
@@ -1419,7 +1563,7 @@
         animating: false,
         animationFrameId: null,  // Store animation frame ID for cancellation
         autoRotate: false,  // Auto-rotate around selected star
-        autoRotateSpeed: 0.0005  // Rotation speed (radians per frame)
+        autoRotateSpeed: 0.002  // Rotation speed (radians per frame) - full rotation ~52 seconds
     };
 
     (function() {
@@ -2230,6 +2374,17 @@
         canvas.addEventListener('touchend', () => {
             isTouching = false;
         });
+
+        // Enable auto-rotation by default when nothing is selected
+        // Wait a bit to ensure everything is initialized
+        setTimeout(() => {
+            // Only enable if no system is currently selected
+            const hasSelectedSystem = localStorage.getItem('selected_star_system');
+            if (!hasSelectedSystem && window.starMapState) {
+                window.starMapState.autoRotate = true;
+                console.log('Auto-rotation enabled (no system selected)');
+            }
+        }, 500);
     })();
     </script>
 
@@ -2304,6 +2459,56 @@
             });
         }
 
+        // Helper function to position indicator boxes, rectangle, and triangle below the panel
+        function updateIndicatorBoxesPosition() {
+            const infoPanel = document.getElementById('system-info-panel');
+            const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
+            const rectangle = document.querySelector('.system-info-rectangle');
+            const triangle = document.querySelector('.system-info-triangle');
+
+            if (infoPanel && indicatorBoxes && infoPanel.classList.contains('visible')) {
+                const panelRect = infoPanel.getBoundingClientRect();
+                const boxesRect = indicatorBoxes.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const boxesTop = panelRect.bottom + 5;
+
+                indicatorBoxes.style.top = boxesTop + 'px';
+
+                // Position rectangle from right edge of boxes to right edge of panel
+                if (rectangle) {
+                    rectangle.style.top = boxesTop + 'px';
+                    // Right edge: same as panel (360px from viewport right)
+                    rectangle.style.right = 'calc(300px + 30px + 30px)';  // 360px
+                    // Width: from right edge of boxes to right edge of panel, with 10px gap
+                    const panelRightEdge = viewportWidth - 360;  // Panel's right edge from left
+                    const boxesRightEdge = boxesRect.right;       // Boxes' right edge from left
+                    const rectangleWidth = panelRightEdge - boxesRightEdge - 10;  // 10px gap like between boxes
+                    rectangle.style.width = rectangleWidth + 'px';
+
+                    // Position triangle on top of rectangle
+                    if (triangle) {
+                        const triangleHeight = 35;  // Match CSS height
+                        const triangleWidth = 35;   // Same as height for isosceles right triangle
+                        triangle.style.top = (boxesTop - triangleHeight - 5) + 'px';  // 5px gap between triangle and rectangle
+                        triangle.style.right = 'calc(300px + 30px + 30px)';  // Right edge aligned with panel
+                        triangle.style.width = triangleWidth + 'px';  // Equal to height for equal legs
+                    }
+                }
+            }
+        }
+
+        // Set up ResizeObserver to reposition indicator boxes when panel resizes
+        const systemInfoPanel = document.getElementById('system-info-panel');
+        if (systemInfoPanel) {
+            const resizeObserver = new ResizeObserver(entries => {
+                updateIndicatorBoxesPosition();
+            });
+            resizeObserver.observe(systemInfoPanel);
+        }
+
+        // Also update on window resize
+        window.addEventListener('resize', updateIndicatorBoxesPosition);
+
         // Handle star system radio button selection (only one at a time)
         const starSystemRows = document.querySelectorAll('.star-system-row');
 
@@ -2319,9 +2524,9 @@
                     localStorage.removeItem('selected_star_system');
                     console.log('No star system selected');
 
-                    // Disable auto-rotation
+                    // Re-enable auto-rotation around center
                     if (window.starMapState) {
-                        window.starMapState.autoRotate = false;
+                        window.starMapState.autoRotate = true;
                     }
 
                     // Hide selection reticle
@@ -2329,10 +2534,22 @@
                         window.starMapState.selectionReticle.visible = false;
                     }
 
-                    // Hide system info panel
+                    // Hide system info panel, indicator boxes, and rectangle
                     const infoPanel = document.getElementById('system-info-panel');
                     if (infoPanel) {
                         infoPanel.classList.remove('visible');
+                    }
+                    const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
+                    if (indicatorBoxes) {
+                        indicatorBoxes.classList.remove('visible');
+                    }
+                    const rectangle = document.querySelector('.system-info-rectangle');
+                    if (rectangle) {
+                        rectangle.classList.remove('visible');
+                    }
+                    const triangle = document.querySelector('.system-info-triangle');
+                    if (triangle) {
+                        triangle.classList.remove('visible');
                     }
 
                     // Animate camera back to origin (0, 0, 0)
@@ -2406,6 +2623,8 @@
 
                         // Update content with typewriter effect
                         async function updatePanel() {
+                            const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
+
                             if (wasVisible) {
                                 // Fade out old content
                                 infoPanelContent.style.opacity = '0';
@@ -2414,8 +2633,22 @@
                                 // Wait for fade out
                                 await new Promise(resolve => setTimeout(resolve, 300));
                             } else {
-                                // Show panel first so fade-in happens while typing
+                                // Show panel, indicator boxes, rectangle, and triangle first so fade-in happens while typing
                                 infoPanel.classList.add('visible');
+                                if (indicatorBoxes) {
+                                    indicatorBoxes.classList.add('visible');
+                                    // Show rectangle element
+                                    const rectangle = document.querySelector('.system-info-rectangle');
+                                    if (rectangle) rectangle.classList.add('visible');
+                                    // Show triangle element
+                                    const triangle = document.querySelector('.system-info-triangle');
+                                    if (triangle) triangle.classList.add('visible');
+
+                                    // Position boxes, rectangle, and triangle with a small delay for panel to start rendering
+                                    setTimeout(() => {
+                                        updateIndicatorBoxesPosition();
+                                    }, 50);
+                                }
                             }
 
                             // Update header
@@ -2424,6 +2657,13 @@
                             // Reset opacity and typewrite new content
                             infoPanelContent.style.opacity = '1';
                             await typewriteContent(infoPanelContent, contentHTML);
+
+                            // Update indicator boxes position after content is loaded (in case height changed)
+                            if (indicatorBoxes && wasVisible) {
+                                setTimeout(() => {
+                                    updateIndicatorBoxesPosition();
+                                }, 50);
+                            }
                         }
 
                         updatePanel();
@@ -2453,10 +2693,69 @@
             });
         });
 
-        // Restore selected system from localStorage on page load
+        // Check if this is a view change from GM console (not a manual refresh)
+        const urlParams = new URLSearchParams(window.location.search);
+        const isViewChange = urlParams.get('viewchange') === '1';
+        const currentViewType = '{{ active_view.view_type }}';
+
+        // Remove the viewchange parameter from URL (clean up)
+        if (isViewChange) {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+
+        // Only reset to default state if dashboard was just selected from GM console
+        if (isViewChange && currentViewType === 'CAMPAIGN_DASHBOARD') {
+            // Clear localStorage
+            localStorage.removeItem('selected_star_system');
+
+            // Uncheck all systems
+            starSystemRows.forEach(row => {
+                row.classList.remove('checked');
+            });
+
+            // Hide all UI elements
+            const infoPanel = document.getElementById('system-info-panel');
+            if (infoPanel) {
+                infoPanel.classList.remove('visible');
+            }
+            const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
+            if (indicatorBoxes) {
+                indicatorBoxes.classList.remove('visible');
+            }
+            const rectangle = document.querySelector('.system-info-rectangle');
+            if (rectangle) {
+                rectangle.classList.remove('visible');
+            }
+            const triangle = document.querySelector('.system-info-triangle');
+            if (triangle) {
+                triangle.classList.remove('visible');
+            }
+
+            // Hide selection reticle
+            if (window.starMapState && window.starMapState.selectionReticle) {
+                window.starMapState.selectionReticle.visible = false;
+            }
+
+            // Reset camera to center after a short delay to allow star map to load
+            setTimeout(() => {
+                if (window.starMapState && window.starMapState.animateCameraToTarget) {
+                    window.starMapState.animateCameraToTarget(new THREE.Vector3(0, 0, 0), 1000);
+                    console.log('Dashboard loaded via GM console - reset to default view');
+
+                    // Re-enable auto-rotation after camera returns to center
+                    setTimeout(() => {
+                        if (window.starMapState) {
+                            window.starMapState.autoRotate = true;
+                        }
+                    }, 1500);  // Wait for animation to complete
+                }
+            }, 500);
+        }
+
+        // Restore selected system from localStorage on page load (if not resetting)
         const selectedSystem = localStorage.getItem('selected_star_system');
 
-        if (selectedSystem) {
+        if (selectedSystem && !(isViewChange && currentViewType === 'CAMPAIGN_DASHBOARD')) {
             // Find and check the stored system
             starSystemRows.forEach(row => {
                 if (row.dataset.system === selectedSystem) {
@@ -2506,6 +2805,25 @@
                         infoPanelName.textContent = systemData.name.toUpperCase();
                         await typewriteContent(infoPanelContent, contentHTML);
                         infoPanel.classList.add('visible');
+
+                        // Show indicator boxes, rectangle, and triangle
+                        const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
+                        if (indicatorBoxes) {
+                            indicatorBoxes.classList.add('visible');
+                        }
+                        const rectangle = document.querySelector('.system-info-rectangle');
+                        if (rectangle) {
+                            rectangle.classList.add('visible');
+                        }
+                        const triangle = document.querySelector('.system-info-triangle');
+                        if (triangle) {
+                            triangle.classList.add('visible');
+                        }
+
+                        // Position the elements
+                        setTimeout(() => {
+                            updateIndicatorBoxesPosition();
+                        }, 50);
                     }
 
                     initPanel();
@@ -2532,8 +2850,8 @@
                     }
                 }
             }, 1000);  // Wait 1 second for star map to load
-        } else if (starSystemRows.length > 0) {
-            // If no stored selection, select the first system by default
+        } else if (starSystemRows.length > 0 && !(isViewChange && currentViewType === 'CAMPAIGN_DASHBOARD')) {
+            // If no stored selection, select the first system by default (unless we're resetting)
             const firstSystemName = starSystemRows[0].dataset.system;
             starSystemRows[0].classList.add('checked');
 
@@ -2577,6 +2895,25 @@
                         infoPanelName.textContent = systemData.name.toUpperCase();
                         await typewriteContent(infoPanelContent, contentHTML);
                         infoPanel.classList.add('visible');
+
+                        // Show indicator boxes, rectangle, and triangle
+                        const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
+                        if (indicatorBoxes) {
+                            indicatorBoxes.classList.add('visible');
+                        }
+                        const rectangle = document.querySelector('.system-info-rectangle');
+                        if (rectangle) {
+                            rectangle.classList.add('visible');
+                        }
+                        const triangle = document.querySelector('.system-info-triangle');
+                        if (triangle) {
+                            triangle.classList.add('visible');
+                        }
+
+                        // Position the elements
+                        setTimeout(() => {
+                            updateIndicatorBoxesPosition();
+                        }, 50);
                     }
 
                     initPanel();

@@ -27,7 +27,6 @@ systems:
     type: "star"
     label: true
     location_slug: "sol"
-    has_system_map: true
     info:
       description: "Earth's home system"
       population: "~8 billion"
@@ -40,7 +39,6 @@ systems:
     type: "star"
     label: true
     location_slug: "proxima-centauri"
-    has_system_map: true
     info:
       description: "Nearest star, research outpost"
       population: "~2,500"
@@ -52,7 +50,6 @@ systems:
     type: "star"
     label: true
     location_slug: "tau-ceti"
-    has_system_map: true
     info:
       description: "Major colony system"
       population: "~185,000"
@@ -64,7 +61,6 @@ systems:
     type: "star"
     label: true
     location_slug: "epsilon-eridani"
-    has_system_map: true
     info:
       description: "Asteroid mining hub"
       population: "~8,500"
@@ -76,7 +72,6 @@ systems:
     type: "star"
     label: true
     location_slug: "ross-128"
-    has_system_map: true
     info:
       description: "Mining operations"
       population: "~1,800"
@@ -88,7 +83,6 @@ systems:
     type: "star"
     label: true
     location_slug: "luyten-star"
-    has_system_map: true
     info:
       description: "Regional trade hub"
       population: "~45,000"
@@ -101,7 +95,6 @@ systems:
     type: "star"
     label: true
     location_slug: "kepler-442"
-    has_system_map: true
     info:
       description: "Frontier colonies"
       population: "~50,000"
@@ -113,7 +106,6 @@ systems:
     type: "star"
     label: true
     location_slug: "trappist-1"
-    has_system_map: true
     info:
       description: "Seven-planet system, research priority"
       population: "~3,200"

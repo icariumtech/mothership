@@ -519,6 +519,15 @@ All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function
 ✓ **View Change Detection**: Uses URL parameter `?viewchange=1` to distinguish GM-triggered view changes from manual refreshes
 ✓ **Auto-Rotation Feature**: Galaxy map automatically rotates around origin when no system is selected, stops on user interaction (zoom/drag)
 ✓ **Configurable Rotation Speed**: Auto-rotation speed of 0.002 radians/frame (~52 seconds per full rotation)
+✓ **Smart Scroll Wheel Handling**: Scroll wheel zooms maps when hovering over background, scrolls panel content when hovering over panels
+✓ **Touch Controls**: Full touch support for mobile/tablet - pinch to zoom and single-finger pan/rotate on both galaxy and system maps, with smart panel detection for scrolling
+✓ **System Map Starfield**: 5000 background stars with starburst texture, random positions/sizes/rotations, additive blending for atmospheric depth
+✓ **Orbital Inclination**: Realistic 3D orbital planes - each planet can have custom inclination angle, orbits and planet positions tilted accordingly
+✓ **Adaptive Orbital Speeds**: Per-system speed calculation ensures fastest planet completes 1 orbit in 10 seconds, maintaining relative speeds for natural viewing
+✓ **45-Degree System View**: All solar systems displayed at 45-degree elevation angle instead of edge-on, providing better 3D perspective of orbital planes
+✓ **Default Orbit Rendering**: Orbits default to teal color (0x5a7a7a) at 0.45 opacity unless overridden in system YAML, matching UI palette
+✓ **Simple Circle Planets**: Planets rendered as teal-outlined circles with solid black centers (billboard sprites) for consistent visibility regardless of color or distance
+✓ **Planet Depth Occlusion**: Sprites use depth buffer to properly occlude orbit lines behind planets
 
 ## Planned Features
 - [ ] Terminal conversation view renderer

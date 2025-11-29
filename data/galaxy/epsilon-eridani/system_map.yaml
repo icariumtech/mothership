@@ -7,7 +7,7 @@ star:
   light_color: 0xFFDD99
 
 camera:
-  position: [0, 0, 200]
+  position: [0, 141, 141]
   lookAt: [0, 0, 0]
   fov: 75
 
@@ -31,6 +31,7 @@ bodies:
     orbital_radius: 80
     orbital_period: 2502
     orbital_angle: 90
+    inclination: 6.2
     size: 3.8
     color: 0xDEB887
     clickable: true
@@ -47,11 +48,6 @@ bodies:
     color: 0x696969
     opacity: 0.35
     clickable: false
-
-orbits:
-  show: true
-  color: 0x666666
-  opacity: 0.2
 
 # Mining stations
 structures:

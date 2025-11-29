@@ -7,7 +7,7 @@ star:
   light_color: 0xFF6644
 
 camera:
-  position: [0, 0, 60]
+  position: [0, 42, 42]
   lookAt: [0, 0, 0]
   fov: 75
   zoom_limits: [20, 100]
@@ -22,6 +22,7 @@ bodies:
     orbital_radius: 6
     orbital_period: 1.51
     orbital_angle: 0
+    inclination: 0.8
     size: 1.1
     color: 0xCC6644
     clickable: false
@@ -34,6 +35,7 @@ bodies:
     orbital_radius: 8
     orbital_period: 2.42
     orbital_angle: 51
+    inclination: 1.4
     size: 1.1
     color: 0xBB5533
     clickable: false
@@ -47,6 +49,7 @@ bodies:
     orbital_radius: 12
     orbital_period: 4.05
     orbital_angle: 102
+    inclination: 0.5
     size: 0.8
     color: 0x8B7355
     atmosphere_color: 0xAA8866
@@ -63,6 +66,7 @@ bodies:
     orbital_radius: 16
     orbital_period: 6.10
     orbital_angle: 153
+    inclination: 1.9
     size: 0.9
     color: 0x4169E1
     atmosphere_color: 0x6495ED
@@ -80,6 +84,7 @@ bodies:
     orbital_radius: 20
     orbital_period: 9.21
     orbital_angle: 204
+    inclination: 2.3
     size: 1.0
     color: 0x5F9EA0
     atmosphere_color: 0x87CEEB
@@ -95,6 +100,7 @@ bodies:
     orbital_radius: 24
     orbital_period: 12.35
     orbital_angle: 255
+    inclination: 1.6
     size: 1.1
     color: 0x778899
     clickable: false
@@ -107,15 +113,10 @@ bodies:
     orbital_radius: 30
     orbital_period: 18.77
     orbital_angle: 306
+    inclination: 2.8
     size: 0.75
     color: 0x4682B4
     clickable: false
     tidally_locked: true
     info:
       description: "Frozen world, too far from star"
-
-orbits:
-  show: true
-  color: 0x553333
-  opacity: 0.3
-  style: "solid"

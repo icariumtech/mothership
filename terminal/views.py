@@ -212,6 +212,16 @@ def display_view(request):
             # Create a JSON-safe dictionary for JavaScript
             systems_dict = {}
             for system in star_systems:
+                # Check if system_map.yaml actually exists for this system
+                location_slug = system.get('location_slug', '')
+                has_system_map = False
+                if location_slug:
+                    system_map_file = os.path.join(settings.BASE_DIR, 'data', 'galaxy', location_slug, 'system_map.yaml')
+                    has_system_map = os.path.exists(system_map_file)
+
+                # Add the dynamically-checked flag to the system dict for template use
+                system['has_system_map'] = has_system_map
+
                 systems_dict[system['name']] = {
                     'name': system['name'],
                     'type': system.get('type', ''),
@@ -220,8 +230,8 @@ def display_view(request):
                     'position': system.get('position', [0, 0, 0]),
                     'color': system.get('color', ''),
                     'size': system.get('size', 1),
-                    'location_slug': system.get('location_slug', ''),
-                    'has_system_map': system.get('has_system_map', False)
+                    'location_slug': location_slug,
+                    'has_system_map': has_system_map
                 }
             star_systems_json = json.dumps(systems_dict)
     except (FileNotFoundError, Exception):

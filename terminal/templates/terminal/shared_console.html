@@ -281,6 +281,7 @@
             display: grid;
             grid-template-rows: 1fr 1fr;  /* Two equal-height panels */
             gap: 30px;  /* 30px between panels */
+            min-height: 0;  /* Allow grid children to shrink below content size */
         }
 
         .dashboard-right {
@@ -288,6 +289,7 @@
             display: grid;
             grid-template-rows: 1fr 1fr;  /* Two equal-height panels */
             gap: 30px;  /* 30px between panels */
+            min-height: 0;  /* Allow grid children to shrink below content size */
         }
 
         /* STEP 3: REUSABLE PANEL STYLING */
@@ -298,6 +300,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            min-height: 0;  /* Allow grid/flex children to shrink below content size */
         }
 
         /* Chamfered corner utilities (mix and match!) */
@@ -850,6 +853,57 @@
             user-select: none;
         }
 
+        /* System map button for star systems */
+        .system-map-btn-container {
+            flex-shrink: 0;
+            background-color: var(--color-bg-panel-dark);
+            border-left: 1px solid var(--color-border-subtle);
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 48px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .system-map-btn-container:hover {
+            background-color: var(--color-bg-panel);
+        }
+
+        .system-map-btn-icon {
+            color: var(--color-teal);
+            font-size: 16px;
+        }
+
+        /* Momentary flash effect for system map button */
+        @keyframes flash-system-map {
+            0% {
+                background-color: var(--color-active);
+            }
+            100% {
+                background-color: var(--color-bg-panel-dark);
+            }
+        }
+
+        .system-map-btn-container.flashing {
+            animation: flash-system-map 0.5s ease-out;
+        }
+
+        .system-map-btn-container.flashing .system-map-btn-icon {
+            animation: flash-system-map-icon 0.5s ease-out;
+        }
+
+        @keyframes flash-system-map-icon {
+            0% {
+                color: var(--color-bg-primary);
+            }
+            100% {
+                color: var(--color-teal);
+            }
+        }
+
         /* System Info Panel */
         .system-info-panel {
             position: absolute;
@@ -1121,6 +1175,17 @@
             background-color: #000000;
         }
 
+        /* 3D System Map Background */
+        #systemmap-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;  /* Background layer */
+            background-color: #000000;
+        }
+
         /* Ensure all view content is above the star map */
         .standby-view,
         .campaign-dashboard,
@@ -1152,6 +1217,9 @@
 
     <!-- 3D Star Map Background Canvas -->
     <canvas id="starmap-canvas"></canvas>
+
+    <!-- 3D System Map Canvas (shown when viewing individual star systems) -->
+    <canvas id="systemmap-canvas" style="display: none;"></canvas>
 
     <!-- Scanline overlay covers entire screen -->
     <div class="scanline-overlay"></div>
@@ -1412,6 +1480,22 @@
                 <div class="dashboard-panel-content">
                     <p>&gt; Investigating anomalous readings</p>
                     <p>&gt; Specimen requires containment</p>
+                    <p>&gt; Station comms experiencing intermittent interference</p>
+                    <p>&gt; Crew morale declining - recommend shore leave</p>
+                    <p>&gt; Unexplained power fluctuations in sector 7</p>
+                    <p>&gt; Medical bay reports increased stress cases</p>
+                    <p>&gt; Supply chain delays expected - ration accordingly</p>
+                    <p>&gt; Scanning unknown vessel at coordinates 45.2, -12.7</p>
+                    <p>&gt; Engineering requesting additional hands for repairs</p>
+                    <p>&gt; Security alert: unauthorized access attempt logged</p>
+                    <p>&gt; Navigation system recalibration scheduled 0800 hours</p>
+                    <p>&gt; Atmospheric readings nominal across all decks</p>
+                    <p>&gt; Distress beacon detected from mining outpost</p>
+                    <p>&gt; Cargo manifest discrepancies under investigation</p>
+                    <p>&gt; Life support systems operating at 98% efficiency</p>
+                    <p>&gt; Recommend full diagnostic sweep before next jump</p>
+                    <p>&gt; Unknown biological signatures detected in hold 3</p>
+                    <p>&gt; Command override protocols updated - review required</p>
                 </div>
             </div>
         </div>
@@ -1427,11 +1511,16 @@
                     {% if star_systems %}
                         {% for system in star_systems %}
                             {% if system.label %}
-                                <div class="star-system-row" data-system="{{ system.name }}">
+                                <div class="star-system-row" data-system="{{ system.name }}" data-has-system-map="{{ system.has_system_map }}">
                                     <div class="star-system-content">
                                         <div class="star-system-checkbox"></div>
                                         <div class="star-system-name">{{ system.name }}</div>
                                     </div>
+                                    {% if system.has_system_map %}
+                                        <div class="system-map-btn-container" title="View system map">
+                                            <span class="system-map-btn-icon">▶</span>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             {% endif %}
                         {% endfor %}
@@ -2194,6 +2283,17 @@
         let maxDistance = 300;  // Maximum distance from center
 
         window.addEventListener('wheel', (event) => {
+            // Check if mouse is over a panel or scrollable content
+            const target = event.target;
+            const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+
+            // If over a panel, allow normal scrolling
+            if (isPanel) {
+                // Don't call preventDefault() - let the browser handle scrolling
+                return;
+            }
+
+            // Otherwise, zoom the galaxy map
             event.preventDefault();
 
             // Disable auto-rotation when user zooms
@@ -2219,11 +2319,16 @@
             }
         }, { passive: false });
 
-        // Touch pinch zoom (for mobile/tablet)
+        // Touch pinch zoom (for mobile/tablet) - attach to window
         let lastTouchDistance = 0;
 
-        canvas.addEventListener('touchstart', (event) => {
+        window.addEventListener('touchstart', (event) => {
             if (event.touches.length === 2) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+                if (isPanel) return;
+
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
                 lastTouchDistance = Math.hypot(
@@ -2233,8 +2338,13 @@
             }
         });
 
-        canvas.addEventListener('touchmove', (event) => {
+        window.addEventListener('touchmove', (event) => {
             if (event.touches.length === 2) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+                if (isPanel) return;
+
                 event.preventDefault();
 
                 // Disable auto-rotation when user pinch zooms
@@ -2250,13 +2360,22 @@
                 const delta = lastTouchDistance - distance;
                 lastTouchDistance = distance;
 
-                // Apply zoom
+                // Apply zoom using directional approach (same as wheel zoom)
+                const direction = lookAtTarget.clone().sub(camera.position).normalize();
+                const currentDistance = camera.position.distanceTo(lookAtTarget);
+
                 if (delta > 0) {
                     // Pinch in (zoom out)
-                    camera.position.z = Math.min(camera.position.z + zoomSpeed * 0.5, maxZoom);
+                    const newDistance = currentDistance + zoomSpeed;
+                    if (newDistance <= maxDistance) {
+                        camera.position.add(direction.multiplyScalar(-zoomSpeed));
+                    }
                 } else if (delta < 0) {
                     // Pinch out (zoom in)
-                    camera.position.z = Math.max(camera.position.z - zoomSpeed * 0.5, minZoom);
+                    const newDistance = currentDistance - zoomSpeed;
+                    if (newDistance >= minDistance) {
+                        camera.position.add(direction.multiplyScalar(zoomSpeed));
+                    }
                 }
             }
         }, { passive: false });
@@ -2322,11 +2441,17 @@
             isDragging = false;
         });
 
-        // Touch rotation (single finger drag)
+        // Touch rotation (single finger drag) - attach to window
         let isTouching = false;
 
-        canvas.addEventListener('touchstart', (event) => {
+        window.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
+                // Check if touching a panel or button
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel, .star-system-row');
+                const isButton = target.closest('button, .system-map-btn-container, .show-btn-container');
+                if (isPanel || isButton) return;
+
                 isTouching = true;
                 // Disable auto-rotation when user manually rotates
                 window.starMapState.autoRotate = false;
@@ -2337,8 +2462,16 @@
             }
         });
 
-        canvas.addEventListener('touchmove', (event) => {
+        window.addEventListener('touchmove', (event) => {
             if (isTouching && event.touches.length === 1) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+                if (isPanel) {
+                    isTouching = false;
+                    return;
+                }
+
                 event.preventDefault();
 
                 const touch = event.touches[0];
@@ -2371,7 +2504,7 @@
             }
         }, { passive: false });
 
-        canvas.addEventListener('touchend', () => {
+        window.addEventListener('touchend', () => {
             isTouching = false;
         });
 
@@ -2386,6 +2519,702 @@
             }
         }, 500);
     })();
+    </script>
+
+    <!-- System Map (Solar System View) Script -->
+    <script>
+    // Global state for system map
+    window.systemMapState = {
+        scene: null,
+        camera: null,
+        renderer: null,
+        planets: [],
+        orbits: [],
+        star: null,
+        currentSystem: null,
+        animationFrameId: null,
+        startTime: Date.now(),
+        controlsInitialized: false,
+        speedMultiplier: 10  // Default, will be calculated per-system
+    };
+
+    // Initialize system map scene
+    function initSystemMap() {
+        const canvas = document.getElementById('systemmap-canvas');
+        if (!canvas) return;
+
+        // Create scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        window.systemMapState.scene = scene;
+
+        // Create camera
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 0, 180);
+        camera.lookAt(0, 0, 0);
+        window.systemMapState.camera = camera;
+
+        // Create renderer
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        window.systemMapState.renderer = renderer;
+
+        // Add ambient light (dim)
+        const ambientLight = new THREE.AmbientLight(0x222244, 0.2);
+        scene.add(ambientLight);
+
+        // Create star texture for background starfield
+        function createStarTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const centerX = 64;
+            const centerY = 64;
+
+            // Draw bright center core with glow
+            const coreGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 25);
+            coreGradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+            coreGradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+            coreGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+            coreGradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+            ctx.fillStyle = coreGradient;
+            ctx.fillRect(0, 0, 128, 128);
+
+            // Draw simple 4-point cross
+            ctx.globalCompositeOperation = 'lighter';
+            drawSpike(ctx, centerX, centerY, 0, 50, 3);      // North
+            drawSpike(ctx, centerX, centerY, 90, 50, 3);     // East
+            drawSpike(ctx, centerX, centerY, 180, 50, 3);    // South
+            drawSpike(ctx, centerX, centerY, 270, 50, 3);    // West
+
+            // Apply blur for soft glow
+            ctx.filter = 'blur(2px)';
+            ctx.drawImage(canvas, 0, 0);
+            ctx.filter = 'none';
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function drawSpike(ctx, x, y, angle, length, width) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate((angle * Math.PI) / 180);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, length);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-width, length);
+            ctx.lineTo(width, length);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        const starTexture = createStarTexture();
+
+        // Create background star field
+        const starFieldCount = 5000;
+        const backgroundStars = [];
+
+        for (let i = 0; i < starFieldCount; i++) {
+            // Random position in a large sphere
+            const radius = 150 + Math.random() * 300;  // Distance from center
+            const theta = Math.random() * Math.PI * 2;  // Horizontal angle
+            const phi = Math.acos(2 * Math.random() - 1);  // Vertical angle (uniform distribution)
+
+            const position = new THREE.Vector3(
+                radius * Math.sin(phi) * Math.cos(theta),
+                radius * Math.sin(phi) * Math.sin(theta),
+                radius * Math.cos(phi)
+            );
+
+            // Create sprite with starburst texture
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: starTexture,
+                color: 0xFFFFFF,
+                transparent: true,
+                opacity: 0.4 + Math.random() * 0.4,  // Random opacity 0.4-0.8
+                blending: THREE.AdditiveBlending
+            });
+
+            const sprite = new THREE.Sprite(spriteMaterial);
+
+            // Random size variation (smaller than main stars)
+            const size = 0.5 + Math.random() * 1.5;  // Size 0.5 to 2.0
+            sprite.scale.set(size, size, 1);
+            sprite.position.copy(position);
+
+            // Random rotation for variety
+            sprite.material.rotation = Math.random() * Math.PI * 2;
+
+            scene.add(sprite);
+            backgroundStars.push(sprite);
+        }
+
+        console.log('System map initialized with', starFieldCount, 'background stars');
+    }
+
+    // Load and display system map
+    async function loadSystemMap(systemSlug) {
+        try {
+            const response = await fetch(`/api/system-map/${systemSlug}/`);
+            if (!response.ok) {
+                throw new Error(`Failed to load system map: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('System map data loaded:', data);
+
+            // Store current system
+            window.systemMapState.currentSystem = data;
+
+            // Clear existing objects
+            clearSystemMap();
+
+            // Initialize scene if not already done
+            if (!window.systemMapState.scene) {
+                initSystemMap();
+            }
+
+            // Render the star
+            renderStar(data.star);
+
+            // Render planets and orbits
+            if (data.bodies) {
+                data.bodies.forEach(body => {
+                    renderPlanet(body);
+                    // Render orbits by default unless explicitly disabled
+                    if (!data.orbits || data.orbits.show !== false) {
+                        renderOrbit(body, data.orbits || {});
+                    }
+                });
+            }
+
+            // Calculate speed multiplier based on fastest planet
+            // Target: fastest planet completes 1 orbit in 10 seconds
+            if (window.systemMapState.planets.length > 0) {
+                const minOrbitalPeriod = Math.min(...window.systemMapState.planets.map(p => p.orbitalPeriod));
+                window.systemMapState.speedMultiplier = minOrbitalPeriod / 10;
+                console.log(`Speed multiplier for ${data.star.name}: ${window.systemMapState.speedMultiplier.toFixed(2)} (fastest planet: ${minOrbitalPeriod} days)`);
+            }
+
+            // Apply camera settings from data
+            if (data.camera) {
+                const cam = window.systemMapState.camera;
+                cam.position.set(...data.camera.position);
+                cam.lookAt(...data.camera.lookAt);
+                if (data.camera.fov) {
+                    cam.fov = data.camera.fov;
+                    cam.updateProjectionMatrix();
+                }
+            }
+
+            // Show system map, hide galaxy map
+            showSystemMap();
+
+            // Initialize controls if not already done
+            if (!window.systemMapState.controlsInitialized) {
+                initSystemMapControls();
+                window.systemMapState.controlsInitialized = true;
+            }
+
+            // Start animation
+            if (!window.systemMapState.animationFrameId) {
+                animateSystemMap();
+            }
+
+        } catch (error) {
+            console.error('Error loading system map:', error);
+        }
+    }
+
+    // Render central star
+    function renderStar(starData) {
+        const scene = window.systemMapState.scene;
+
+        // Create star sphere
+        const starGeometry = new THREE.SphereGeometry(starData.size || 4, 32, 32);
+        const starMaterial = new THREE.MeshBasicMaterial({
+            color: starData.color || 0xFFFFAA
+        });
+        const star = new THREE.Mesh(starGeometry, starMaterial);
+        star.position.set(0, 0, 0);
+        scene.add(star);
+
+        // Add point light at star position
+        const starLight = new THREE.PointLight(
+            starData.light_color || starData.color || 0xFFFFAA,
+            starData.corona_intensity || 1.5,
+            500
+        );
+        starLight.position.set(0, 0, 0);
+        scene.add(starLight);
+
+        // Add glow effect
+        const glowGeometry = new THREE.SphereGeometry(starData.size * 1.5 || 6, 32, 32);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: starData.color || 0xFFFFAA,
+            transparent: true,
+            opacity: 0.3
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        glow.position.set(0, 0, 0);
+        scene.add(glow);
+
+        window.systemMapState.star = { star, glow, light: starLight };
+    }
+
+    // Render a planet
+    function renderPlanet(bodyData) {
+        const scene = window.systemMapState.scene;
+
+        // Create circle texture for planet outline
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+
+        // Draw solid black circle background
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(32, 32, 28, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw teal circle outline on top
+        ctx.strokeStyle = '#5a7a7a';  // Teal to match UI
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(32, 32, 28, 0, Math.PI * 2);
+        ctx.stroke();
+
+        const texture = new THREE.CanvasTexture(canvas);
+
+        // Create sprite with circle texture (automatically faces camera)
+        const spriteMaterial = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthWrite: true,  // Ensure sprite writes to depth buffer to occlude objects behind it
+            depthTest: true
+        });
+
+        const planet = new THREE.Sprite(spriteMaterial);
+        const size = (bodyData.size || 1) * 2;  // Double size to maintain visibility
+        planet.scale.set(size, size, 1);
+
+        // Calculate initial position based on orbital_angle
+        const angle = (bodyData.orbital_angle || 0) * (Math.PI / 180);
+        const x = Math.cos(angle) * bodyData.orbital_radius;
+        const z = Math.sin(angle) * bodyData.orbital_radius;
+
+        // Apply orbital inclination
+        const inclinationRad = (bodyData.inclination || 0) * (Math.PI / 180);
+        planet.position.x = x * Math.cos(inclinationRad);
+        planet.position.y = x * Math.sin(inclinationRad);
+        planet.position.z = z;
+
+        scene.add(planet);
+
+        // Store planet data for animation
+        window.systemMapState.planets.push({
+            mesh: planet,
+            orbitalRadius: bodyData.orbital_radius,
+            orbitalPeriod: bodyData.orbital_period || 365,
+            initialAngle: angle,
+            inclination: bodyData.inclination || 0,  // Store inclination in degrees
+            name: bodyData.name,
+            clickable: bodyData.clickable || false,
+            locationSlug: bodyData.location_slug
+        });
+    }
+
+    // Render orbital path
+    function renderOrbit(bodyData, orbitSettings) {
+        const scene = window.systemMapState.scene;
+
+        const curve = new THREE.EllipseCurve(
+            0, 0,
+            bodyData.orbital_radius, bodyData.orbital_radius,
+            0, 2 * Math.PI,
+            false,
+            0
+        );
+
+        const points = curve.getPoints(128);
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+            color: orbitSettings.color || 0x5a7a7a,
+            transparent: true,
+            opacity: orbitSettings.opacity || 0.45
+        });
+
+        const orbit = new THREE.Line(geometry, material);
+
+        // Rotate to XZ plane
+        orbit.rotation.x = Math.PI / 2;
+
+        // Apply orbital inclination (tilt around Y axis)
+        const inclination = bodyData.inclination || 0;  // Inclination in degrees
+        orbit.rotation.y = inclination * (Math.PI / 180);  // Convert to radians
+
+        scene.add(orbit);
+
+        window.systemMapState.orbits.push(orbit);
+    }
+
+    // Animation loop for system map
+    function animateSystemMap() {
+        window.systemMapState.animationFrameId = requestAnimationFrame(animateSystemMap);
+
+        const scene = window.systemMapState.scene;
+        const camera = window.systemMapState.camera;
+        const renderer = window.systemMapState.renderer;
+
+        if (!scene || !camera || !renderer) return;
+
+        // Animate planets along their orbits
+        const currentTime = Date.now();
+        const elapsedSeconds = (currentTime - window.systemMapState.startTime) / 1000;
+
+        window.systemMapState.planets.forEach(planetData => {
+            // Calculate current angle based on orbital period
+            // Use system-specific speed multiplier (calculated so fastest planet orbits once per 5 seconds)
+            const orbitalSpeed = (2 * Math.PI) / planetData.orbitalPeriod * window.systemMapState.speedMultiplier;
+            const currentAngle = planetData.initialAngle + (orbitalSpeed * elapsedSeconds);
+
+            // Calculate position in orbital plane (before inclination)
+            const x = Math.cos(currentAngle) * planetData.orbitalRadius;
+            const z = Math.sin(currentAngle) * planetData.orbitalRadius;
+
+            // Apply orbital inclination
+            const inclinationRad = planetData.inclination * (Math.PI / 180);
+
+            // Rotate position around Y axis by inclination angle
+            planetData.mesh.position.x = x * Math.cos(inclinationRad);
+            planetData.mesh.position.y = x * Math.sin(inclinationRad);
+            planetData.mesh.position.z = z;
+
+            // Rotate planet on its axis
+            planetData.mesh.rotation.y += 0.01;
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    // Clear system map
+    function clearSystemMap() {
+        const scene = window.systemMapState.scene;
+        if (!scene) return;
+
+        // Remove all planets
+        window.systemMapState.planets.forEach(p => scene.remove(p.mesh));
+        window.systemMapState.planets = [];
+
+        // Remove all orbits
+        window.systemMapState.orbits.forEach(o => scene.remove(o));
+        window.systemMapState.orbits = [];
+
+        // Remove star
+        if (window.systemMapState.star) {
+            scene.remove(window.systemMapState.star.star);
+            scene.remove(window.systemMapState.star.glow);
+            scene.remove(window.systemMapState.star.light);
+            window.systemMapState.star = null;
+        }
+    }
+
+    // Show system map, hide galaxy map
+    function showSystemMap() {
+        document.getElementById('starmap-canvas').style.display = 'none';
+        document.getElementById('systemmap-canvas').style.display = 'block';
+    }
+
+    // Hide system map, show galaxy map
+    function hideSystemMap() {
+        document.getElementById('systemmap-canvas').style.display = 'none';
+        document.getElementById('starmap-canvas').style.display = 'block';
+
+        // Stop animation
+        if (window.systemMapState.animationFrameId) {
+            cancelAnimationFrame(window.systemMapState.animationFrameId);
+            window.systemMapState.animationFrameId = null;
+        }
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        if (window.systemMapState.camera && window.systemMapState.renderer) {
+            window.systemMapState.camera.aspect = window.innerWidth / window.innerHeight;
+            window.systemMapState.camera.updateProjectionMatrix();
+            window.systemMapState.renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    });
+
+    // Add camera controls for system map
+    function initSystemMapControls() {
+        const canvas = document.getElementById('systemmap-canvas');
+        if (!canvas) {
+            console.error('System map canvas not found!');
+            return;
+        }
+
+        console.log('Attaching controls to systemmap-canvas, display:', canvas.style.display);
+
+        let lookAtTarget = new THREE.Vector3(0, 0, 0);
+        const minDistance = 60;
+        const maxDistance = 300;
+        const zoomSpeed = 0.1;
+        const rotateSpeed = 0.005;
+
+        // Mouse wheel zoom - attach to window so it works anywhere
+        window.addEventListener('wheel', (event) => {
+            // Only handle wheel events when system map is visible
+            if (canvas.style.display !== 'block') return;
+
+            // Check if mouse is over a panel or scrollable content
+            const target = event.target;
+            const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+
+            // If over a panel, allow normal scrolling
+            if (isPanel) {
+                // Don't call preventDefault() - let the browser handle scrolling
+                return;
+            }
+
+            // Otherwise, zoom the system map
+            event.preventDefault();
+
+            const camera = window.systemMapState.camera;
+            if (!camera) return;
+
+            const delta = event.deltaY;
+            const offset = camera.position.clone().sub(lookAtTarget);
+            let distance = offset.length();
+
+            if (delta > 0) {
+                distance *= (1 + zoomSpeed);
+            } else {
+                distance *= (1 - zoomSpeed);
+            }
+
+            distance = Math.max(minDistance, Math.min(maxDistance, distance));
+            offset.normalize().multiplyScalar(distance);
+            camera.position.copy(lookAtTarget).add(offset);
+        }, { passive: false });
+
+        // Mouse drag rotation - attach to window
+        let isDragging = false;
+        let previousPosition = { x: 0, y: 0 };
+
+        window.addEventListener('mousedown', (event) => {
+            // Only handle when system map is visible
+            if (canvas.style.display !== 'block') return;
+
+            // Don't start dragging if clicking on UI panels or interactive elements
+            const target = event.target;
+            const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .star-system-row, .system-info-panel, .dashboard-panel-content');
+            const isButton = target.closest('button, .system-map-btn-container, .show-btn-container');
+
+            if (isPanel || isButton) {
+                console.log('Click on UI element, not starting drag');
+                return;
+            }
+
+            console.log('Starting drag rotation');
+            isDragging = true;
+            previousPosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (!isDragging || canvas.style.display !== 'block') return;
+
+            const camera = window.systemMapState.camera;
+            if (!camera) return;
+
+            const deltaX = event.clientX - previousPosition.x;
+            const deltaY = event.clientY - previousPosition.y;
+
+            const offset = camera.position.clone().sub(lookAtTarget);
+            const radius = offset.length();
+
+            let theta = Math.atan2(offset.x, offset.z);
+            let phi = Math.acos(offset.y / radius);
+
+            theta -= deltaX * rotateSpeed;
+            phi -= deltaY * rotateSpeed;
+
+            phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+            offset.x = radius * Math.sin(phi) * Math.sin(theta);
+            offset.y = radius * Math.cos(phi);
+            offset.z = radius * Math.sin(phi) * Math.cos(theta);
+
+            camera.position.copy(lookAtTarget).add(offset);
+            camera.lookAt(lookAtTarget);
+
+            previousPosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        window.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        // Touch controls - attach to window
+        let isTouching = false;
+
+        window.addEventListener('touchstart', (event) => {
+            // Only handle when system map is visible
+            if (canvas.style.display !== 'block') return;
+
+            if (event.touches.length === 1) {
+                // Check if touching a panel or button
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+                const isButton = target.closest('button, .system-map-btn-container, .show-btn-container');
+                if (isPanel || isButton) return;
+
+                isTouching = true;
+                previousPosition = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+            }
+        });
+
+        window.addEventListener('touchmove', (event) => {
+            // Only handle when system map is visible
+            if (canvas.style.display !== 'block') return;
+
+            if (isTouching && event.touches.length === 1) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+                if (isPanel) {
+                    isTouching = false;
+                    return;
+                }
+
+                event.preventDefault();
+
+                const camera = window.systemMapState.camera;
+                if (!camera) return;
+
+                const touch = event.touches[0];
+                const deltaX = touch.clientX - previousPosition.x;
+                const deltaY = touch.clientY - previousPosition.y;
+
+                const offset = camera.position.clone().sub(lookAtTarget);
+                const radius = offset.length();
+
+                let theta = Math.atan2(offset.x, offset.z);
+                let phi = Math.acos(offset.y / radius);
+
+                theta -= deltaX * rotateSpeed;
+                phi -= deltaY * rotateSpeed;
+
+                phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+                offset.x = radius * Math.sin(phi) * Math.sin(theta);
+                offset.y = radius * Math.cos(phi);
+                offset.z = radius * Math.sin(phi) * Math.cos(theta);
+
+                camera.position.copy(lookAtTarget).add(offset);
+                camera.lookAt(lookAtTarget);
+
+                previousPosition = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            isTouching = false;
+        });
+
+        // Pinch zoom for mobile - attach to window
+        let lastTouchDistance = 0;
+
+        window.addEventListener('touchstart', (event) => {
+            // Only handle when system map is visible
+            if (canvas.style.display !== 'block') return;
+
+            if (event.touches.length === 2) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+                if (isPanel) return;
+
+                const dx = event.touches[0].clientX - event.touches[1].clientX;
+                const dy = event.touches[0].clientY - event.touches[1].clientY;
+                lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+            }
+        });
+
+        window.addEventListener('touchmove', (event) => {
+            // Only handle when system map is visible
+            if (canvas.style.display !== 'block') return;
+
+            if (event.touches.length === 2) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel');
+                if (isPanel) return;
+
+                event.preventDefault();
+
+                const camera = window.systemMapState.camera;
+                if (!camera) return;
+
+                const dx = event.touches[0].clientX - event.touches[1].clientX;
+                const dy = event.touches[0].clientY - event.touches[1].clientY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                const delta = distance - lastTouchDistance;
+                const offset = camera.position.clone().sub(lookAtTarget);
+                let dist = offset.length();
+
+                if (delta < 0) {
+                    dist *= (1 + zoomSpeed);
+                } else {
+                    dist *= (1 - zoomSpeed);
+                }
+
+                dist = Math.max(minDistance, Math.min(maxDistance, dist));
+                offset.normalize().multiplyScalar(dist);
+                camera.position.copy(lookAtTarget).add(offset);
+
+                lastTouchDistance = distance;
+            }
+        }, { passive: false });
+
+        console.log('System map controls initialized');
+    }
     </script>
 
     <!-- Star System Selection Script -->
@@ -2513,13 +3342,16 @@
         const starSystemRows = document.querySelectorAll('.star-system-row');
 
         starSystemRows.forEach(row => {
-            row.addEventListener('click', function() {
-                // Get the system name
-                const systemName = this.dataset.system;
+            // Get the content area for system selection
+            const contentArea = row.querySelector('.star-system-content');
+            if (contentArea) {
+                contentArea.addEventListener('click', function() {
+                    // Get the system name from the parent row
+                    const systemName = row.dataset.system;
 
-                // If this system is already checked, uncheck it
-                if (this.classList.contains('checked')) {
-                    this.classList.remove('checked');
+                    // If this system is already checked, uncheck it
+                    if (row.classList.contains('checked')) {
+                        row.classList.remove('checked');
                     // Remove from localStorage (no system selected)
                     localStorage.removeItem('selected_star_system');
                     console.log('No star system selected');
@@ -2559,138 +3391,169 @@
                     return;
                 }
 
-                // Uncheck all other systems
-                starSystemRows.forEach(otherRow => {
-                    otherRow.classList.remove('checked');
-                });
+                    // Uncheck all other systems
+                    starSystemRows.forEach(otherRow => {
+                        otherRow.classList.remove('checked');
+                    });
 
-                // Check this system
-                this.classList.add('checked');
+                    // Check this system
+                    row.classList.add('checked');
 
-                // Store selected system in localStorage for persistence
-                localStorage.setItem('selected_star_system', systemName);
+                    // Store selected system in localStorage for persistence
+                    localStorage.setItem('selected_star_system', systemName);
 
-                console.log(`Star system ${systemName} selected`);
+                    console.log(`Star system ${systemName} selected`);
 
-                // Get system data and populate info panel
-                if (window.starSystemsData && window.starSystemsData[systemName]) {
-                    const systemData = window.starSystemsData[systemName];
-                    const infoPanel = document.getElementById('system-info-panel');
-                    const infoPanelName = document.getElementById('system-info-name');
-                    const infoPanelContent = document.getElementById('system-info-content');
+                    // Get system data and populate info panel
+                    if (window.starSystemsData && window.starSystemsData[systemName]) {
+                        const systemData = window.starSystemsData[systemName];
+                        const infoPanel = document.getElementById('system-info-panel');
+                        const infoPanelName = document.getElementById('system-info-name');
+                        const infoPanelContent = document.getElementById('system-info-content');
 
-                    if (infoPanel && infoPanelName && infoPanelContent) {
-                        // Check if panel is already visible
-                        const wasVisible = infoPanel.classList.contains('visible');
+                        if (infoPanel && infoPanelName && infoPanelContent) {
+                            // Check if panel is already visible
+                            const wasVisible = infoPanel.classList.contains('visible');
 
-                        // Build info content HTML
-                        let contentHTML = '';
+                            // Build info content HTML
+                            let contentHTML = '';
 
-                        // Type
-                        if (systemData.type) {
-                            contentHTML += '<p><span class="info-label">TYPE:</span> <span class="info-value">' +
-                                systemData.type.toUpperCase() + '</span></p>';
-                        }
+                            // Type
+                            if (systemData.type) {
+                                contentHTML += '<p><span class="info-label">TYPE:</span> <span class="info-value">' +
+                                    systemData.type.toUpperCase() + '</span></p>';
+                            }
 
-                        // Description
-                        if (systemData.description) {
-                            contentHTML += '<p><span class="info-label">DESCRIPTION:</span> <span class="info-value">' +
-                                systemData.description + '</span></p>';
-                        }
+                            // Description
+                            if (systemData.description) {
+                                contentHTML += '<p><span class="info-label">DESCRIPTION:</span> <span class="info-value">' +
+                                    systemData.description + '</span></p>';
+                            }
 
-                        // Population
-                        if (systemData.population) {
-                            contentHTML += '<p><span class="info-label">POPULATION:</span> <span class="info-value">' +
-                                systemData.population + '</span></p>';
-                        }
+                            // Population
+                            if (systemData.population) {
+                                contentHTML += '<p><span class="info-label">POPULATION:</span> <span class="info-value">' +
+                                    systemData.population + '</span></p>';
+                            }
 
-                        // Position coordinates
-                        if (systemData.position) {
-                            contentHTML += '<p><span class="info-label">COORDINATES:</span> <span class="info-value">' +
-                                systemData.position.join(', ') + '</span></p>';
-                        }
+                            // Position coordinates
+                            if (systemData.position) {
+                                contentHTML += '<p><span class="info-label">COORDINATES:</span> <span class="info-value">' +
+                                    systemData.position.join(', ') + '</span></p>';
+                            }
 
-                        // Location slug
-                        if (systemData.location_slug) {
-                            contentHTML += '<p><span class="info-label">LOCATION ID:</span> <span class="info-value">' +
-                                systemData.location_slug + '</span></p>';
-                        }
+                            // Location slug
+                            if (systemData.location_slug) {
+                                contentHTML += '<p><span class="info-label">LOCATION ID:</span> <span class="info-value">' +
+                                    systemData.location_slug + '</span></p>';
+                            }
 
-                        // System map availability
-                        if (systemData.has_system_map) {
-                            contentHTML += '<p><span class="info-label">SYSTEM MAP:</span> <span class="info-value">AVAILABLE</span></p>';
-                        }
+                            // System map availability
+                            if (systemData.has_system_map) {
+                                contentHTML += '<p><span class="info-label">SYSTEM MAP:</span> <span class="info-value">AVAILABLE</span></p>';
+                            }
 
-                        // Update content with typewriter effect
-                        async function updatePanel() {
-                            const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
+                            // Update content with typewriter effect
+                            async function updatePanel() {
+                                const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
 
-                            if (wasVisible) {
-                                // Fade out old content
-                                infoPanelContent.style.opacity = '0';
-                                infoPanelContent.style.transition = 'opacity 0.3s ease';
+                                if (wasVisible) {
+                                    // Fade out old content
+                                    infoPanelContent.style.opacity = '0';
+                                    infoPanelContent.style.transition = 'opacity 0.3s ease';
 
-                                // Wait for fade out
-                                await new Promise(resolve => setTimeout(resolve, 300));
-                            } else {
-                                // Show panel, indicator boxes, rectangle, and triangle first so fade-in happens while typing
-                                infoPanel.classList.add('visible');
-                                if (indicatorBoxes) {
-                                    indicatorBoxes.classList.add('visible');
-                                    // Show rectangle element
-                                    const rectangle = document.querySelector('.system-info-rectangle');
-                                    if (rectangle) rectangle.classList.add('visible');
-                                    // Show triangle element
-                                    const triangle = document.querySelector('.system-info-triangle');
-                                    if (triangle) triangle.classList.add('visible');
+                                    // Wait for fade out
+                                    await new Promise(resolve => setTimeout(resolve, 300));
+                                } else {
+                                    // Show panel, indicator boxes, rectangle, and triangle first so fade-in happens while typing
+                                    infoPanel.classList.add('visible');
+                                    if (indicatorBoxes) {
+                                        indicatorBoxes.classList.add('visible');
+                                        // Show rectangle element
+                                        const rectangle = document.querySelector('.system-info-rectangle');
+                                        if (rectangle) rectangle.classList.add('visible');
+                                        // Show triangle element
+                                        const triangle = document.querySelector('.system-info-triangle');
+                                        if (triangle) triangle.classList.add('visible');
 
-                                    // Position boxes, rectangle, and triangle with a small delay for panel to start rendering
+                                        // Position boxes, rectangle, and triangle with a small delay for panel to start rendering
+                                        setTimeout(() => {
+                                            updateIndicatorBoxesPosition();
+                                        }, 50);
+                                    }
+                                }
+
+                                // Update header
+                                infoPanelName.textContent = systemData.name.toUpperCase();
+
+                                // Reset opacity and typewrite new content
+                                infoPanelContent.style.opacity = '1';
+                                await typewriteContent(infoPanelContent, contentHTML);
+
+                                // Update indicator boxes position after content is loaded (in case height changed)
+                                if (indicatorBoxes && wasVisible) {
                                     setTimeout(() => {
                                         updateIndicatorBoxesPosition();
                                     }, 50);
                                 }
                             }
 
-                            // Update header
-                            infoPanelName.textContent = systemData.name.toUpperCase();
+                            updatePanel();
+                        }
+                    }
 
-                            // Reset opacity and typewrite new content
-                            infoPanelContent.style.opacity = '1';
-                            await typewriteContent(infoPanelContent, contentHTML);
-
-                            // Update indicator boxes position after content is loaded (in case height changed)
-                            if (indicatorBoxes && wasVisible) {
-                                setTimeout(() => {
-                                    updateIndicatorBoxesPosition();
-                                }, 50);
+                    // Animate camera to selected star system
+                    if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
+                        const position = window.starMapState.starPositions.get(systemName);
+                        if (position) {
+                            // Show and position selection reticle
+                            if (window.starMapState.selectionReticle) {
+                                window.starMapState.selectionReticle.position.copy(position);
+                                window.starMapState.selectionReticle.visible = true;
                             }
-                        }
 
-                        updatePanel();
+                            // Enable auto-rotation around the selected star
+                            window.starMapState.autoRotate = true;
+
+                            // Animate camera
+                            window.starMapState.animateCameraToTarget(position);
+                            console.log(`Animating camera to ${systemName} at position:`, position);
+                        } else {
+                            console.warn(`Position not found for system: ${systemName}`);
+                        }
                     }
-                }
+                });
+            }
 
-                // Animate camera to selected star system
-                if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
-                    const position = window.starMapState.starPositions.get(systemName);
-                    if (position) {
-                        // Show and position selection reticle
-                        if (window.starMapState.selectionReticle) {
-                            window.starMapState.selectionReticle.position.copy(position);
-                            window.starMapState.selectionReticle.visible = true;
+            // Handle system map button click
+            const systemMapBtn = row.querySelector('.system-map-btn-container');
+            if (systemMapBtn) {
+                systemMapBtn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent row click event
+
+                    // Flash animation
+                    this.classList.add('flashing');
+                    setTimeout(() => {
+                        this.classList.remove('flashing');
+                    }, 500);
+
+                    // Get system name and location slug
+                    const systemName = row.dataset.system;
+                    console.log(`System map button clicked for: ${systemName}`);
+
+                    // Get location slug from starSystemsData
+                    if (window.starSystemsData && window.starSystemsData[systemName]) {
+                        const locationSlug = window.starSystemsData[systemName].location_slug;
+                        if (locationSlug) {
+                            loadSystemMap(locationSlug);
+                        } else {
+                            console.error(`No location_slug found for system: ${systemName}`);
                         }
-
-                        // Enable auto-rotation around the selected star
-                        window.starMapState.autoRotate = true;
-
-                        // Animate camera
-                        window.starMapState.animateCameraToTarget(position);
-                        console.log(`Animating camera to ${systemName} at position:`, position);
                     } else {
-                        console.warn(`Position not found for system: ${systemName}`);
+                        console.error(`System data not found for: ${systemName}`);
                     }
-                }
-            });
+                });
+            }
         });
 
         // Check if this is a view change from GM console (not a manual refresh)

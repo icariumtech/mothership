@@ -12,7 +12,7 @@ star:
 
 # View configuration
 camera:
-  position: [0, 0, 120]
+  position: [0, 85, 85]
   lookAt: [0, 0, 0]
   fov: 75
   zoom_limits: [40, 200]
@@ -32,7 +32,7 @@ bodies:
     orbital_radius: 15
     orbital_period: 11.2  # Days
     orbital_angle: 90
-    orbital_inclination: 0
+    inclination: 1.8
 
     # Visual properties
     size: 1.4
@@ -56,6 +56,7 @@ bodies:
     orbital_radius: 40
     orbital_period: 1928  # ~5.3 years
     orbital_angle: 200
+    inclination: 4.5
     size: 1.8
     color: 0x5A7A9A  # Icy blue-grey
 
@@ -65,13 +66,6 @@ bodies:
     info:
       description: "Cold super-Earth, likely icy surface"
       habitability: "None - frozen"
-
-# Orbital paths
-orbits:
-  show: true
-  color: 0x664444
-  opacity: 0.25
-  style: "solid"
 
 # Hazards
 stellar_activity:

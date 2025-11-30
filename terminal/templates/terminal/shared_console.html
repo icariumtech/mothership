@@ -1200,8 +1200,14 @@
         }
     </style>
 
-    <!-- Three.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <!-- Three.js Library (ES Module via Import Map) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
 </head>
 <body{% if active_view.view_type == 'STANDBY' %} class="standby-mode"{% endif %}>
     <!-- Terminal Header -->
@@ -1643,7 +1649,9 @@
     </script>
 
     <!-- 3D Star Map Initialization -->
-    <script>
+    <script type="module">
+    import * as THREE from 'three';
+
     // Global star map state (accessible to other scripts)
     window.starMapState = {
         starPositions: new Map(),  // Map of system name to position
@@ -2522,7 +2530,9 @@
     </script>
 
     <!-- System Map (Solar System View) Script -->
-    <script>
+    <script type="module">
+    import * as THREE from 'three';
+
     // Global state for system map
     window.systemMapState = {
         scene: null,
@@ -2535,7 +2545,10 @@
         animationFrameId: null,
         startTime: Date.now(),
         controlsInitialized: false,
-        speedMultiplier: 10  // Default, will be calculated per-system
+        speedMultiplier: 10,  // Default, will be calculated per-system
+        selectedPlanet: null,  // Track currently selected planet
+        raycaster: null,       // For planet click detection
+        mouse: new THREE.Vector2()  // Mouse position for raycasting
     };
 
     // Initialize system map scene
@@ -2668,6 +2681,9 @@
         }
 
         console.log('System map initialized with', starFieldCount, 'background stars');
+
+        // Initialize raycaster for planet click detection
+        window.systemMapState.raycaster = new THREE.Raycaster();
     }
 
     // Load and display system map
@@ -2981,6 +2997,15 @@
             window.systemMapState.animationFrameId = null;
         }
 
+        // Clear selected planet state
+        window.systemMapState.selectedPlanet = null;
+
+        // Cancel any ongoing typewriter animations immediately
+        const infoPanelContent = document.getElementById('system-info-content');
+        if (infoPanelContent && infoPanelContent._typewriterCancelled !== undefined) {
+            infoPanelContent._typewriterCancelled = true;
+        }
+
         // Restore galaxy list when hiding system map
         showGalaxyList();
     }
@@ -3033,6 +3058,45 @@
     }
 
     /**
+     * Builds HTML content for planet info panel
+     * @param {Object} planetData - Planet data object from system_map.yaml
+     * @returns {string} HTML string for panel content
+     */
+    function buildPlanetInfoHTML(planetData) {
+        let contentHTML = '';
+
+        const fields = [
+            { key: 'type', label: 'TYPE', transform: val => val.toUpperCase().replace('_', ' ') },
+            { key: 'description', label: 'DESCRIPTION', nested: 'info' },
+            { key: 'population', label: 'POPULATION', nested: 'info' },
+            { key: 'habitability', label: 'HABITABILITY', nested: 'info' },
+            { key: 'industry', label: 'INDUSTRY', nested: 'info' },
+            { key: 'orbital_radius', label: 'ORBITAL RADIUS', transform: val => `${val} AU` },
+            { key: 'orbital_period', label: 'ORBITAL PERIOD', transform: val => `${val} days` },
+            { key: 'inclination', label: 'INCLINATION', transform: val => `${val}°` },
+            { key: 'tidally_locked', label: 'ROTATION', transform: val => val ? 'TIDALLY LOCKED' : 'NORMAL' },
+            { key: 'location_slug', label: 'LOCATION ID' },
+            { key: 'has_orbit_map', label: 'ORBIT MAP', transform: () => 'AVAILABLE' }
+        ];
+
+        fields.forEach(field => {
+            let value;
+            if (field.nested === 'info' && planetData.info) {
+                value = planetData.info[field.key];
+            } else {
+                value = planetData[field.key];
+            }
+
+            if (value !== undefined && value !== null) {
+                const displayValue = field.transform ? field.transform(value) : value;
+                contentHTML += `<p><span class="info-label">${field.label}:</span> <span class="info-value">${displayValue}</span></p>`;
+            }
+        });
+
+        return contentHTML;
+    }
+
+    /**
      * Show or hide system info panel decorations
      * @param {boolean} visible - Whether to show or hide decorations
      */
@@ -3068,12 +3132,174 @@
         }
     }
 
+    /**
+     * Select a planet and display its details in the info panel
+     * @param {Object} planetData - Planet data from system_map.yaml
+     */
+    async function selectPlanet(planetData) {
+        const infoPanel = document.getElementById('system-info-panel');
+        const infoPanelName = document.getElementById('system-info-name');
+        const infoPanelContent = document.getElementById('system-info-content');
+
+        if (!infoPanel || !infoPanelName || !infoPanelContent) {
+            console.error('System info panel elements not found');
+            return;
+        }
+
+        // Store selected planet
+        window.systemMapState.selectedPlanet = planetData;
+
+        // Cancel any ongoing typewriter animation immediately
+        if (infoPanelContent._typewriterCancelled !== undefined) {
+            infoPanelContent._typewriterCancelled = true;
+        }
+
+        // Fade out old content first (same pattern as galaxy map)
+        infoPanelContent.style.opacity = '0';
+        infoPanelContent.style.transition = 'opacity 300ms ease';
+
+        // Wait for fade out
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Update panel title
+        infoPanelName.textContent = planetData.name.toUpperCase();
+
+        // Reset opacity and typewrite new content
+        infoPanelContent.style.opacity = '1';
+        const contentHTML = buildPlanetInfoHTML(planetData);
+        await window.typewriteContent(infoPanelContent, contentHTML);
+
+        console.log('Selected planet:', planetData.name);
+    }
+
+    /**
+     * Unselect current planet and restore system details
+     */
+    async function unselectPlanet() {
+        const systemData = window.systemMapState.currentSystem;
+        if (!systemData) return;
+
+        const infoPanel = document.getElementById('system-info-panel');
+        const infoPanelName = document.getElementById('system-info-name');
+        const infoPanelContent = document.getElementById('system-info-content');
+
+        if (!infoPanel || !infoPanelName || !infoPanelContent) {
+            console.error('System info panel elements not found');
+            return;
+        }
+
+        // Clear selected planet
+        window.systemMapState.selectedPlanet = null;
+
+        // Cancel any ongoing typewriter animation immediately
+        if (infoPanelContent._typewriterCancelled !== undefined) {
+            infoPanelContent._typewriterCancelled = true;
+        }
+
+        // Fade out old content first (same pattern as galaxy map)
+        infoPanelContent.style.opacity = '0';
+        infoPanelContent.style.transition = 'opacity 300ms ease';
+
+        // Wait for fade out
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Get the selected system data from galaxy map (same data shown when system was selected)
+        const selectedSystem = localStorage.getItem('selected_star_system');
+        let systemInfo = null;
+
+        // Try to get the full galaxy system data
+        if (selectedSystem && window.starSystemsData && window.starSystemsData[selectedSystem]) {
+            systemInfo = window.starSystemsData[selectedSystem];
+            infoPanelName.textContent = systemInfo.name.toUpperCase();
+        } else {
+            // Fallback: use star name from system map data
+            infoPanelName.textContent = systemData.star.name.toUpperCase();
+            // Create minimal system info from star data
+            systemInfo = {
+                type: systemData.star.type,
+                description: `${systemData.star.type} star system`,
+                position: [0, 0, 0],
+                location_slug: systemData.system_slug
+            };
+        }
+
+        // Reset opacity and typewrite new content
+        infoPanelContent.style.opacity = '1';
+        const contentHTML = buildSystemInfoHTML(systemInfo);
+        await window.typewriteContent(infoPanelContent, contentHTML);
+
+        console.log('Unselected planet, restored system info');
+    }
+
+    /**
+     * Handle click events on the system map canvas for planet selection
+     * @param {MouseEvent} event - Click event
+     */
+    function handlePlanetClick(event) {
+        const canvas = document.getElementById('systemmap-canvas');
+        if (!canvas || canvas.style.display !== 'block') return;
+
+        // Don't handle clicks on UI elements
+        const target = event.target;
+        if (target !== canvas) return;
+
+        const raycaster = window.systemMapState.raycaster;
+        const camera = window.systemMapState.camera;
+        const mouse = window.systemMapState.mouse;
+
+        if (!raycaster || !camera) return;
+
+        // Calculate mouse position in normalized device coordinates (-1 to +1)
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        // Update raycaster
+        raycaster.setFromCamera(mouse, camera);
+
+        // Get all clickable planet meshes
+        const clickablePlanets = window.systemMapState.planets
+            .filter(p => p.clickable)
+            .map(p => p.mesh);
+
+        // Check for intersections
+        const intersects = raycaster.intersectObjects(clickablePlanets);
+
+        if (intersects.length > 0) {
+            // Find the planet data for the clicked mesh
+            const clickedMesh = intersects[0].object;
+            const planetData = window.systemMapState.planets.find(p => p.mesh === clickedMesh);
+
+            if (planetData) {
+                // Get full planet data from currentSystem
+                const fullPlanetData = window.systemMapState.currentSystem.bodies.find(
+                    b => b.name === planetData.name
+                );
+
+                if (fullPlanetData) {
+                    // Toggle selection: if already selected, unselect it
+                    if (window.systemMapState.selectedPlanet &&
+                        window.systemMapState.selectedPlanet.name === fullPlanetData.name) {
+                        unselectPlanet();
+                    } else {
+                        selectPlanet(fullPlanetData);
+                    }
+                }
+            }
+        } else {
+            // Clicked on empty space - unselect if a planet is selected
+            if (window.systemMapState.selectedPlanet) {
+                unselectPlanet();
+            }
+        }
+    }
+
     // Global variables for planet list feature
     let originalGalaxyHTML = null;
     let currentView = 'galaxy';  // 'galaxy' or 'planets'
 
     // Show planet list when system map is displayed
-    function showPlanetList(systemData) {
+    async function showPlanetList(systemData) {
         const starMapPanel = document.getElementById('star-map-panel');
         if (!starMapPanel) {
             console.error('Star map panel element not found');
@@ -3145,6 +3371,43 @@
         starMapPanel.innerHTML = planetsHTML;
         currentView = 'planets';
 
+        // Initialize system info panel with star/system details
+        const infoPanel = document.getElementById('system-info-panel');
+        const infoPanelName = document.getElementById('system-info-name');
+        const infoPanelContent = document.getElementById('system-info-content');
+
+        if (infoPanel && infoPanelName && infoPanelContent) {
+            // Get the selected system data from galaxy map (same data shown when system was selected)
+            const selectedSystem = localStorage.getItem('selected_star_system');
+            let systemInfo = null;
+
+            // Try to get the full galaxy system data
+            if (selectedSystem && window.starSystemsData && window.starSystemsData[selectedSystem]) {
+                systemInfo = window.starSystemsData[selectedSystem];
+                infoPanelName.textContent = systemInfo.name.toUpperCase();
+            } else {
+                // Fallback: use star name from system map data
+                infoPanelName.textContent = systemData.star.name.toUpperCase();
+                // Create minimal system info from star data
+                systemInfo = {
+                    type: systemData.star.type,
+                    description: `${systemData.star.type} star system`,
+                    position: [0, 0, 0],
+                    location_slug: systemData.system_slug
+                };
+            }
+
+            const contentHTML = buildSystemInfoHTML(systemInfo);
+
+            // Use typewriter effect for initial system info
+            await window.typewriteContent(infoPanelContent, contentHTML);
+
+            // Show decorations after typewriter completes
+            toggleSystemInfoDecorations(true);
+
+            console.log('Initialized system info panel with:', systemInfo.name || systemData.star.name);
+        }
+
         // Use event delegation for all clicks (fixes C1 - memory leaks)
         setupPlanetListEventDelegation();
 
@@ -3180,11 +3443,12 @@
                 const isCurrentlyChecked = target.classList.contains('checked');
 
                 if (isCurrentlyChecked) {
-                    // Deselect - recenter on star
+                    // Deselect - recenter on star and restore system info
                     target.classList.remove('checked');
                     const checkbox = target.querySelector('[role="checkbox"]');
                     setCheckboxState(checkbox, false);
                     recenterOnStar();
+                    unselectPlanet();  // Restore system info panel
                 } else {
                     // Deselect all other planets
                     const allPlanetRows = starMapPanel.querySelectorAll('.planet-row');
@@ -3201,6 +3465,15 @@
 
                     // Zoom to planet
                     zoomToPlanet(planetName);
+
+                    // Update info panel with planet details
+                    const systemData = window.systemMapState.currentSystem;
+                    if (systemData && systemData.bodies) {
+                        const planetData = systemData.bodies.find(b => b.name === planetName);
+                        if (planetData) {
+                            selectPlanet(planetData);
+                        }
+                    }
                 }
             }
         };
@@ -3282,6 +3555,11 @@
                 const infoPanelContent = document.getElementById('system-info-content');
 
                 if (infoPanel && infoPanelName && infoPanelContent) {
+                    // Cancel any ongoing typewriter animation from system map
+                    if (infoPanelContent._typewriterCancelled !== undefined) {
+                        infoPanelContent._typewriterCancelled = true;
+                    }
+
                     // Build info content HTML using helper function
                     const contentHTML = buildSystemInfoHTML(systemData);
 
@@ -3561,6 +3839,9 @@
         starMapPanel._galaxyKeyHandler = keyHandler;
         starMapPanel.addEventListener('keydown', keyHandler);
     }
+
+    // Make function globally accessible for other scripts
+    window.initializeGalaxyEventListeners = initializeGalaxyEventListeners;
 
     // Zoom camera to selected planet (fixes C2 + m3)
     function zoomToPlanet(planetName) {
@@ -3949,22 +4230,31 @@
             }
         }, { passive: false });
 
-        console.log('System map controls initialized');
+        // Add click handler for planet selection
+        window.addEventListener('click', handlePlanetClick);
+
+        console.log('System map controls initialized with planet click handling');
     }
     </script>
 
     <!-- Star System Selection Script -->
-    <script>
+    <script type="module">
     (function() {
         // Typewriter effect for system info panel
         function typewriteContent(element, html, speed = 15) {
+            // Cancel any existing typewriter animation on this element
+            if (element._typewriterCancelled !== undefined) {
+                element._typewriterCancelled = true;
+            }
+
             return new Promise((resolve) => {
                 // Create a temporary div to parse the HTML and extract text
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = html;
 
-                // Clear the element
+                // Clear the element and reset cancellation flag
                 element.innerHTML = '';
+                element._typewriterCancelled = false;
 
                 // We'll build up the content with proper HTML structure
                 let currentHTML = '';
@@ -3972,6 +4262,12 @@
                 const fullText = tempDiv.textContent;
 
                 function typeNextChar() {
+                    // Check if this animation has been cancelled
+                    if (element._typewriterCancelled) {
+                        resolve();
+                        return;
+                    }
+
                     if (charIndex < fullText.length) {
                         // Get the next character
                         const char = fullText[charIndex];
@@ -4016,6 +4312,7 @@
 
                         setTimeout(typeNextChar, speed);
                     } else {
+                        delete element._typewriterCancelled;
                         resolve();
                     }
                 }
@@ -4079,7 +4376,7 @@
         window.addEventListener('resize', window.updateIndicatorBoxesPosition);
 
         // Initialize galaxy list event listeners on page load (fixes M1 - uses shared function)
-        initializeGalaxyEventListeners();
+        window.initializeGalaxyEventListeners();
 
         // Check if this is a view change from GM console (not a manual refresh)
         const urlParams = new URLSearchParams(window.location.search);
@@ -4091,13 +4388,15 @@
             window.history.replaceState({}, '', window.location.pathname);
         }
 
+        // Get all star system rows (needed for multiple operations below)
+        const starSystemRows = document.querySelectorAll('.star-system-row');
+
         // Only reset to default state if dashboard was just selected from GM console
         if (isViewChange && currentViewType === 'CAMPAIGN_DASHBOARD') {
             // Clear localStorage
             localStorage.removeItem('selected_star_system');
 
             // Uncheck all systems
-            const starSystemRows = document.querySelectorAll('.star-system-row');
             starSystemRows.forEach(row => {
                 row.classList.remove('checked');
             });

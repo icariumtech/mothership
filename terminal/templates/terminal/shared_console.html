@@ -2435,6 +2435,9 @@
             camera.position.copy(lookAtTarget).add(offset);
             camera.lookAt(lookAtTarget);
 
+            // Update camera offset if following a planet
+            updateCameraOffsetIfFollowing();
+
             previousPosition = {
                 x: event.clientX,
                 y: event.clientY
@@ -2505,6 +2508,9 @@
                 camera.position.copy(lookAtTarget).add(offset);
                 camera.lookAt(lookAtTarget);
 
+                // Update camera offset if following a planet
+                updateCameraOffsetIfFollowing();
+
                 previousPosition = {
                     x: touch.clientX,
                     y: touch.clientY
@@ -2548,7 +2554,9 @@
         speedMultiplier: 10,  // Default, will be calculated per-system
         selectedPlanet: null,  // Track currently selected planet
         raycaster: null,       // For planet click detection
-        mouse: new THREE.Vector2()  // Mouse position for raycasting
+        mouse: new THREE.Vector2(),  // Mouse position for raycasting
+        cameraOffset: null,    // Camera offset from selected planet (maintains view angle)
+        lastPlanetAngle: 0     // Track planet's orbital angle to rotate camera with it
     };
 
     // Initialize system map scene
@@ -2955,6 +2963,46 @@
             planetData.mesh.rotation.y += PLANET_ROTATION_SPEED;
         });
 
+        // Camera tracking: follow selected planet with locked orientation
+        if (window.systemMapState.selectedPlanet && window.systemMapState.cameraOffset) {
+            const selectedPlanetData = window.systemMapState.planets.find(
+                p => p.name === window.systemMapState.selectedPlanet.name
+            );
+
+            if (selectedPlanetData && selectedPlanetData.mesh) {
+                const planetPos = selectedPlanetData.mesh.position;
+
+                // Calculate planet's current orbital angle
+                const currentPlanetAngle = Math.atan2(planetPos.z, planetPos.x);
+
+                // Calculate how much the planet has rotated since last frame
+                const angleChange = currentPlanetAngle - window.systemMapState.lastPlanetAngle;
+
+                // Rotate the camera offset by the same amount (around Y axis)
+                const offset = window.systemMapState.cameraOffset;
+                const cos = Math.cos(angleChange);
+                const sin = Math.sin(angleChange);
+
+                const rotatedOffsetX = offset.x * cos - offset.z * sin;
+                const rotatedOffsetZ = offset.x * sin + offset.z * cos;
+
+                // Update stored offset with rotated values
+                window.systemMapState.cameraOffset.x = rotatedOffsetX;
+                window.systemMapState.cameraOffset.z = rotatedOffsetZ;
+
+                // Update stored angle
+                window.systemMapState.lastPlanetAngle = currentPlanetAngle;
+
+                // Apply the rotated offset to camera position
+                camera.position.x = planetPos.x + rotatedOffsetX;
+                camera.position.y = planetPos.y + offset.y;  // Y doesn't rotate
+                camera.position.z = planetPos.z + rotatedOffsetZ;
+
+                // Always look at the planet
+                camera.lookAt(planetPos);
+            }
+        }
+
         renderer.render(scene, camera);
     }
 
@@ -3149,6 +3197,28 @@
         // Store selected planet
         window.systemMapState.selectedPlanet = planetData;
 
+        // Calculate and store camera offset from planet (to maintain current view angle)
+        const selectedPlanetMesh = window.systemMapState.planets.find(
+            p => p.name === planetData.name
+        );
+
+        if (selectedPlanetMesh && selectedPlanetMesh.mesh && window.systemMapState.camera) {
+            const camera = window.systemMapState.camera;
+            const planetPos = selectedPlanetMesh.mesh.position;
+
+            // Store the offset vector from planet to camera
+            window.systemMapState.cameraOffset = {
+                x: camera.position.x - planetPos.x,
+                y: camera.position.y - planetPos.y,
+                z: camera.position.z - planetPos.z
+            };
+
+            // Store the planet's current orbital angle (around Y axis)
+            window.systemMapState.lastPlanetAngle = Math.atan2(planetPos.z, planetPos.x);
+
+            console.log(`Camera locked to planet - offset: (${window.systemMapState.cameraOffset.x.toFixed(2)}, ${window.systemMapState.cameraOffset.y.toFixed(2)}, ${window.systemMapState.cameraOffset.z.toFixed(2)}), angle: ${window.systemMapState.lastPlanetAngle.toFixed(2)}`);
+        }
+
         // Cancel any ongoing typewriter animation immediately
         if (infoPanelContent._typewriterCancelled !== undefined) {
             infoPanelContent._typewriterCancelled = true;
@@ -3190,6 +3260,15 @@
 
         // Clear selected planet
         window.systemMapState.selectedPlanet = null;
+
+        // Reset camera offset and tracking angle
+        window.systemMapState.cameraOffset = null;
+        window.systemMapState.lastPlanetAngle = 0;
+
+        // Reset camera to look at star (origin)
+        if (window.systemMapState.camera) {
+            window.systemMapState.camera.lookAt(0, 0, 0);
+        }
 
         // Cancel any ongoing typewriter animation immediately
         if (infoPanelContent._typewriterCancelled !== undefined) {
@@ -3976,6 +4055,27 @@
         }
     });
 
+    // Helper function to update camera offset when user moves camera while following planet
+    function updateCameraOffsetIfFollowing() {
+        if (window.systemMapState.selectedPlanet && window.systemMapState.camera) {
+            const selectedPlanetMesh = window.systemMapState.planets.find(
+                p => p.name === window.systemMapState.selectedPlanet.name
+            );
+
+            if (selectedPlanetMesh && selectedPlanetMesh.mesh) {
+                const camera = window.systemMapState.camera;
+                const planetPos = selectedPlanetMesh.mesh.position;
+
+                // Update the offset to reflect new camera position
+                window.systemMapState.cameraOffset = {
+                    x: camera.position.x - planetPos.x,
+                    y: camera.position.y - planetPos.y,
+                    z: camera.position.z - planetPos.z
+                };
+            }
+        }
+    }
+
     // Add camera controls for system map
     function initSystemMapControls() {
         // System map camera controls constants
@@ -4032,6 +4132,9 @@
             distance = Math.max(minDistance, Math.min(maxDistance, distance));
             offset.normalize().multiplyScalar(distance);
             camera.position.copy(lookAtTarget).add(offset);
+
+            // Update camera offset if following a planet
+            updateCameraOffsetIfFollowing();
         }, { passive: false });
 
         // Mouse drag rotation - attach to window
@@ -4086,6 +4189,9 @@
 
             camera.position.copy(lookAtTarget).add(offset);
             camera.lookAt(lookAtTarget);
+
+            // Update camera offset if following a planet
+            updateCameraOffsetIfFollowing();
 
             previousPosition = {
                 x: event.clientX,
@@ -4163,6 +4269,9 @@
                 camera.position.copy(lookAtTarget).add(offset);
                 camera.lookAt(lookAtTarget);
 
+                // Update camera offset if following a planet
+                updateCameraOffsetIfFollowing();
+
                 previousPosition = {
                     x: touch.clientX,
                     y: touch.clientY
@@ -4225,6 +4334,9 @@
                 dist = Math.max(minDistance, Math.min(maxDistance, dist));
                 offset.normalize().multiplyScalar(dist);
                 camera.position.copy(lookAtTarget).add(offset);
+
+                // Update camera offset if following a planet
+                updateCameraOffsetIfFollowing();
 
                 lastTouchDistance = distance;
             }

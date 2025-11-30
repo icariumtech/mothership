@@ -2739,17 +2739,28 @@
                 animateSystemMap();
             }
 
+            // Show planet list in the panel
+            showPlanetList(data);
+
         } catch (error) {
             console.error('Error loading system map:', error);
         }
     }
+
+    // Star rendering constants
+    const STAR_DEFAULT_SIZE = 4;
+    const STAR_SPHERE_SEGMENTS = 32;
+    const STAR_DEFAULT_CORONA_INTENSITY = 1.5;
+    const STAR_LIGHT_DISTANCE = 500;
+    const STAR_GLOW_SIZE_MULTIPLIER = 1.5;
+    const STAR_GLOW_OPACITY = 0.3;
 
     // Render central star
     function renderStar(starData) {
         const scene = window.systemMapState.scene;
 
         // Create star sphere
-        const starGeometry = new THREE.SphereGeometry(starData.size || 4, 32, 32);
+        const starGeometry = new THREE.SphereGeometry(starData.size || STAR_DEFAULT_SIZE, STAR_SPHERE_SEGMENTS, STAR_SPHERE_SEGMENTS);
         const starMaterial = new THREE.MeshBasicMaterial({
             color: starData.color || 0xFFFFAA
         });
@@ -2760,18 +2771,18 @@
         // Add point light at star position
         const starLight = new THREE.PointLight(
             starData.light_color || starData.color || 0xFFFFAA,
-            starData.corona_intensity || 1.5,
-            500
+            starData.corona_intensity || STAR_DEFAULT_CORONA_INTENSITY,
+            STAR_LIGHT_DISTANCE
         );
         starLight.position.set(0, 0, 0);
         scene.add(starLight);
 
         // Add glow effect
-        const glowGeometry = new THREE.SphereGeometry(starData.size * 1.5 || 6, 32, 32);
+        const glowGeometry = new THREE.SphereGeometry(starData.size * STAR_GLOW_SIZE_MULTIPLIER || 6, STAR_SPHERE_SEGMENTS, STAR_SPHERE_SEGMENTS);
         const glowMaterial = new THREE.MeshBasicMaterial({
             color: starData.color || 0xFFFFAA,
             transparent: true,
-            opacity: 0.3
+            opacity: STAR_GLOW_OPACITY
         });
         const glow = new THREE.Mesh(glowGeometry, glowMaterial);
         glow.position.set(0, 0, 0);
@@ -2780,27 +2791,33 @@
         window.systemMapState.star = { star, glow, light: starLight };
     }
 
+    // Planet sprite rendering constants
+    const PLANET_SPRITE_CANVAS_SIZE = 64;
+    const PLANET_SPRITE_CENTER = 32;  // CANVAS_SIZE / 2
+    const PLANET_SPRITE_RADIUS = 28;
+    const PLANET_SPRITE_BORDER_WIDTH = 4;
+
     // Render a planet
     function renderPlanet(bodyData) {
         const scene = window.systemMapState.scene;
 
         // Create circle texture for planet outline
         const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
+        canvas.width = PLANET_SPRITE_CANVAS_SIZE;
+        canvas.height = PLANET_SPRITE_CANVAS_SIZE;
         const ctx = canvas.getContext('2d');
 
         // Draw solid black circle background
         ctx.fillStyle = '#000000';
         ctx.beginPath();
-        ctx.arc(32, 32, 28, 0, Math.PI * 2);
+        ctx.arc(PLANET_SPRITE_CENTER, PLANET_SPRITE_CENTER, PLANET_SPRITE_RADIUS, 0, Math.PI * 2);
         ctx.fill();
 
         // Draw teal circle outline on top
         ctx.strokeStyle = '#5a7a7a';  // Teal to match UI
-        ctx.lineWidth = 4;
+        ctx.lineWidth = PLANET_SPRITE_BORDER_WIDTH;
         ctx.beginPath();
-        ctx.arc(32, 32, 28, 0, Math.PI * 2);
+        ctx.arc(PLANET_SPRITE_CENTER, PLANET_SPRITE_CENTER, PLANET_SPRITE_RADIUS, 0, Math.PI * 2);
         ctx.stroke();
 
         const texture = new THREE.CanvasTexture(canvas);
@@ -2814,7 +2831,7 @@
         });
 
         const planet = new THREE.Sprite(spriteMaterial);
-        const size = (bodyData.size || 1) * 2;  // Double size to maintain visibility
+        const size = (bodyData.size || 1) * PLANET_SIZE_MULTIPLIER;  // Double size to maintain visibility
         planet.scale.set(size, size, 1);
 
         // Calculate initial position based on orbital_angle
@@ -2843,6 +2860,10 @@
         });
     }
 
+    // Orbit rendering constants
+    const ORBIT_CURVE_POINTS = 128;
+    const ORBIT_DEFAULT_OPACITY = 0.45;
+
     // Render orbital path
     function renderOrbit(bodyData, orbitSettings) {
         const scene = window.systemMapState.scene;
@@ -2855,12 +2876,12 @@
             0
         );
 
-        const points = curve.getPoints(128);
+        const points = curve.getPoints(ORBIT_CURVE_POINTS);
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const material = new THREE.LineBasicMaterial({
             color: orbitSettings.color || 0x5a7a7a,
             transparent: true,
-            opacity: orbitSettings.opacity || 0.45
+            opacity: orbitSettings.opacity || ORBIT_DEFAULT_OPACITY
         });
 
         const orbit = new THREE.Line(geometry, material);
@@ -2876,6 +2897,11 @@
 
         window.systemMapState.orbits.push(orbit);
     }
+
+    // Planet animation constants
+    const PLANET_ROTATION_SPEED = 0.01;
+    const PLANET_SIZE_MULTIPLIER = 2;
+    const ORBITAL_PERIOD_TARGET_SECONDS = 10;
 
     // Animation loop for system map
     function animateSystemMap() {
@@ -2893,7 +2919,7 @@
 
         window.systemMapState.planets.forEach(planetData => {
             // Calculate current angle based on orbital period
-            // Use system-specific speed multiplier (calculated so fastest planet orbits once per 5 seconds)
+            // Use system-specific speed multiplier (calculated so fastest planet orbits once per ORBITAL_PERIOD_TARGET_SECONDS)
             const orbitalSpeed = (2 * Math.PI) / planetData.orbitalPeriod * window.systemMapState.speedMultiplier;
             const currentAngle = planetData.initialAngle + (orbitalSpeed * elapsedSeconds);
 
@@ -2910,7 +2936,7 @@
             planetData.mesh.position.z = z;
 
             // Rotate planet on its axis
-            planetData.mesh.rotation.y += 0.01;
+            planetData.mesh.rotation.y += PLANET_ROTATION_SPEED;
         });
 
         renderer.render(scene, camera);
@@ -2954,6 +2980,710 @@
             cancelAnimationFrame(window.systemMapState.animationFrameId);
             window.systemMapState.animationFrameId = null;
         }
+
+        // Restore galaxy list when hiding system map
+        showGalaxyList();
+    }
+
+    // ==================== PLANET LIST FEATURE ====================
+
+    // Constants for planet zoom and camera positioning
+    const PLANET_ZOOM_DISTANCE_RATIO = 0.3;  // Zoom to 30% of orbital radius
+    const MIN_PLANET_ZOOM_DISTANCE = 20;      // Minimum zoom distance
+    const CAMERA_ANGLE_45_DEG = 0.7071;       // cos(45°) = sin(45°)
+    const CAMERA_ANIMATION_DURATION = 1.5;    // seconds
+    const CAMERA_ANIMATION_EASE = "power2.inOut";
+
+    // Timing constants for animations and delays (milliseconds)
+    const TIMING_RENDER_DELAY = 50;
+    const TIMING_VIEW_TRANSITION = 100;
+    const TIMING_FADE_DURATION = 300;
+    const TIMING_FLASH_ANIMATION = 500;
+    const TIMING_SYSTEM_MAP_LOAD_DELAY = 3500;
+
+    // ==================== HELPER FUNCTIONS ====================
+
+    /**
+     * Builds HTML content for system info panel
+     * @param {Object} systemData - System data object
+     * @returns {string} HTML string for panel content
+     */
+    function buildSystemInfoHTML(systemData) {
+        let contentHTML = '';
+
+        const fields = [
+            { key: 'type', label: 'TYPE', transform: val => val.toUpperCase() },
+            { key: 'description', label: 'DESCRIPTION' },
+            { key: 'population', label: 'POPULATION' },
+            { key: 'position', label: 'COORDINATES', transform: val => val.join(', ') },
+            { key: 'location_slug', label: 'LOCATION ID' },
+            { key: 'has_system_map', label: 'SYSTEM MAP', transform: () => 'AVAILABLE' }
+        ];
+
+        fields.forEach(field => {
+            if (systemData[field.key]) {
+                const value = field.transform
+                    ? field.transform(systemData[field.key])
+                    : systemData[field.key];
+                contentHTML += `<p><span class="info-label">${field.label}:</span> <span class="info-value">${value}</span></p>`;
+            }
+        });
+
+        return contentHTML;
+    }
+
+    /**
+     * Show or hide system info panel decorations
+     * @param {boolean} visible - Whether to show or hide decorations
+     */
+    function toggleSystemInfoDecorations(visible) {
+        const elements = [
+            '.system-info-indicator-boxes',
+            '.system-info-rectangle',
+            '.system-info-triangle'
+        ];
+
+        elements.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.classList.toggle('visible', visible);
+            }
+        });
+
+        if (visible) {
+            setTimeout(() => {
+                window.updateIndicatorBoxesPosition();
+            }, TIMING_RENDER_DELAY);
+        }
+    }
+
+    /**
+     * Set checkbox ARIA state
+     * @param {HTMLElement} checkbox - Checkbox element with role="checkbox"
+     * @param {boolean} isChecked - Whether checkbox should be checked
+     */
+    function setCheckboxState(checkbox, isChecked) {
+        if (checkbox) {
+            checkbox.setAttribute('aria-checked', isChecked ? 'true' : 'false');
+        }
+    }
+
+    // Global variables for planet list feature
+    let originalGalaxyHTML = null;
+    let currentView = 'galaxy';  // 'galaxy' or 'planets'
+
+    // Show planet list when system map is displayed
+    function showPlanetList(systemData) {
+        const starMapPanel = document.getElementById('star-map-panel');
+        if (!starMapPanel) {
+            console.error('Star map panel element not found');
+            return;
+        }
+
+        if (!systemData || !systemData.star) {
+            console.error('Invalid system data provided to showPlanetList');
+            return;
+        }
+
+        // Store original HTML ONLY on first transition (fixes M3)
+        if (!originalGalaxyHTML) {
+            originalGalaxyHTML = starMapPanel.innerHTML;
+            console.log('Stored original galaxy HTML');
+        }
+
+        // Clean up galaxy event listeners before showing planet list
+        if (starMapPanel._galaxyHandler) {
+            starMapPanel.removeEventListener('click', starMapPanel._galaxyHandler);
+            starMapPanel._galaxyHandler = null;
+        }
+        if (starMapPanel._galaxyKeyHandler) {
+            starMapPanel.removeEventListener('keydown', starMapPanel._galaxyKeyHandler);
+            starMapPanel._galaxyKeyHandler = null;
+        }
+
+        // Build planet list HTML
+        let planetsHTML = '';
+
+        // Add back button at top with accessibility attributes (fixes m4)
+        planetsHTML += `
+            <div class="star-system-row back-to-galaxy-btn"
+                 role="button"
+                 tabindex="0"
+                 aria-label="Return to galaxy view"
+                 data-action="back-to-galaxy"
+                 style="margin-bottom: 12px; border-color: var(--color-amber);">
+                <div class="star-system-content">
+                    <div class="star-system-checkbox" style="display: flex; align-items: center; justify-content: center; color: var(--color-amber); font-size: 14px; background: none; border: none; margin-left: 2px;">◀</div>
+                    <div class="star-system-name" style="color: var(--color-amber);">BACK TO GALAXY</div>
+                </div>
+            </div>
+        `;
+
+        // Add planets/bodies
+        if (systemData.bodies && systemData.bodies.length > 0) {
+            systemData.bodies.forEach(body => {
+                const bodyName = body.name || 'Unknown';
+                planetsHTML += `
+                    <div class="star-system-row planet-row"
+                         role="button"
+                         tabindex="0"
+                         aria-label="Select ${bodyName}"
+                         data-planet="${bodyName}"
+                         data-action="select-planet">
+                        <div class="star-system-content">
+                            <div class="star-system-checkbox" role="checkbox" aria-checked="false"></div>
+                            <div class="star-system-name">${bodyName}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            planetsHTML += '<p>&gt; No planetary bodies in system</p>';
+        }
+
+        // Replace content
+        starMapPanel.innerHTML = planetsHTML;
+        currentView = 'planets';
+
+        // Use event delegation for all clicks (fixes C1 - memory leaks)
+        setupPlanetListEventDelegation();
+
+        console.log(`Planet list shown with ${systemData.bodies ? systemData.bodies.length : 0} bodies`);
+    }
+
+    // Event delegation for planet list (fixes C1 - prevents memory leaks)
+    function setupPlanetListEventDelegation() {
+        const starMapPanel = document.getElementById('star-map-panel');
+        if (!starMapPanel) return;
+
+        // Remove old listeners if they exist (prevent memory leaks)
+        if (starMapPanel._planetListHandler) {
+            starMapPanel.removeEventListener('click', starMapPanel._planetListHandler);
+            starMapPanel._planetListHandler = null;
+        }
+        if (starMapPanel._planetListKeyHandler) {
+            starMapPanel.removeEventListener('keydown', starMapPanel._planetListKeyHandler);
+            starMapPanel._planetListKeyHandler = null;
+        }
+
+        // Create new delegated click handler
+        const clickHandler = function(event) {
+            const target = event.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+
+            if (action === 'back-to-galaxy') {
+                hideSystemMap();
+            } else if (action === 'select-planet') {
+                const planetName = target.dataset.planet;
+                const isCurrentlyChecked = target.classList.contains('checked');
+
+                if (isCurrentlyChecked) {
+                    // Deselect - recenter on star
+                    target.classList.remove('checked');
+                    const checkbox = target.querySelector('[role="checkbox"]');
+                    setCheckboxState(checkbox, false);
+                    recenterOnStar();
+                } else {
+                    // Deselect all other planets
+                    const allPlanetRows = starMapPanel.querySelectorAll('.planet-row');
+                    allPlanetRows.forEach(row => {
+                        row.classList.remove('checked');
+                        const cb = row.querySelector('[role="checkbox"]');
+                        setCheckboxState(cb, false);
+                    });
+
+                    // Select this planet
+                    target.classList.add('checked');
+                    const checkbox = target.querySelector('[role="checkbox"]');
+                    setCheckboxState(checkbox, true);
+
+                    // Zoom to planet
+                    zoomToPlanet(planetName);
+                }
+            }
+        };
+
+        // Store reference for cleanup
+        starMapPanel._planetListHandler = clickHandler;
+
+        // Attach delegated listener to panel
+        starMapPanel.addEventListener('click', clickHandler);
+
+        // Keyboard support (fixes m4)
+        const keyHandler = function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                const target = event.target.closest('[data-action]');
+                if (target) {
+                    event.preventDefault();
+                    target.click();
+                }
+            }
+        };
+
+        starMapPanel._planetListKeyHandler = keyHandler;
+        starMapPanel.addEventListener('keydown', keyHandler);
+    }
+
+    // Restore galaxy list
+    function showGalaxyList() {
+        const starMapPanel = document.getElementById('star-map-panel');
+        if (!starMapPanel) {
+            console.error('Star map panel element not found');
+            return;
+        }
+
+        if (!originalGalaxyHTML) {
+            console.warn('No original galaxy HTML to restore');
+            return;
+        }
+
+        // Clean up planet list event listeners (fixes C1)
+        if (starMapPanel._planetListHandler) {
+            starMapPanel.removeEventListener('click', starMapPanel._planetListHandler);
+            starMapPanel._planetListHandler = null;
+        }
+        if (starMapPanel._planetListKeyHandler) {
+            starMapPanel.removeEventListener('keydown', starMapPanel._planetListKeyHandler);
+            starMapPanel._planetListKeyHandler = null;
+        }
+
+        // Restore original HTML
+        starMapPanel.innerHTML = originalGalaxyHTML;
+        currentView = 'galaxy';
+
+        // Re-attach event listeners for star systems using reusable function (fixes M1)
+        initializeGalaxyEventListeners();
+
+        // Restore selected system state from localStorage
+        const selectedSystem = localStorage.getItem('selected_star_system');
+        console.log('Restoring galaxy view, selected system:', selectedSystem);
+
+        if (selectedSystem) {
+            const starSystemRows = document.querySelectorAll('.star-system-row');
+            console.log('Found star system rows:', starSystemRows.length);
+
+            // Find and check the stored system
+            starSystemRows.forEach(row => {
+                if (row.dataset.system === selectedSystem) {
+                    row.classList.add('checked');
+                    console.log('Marked row as checked for:', selectedSystem);
+                } else {
+                    row.classList.remove('checked');
+                }
+            });
+
+            // Restore info panel and camera position for selected system
+            if (window.starSystemsData && window.starSystemsData[selectedSystem]) {
+                const systemData = window.starSystemsData[selectedSystem];
+                const infoPanel = document.getElementById('system-info-panel');
+                const infoPanelName = document.getElementById('system-info-name');
+                const infoPanelContent = document.getElementById('system-info-content');
+
+                if (infoPanel && infoPanelName && infoPanelContent) {
+                    // Build info content HTML using helper function
+                    const contentHTML = buildSystemInfoHTML(systemData);
+
+                    // Update panel instantly (no typewriter effect for restoration)
+                    infoPanelName.textContent = systemData.name.toUpperCase();
+                    infoPanelContent.innerHTML = contentHTML;
+                    infoPanel.classList.add('visible');
+
+                    // Show decorations using helper function
+                    toggleSystemInfoDecorations(true);
+                }
+            }
+
+            // Restore camera position and enable auto-rotation
+            // Use longer delay to ensure galaxy map canvas is fully rendered after being shown
+            setTimeout(() => {
+                console.log('Attempting to restore camera position for:', selectedSystem);
+                console.log('starMapState exists:', !!window.starMapState);
+                console.log('starPositions exists:', !!window.starMapState?.starPositions);
+                console.log('animateCameraToTarget exists:', !!window.starMapState?.animateCameraToTarget);
+
+                if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
+                    const position = window.starMapState.starPositions.get(selectedSystem);
+                    console.log('Position for', selectedSystem, ':', position);
+
+                    if (position) {
+                        // Show and position selection reticle
+                        if (window.starMapState.selectionReticle) {
+                            window.starMapState.selectionReticle.position.copy(position);
+                            window.starMapState.selectionReticle.visible = true;
+                            console.log('Selection reticle positioned and made visible');
+                        }
+
+                        // Enable auto-rotation around the selected star
+                        window.starMapState.autoRotate = true;
+                        console.log('Auto-rotation enabled');
+
+                        // Animate camera back to selected system
+                        window.starMapState.animateCameraToTarget(position, 1500);
+                        console.log(`Animating camera to ${selectedSystem} at position`, position);
+                    } else {
+                        console.error(`Could not restore camera position for ${selectedSystem} - position not found in starPositions map`);
+                        console.log('Available systems in starPositions:', Array.from(window.starMapState.starPositions.keys()));
+                    }
+                } else {
+                    console.error('Could not restore camera position - starMapState not fully initialized');
+                }
+            }, TIMING_FADE_DURATION);  // 300ms delay to ensure galaxy canvas is fully visible and rendered
+        }
+
+        console.log('Galaxy list restored');
+    }
+
+    // Reusable function to initialize galaxy event listeners (fixes M1 - eliminates code duplication)
+    // This function is shared by both page load initialization and galaxy list restoration
+    // Uses event delegation pattern to prevent memory leaks (fixes C1)
+    function initializeGalaxyEventListeners() {
+        const starMapPanel = document.getElementById('star-map-panel');
+        if (!starMapPanel) {
+            console.error('Star map panel element not found');
+            return;
+        }
+
+        // Remove old listeners if they exist (prevent memory leaks)
+        if (starMapPanel._galaxyHandler) {
+            starMapPanel.removeEventListener('click', starMapPanel._galaxyHandler);
+            starMapPanel._galaxyHandler = null;
+        }
+        if (starMapPanel._galaxyKeyHandler) {
+            starMapPanel.removeEventListener('keydown', starMapPanel._galaxyKeyHandler);
+            starMapPanel._galaxyKeyHandler = null;
+        }
+
+        // Create delegated click handler for all galaxy interactions
+        const clickHandler = function(event) {
+            // Check if clicked on system map button first
+            const systemMapBtn = event.target.closest('.system-map-btn-container');
+            if (systemMapBtn) {
+                event.stopPropagation(); // Prevent row click event
+
+                // Flash animation
+                systemMapBtn.classList.add('flashing');
+                setTimeout(() => {
+                    systemMapBtn.classList.remove('flashing');
+                }, TIMING_FLASH_ANIMATION);
+
+                // Get system name from parent row
+                const row = systemMapBtn.closest('.star-system-row');
+                if (!row) return;
+
+                const systemName = row.dataset.system;
+                console.log(`System map button clicked for: ${systemName}`);
+
+                // Check if system is already selected
+                const isSelected = row.classList.contains('checked');
+
+                // Get location slug from starSystemsData
+                if (window.starSystemsData && window.starSystemsData[systemName]) {
+                    const locationSlug = window.starSystemsData[systemName].location_slug;
+                    if (locationSlug) {
+                        if (!isSelected) {
+                            // System not selected - select it first, then load map after animation
+                            console.log(`Selecting ${systemName} before loading system map`);
+
+                            // Trigger selection by clicking the content area
+                            const contentArea = row.querySelector('.star-system-content');
+                            if (contentArea) {
+                                contentArea.click();
+                            }
+
+                            // Wait for all animations to complete before loading system map:
+                            // - Camera pan/zoom animation: 2000ms
+                            // - Info panel typewriter effect: ~800ms
+                            // - Panel fade-in transitions: ~300ms
+                            // Total: 3500ms to ensure smooth completion
+                            setTimeout(() => {
+                                loadSystemMap(locationSlug);
+                            }, TIMING_SYSTEM_MAP_LOAD_DELAY);
+                        } else {
+                            // System already selected - load map immediately
+                            loadSystemMap(locationSlug);
+                        }
+                    } else {
+                        console.error(`No location_slug found for system: ${systemName}`);
+                    }
+                } else {
+                    console.error(`System data not found for: ${systemName}`);
+                }
+                return;
+            }
+
+            // Check if clicked on system content area (for selection)
+            const contentArea = event.target.closest('.star-system-content');
+            if (contentArea) {
+                const row = contentArea.closest('.star-system-row');
+                if (!row) return;
+
+                // Get the system name from the parent row
+                const systemName = row.dataset.system;
+
+                // Check if this row is already checked
+                const isCurrentlyChecked = row.classList.contains('checked');
+
+                if (isCurrentlyChecked) {
+                    // Uncheck this row
+                    row.classList.remove('checked');
+                    localStorage.removeItem('selected_star_system');
+                    console.log('No star system selected');
+
+                    // Re-enable auto-rotation around center
+                    if (window.starMapState) {
+                        window.starMapState.autoRotate = true;
+                    }
+
+                    // Hide selection reticle
+                    if (window.starMapState && window.starMapState.selectionReticle) {
+                        window.starMapState.selectionReticle.visible = false;
+                    }
+
+                    // Hide system info panel and decorations using helper function
+                    const infoPanel = document.getElementById('system-info-panel');
+                    if (infoPanel) {
+                        infoPanel.classList.remove('visible');
+                    }
+                    toggleSystemInfoDecorations(false);
+
+                    // Animate camera back to origin (0, 0, 0)
+                    if (window.starMapState && window.starMapState.animateCameraToTarget) {
+                        window.starMapState.animateCameraToTarget(new THREE.Vector3(0, 0, 0));
+                    }
+                    return;
+                } else {
+                    // Uncheck all other systems using querySelectorAll
+                    const allSystemRows = starMapPanel.querySelectorAll('.star-system-row');
+                    allSystemRows.forEach(otherRow => {
+                        otherRow.classList.remove('checked');
+                    });
+
+                    // Check this system
+                    row.classList.add('checked');
+
+                    // Store selected system in localStorage for persistence
+                    localStorage.setItem('selected_star_system', systemName);
+
+                    console.log(`Star system ${systemName} selected`);
+
+                    // Get system data and populate info panel
+                    if (window.starSystemsData && window.starSystemsData[systemName]) {
+                        const systemData = window.starSystemsData[systemName];
+
+                        const infoPanel = document.getElementById('system-info-panel');
+                        const infoPanelName = document.getElementById('system-info-name');
+                        const infoPanelContent = document.getElementById('system-info-content');
+
+                        if (infoPanel && infoPanelName && infoPanelContent) {
+                            // Check if panel is already visible
+                            const wasVisible = infoPanel.classList.contains('visible');
+
+                            // Build info content HTML using helper function
+                            const contentHTML = buildSystemInfoHTML(systemData);
+
+                            // Update content with typewriter effect
+                            async function updatePanel() {
+                                if (wasVisible) {
+                                    // Fade out old content
+                                    infoPanelContent.style.opacity = '0';
+                                    infoPanelContent.style.transition = `opacity ${TIMING_FADE_DURATION}ms ease`;
+
+                                    // Wait for fade out
+                                    await new Promise(resolve => setTimeout(resolve, TIMING_FADE_DURATION));
+                                } else {
+                                    // Show panel and decorations using helper function
+                                    infoPanel.classList.add('visible');
+                                    toggleSystemInfoDecorations(true);
+                                }
+
+                                // Update header
+                                infoPanelName.textContent = systemData.name.toUpperCase();
+
+                                // Reset opacity and typewrite new content
+                                infoPanelContent.style.opacity = '1';
+                                await window.typewriteContent(infoPanelContent, contentHTML);
+
+                                // Update indicator boxes position after content is loaded (in case height changed)
+                                if (wasVisible) {
+                                    setTimeout(() => {
+                                        window.updateIndicatorBoxesPosition();
+                                    }, TIMING_RENDER_DELAY);
+                                }
+                            }
+
+                            updatePanel();
+                        }
+                    }
+
+                    // Animate camera to selected star system
+                    if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
+                        const position = window.starMapState.starPositions.get(systemName);
+                        if (position) {
+                            // Show and position selection reticle
+                            if (window.starMapState.selectionReticle) {
+                                window.starMapState.selectionReticle.position.copy(position);
+                                window.starMapState.selectionReticle.visible = true;
+                            }
+
+                            // Enable auto-rotation around the selected star
+                            window.starMapState.autoRotate = true;
+
+                            // Animate camera
+                            window.starMapState.animateCameraToTarget(position);
+                            console.log(`Animating camera to ${systemName} at position:`, position);
+                        } else {
+                            console.warn(`Position not found for system: ${systemName}`);
+                        }
+                    }
+                }
+            }
+        };
+
+        // Store handler reference for cleanup
+        starMapPanel._galaxyHandler = clickHandler;
+
+        // Attach delegated listener to panel
+        starMapPanel.addEventListener('click', clickHandler);
+
+        // Keyboard support
+        const keyHandler = function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                const target = event.target.closest('.star-system-content, .system-map-btn-container');
+                if (target) {
+                    event.preventDefault();
+                    target.click();
+                }
+            }
+        };
+
+        starMapPanel._galaxyKeyHandler = keyHandler;
+        starMapPanel.addEventListener('keydown', keyHandler);
+    }
+
+    // Zoom camera to selected planet (fixes C2 + m3)
+    function zoomToPlanet(planetName) {
+        // Validation (fixes M2)
+        if (!window.systemMapState || !window.systemMapState.planets) {
+            console.error('System map state not initialized');
+            return;
+        }
+
+        if (!window.systemMapState.camera) {
+            console.error('Camera not initialized');
+            return;
+        }
+
+        // Find planet data
+        const planetData = window.systemMapState.planets.find(p => p.name === planetName);
+        if (!planetData) {
+            console.warn(`Planet "${planetName}" not found in system map`);
+            return;
+        }
+
+        if (!planetData.mesh) {
+            console.warn(`Planet "${planetName}" mesh not yet rendered`);
+            return;
+        }
+
+        const cam = window.systemMapState.camera;
+
+        // Get actual planet position from Three.js mesh (fixes C2)
+        const planetPos = new THREE.Vector3();
+        planetData.mesh.getWorldPosition(planetPos);
+
+        // Calculate zoom distance based on orbital radius (using constants - fixes m1)
+        const zoomDistance = planetData.orbitalRadius * PLANET_ZOOM_DISTANCE_RATIO;
+        const actualZoomDistance = Math.max(zoomDistance, MIN_PLANET_ZOOM_DISTANCE);
+
+        // Calculate camera target position at 45-degree angle from planet's actual position
+        const offset = new THREE.Vector3(
+            actualZoomDistance * CAMERA_ANGLE_45_DEG,
+            actualZoomDistance * CAMERA_ANGLE_45_DEG,
+            actualZoomDistance * CAMERA_ANGLE_45_DEG
+        );
+
+        const targetCameraPos = planetPos.clone().add(offset);
+
+        // Smooth camera animation (fixes m3)
+        if (typeof gsap !== 'undefined') {
+            gsap.to(cam.position, {
+                x: targetCameraPos.x,
+                y: targetCameraPos.y,
+                z: targetCameraPos.z,
+                duration: CAMERA_ANIMATION_DURATION,
+                ease: CAMERA_ANIMATION_EASE,
+                onUpdate: function() {
+                    // Update lookAt during animation to track planet
+                    const currentPlanetPos = new THREE.Vector3();
+                    planetData.mesh.getWorldPosition(currentPlanetPos);
+                    cam.lookAt(currentPlanetPos.x, currentPlanetPos.y, currentPlanetPos.z);
+                }
+            });
+        } else {
+            // Fallback to instant positioning if GSAP not available
+            cam.position.copy(targetCameraPos);
+            cam.lookAt(planetPos.x, planetPos.y, planetPos.z);
+        }
+
+        console.log(`Zoomed to planet: ${planetName} at position (${planetPos.x.toFixed(1)}, ${planetPos.y.toFixed(1)}, ${planetPos.z.toFixed(1)})`);
+    }
+
+    // Recenter camera on star (default view) - fixes M2 + m3
+    function recenterOnStar() {
+        // Validation (fixes M2)
+        if (!window.systemMapState || !window.systemMapState.currentSystem) {
+            console.error('System map state not initialized');
+            return;
+        }
+
+        if (!window.systemMapState.camera) {
+            console.error('Camera not initialized');
+            return;
+        }
+
+        const data = window.systemMapState.currentSystem;
+        const cam = window.systemMapState.camera;
+
+        // Reset to default camera position from system data
+        if (!data.camera || !data.camera.position || !data.camera.lookAt) {
+            console.error('System camera configuration missing');
+            return;
+        }
+
+        const targetPos = data.camera.position;
+        const targetLookAt = data.camera.lookAt;
+
+        // Smooth camera animation (fixes m3)
+        if (typeof gsap !== 'undefined') {
+            gsap.to(cam.position, {
+                x: targetPos[0],
+                y: targetPos[1],
+                z: targetPos[2],
+                duration: CAMERA_ANIMATION_DURATION,
+                ease: CAMERA_ANIMATION_EASE,
+                onUpdate: function() {
+                    cam.lookAt(targetLookAt[0], targetLookAt[1], targetLookAt[2]);
+                },
+                onComplete: function() {
+                    if (data.camera.fov) {
+                        cam.fov = data.camera.fov;
+                        cam.updateProjectionMatrix();
+                    }
+                }
+            });
+        } else {
+            // Fallback to instant positioning
+            cam.position.set(targetPos[0], targetPos[1], targetPos[2]);
+            cam.lookAt(targetLookAt[0], targetLookAt[1], targetLookAt[2]);
+            if (data.camera.fov) {
+                cam.fov = data.camera.fov;
+                cam.updateProjectionMatrix();
+            }
+        }
+
+        console.log('Recentered on star');
     }
 
     // Handle window resize
@@ -2967,6 +3697,12 @@
 
     // Add camera controls for system map
     function initSystemMapControls() {
+        // System map camera controls constants
+        const SYSTEM_MAP_MIN_ZOOM = 60;
+        const SYSTEM_MAP_MAX_ZOOM = 300;
+        const SYSTEM_MAP_ZOOM_SPEED = 0.1;
+        const SYSTEM_MAP_ROTATE_SPEED = 0.005;
+
         const canvas = document.getElementById('systemmap-canvas');
         if (!canvas) {
             console.error('System map canvas not found!');
@@ -2976,10 +3712,10 @@
         console.log('Attaching controls to systemmap-canvas, display:', canvas.style.display);
 
         let lookAtTarget = new THREE.Vector3(0, 0, 0);
-        const minDistance = 60;
-        const maxDistance = 300;
-        const zoomSpeed = 0.1;
-        const rotateSpeed = 0.005;
+        const minDistance = SYSTEM_MAP_MIN_ZOOM;
+        const maxDistance = SYSTEM_MAP_MAX_ZOOM;
+        const zoomSpeed = SYSTEM_MAP_ZOOM_SPEED;
+        const rotateSpeed = SYSTEM_MAP_ROTATE_SPEED;
 
         // Mouse wheel zoom - attach to window so it works anywhere
         window.addEventListener('wheel', (event) => {
@@ -3326,235 +4062,24 @@
             }
         }
 
+        // Make functions globally accessible
+        window.typewriteContent = typewriteContent;
+        window.updateIndicatorBoxesPosition = updateIndicatorBoxesPosition;
+
         // Set up ResizeObserver to reposition indicator boxes when panel resizes
         const systemInfoPanel = document.getElementById('system-info-panel');
         if (systemInfoPanel) {
             const resizeObserver = new ResizeObserver(entries => {
-                updateIndicatorBoxesPosition();
+                window.updateIndicatorBoxesPosition();
             });
             resizeObserver.observe(systemInfoPanel);
         }
 
         // Also update on window resize
-        window.addEventListener('resize', updateIndicatorBoxesPosition);
+        window.addEventListener('resize', window.updateIndicatorBoxesPosition);
 
-        // Handle star system radio button selection (only one at a time)
-        const starSystemRows = document.querySelectorAll('.star-system-row');
-
-        starSystemRows.forEach(row => {
-            // Get the content area for system selection
-            const contentArea = row.querySelector('.star-system-content');
-            if (contentArea) {
-                contentArea.addEventListener('click', function() {
-                    // Get the system name from the parent row
-                    const systemName = row.dataset.system;
-
-                    // If this system is already checked, uncheck it
-                    if (row.classList.contains('checked')) {
-                        row.classList.remove('checked');
-                    // Remove from localStorage (no system selected)
-                    localStorage.removeItem('selected_star_system');
-                    console.log('No star system selected');
-
-                    // Re-enable auto-rotation around center
-                    if (window.starMapState) {
-                        window.starMapState.autoRotate = true;
-                    }
-
-                    // Hide selection reticle
-                    if (window.starMapState && window.starMapState.selectionReticle) {
-                        window.starMapState.selectionReticle.visible = false;
-                    }
-
-                    // Hide system info panel, indicator boxes, and rectangle
-                    const infoPanel = document.getElementById('system-info-panel');
-                    if (infoPanel) {
-                        infoPanel.classList.remove('visible');
-                    }
-                    const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
-                    if (indicatorBoxes) {
-                        indicatorBoxes.classList.remove('visible');
-                    }
-                    const rectangle = document.querySelector('.system-info-rectangle');
-                    if (rectangle) {
-                        rectangle.classList.remove('visible');
-                    }
-                    const triangle = document.querySelector('.system-info-triangle');
-                    if (triangle) {
-                        triangle.classList.remove('visible');
-                    }
-
-                    // Animate camera back to origin (0, 0, 0)
-                    if (window.starMapState && window.starMapState.animateCameraToTarget) {
-                        window.starMapState.animateCameraToTarget(new THREE.Vector3(0, 0, 0));
-                    }
-                    return;
-                }
-
-                    // Uncheck all other systems
-                    starSystemRows.forEach(otherRow => {
-                        otherRow.classList.remove('checked');
-                    });
-
-                    // Check this system
-                    row.classList.add('checked');
-
-                    // Store selected system in localStorage for persistence
-                    localStorage.setItem('selected_star_system', systemName);
-
-                    console.log(`Star system ${systemName} selected`);
-
-                    // Get system data and populate info panel
-                    if (window.starSystemsData && window.starSystemsData[systemName]) {
-                        const systemData = window.starSystemsData[systemName];
-                        const infoPanel = document.getElementById('system-info-panel');
-                        const infoPanelName = document.getElementById('system-info-name');
-                        const infoPanelContent = document.getElementById('system-info-content');
-
-                        if (infoPanel && infoPanelName && infoPanelContent) {
-                            // Check if panel is already visible
-                            const wasVisible = infoPanel.classList.contains('visible');
-
-                            // Build info content HTML
-                            let contentHTML = '';
-
-                            // Type
-                            if (systemData.type) {
-                                contentHTML += '<p><span class="info-label">TYPE:</span> <span class="info-value">' +
-                                    systemData.type.toUpperCase() + '</span></p>';
-                            }
-
-                            // Description
-                            if (systemData.description) {
-                                contentHTML += '<p><span class="info-label">DESCRIPTION:</span> <span class="info-value">' +
-                                    systemData.description + '</span></p>';
-                            }
-
-                            // Population
-                            if (systemData.population) {
-                                contentHTML += '<p><span class="info-label">POPULATION:</span> <span class="info-value">' +
-                                    systemData.population + '</span></p>';
-                            }
-
-                            // Position coordinates
-                            if (systemData.position) {
-                                contentHTML += '<p><span class="info-label">COORDINATES:</span> <span class="info-value">' +
-                                    systemData.position.join(', ') + '</span></p>';
-                            }
-
-                            // Location slug
-                            if (systemData.location_slug) {
-                                contentHTML += '<p><span class="info-label">LOCATION ID:</span> <span class="info-value">' +
-                                    systemData.location_slug + '</span></p>';
-                            }
-
-                            // System map availability
-                            if (systemData.has_system_map) {
-                                contentHTML += '<p><span class="info-label">SYSTEM MAP:</span> <span class="info-value">AVAILABLE</span></p>';
-                            }
-
-                            // Update content with typewriter effect
-                            async function updatePanel() {
-                                const indicatorBoxes = document.querySelector('.system-info-indicator-boxes');
-
-                                if (wasVisible) {
-                                    // Fade out old content
-                                    infoPanelContent.style.opacity = '0';
-                                    infoPanelContent.style.transition = 'opacity 0.3s ease';
-
-                                    // Wait for fade out
-                                    await new Promise(resolve => setTimeout(resolve, 300));
-                                } else {
-                                    // Show panel, indicator boxes, rectangle, and triangle first so fade-in happens while typing
-                                    infoPanel.classList.add('visible');
-                                    if (indicatorBoxes) {
-                                        indicatorBoxes.classList.add('visible');
-                                        // Show rectangle element
-                                        const rectangle = document.querySelector('.system-info-rectangle');
-                                        if (rectangle) rectangle.classList.add('visible');
-                                        // Show triangle element
-                                        const triangle = document.querySelector('.system-info-triangle');
-                                        if (triangle) triangle.classList.add('visible');
-
-                                        // Position boxes, rectangle, and triangle with a small delay for panel to start rendering
-                                        setTimeout(() => {
-                                            updateIndicatorBoxesPosition();
-                                        }, 50);
-                                    }
-                                }
-
-                                // Update header
-                                infoPanelName.textContent = systemData.name.toUpperCase();
-
-                                // Reset opacity and typewrite new content
-                                infoPanelContent.style.opacity = '1';
-                                await typewriteContent(infoPanelContent, contentHTML);
-
-                                // Update indicator boxes position after content is loaded (in case height changed)
-                                if (indicatorBoxes && wasVisible) {
-                                    setTimeout(() => {
-                                        updateIndicatorBoxesPosition();
-                                    }, 50);
-                                }
-                            }
-
-                            updatePanel();
-                        }
-                    }
-
-                    // Animate camera to selected star system
-                    if (window.starMapState && window.starMapState.starPositions && window.starMapState.animateCameraToTarget) {
-                        const position = window.starMapState.starPositions.get(systemName);
-                        if (position) {
-                            // Show and position selection reticle
-                            if (window.starMapState.selectionReticle) {
-                                window.starMapState.selectionReticle.position.copy(position);
-                                window.starMapState.selectionReticle.visible = true;
-                            }
-
-                            // Enable auto-rotation around the selected star
-                            window.starMapState.autoRotate = true;
-
-                            // Animate camera
-                            window.starMapState.animateCameraToTarget(position);
-                            console.log(`Animating camera to ${systemName} at position:`, position);
-                        } else {
-                            console.warn(`Position not found for system: ${systemName}`);
-                        }
-                    }
-                });
-            }
-
-            // Handle system map button click
-            const systemMapBtn = row.querySelector('.system-map-btn-container');
-            if (systemMapBtn) {
-                systemMapBtn.addEventListener('click', function(e) {
-                    e.stopPropagation(); // Prevent row click event
-
-                    // Flash animation
-                    this.classList.add('flashing');
-                    setTimeout(() => {
-                        this.classList.remove('flashing');
-                    }, 500);
-
-                    // Get system name and location slug
-                    const systemName = row.dataset.system;
-                    console.log(`System map button clicked for: ${systemName}`);
-
-                    // Get location slug from starSystemsData
-                    if (window.starSystemsData && window.starSystemsData[systemName]) {
-                        const locationSlug = window.starSystemsData[systemName].location_slug;
-                        if (locationSlug) {
-                            loadSystemMap(locationSlug);
-                        } else {
-                            console.error(`No location_slug found for system: ${systemName}`);
-                        }
-                    } else {
-                        console.error(`System data not found for: ${systemName}`);
-                    }
-                });
-            }
-        });
+        // Initialize galaxy list event listeners on page load (fixes M1 - uses shared function)
+        initializeGalaxyEventListeners();
 
         // Check if this is a view change from GM console (not a manual refresh)
         const urlParams = new URLSearchParams(window.location.search);
@@ -3572,6 +4097,7 @@
             localStorage.removeItem('selected_star_system');
 
             // Uncheck all systems
+            const starSystemRows = document.querySelectorAll('.star-system-row');
             starSystemRows.forEach(row => {
                 row.classList.remove('checked');
             });
@@ -3666,7 +4192,7 @@
                     // Update panel with typewriter effect
                     async function initPanel() {
                         infoPanelName.textContent = systemData.name.toUpperCase();
-                        await typewriteContent(infoPanelContent, contentHTML);
+                        await window.typewriteContent(infoPanelContent, contentHTML);
                         infoPanel.classList.add('visible');
 
                         // Show indicator boxes, rectangle, and triangle
@@ -3685,7 +4211,7 @@
 
                         // Position the elements
                         setTimeout(() => {
-                            updateIndicatorBoxesPosition();
+                            window.updateIndicatorBoxesPosition();
                         }, 50);
                     }
 
@@ -3756,7 +4282,7 @@
                     // Update panel with typewriter effect
                     async function initPanel() {
                         infoPanelName.textContent = systemData.name.toUpperCase();
-                        await typewriteContent(infoPanelContent, contentHTML);
+                        await window.typewriteContent(infoPanelContent, contentHTML);
                         infoPanel.classList.add('visible');
 
                         // Show indicator boxes, rectangle, and triangle
@@ -3775,7 +4301,7 @@
 
                         // Position the elements
                         setTimeout(() => {
-                            updateIndicatorBoxesPosition();
+                            window.updateIndicatorBoxesPosition();
                         }, 50);
                     }
 

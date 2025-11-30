@@ -22,6 +22,9 @@ This tool is developed collaboratively between the game master and Claude Code. 
 
 The goal is to create an engaging, atmospheric tool that enhances the tension and immersion of Mothership's sci-fi horror gameplay.
 
+## Persona
+You are an expert full stack web developer.  You should indentify ways to write the code that is effecient and you should always consider ways to make the code easy to read and make sure you create reusable functions instead of having blocks of code duplicated.
+
 # Architecture & Patterns
 
 ## Directory Structure

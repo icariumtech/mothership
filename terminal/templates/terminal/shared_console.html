@@ -3333,6 +3333,9 @@
      * Unselect current planet and restore system details
      */
     async function unselectPlanet() {
+        const systemData = window.systemMapState.currentSystem;
+        if (!systemData) return;
+
         // Clear selected planet
         window.systemMapState.selectedPlanet = null;
 
@@ -3350,7 +3353,36 @@
             window.systemMapState.camera.lookAt(0, 0, 0);
         }
 
-        console.log('Unselected planet');
+        // Restore system info to panel
+        const infoPanelName = document.getElementById('system-info-name');
+        const infoPanelContent = document.getElementById('system-info-content');
+
+        if (infoPanelName && infoPanelContent) {
+            // Get the selected system data from galaxy map
+            const selectedSystem = localStorage.getItem('selected_star_system');
+            let systemInfo = null;
+
+            // Try to get the full galaxy system data
+            if (selectedSystem && window.starSystemsData && window.starSystemsData[selectedSystem]) {
+                systemInfo = window.starSystemsData[selectedSystem];
+                infoPanelName.textContent = systemInfo.name.toUpperCase();
+            } else {
+                // Fallback: use star name from system map data
+                infoPanelName.textContent = systemData.star.name.toUpperCase();
+                systemInfo = {
+                    type: systemData.star.type,
+                    description: `${systemData.star.type} star system`,
+                    position: [0, 0, 0],
+                    location_slug: systemData.system_slug
+                };
+            }
+
+            // Update panel content with typewriter animation
+            const contentHTML = buildSystemInfoHTML(systemInfo);
+            await window.typewriteContent(infoPanelContent, contentHTML);
+        }
+
+        console.log('Unselected planet, restored system info');
     }
 
     /**

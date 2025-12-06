@@ -2324,7 +2324,7 @@
         window.starMapState.animateCameraToTarget = animateCameraToTarget;
 
         // Simple mouse wheel zoom
-        let zoomSpeed = 2;      // Units to zoom per scroll (reduced from 5 for less aggressive zooming)
+        let zoomSpeed = 4;      // Units to zoom per scroll/pinch (increased for more responsive control)
         let minDistance = 20;   // Minimum distance from center
         let maxDistance = 300;  // Maximum distance from center
 
@@ -2431,7 +2431,7 @@
         // Mouse and touch rotation controls
         let isDragging = false;
         let previousPosition = { x: 0, y: 0 };
-        let rotateSpeed = 0.0001;  // Optimized for smooth touch and mouse control
+        let rotateSpeed = 0.003;  // Increased for more responsive touch control
 
         // Mouse rotation
         window.addEventListener('mousedown', (event) => {
@@ -2475,9 +2475,6 @@
 
             camera.position.copy(lookAtTarget).add(offset);
             camera.lookAt(lookAtTarget);
-
-            // Update camera offset if following a planet
-            updateCameraOffsetIfFollowing();
 
             previousPosition = {
                 x: event.clientX,
@@ -2549,9 +2546,6 @@
 
                 camera.position.copy(lookAtTarget).add(offset);
                 camera.lookAt(lookAtTarget);
-
-                // Update camera offset if following a planet
-                updateCameraOffsetIfFollowing();
 
                 previousPosition = {
                     x: touch.clientX,
@@ -4625,6 +4619,26 @@
             const camera = window.systemMapState.camera;
             if (!camera) return;
 
+            // Update lookAtTarget and zoom limits based on what's selected
+            let effectiveMinDistance = minDistance;
+            let effectiveMaxDistance = maxDistance;
+
+            if (window.systemMapState.selectedPlanet) {
+                // If a planet is selected, zoom towards the planet with closer limits
+                const selectedPlanetMesh = window.systemMapState.planets.find(
+                    p => p.name === window.systemMapState.selectedPlanet.name
+                );
+                if (selectedPlanetMesh && selectedPlanetMesh.mesh) {
+                    selectedPlanetMesh.mesh.getWorldPosition(lookAtTarget);
+                    // Allow much closer zoom when viewing a planet
+                    effectiveMinDistance = 5;   // Can zoom very close to planet
+                    effectiveMaxDistance = 100; // Don't need to zoom as far out
+                }
+            } else {
+                // Otherwise zoom towards the sun (origin) with system-wide limits
+                lookAtTarget.set(0, 0, 0);
+            }
+
             const delta = event.deltaY;
             const offset = camera.position.clone().sub(lookAtTarget);
             let distance = offset.length();
@@ -4635,7 +4649,7 @@
                 distance *= (1 - zoomSpeed);
             }
 
-            distance = Math.max(minDistance, Math.min(maxDistance, distance));
+            distance = Math.max(effectiveMinDistance, Math.min(effectiveMaxDistance, distance));
             offset.normalize().multiplyScalar(distance);
             camera.position.copy(lookAtTarget).add(offset);
 
@@ -4674,6 +4688,20 @@
 
             const camera = window.systemMapState.camera;
             if (!camera) return;
+
+            // Update lookAtTarget based on what's selected
+            if (window.systemMapState.selectedPlanet) {
+                // If a planet is selected, rotate around the planet
+                const selectedPlanetMesh = window.systemMapState.planets.find(
+                    p => p.name === window.systemMapState.selectedPlanet.name
+                );
+                if (selectedPlanetMesh && selectedPlanetMesh.mesh) {
+                    selectedPlanetMesh.mesh.getWorldPosition(lookAtTarget);
+                }
+            } else {
+                // Otherwise rotate around the sun (origin)
+                lookAtTarget.set(0, 0, 0);
+            }
 
             const deltaX = event.clientX - previousPosition.x;
             const deltaY = event.clientY - previousPosition.y;
@@ -4753,6 +4781,20 @@
                 const camera = window.systemMapState.camera;
                 if (!camera) return;
 
+                // Update lookAtTarget based on what's selected
+                if (window.systemMapState.selectedPlanet) {
+                    // If a planet is selected, rotate around the planet
+                    const selectedPlanetMesh = window.systemMapState.planets.find(
+                        p => p.name === window.systemMapState.selectedPlanet.name
+                    );
+                    if (selectedPlanetMesh && selectedPlanetMesh.mesh) {
+                        selectedPlanetMesh.mesh.getWorldPosition(lookAtTarget);
+                    }
+                } else {
+                    // Otherwise rotate around the sun (origin)
+                    lookAtTarget.set(0, 0, 0);
+                }
+
                 const touch = event.touches[0];
                 const deltaX = touch.clientX - previousPosition.x;
                 const deltaY = touch.clientY - previousPosition.y;
@@ -4823,6 +4865,26 @@
                 const camera = window.systemMapState.camera;
                 if (!camera) return;
 
+                // Update lookAtTarget and zoom limits based on what's selected
+                let effectiveMinDistance = minDistance;
+                let effectiveMaxDistance = maxDistance;
+
+                if (window.systemMapState.selectedPlanet) {
+                    // If a planet is selected, zoom towards the planet with closer limits
+                    const selectedPlanetMesh = window.systemMapState.planets.find(
+                        p => p.name === window.systemMapState.selectedPlanet.name
+                    );
+                    if (selectedPlanetMesh && selectedPlanetMesh.mesh) {
+                        selectedPlanetMesh.mesh.getWorldPosition(lookAtTarget);
+                        // Allow much closer zoom when viewing a planet
+                        effectiveMinDistance = 5;   // Can zoom very close to planet
+                        effectiveMaxDistance = 100; // Don't need to zoom as far out
+                    }
+                } else {
+                    // Otherwise zoom towards the sun (origin) with system-wide limits
+                    lookAtTarget.set(0, 0, 0);
+                }
+
                 const dx = event.touches[0].clientX - event.touches[1].clientX;
                 const dy = event.touches[0].clientY - event.touches[1].clientY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -4837,7 +4899,7 @@
                     dist *= (1 - zoomSpeed);
                 }
 
-                dist = Math.max(minDistance, Math.min(maxDistance, dist));
+                dist = Math.max(effectiveMinDistance, Math.min(effectiveMaxDistance, dist));
                 offset.normalize().multiplyScalar(dist);
                 camera.position.copy(lookAtTarget).add(offset);
 

@@ -2818,8 +2818,13 @@
                 }
             }
 
-            // Show system map, hide galaxy map
-            showSystemMap();
+            // Show system map, hide galaxy map with transition
+            const selectedSystem = localStorage.getItem('selected_star_system');
+            let starPosition = null;
+            if (selectedSystem && window.starMapState && window.starMapState.starPositions) {
+                starPosition = window.starMapState.starPositions.get(selectedSystem);
+            }
+            showSystemMap(starPosition);
 
             // Initialize controls if not already done
             if (!window.systemMapState.controlsInitialized) {
@@ -3110,18 +3115,72 @@
         window.systemMapState.lastPlanetAngle = 0;
     }
 
-    // Show system map, hide galaxy map
-    function showSystemMap() {
-        document.getElementById('starmap-canvas').style.display = 'none';
-        document.getElementById('systemmap-canvas').style.display = 'block';
+    // Show system map, hide galaxy map with animated transition
+    function showSystemMap(starPosition) {
+        const galaxyCanvas = document.getElementById('starmap-canvas');
+        const systemCanvas = document.getElementById('systemmap-canvas');
+
+        // If no star position provided, do instant transition (fallback)
+        if (!starPosition || !window.starMapState || !window.starMapState.camera) {
+            galaxyCanvas.style.display = 'none';
+            systemCanvas.style.display = 'block';
+            return;
+        }
+
+        const galaxyCamera = window.starMapState.camera;
+        const startPos = galaxyCamera.position.clone();
+        const startLookAt = starPosition.clone();
+
+        // Store original camera position for zoom-out later
+        window.starMapState.preSystemViewCameraPosition = startPos.clone();
+
+        // Calculate zoom-in target (move camera closer to star)
+        const zoomDirection = new THREE.Vector3().subVectors(starPosition, startPos).normalize();
+        const zoomDistance = startPos.distanceTo(starPosition) * 0.3; // Zoom to 30% of distance
+        const targetPos = startPos.clone().add(zoomDirection.multiplyScalar(zoomDistance));
+
+        // Make both canvases visible for crossfade
+        galaxyCanvas.style.display = 'block';
+        systemCanvas.style.display = 'block';
+        galaxyCanvas.style.opacity = '1';
+        systemCanvas.style.opacity = '0';
+
+        if (typeof gsap !== 'undefined') {
+            const animState = { progress: 0 };
+
+            gsap.to(animState, {
+                progress: 1,
+                duration: 1.5, // 1.5 second transition
+                ease: "power2.inOut",
+                onUpdate: function() {
+                    // Zoom galaxy camera toward star
+                    galaxyCamera.position.lerpVectors(startPos, targetPos, animState.progress);
+                    galaxyCamera.lookAt(startLookAt);
+
+                    // Crossfade canvases
+                    galaxyCanvas.style.opacity = (1 - animState.progress).toString();
+                    systemCanvas.style.opacity = animState.progress.toString();
+                },
+                onComplete: function() {
+                    // Hide galaxy canvas after transition
+                    galaxyCanvas.style.display = 'none';
+                    galaxyCanvas.style.opacity = '1'; // Reset for next time
+                    systemCanvas.style.opacity = '1';
+                }
+            });
+        } else {
+            // Fallback: instant transition
+            galaxyCanvas.style.display = 'none';
+            systemCanvas.style.display = 'block';
+        }
     }
 
-    // Hide system map, show galaxy map
+    // Hide system map, show galaxy map with animated transition
     function hideSystemMap() {
-        document.getElementById('systemmap-canvas').style.display = 'none';
-        document.getElementById('starmap-canvas').style.display = 'block';
+        const galaxyCanvas = document.getElementById('starmap-canvas');
+        const systemCanvas = document.getElementById('systemmap-canvas');
 
-        // Stop animation
+        // Stop system map animation
         if (window.systemMapState.animationFrameId) {
             cancelAnimationFrame(window.systemMapState.animationFrameId);
             window.systemMapState.animationFrameId = null;
@@ -3136,8 +3195,73 @@
             infoPanelContent._typewriterCancelled = true;
         }
 
-        // Restore galaxy list when hiding system map
-        showGalaxyList();
+        // Get star position for zoom-out animation
+        const selectedSystem = localStorage.getItem('selected_star_system');
+        let starPosition = null;
+        if (selectedSystem && window.starMapState && window.starMapState.starPositions) {
+            starPosition = window.starMapState.starPositions.get(selectedSystem);
+        }
+
+        // If no star position or camera, do instant transition (fallback)
+        if (!starPosition || !window.starMapState || !window.starMapState.camera) {
+            systemCanvas.style.display = 'none';
+            galaxyCanvas.style.display = 'block';
+            showGalaxyList();
+            return;
+        }
+
+        const galaxyCamera = window.starMapState.camera;
+
+        // Get the stored camera position from before entering system view
+        const currentPos = galaxyCamera.position.clone();
+        const targetPos = window.starMapState.preSystemViewCameraPosition || currentPos;
+
+        // If we don't have a stored position, fall back to instant transition
+        if (!window.starMapState.preSystemViewCameraPosition) {
+            systemCanvas.style.display = 'none';
+            galaxyCanvas.style.display = 'block';
+            showGalaxyList();
+            return;
+        }
+
+        // Make both canvases visible for crossfade
+        galaxyCanvas.style.display = 'block';
+        systemCanvas.style.display = 'block';
+        galaxyCanvas.style.opacity = '0';
+        systemCanvas.style.opacity = '1';
+
+        if (typeof gsap !== 'undefined') {
+            const animState = { progress: 0 };
+
+            gsap.to(animState, {
+                progress: 1,
+                duration: 1.5, // 1.5 second transition
+                ease: "power2.inOut",
+                onUpdate: function() {
+                    // Zoom galaxy camera away from star
+                    galaxyCamera.position.lerpVectors(currentPos, targetPos, animState.progress);
+                    galaxyCamera.lookAt(starPosition);
+
+                    // Crossfade canvases
+                    systemCanvas.style.opacity = (1 - animState.progress).toString();
+                    galaxyCanvas.style.opacity = animState.progress.toString();
+                },
+                onComplete: function() {
+                    // Hide system canvas after transition
+                    systemCanvas.style.display = 'none';
+                    systemCanvas.style.opacity = '1'; // Reset for next time
+                    galaxyCanvas.style.opacity = '1';
+
+                    // Restore galaxy list after transition
+                    showGalaxyList();
+                }
+            });
+        } else {
+            // Fallback: instant transition
+            systemCanvas.style.display = 'none';
+            galaxyCanvas.style.display = 'block';
+            showGalaxyList();
+        }
     }
 
     // ==================== PLANET LIST FEATURE ====================

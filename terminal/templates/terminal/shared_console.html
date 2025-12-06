@@ -1208,6 +1208,9 @@
         }
     }
     </script>
+
+    <!-- GSAP Animation Library -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body{% if active_view.view_type == 'STANDBY' %} class="standby-mode"{% endif %}>
     <!-- Terminal Header -->
@@ -3273,29 +3276,140 @@
             return;
         }
 
+        // Check if there's a previously selected planet (for smooth transition)
+        const previouslySelectedPlanet = window.systemMapState.selectedPlanet;
+
+        // Clear camera offset immediately to stop tracking during the transition
+        window.systemMapState.cameraOffset = null;
+        window.systemMapState.lastPlanetAngle = 0;
+
+        // Kill any ongoing GSAP animations to prevent conflicts
+        if (typeof gsap !== 'undefined') {
+            gsap.killTweensOf(window.systemMapState.camera?.position);
+            // Also kill any progress animations
+            if (window.systemMapState._currentAnimState) {
+                gsap.killTweensOf(window.systemMapState._currentAnimState);
+            }
+        }
+
         // Store selected planet
         window.systemMapState.selectedPlanet = planetData;
 
-        // Calculate and store camera offset from planet (to maintain current view angle)
+        // Find the planet mesh
         const selectedPlanetMesh = window.systemMapState.planets.find(
             p => p.name === planetData.name
         );
 
-        if (selectedPlanetMesh && selectedPlanetMesh.mesh && window.systemMapState.camera) {
-            const camera = window.systemMapState.camera;
-            const planetPos = selectedPlanetMesh.mesh.position;
+        if (!selectedPlanetMesh || !selectedPlanetMesh.mesh || !window.systemMapState.camera) {
+            console.error('Planet mesh or camera not found');
+            return;
+        }
 
-            // Store the offset vector from planet to camera
+        const camera = window.systemMapState.camera;
+
+        // Calculate zoom distance (same as zoomToPlanet)
+        const zoomDistance = selectedPlanetMesh.orbitalRadius * PLANET_ZOOM_DISTANCE_RATIO;
+        const actualZoomDistance = Math.max(zoomDistance, MIN_PLANET_ZOOM_DISTANCE);
+
+        // Store the desired offset from the planet (constant throughout animation)
+        const desiredOffset = new THREE.Vector3(
+            actualZoomDistance * CAMERA_ANGLE_45_DEG,
+            actualZoomDistance * CAMERA_ANGLE_45_DEG,
+            actualZoomDistance * CAMERA_ANGLE_45_DEG
+        );
+
+        // Animate camera to planet
+        if (typeof gsap !== 'undefined') {
+            // Store starting position
+            const startPos = camera.position.clone();
+
+            // Store where camera is currently looking
+            const startLookAt = new THREE.Vector3();
+            if (previouslySelectedPlanet) {
+                // Switching from another planet - use that planet's current position
+                const previousPlanetMesh = window.systemMapState.planets.find(
+                    p => p.name === previouslySelectedPlanet.name
+                );
+                if (previousPlanetMesh && previousPlanetMesh.mesh) {
+                    previousPlanetMesh.mesh.getWorldPosition(startLookAt);
+                } else {
+                    // Fallback to sun if previous planet mesh not found
+                    startLookAt.set(0, 0, 0);
+                }
+            } else if (window.systemMapState.currentSystem && window.systemMapState.currentSystem.camera) {
+                // No previous planet - use system's default lookAt (probably the sun at 0, 0, 0)
+                const systemLookAt = window.systemMapState.currentSystem.camera.lookAt;
+                startLookAt.set(systemLookAt[0], systemLookAt[1], systemLookAt[2]);
+            } else {
+                // Fallback: calculate current lookAt from camera direction
+                const lookAtTarget = new THREE.Vector3(0, 0, -1);
+                lookAtTarget.applyQuaternion(camera.quaternion);
+                startLookAt.copy(camera.position).add(lookAtTarget.multiplyScalar(10));
+            }
+
+            // Animate a progress value from 0 to 1
+            const animState = { progress: 0 };
+            window.systemMapState._currentAnimState = animState;
+
+            gsap.to(animState, {
+                progress: 1,
+                duration: CAMERA_ANIMATION_DURATION,
+                ease: CAMERA_ANIMATION_EASE,
+                onUpdate: function() {
+                    // Get planet's current position (it's orbiting during animation)
+                    const currentPlanetPos = new THREE.Vector3();
+                    selectedPlanetMesh.mesh.getWorldPosition(currentPlanetPos);
+
+                    // Calculate target position based on planet's current position
+                    const targetPos = currentPlanetPos.clone().add(desiredOffset);
+
+                    // Interpolate camera position from start to current target
+                    camera.position.lerpVectors(startPos, targetPos, animState.progress);
+
+                    // Interpolate lookAt from starting point (sun) to planet
+                    const currentLookAt = new THREE.Vector3();
+                    currentLookAt.lerpVectors(startLookAt, currentPlanetPos, animState.progress);
+                    camera.lookAt(currentLookAt.x, currentLookAt.y, currentLookAt.z);
+
+                    // Update reticle position to follow the orbiting planet during animation
+                    if (window.systemMapState.selectionReticle) {
+                        window.systemMapState.selectionReticle.position.copy(currentPlanetPos);
+                    }
+                },
+                onComplete: function() {
+                    // After animation completes, store camera offset for tracking
+                    const finalPlanetPos = new THREE.Vector3();
+                    selectedPlanetMesh.mesh.getWorldPosition(finalPlanetPos);
+
+                    window.systemMapState.cameraOffset = {
+                        x: camera.position.x - finalPlanetPos.x,
+                        y: camera.position.y - finalPlanetPos.y,
+                        z: camera.position.z - finalPlanetPos.z
+                    };
+
+                    // Store the planet's current orbital angle (around Y axis)
+                    window.systemMapState.lastPlanetAngle = Math.atan2(finalPlanetPos.z, finalPlanetPos.x);
+
+                    console.log(`Camera locked to planet - offset: (${window.systemMapState.cameraOffset.x.toFixed(2)}, ${window.systemMapState.cameraOffset.y.toFixed(2)}, ${window.systemMapState.cameraOffset.z.toFixed(2)}), angle: ${window.systemMapState.lastPlanetAngle.toFixed(2)}`);
+                }
+            });
+        } else {
+            // Fallback to instant positioning if GSAP not available
+            const planetPos = new THREE.Vector3();
+            selectedPlanetMesh.mesh.getWorldPosition(planetPos);
+
+            const targetCameraPos = planetPos.clone().add(desiredOffset);
+            camera.position.copy(targetCameraPos);
+            camera.lookAt(planetPos.x, planetPos.y, planetPos.z);
+
+            // Store camera offset immediately
             window.systemMapState.cameraOffset = {
                 x: camera.position.x - planetPos.x,
                 y: camera.position.y - planetPos.y,
                 z: camera.position.z - planetPos.z
             };
 
-            // Store the planet's current orbital angle (around Y axis)
             window.systemMapState.lastPlanetAngle = Math.atan2(planetPos.z, planetPos.x);
-
-            console.log(`Camera locked to planet - offset: (${window.systemMapState.cameraOffset.x.toFixed(2)}, ${window.systemMapState.cameraOffset.y.toFixed(2)}, ${window.systemMapState.cameraOffset.z.toFixed(2)}), angle: ${window.systemMapState.lastPlanetAngle.toFixed(2)}`);
         }
 
         // Show selection reticle on selected planet with size-based scaling
@@ -3336,21 +3450,95 @@
         const systemData = window.systemMapState.currentSystem;
         if (!systemData) return;
 
-        // Clear selected planet
-        window.systemMapState.selectedPlanet = null;
+        const camera = window.systemMapState.camera;
+        if (!camera) return;
 
-        // Reset camera offset and tracking angle
+        // Get the planet's current position (what we're currently looking at)
+        const selectedPlanetData = window.systemMapState.planets.find(
+            p => p.name === window.systemMapState.selectedPlanet.name
+        );
+
+        const startLookAt = new THREE.Vector3();
+        if (selectedPlanetData && selectedPlanetData.mesh) {
+            selectedPlanetData.mesh.getWorldPosition(startLookAt);
+        } else {
+            // Fallback: use camera's current target
+            const lookAtTarget = new THREE.Vector3(0, 0, -1);
+            lookAtTarget.applyQuaternion(camera.quaternion);
+            startLookAt.copy(camera.position).add(lookAtTarget);
+        }
+
+        // Clear camera offset BEFORE animation to stop tracking immediately
         window.systemMapState.cameraOffset = null;
         window.systemMapState.lastPlanetAngle = 0;
 
-        // Hide selection reticle
+        // Kill any ongoing GSAP animations to prevent conflicts
+        if (typeof gsap !== 'undefined') {
+            gsap.killTweensOf(camera.position);
+            if (window.systemMapState._currentAnimState) {
+                gsap.killTweensOf(window.systemMapState._currentAnimState);
+            }
+        }
+
+        // Hide selection reticle immediately
         if (window.systemMapState.selectionReticle) {
             window.systemMapState.selectionReticle.visible = false;
         }
 
-        // Reset camera to look at star (origin)
-        if (window.systemMapState.camera) {
-            window.systemMapState.camera.lookAt(0, 0, 0);
+        // Get default camera position from system data
+        if (!systemData.camera || !systemData.camera.position || !systemData.camera.lookAt) {
+            console.error('System camera configuration missing');
+            return;
+        }
+
+        const targetPos = systemData.camera.position;
+        const targetLookAt = new THREE.Vector3(
+            systemData.camera.lookAt[0],
+            systemData.camera.lookAt[1],
+            systemData.camera.lookAt[2]
+        );
+
+        // Animate camera back to system view
+        if (typeof gsap !== 'undefined') {
+            // Store starting camera position
+            const startPos = camera.position.clone();
+
+            // Animate a progress value from 0 to 1
+            const animState = { progress: 0 };
+            window.systemMapState._currentAnimState = animState;
+
+            gsap.to(animState, {
+                progress: 1,
+                duration: CAMERA_ANIMATION_DURATION,
+                ease: CAMERA_ANIMATION_EASE,
+                onUpdate: function() {
+                    // Interpolate camera position from current to target
+                    const targetPosition = new THREE.Vector3(targetPos[0], targetPos[1], targetPos[2]);
+                    camera.position.lerpVectors(startPos, targetPosition, animState.progress);
+
+                    // Interpolate lookAt target from planet to sun
+                    const currentLookAt = new THREE.Vector3();
+                    currentLookAt.lerpVectors(startLookAt, targetLookAt, animState.progress);
+                    camera.lookAt(currentLookAt.x, currentLookAt.y, currentLookAt.z);
+                },
+                onComplete: function() {
+                    // After animation completes, ensure exact final position
+                    camera.position.set(targetPos[0], targetPos[1], targetPos[2]);
+                    camera.lookAt(targetLookAt.x, targetLookAt.y, targetLookAt.z);
+
+                    // Clear planet selection
+                    window.systemMapState.selectedPlanet = null;
+
+                    console.log('Camera returned to system view');
+                }
+            });
+        } else {
+            // Fallback to instant positioning
+            camera.position.set(targetPos[0], targetPos[1], targetPos[2]);
+            camera.lookAt(targetLookAt.x, targetLookAt.y, targetLookAt.z);
+
+            // Clear planet selection immediately
+            window.systemMapState.selectedPlanet = null;
         }
 
         // Restore system info to panel

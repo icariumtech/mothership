@@ -3189,12 +3189,6 @@
         // Clear selected planet state
         window.systemMapState.selectedPlanet = null;
 
-        // Cancel any ongoing typewriter animations immediately
-        const infoPanelContent = document.getElementById('system-info-content');
-        if (infoPanelContent && infoPanelContent._typewriterCancelled !== undefined) {
-            infoPanelContent._typewriterCancelled = true;
-        }
-
         // Get star position for zoom-out animation
         const selectedSystem = localStorage.getItem('selected_star_system');
         let starPosition = null;
@@ -3387,6 +3381,81 @@
     }
 
     /**
+     * Get what the panel SHOULD be displaying based on current state
+     * Returns { title: string, contentHTML: string } or null if panel should be hidden
+     */
+    function getExpectedPanelContent() {
+        if (window.systemMapState.selectedPlanet) {
+            // Panel should show selected planet
+            return {
+                title: window.systemMapState.selectedPlanet.name.toUpperCase(),
+                contentHTML: buildPlanetInfoHTML(window.systemMapState.selectedPlanet),
+                type: 'planet'
+            };
+        } else if (window.systemMapState.currentSystem) {
+            // Panel should show system info
+            const systemData = window.systemMapState.currentSystem;
+            const selectedSystem = localStorage.getItem('selected_star_system');
+            let systemInfo = null;
+
+            if (selectedSystem && window.starSystemsData && window.starSystemsData[selectedSystem]) {
+                systemInfo = window.starSystemsData[selectedSystem];
+            } else {
+                systemInfo = {
+                    name: systemData.star.name,
+                    type: systemData.star.type,
+                    description: `${systemData.star.type} star system`,
+                    position: [0, 0, 0],
+                    location_slug: systemData.system_slug
+                };
+            }
+
+            return {
+                title: systemInfo.name.toUpperCase(),
+                contentHTML: buildSystemInfoHTML(systemInfo),
+                type: 'system'
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Validate that panel is showing correct content and force-correct if not
+     * Called after typewriter animations complete to prevent stale content
+     * @param {boolean} forceCorrect - If true, always correct regardless of title match
+     */
+    function validateAndCorrectPanel(forceCorrect = false) {
+        const infoPanelName = document.getElementById('system-info-name');
+        const infoPanelContent = document.getElementById('system-info-content');
+
+        if (!infoPanelName || !infoPanelContent) return;
+
+        const expected = getExpectedPanelContent();
+        if (!expected) return;
+
+        const currentTitle = infoPanelName.textContent;
+
+        // Check if title matches expected or if force-correct is requested
+        if (forceCorrect || currentTitle !== expected.title) {
+            if (forceCorrect) {
+                console.log(`Force-correcting panel after superseded operation to show ${expected.type}: ${expected.title}`);
+            } else {
+                console.log(`Panel mismatch detected! Expected "${expected.title}" but found "${currentTitle}". Force-correcting...`);
+            }
+
+            // Force-correct immediately without animation
+            infoPanelName.textContent = expected.title;
+            infoPanelContent.innerHTML = expected.contentHTML;
+
+            console.log(`Panel corrected to show ${expected.type}: ${expected.title}`);
+        }
+    }
+
+    // Expose validation function globally for debugging
+    window.validateAndCorrectPanel = validateAndCorrectPanel;
+
+    /**
      * Select a planet and display its details in the info panel
      * @param {Object} planetData - Planet data from system_map.yaml
      */
@@ -3399,6 +3468,13 @@
             console.error('System info panel elements not found');
             return;
         }
+
+        // Track this operation with a sequence number to prevent race conditions
+        if (!window.systemMapState.infoPanelUpdateSequence) {
+            window.systemMapState.infoPanelUpdateSequence = 0;
+        }
+        window.systemMapState.infoPanelUpdateSequence++;
+        const thisSequence = window.systemMapState.infoPanelUpdateSequence;
 
         // Check if there's a previously selected planet (for smooth transition)
         const previouslySelectedPlanet = window.systemMapState.selectedPlanet;
@@ -3544,11 +3620,6 @@
             window.systemMapState.selectionReticle.visible = true;
         }
 
-        // Cancel any ongoing typewriter animation immediately
-        if (infoPanelContent._typewriterCancelled !== undefined) {
-            infoPanelContent._typewriterCancelled = true;
-        }
-
         // Fade out old content first (same pattern as galaxy map)
         infoPanelContent.style.opacity = '0';
         infoPanelContent.style.transition = 'opacity 300ms ease';
@@ -3556,15 +3627,28 @@
         // Wait for fade out
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Update panel title
-        infoPanelName.textContent = planetData.name.toUpperCase();
+        // Check if this operation is still current (prevent race condition)
+        if (window.systemMapState.infoPanelUpdateSequence !== thisSequence) {
+            console.log('Planet selection superseded, skipping panel update');
+            return;
+        }
 
-        // Reset opacity and typewrite new content
+        // Update panel title AND content together without await
+        infoPanelName.textContent = planetData.name.toUpperCase();
         infoPanelContent.style.opacity = '1';
         const contentHTML = buildPlanetInfoHTML(planetData);
-        await window.typewriteContent(infoPanelContent, contentHTML);
 
-        console.log('Selected planet:', planetData.name);
+        // Start typewriter but don't await it - let it run in background
+        window.typewriteContent(infoPanelContent, contentHTML).then(() => {
+            // After typewriter completes, verify this operation is still current
+            if (window.systemMapState.infoPanelUpdateSequence !== thisSequence) {
+                console.log('Planet selection was superseded during typewriter - force-correcting panel');
+                // This typewriter was superseded, force-correct the panel immediately
+                validateAndCorrectPanel(true);
+            } else {
+                console.log('Selected planet:', planetData.name);
+            }
+        });
     }
 
     /**
@@ -3577,16 +3661,28 @@
         const camera = window.systemMapState.camera;
         if (!camera) return;
 
+        // Track this operation with a sequence number to prevent race conditions
+        if (!window.systemMapState.infoPanelUpdateSequence) {
+            window.systemMapState.infoPanelUpdateSequence = 0;
+        }
+        window.systemMapState.infoPanelUpdateSequence++;
+        const thisSequence = window.systemMapState.infoPanelUpdateSequence;
+
+        const infoPanelContent = document.getElementById('system-info-content');
+
         // Get the planet's current position (what we're currently looking at)
-        const selectedPlanetData = window.systemMapState.planets.find(
-            p => p.name === window.systemMapState.selectedPlanet.name
-        );
+        let selectedPlanetData = null;
+        if (window.systemMapState.selectedPlanet) {
+            selectedPlanetData = window.systemMapState.planets.find(
+                p => p.name === window.systemMapState.selectedPlanet.name
+            );
+        }
 
         const startLookAt = new THREE.Vector3();
         if (selectedPlanetData && selectedPlanetData.mesh) {
             selectedPlanetData.mesh.getWorldPosition(startLookAt);
         } else {
-            // Fallback: use camera's current target
+            // Fallback: use camera's current target (or sun position if no planet selected)
             const lookAtTarget = new THREE.Vector3(0, 0, -1);
             lookAtTarget.applyQuaternion(camera.quaternion);
             startLookAt.copy(camera.position).add(lookAtTarget);
@@ -3667,9 +3763,15 @@
 
         // Restore system info to panel
         const infoPanelName = document.getElementById('system-info-name');
-        const infoPanelContent = document.getElementById('system-info-content');
+        // infoPanelContent already declared above for typewriter cancellation
 
         if (infoPanelName && infoPanelContent) {
+            // Check if this operation is still current (prevent race condition)
+            if (window.systemMapState.infoPanelUpdateSequence !== thisSequence) {
+                console.log('Planet unselection superseded, skipping panel update');
+                return;
+            }
+
             // Get the selected system data from galaxy map
             const selectedSystem = localStorage.getItem('selected_star_system');
             let systemInfo = null;
@@ -3689,12 +3791,19 @@
                 };
             }
 
-            // Update panel content with typewriter animation
+            // Update panel content with typewriter animation (don't await - let it run in background)
             const contentHTML = buildSystemInfoHTML(systemInfo);
-            await window.typewriteContent(infoPanelContent, contentHTML);
+            window.typewriteContent(infoPanelContent, contentHTML).then(() => {
+                // After typewriter completes, verify this operation is still current
+                if (window.systemMapState.infoPanelUpdateSequence !== thisSequence) {
+                    console.log('Planet unselection was superseded during typewriter - force-correcting panel');
+                    // This typewriter was superseded, force-correct the panel immediately
+                    validateAndCorrectPanel(true);
+                } else {
+                    console.log('Unselected planet, restored system info');
+                }
+            });
         }
-
-        console.log('Unselected planet, restored system info');
     }
 
     /**
@@ -3986,11 +4095,6 @@
                 const infoPanelContent = document.getElementById('system-info-content');
 
                 if (infoPanel && infoPanelName && infoPanelContent) {
-                    // Cancel any ongoing typewriter animation from system map
-                    if (infoPanelContent._typewriterCancelled !== undefined) {
-                        infoPanelContent._typewriterCancelled = true;
-                    }
-
                     // Build info content HTML using helper function
                     const contentHTML = buildSystemInfoHTML(systemData);
 
@@ -4704,21 +4808,24 @@
     <!-- Star System Selection Script -->
     <script type="module">
     (function() {
-        // Typewriter effect for system info panel
+        // Typewriter effect for system info panel with operation ID tracking
+        let typewriterOperationId = 0;
+
         function typewriteContent(element, html, speed = 15) {
-            // Cancel any existing typewriter animation on this element
-            if (element._typewriterCancelled !== undefined) {
-                element._typewriterCancelled = true;
-            }
+            // Generate a unique operation ID for this typewriter
+            typewriterOperationId++;
+            const thisOperationId = typewriterOperationId;
+
+            // Store the current operation ID on the element
+            element._currentTypewriterId = thisOperationId;
 
             return new Promise((resolve) => {
                 // Create a temporary div to parse the HTML and extract text
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = html;
 
-                // Clear the element and reset cancellation flag
+                // Clear the element
                 element.innerHTML = '';
-                element._typewriterCancelled = false;
 
                 // We'll build up the content with proper HTML structure
                 let currentHTML = '';
@@ -4726,8 +4833,9 @@
                 const fullText = tempDiv.textContent;
 
                 function typeNextChar() {
-                    // Check if this animation has been cancelled
-                    if (element._typewriterCancelled) {
+                    // Check if this operation is still current (not superseded by a newer one)
+                    if (element._currentTypewriterId !== thisOperationId) {
+                        console.log(`Typewriter ${thisOperationId} cancelled - current is ${element._currentTypewriterId}`);
                         resolve();
                         return;
                     }
@@ -4776,7 +4884,7 @@
 
                         setTimeout(typeNextChar, speed);
                     } else {
-                        delete element._typewriterCancelled;
+                        // Typewriter completed successfully
                         resolve();
                     }
                 }

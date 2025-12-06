@@ -3303,9 +3303,7 @@
             { key: 'type', label: 'TYPE', transform: val => val.toUpperCase() },
             { key: 'description', label: 'DESCRIPTION' },
             { key: 'population', label: 'POPULATION' },
-            { key: 'position', label: 'COORDINATES', transform: val => val.join(', ') },
-            { key: 'location_slug', label: 'LOCATION ID' },
-            { key: 'has_system_map', label: 'SYSTEM MAP', transform: () => 'AVAILABLE' }
+            { key: 'position', label: 'COORDINATES', transform: val => val.join(', ') }
         ];
 
         fields.forEach(field => {
@@ -3337,9 +3335,7 @@
             { key: 'orbital_radius', label: 'ORBITAL RADIUS', transform: val => `${val} AU` },
             { key: 'orbital_period', label: 'ORBITAL PERIOD', transform: val => `${val} days` },
             { key: 'inclination', label: 'INCLINATION', transform: val => `${val}°` },
-            { key: 'tidally_locked', label: 'ROTATION', transform: val => val ? 'TIDALLY LOCKED' : 'NORMAL' },
-            { key: 'location_slug', label: 'LOCATION ID' },
-            { key: 'has_orbit_map', label: 'ORBIT MAP', transform: () => 'AVAILABLE' }
+            { key: 'tidally_locked', label: 'ROTATION', transform: val => val ? 'TIDALLY LOCKED' : 'NORMAL' }
         ];
 
         fields.forEach(field => {

@@ -1663,7 +1663,9 @@
         animating: false,
         animationFrameId: null,  // Store animation frame ID for cancellation
         autoRotate: false,  // Auto-rotate around selected star
-        autoRotateSpeed: 0.002  // Rotation speed (radians per frame) - full rotation ~52 seconds
+        autoRotateSpeed: 0.002,  // Rotation speed (radians per frame) - full rotation ~52 seconds
+        lastUserInteractionTime: null,  // Track when user last interacted (for auto-rotation resume)
+        autoRotateResumeDelay: 5000  // Resume auto-rotation after 5 seconds of inactivity
     };
 
     (function() {
@@ -2194,6 +2196,15 @@
                 });
             }
 
+            // Check if we should resume auto-rotation after user inactivity
+            if (!window.starMapState.autoRotate && window.starMapState.lastUserInteractionTime) {
+                const timeSinceLastInteraction = Date.now() - window.starMapState.lastUserInteractionTime;
+                if (timeSinceLastInteraction >= window.starMapState.autoRotateResumeDelay) {
+                    window.starMapState.autoRotate = true;
+                    console.log('Auto-rotation resumed after 5 seconds of inactivity');
+                }
+            }
+
             // Auto-rotate camera around selected star
             if (window.starMapState.autoRotate && !window.starMapState.animating) {
                 const offset = camera.position.clone().sub(lookAtTarget);
@@ -2289,7 +2300,7 @@
         window.starMapState.animateCameraToTarget = animateCameraToTarget;
 
         // Simple mouse wheel zoom
-        let zoomSpeed = 5;      // Units to zoom per scroll
+        let zoomSpeed = 2;      // Units to zoom per scroll (reduced from 5 for less aggressive zooming)
         let minDistance = 20;   // Minimum distance from center
         let maxDistance = 300;  // Maximum distance from center
 
@@ -2307,8 +2318,9 @@
             // Otherwise, zoom the galaxy map
             event.preventDefault();
 
-            // Disable auto-rotation when user zooms
+            // Disable auto-rotation when user zooms and record interaction time
             window.starMapState.autoRotate = false;
+            window.starMapState.lastUserInteractionTime = Date.now();
 
             // Calculate direction from camera to target
             const direction = lookAtTarget.clone().sub(camera.position).normalize();
@@ -2358,8 +2370,9 @@
 
                 event.preventDefault();
 
-                // Disable auto-rotation when user pinch zooms
+                // Disable auto-rotation when user pinch zooms and record interaction time
                 window.starMapState.autoRotate = false;
+                window.starMapState.lastUserInteractionTime = Date.now();
 
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
@@ -2394,14 +2407,15 @@
         // Mouse and touch rotation controls
         let isDragging = false;
         let previousPosition = { x: 0, y: 0 };
-        let rotateSpeed = 0.005;
+        let rotateSpeed = 0.0001;  // Optimized for smooth touch and mouse control
 
         // Mouse rotation
         window.addEventListener('mousedown', (event) => {
             if (event.button === 0) {  // Left click only
                 isDragging = true;
-                // Disable auto-rotation when user manually rotates
+                // Disable auto-rotation when user manually rotates and record interaction time
                 window.starMapState.autoRotate = false;
+                window.starMapState.lastUserInteractionTime = Date.now();
                 previousPosition = {
                     x: event.clientX,
                     y: event.clientY
@@ -2467,8 +2481,9 @@
                 if (isPanel || isButton) return;
 
                 isTouching = true;
-                // Disable auto-rotation when user manually rotates
+                // Disable auto-rotation when user manually rotates and record interaction time
                 window.starMapState.autoRotate = false;
+                window.starMapState.lastUserInteractionTime = Date.now();
                 previousPosition = {
                     x: event.touches[0].clientX,
                     y: event.touches[0].clientY
@@ -4537,8 +4552,8 @@
         // System map camera controls constants
         const SYSTEM_MAP_MIN_ZOOM = 60;
         const SYSTEM_MAP_MAX_ZOOM = 300;
-        const SYSTEM_MAP_ZOOM_SPEED = 0.1;
-        const SYSTEM_MAP_ROTATE_SPEED = 0.005;
+        const SYSTEM_MAP_ZOOM_SPEED = 0.05;  // Reduced from 0.1 (5% per scroll instead of 10%)
+        const SYSTEM_MAP_ROTATE_SPEED = 0.003;  // Reduced from 0.005 for less aggressive rotation
 
         const canvas = document.getElementById('systemmap-canvas');
         if (!canvas) {

@@ -348,11 +348,62 @@ def get_system_map_json(request, system_slug):
     Public endpoint - no login required.
     """
     from terminal.data_loader import DataLoader
+    from pathlib import Path
+    from django.conf import settings
+    import yaml
 
     loader = DataLoader()
     system_map = loader.load_system_map(system_slug)
 
     if system_map:
+        # Enhance each body with facility counts
+        bodies = system_map.get('bodies', [])
+        for body in bodies:
+            location_slug = body.get('location_slug')
+            if location_slug:
+                # Count surface facilities and orbital stations
+                surface_count = 0
+                orbital_count = 0
+
+                # Path to planet directory
+                planet_dir = Path(settings.BASE_DIR) / 'data' / 'galaxy' / system_slug / location_slug
+
+                if planet_dir.exists():
+                    # Check each subdirectory (potential facility)
+                    for subdir in planet_dir.iterdir():
+                        if subdir.is_dir() and subdir.name not in ['comms', 'map', 'maps']:
+                            # Check the facility's location.yaml to determine type
+                            facility_yaml = subdir / 'location.yaml'
+                            if facility_yaml.exists():
+                                try:
+                                    with open(facility_yaml, 'r') as f:
+                                        facility_data = yaml.safe_load(f)
+                                        facility_type = facility_data.get('type', '').lower()
+
+                                        # Orbital stations are type "station" with is_orbital flag
+                                        # or have "orbital" in their name/description
+                                        is_orbital = facility_data.get('is_orbital', False)
+
+                                        if is_orbital or 'orbital' in facility_type:
+                                            orbital_count += 1
+                                        else:
+                                            # Everything else is surface (base, ship, city, etc.)
+                                            surface_count += 1
+                                except Exception:
+                                    # If we can't read it, assume it's a surface facility
+                                    surface_count += 1
+                            else:
+                                # No location.yaml, assume surface facility
+                                surface_count += 1
+
+                # Add counts to body data
+                body['surface_facility_count'] = surface_count
+                body['orbital_station_count'] = orbital_count
+            else:
+                # No location slug means no facilities
+                body['surface_facility_count'] = 0
+                body['orbital_station_count'] = 0
+
         return JsonResponse(system_map)
     else:
         return JsonResponse({

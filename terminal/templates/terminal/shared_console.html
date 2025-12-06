@@ -853,6 +853,30 @@
             user-select: none;
         }
 
+        /* Facility indicators */
+        .facility-indicators {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .facility-indicator {
+            width: 8px;
+            height: 8px;
+            background-color: var(--color-amber);
+        }
+
+        .facility-square {
+            /* Square is the default shape */
+        }
+
+        .facility-triangle {
+            /* Create triangle using clip-path */
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
         /* System map button for star systems */
         .system-map-btn-container {
             flex-shrink: 0;
@@ -3935,6 +3959,20 @@
         if (systemData.bodies && systemData.bodies.length > 0) {
             systemData.bodies.forEach(body => {
                 const bodyName = body.name || 'Unknown';
+
+                // Build facility indicators
+                let indicatorsHTML = '';
+                if (body.surface_facility_count > 0 || body.orbital_station_count > 0) {
+                    indicatorsHTML = '<div class="facility-indicators">';
+                    if (body.surface_facility_count > 0) {
+                        indicatorsHTML += '<div class="facility-indicator facility-square" title="Surface facilities"></div>';
+                    }
+                    if (body.orbital_station_count > 0) {
+                        indicatorsHTML += '<div class="facility-indicator facility-triangle" title="Orbital stations"></div>';
+                    }
+                    indicatorsHTML += '</div>';
+                }
+
                 planetsHTML += `
                     <div class="star-system-row planet-row"
                          role="button"
@@ -3945,6 +3983,7 @@
                         <div class="star-system-content">
                             <div class="star-system-checkbox" role="checkbox" aria-checked="false"></div>
                             <div class="star-system-name">${bodyName}</div>
+                            ${indicatorsHTML}
                         </div>
                     </div>
                 `;

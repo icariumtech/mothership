@@ -1,0 +1,16 @@
+name: "Survey Station Delta"
+type: "station"
+is_orbital: true
+description: "Small orbital research station conducting atmospheric and geological surveys of TRAPPIST-1d"
+coordinates: "Orbit: 320km altitude"
+status: "OPERATIONAL"
+crew_capacity: 50
+current_population: 45
+established: "2181"
+orbit_type: "Polar orbit"
+
+functions:
+  - "Planetary atmospheric monitoring"
+  - "Geological survey coordination"
+  - "Habitability assessment"
+  - "Sample analysis"

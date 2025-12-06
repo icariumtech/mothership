@@ -1,0 +1,15 @@
+name: "Tau Ceti Orbital Shipyards"
+type: "station"
+is_orbital: true
+description: "Major orbital construction facility for starship manufacturing and repair"
+coordinates: "Orbit: 850km altitude"
+status: "OPERATIONAL"
+crew_capacity: 450
+established: "2170"
+orbit_type: "Low planetary orbit"
+
+functions:
+  - "Starship construction"
+  - "Deep space vessel repair"
+  - "Orbital freight transfer"
+  - "Mining vessel maintenance"

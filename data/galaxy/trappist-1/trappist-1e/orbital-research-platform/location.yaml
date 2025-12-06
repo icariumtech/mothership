@@ -1,0 +1,8 @@
+name: "Orbital Research Platform Alpha"
+type: "station"
+is_orbital: true
+description: "Orbital research station maintaining geosynchronous position above Eden Research facility"
+coordinates: "Orbit: 400km altitude"
+status: "OPERATIONAL"
+crew_capacity: 35
+orbit_type: "Geosynchronous"

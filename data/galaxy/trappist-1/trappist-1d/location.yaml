@@ -1,0 +1,17 @@
+name: "TRAPPIST-1d"
+type: "planet"
+parent_system: "trappist-1"
+orbital_position: 3
+
+# Physical properties
+mass: "0.41 Earth masses"
+radius: "0.77 Earth radii"
+gravity: "0.69 G"
+atmosphere: "Thin, potentially breathable with assistance"
+temperature_range: "5°C to 25°C"
+
+# Status
+status: "RESEARCH OUTPOST"
+population: "45 (orbital station crew)"
+
+description: "Rocky planet in the habitable zone of TRAPPIST-1. Surface conditions are marginal but orbital research continues to assess long-term colonization potential."

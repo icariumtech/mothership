@@ -1,0 +1,80 @@
+# Tau Ceti f Orbital Environment
+# Hot, humid world with dense vegetation
+
+planet:
+  name: "Tau Ceti f"
+  type: "planet"
+  size: 17.5  # Slightly larger than Earth
+  rotation_speed: 0.0022
+  axial_tilt: 0  # No tilt - spins straight up
+  texture: "/textures/planets/01.png"  # Numbered texture (random assignment)
+
+camera:
+  position: [0, 35, 58]
+  lookAt: [0, 0, 0]
+  fov: 60
+  zoom_limits: [25, 175]
+
+# Single small moon
+moons:
+  - name: "Verdant"
+    location_slug: "verdant"
+    orbital_radius: 50
+    orbital_period: 220
+    orbital_angle: 45
+    inclination: 4.2
+    size: 2.5
+    color: 0x7A6B5D
+    texture_config:
+      type: "barren_rocky"
+      primary_color: 0x7A6B5D
+      secondary_color: 0x5A4B3D
+      noise_scale: 1.4
+    clickable: false
+    has_facilities: false
+    info:
+      description: "Small tidally-locked moon"
+
+# Limited orbital infrastructure (developing colony)
+orbital_stations:
+  - name: "Verdant Orbital"
+    location_slug: "verdant-orbital"
+    orbital_radius: 32
+    orbital_period: 90
+    orbital_angle: 135
+    inclination: 0
+    size: 1.5
+    icon_type: "station"
+    info:
+      description: "Supply depot and transit hub"
+      population: "~3,500"
+      type: "Commercial/Supply"
+
+# Surface settlements
+surface_markers:
+  - name: "Verdant Base"
+    location_slug: "verdant-base"
+    latitude: -8.3
+    longitude: 72.5
+    marker_type: "city"
+    info:
+      description: "Main settlement"
+      population: "~15,000"
+
+  - name: "Agricultural Research Station 7"
+    location_slug: "ag-research-7"
+    latitude: 5.2
+    longitude: 68.9
+    marker_type: "research"
+    info:
+      description: "Studying native plant species"
+      type: "Agricultural/Botanical"
+
+  - name: "Landing Field Bravo"
+    location_slug: "landing-bravo"
+    latitude: -7.8
+    longitude: 74.1
+    marker_type: "spaceport"
+    info:
+      description: "Secondary landing facility"
+      traffic: "Moderate"

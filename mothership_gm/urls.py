@@ -31,6 +31,8 @@ if settings.DEBUG:
     import os
 
     data_root = os.path.join(settings.BASE_DIR, 'data')
+    textures_root = os.path.join(settings.BASE_DIR, 'textures')
     urlpatterns += [
         path('data/<path:path>', serve, {'document_root': data_root}),
+        path('textures/<path:path>', serve, {'document_root': textures_root}),
     ]

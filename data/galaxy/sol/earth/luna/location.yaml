@@ -1,0 +1,28 @@
+name: "Luna"
+type: "moon"
+parent_body: "earth"
+
+# Physical properties
+mass: "7.342 × 10^22 kg"
+radius: "1,737 km"
+gravity: "0.16 G"
+atmosphere: "None (vacuum)"
+temperature_range: "-173°C to 127°C"
+
+# Orbital properties
+orbital_radius: "384,400 km"
+orbital_period: "27.3 days"
+tidally_locked: true
+
+# Status
+status: "INHABITED"
+population: "~2,500"
+established: "2055"
+
+description: "Earth's only natural satellite. The first extraterrestrial body settled by humans, Luna hosts several mining operations and research facilities on its far side."
+
+# Facilities on Luna
+surface_facilities:
+  - "Tycho Base (main settlement)"
+  - "Farside Mining Complex"
+  - "Lunar Observatory Array"

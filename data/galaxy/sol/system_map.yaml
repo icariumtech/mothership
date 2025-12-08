@@ -1,0 +1,107 @@
+star:
+  name: "Sol"
+  type: "G2V main-sequence"
+  color: 0xFFFFAA
+  size: 4.5
+  corona_intensity: 0.8
+  light_color: 0xFFF8DC
+
+camera:
+  position: [0, 127, 127]
+  lookAt: [0, 0, 0]
+  fov: 75
+  zoom_limits: [60, 300]
+
+time:
+  current_day: 2183.165
+  speed_multiplier: 1.0
+
+bodies:
+  # Inner rocky planets
+  - name: "Mercury"
+    type: "planet"
+    orbital_radius: 15
+    orbital_period: 88
+    orbital_angle: 45
+    inclination: 7.0
+    size: 0.9
+    color: 0x8C7853
+    clickable: false
+    info:
+      description: "Scorched inner planet, uninhabited"
+
+  - name: "Venus"
+    type: "planet"
+    orbital_radius: 25
+    orbital_period: 225
+    orbital_angle: 180
+    inclination: 3.4
+    size: 1.4
+    color: 0xFFC649
+    atmosphere_color: 0xFFE6A8
+    atmosphere_intensity: 0.5
+    clickable: false
+    info:
+      description: "Toxic atmosphere, extreme greenhouse effect"
+
+  # HABITABLE ZONE - Earth
+  - name: "Earth"
+    type: "planet"
+    location_slug: "earth"
+    orbital_radius: 40
+    orbital_period: 365
+    orbital_angle: 90
+    inclination: 0.0
+    size: 1.5
+    color: 0x4682B4
+    atmosphere_color: 0x87CEEB
+    atmosphere_intensity: 0.4
+    clickable: true
+    has_orbit_map: true
+    info:
+      description: "Humanity's homeworld"
+      population: "8.2 billion"
+
+  - name: "Mars"
+    type: "planet"
+    location_slug: "mars"
+    orbital_radius: 55
+    orbital_period: 687
+    orbital_angle: 270
+    inclination: 1.9
+    size: 1.2
+    color: 0xCD5C5C
+    clickable: true
+    has_orbit_map: false
+    info:
+      description: "Red planet, early terraforming in progress"
+      population: "~450,000"
+
+  # Outer system
+  - name: "Jupiter"
+    type: "gas_giant"
+    orbital_radius: 95
+    orbital_period: 4333
+    orbital_angle: 30
+    inclination: 1.3
+    size: 4.5
+    color: 0xC88B3A
+    clickable: false
+    info:
+      description: "Gas giant with numerous moons"
+
+  - name: "Saturn"
+    type: "gas_giant"
+    orbital_radius: 140
+    orbital_period: 10759
+    orbital_angle: 150
+    inclination: 2.5
+    size: 4.0
+    color: 0xFAD5A5
+    has_rings: true
+    ring_inner: 4.2
+    ring_outer: 5.8
+    ring_color: 0xE6C9A8
+    clickable: false
+    info:
+      description: "Ringed gas giant"

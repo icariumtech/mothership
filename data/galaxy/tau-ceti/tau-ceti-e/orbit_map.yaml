@@ -1,0 +1,130 @@
+# Tau Ceti e Orbital Environment
+# Major colony world - the jewel of the Tau Ceti system
+
+planet:
+  name: "Tau Ceti e"
+  type: "planet"
+  size: 18.0  # Super-Earth, larger than Earth
+  rotation_speed: 0.0018
+  axial_tilt: 18.2
+
+  # Procedural texture - oceanic super-Earth
+  texture_config:
+    type: "terrestrial_oceanic"
+    primary_color: 0x3A7CA5  # Deep ocean blue
+    secondary_color: 0x2F6B3F  # Forest green
+    tertiary_color: 0xE8DCC0  # Desert tan (dry continents)
+    cloud_layer: true
+    cloud_color: 0xF5F5F5
+    cloud_opacity: 0.25
+    noise_scale: 3.0
+
+camera:
+  position: [0, 35, 60]
+  lookAt: [0, 0, 0]
+  fov: 60
+  zoom_limits: [25, 180]
+
+# Two small moons
+moons:
+  - name: "Selene"
+    location_slug: "selene"
+    orbital_radius: 45
+    orbital_period: 200
+    orbital_angle: 0
+    inclination: 2.8
+    size: 2.8
+    color: 0x8B8680
+    texture_config:
+      type: "barren_rocky"
+      primary_color: 0x8B8680
+      secondary_color: 0x6B6660
+      noise_scale: 1.5
+    clickable: false
+    has_facilities: false
+    info:
+      description: "Smaller moon, barren"
+
+  - name: "Phoebe"
+    location_slug: "phoebe"
+    orbital_radius: 65
+    orbital_period: 320
+    orbital_angle: 180
+    inclination: 8.5
+    size: 3.2
+    color: 0x9B9080
+    texture_config:
+      type: "barren_rocky"
+      primary_color: 0x9B9080
+      secondary_color: 0x7B7060
+      noise_scale: 1.6
+    clickable: false
+    has_facilities: false
+    info:
+      description: "Larger moon, iron-rich"
+
+# Orbital infrastructure
+orbital_stations:
+  - name: "Orbital Construction Yards"
+    location_slug: "construction-yards"
+    orbital_radius: 30
+    orbital_period: 85
+    orbital_angle: 90
+    inclination: 0
+    size: 2.0
+    icon_type: "shipyard"
+    info:
+      description: "Major ship construction facility"
+      population: "~8,000"
+      type: "Industrial/Shipyard"
+
+  - name: "New Terra Station"
+    location_slug: "new-terra-station"
+    orbital_radius: 28
+    orbital_period: 80
+    orbital_angle: 210
+    inclination: 5
+    size: 1.8
+    icon_type: "station"
+    info:
+      description: "Commercial hub and transit station"
+      population: "~12,000"
+      type: "Commercial/Residential"
+
+# Major surface facilities
+surface_markers:
+  - name: "New Terra City"
+    location_slug: "new-terra-city"
+    latitude: 22.5
+    longitude: 45.8
+    marker_type: "city"
+    info:
+      description: "Capital city and main settlement"
+      population: "~120,000"
+
+  - name: "Northern Agricultural Zone"
+    location_slug: "ag-zone-north"
+    latitude: 48.2
+    longitude: -15.3
+    marker_type: "base"
+    info:
+      description: "Major food production region"
+      type: "Agricultural"
+
+  - name: "Ceti Spaceport"
+    location_slug: "ceti-spaceport"
+    latitude: 23.1
+    longitude: 47.2
+    marker_type: "spaceport"
+    info:
+      description: "Primary surface-to-orbit launch facility"
+      traffic: "Very High"
+
+  - name: "Research Outpost Delta"
+    location_slug: "research-delta"
+    latitude: -35.7
+    longitude: 128.4
+    marker_type: "research"
+    info:
+      description: "Xenobiology research station"
+      status: "OPERATIONAL"

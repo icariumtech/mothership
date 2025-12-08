@@ -1,0 +1,17 @@
+name: "Selene"
+type: "moon"
+parent_body: "tau-ceti-e"
+
+# Physical properties
+radius: "1,200 km"
+gravity: "0.12 G"
+atmosphere: "None (vacuum)"
+temperature_range: "-180°C to 110°C"
+
+# Orbital properties
+orbital_radius: "285,000 km"
+orbital_period: "18.5 days"
+
+# Status
+status: "UNINHABITED"
+description: "Small, barren moon. No atmosphere, heavily cratered surface. Minimal economic value."

@@ -2878,6 +2878,346 @@
         }
     }
 
+    // ==================== PROCEDURAL PLANET TEXTURE GENERATION ====================
+
+    /**
+     * Simple pseudo-random noise function (seeded)
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} seed - Random seed
+     * @returns {number} - Noise value between 0 and 1
+     */
+    function noise2D(x, y, seed = 0) {
+        // Improved hash function for better distribution
+        const hash = Math.sin(x * 127.1 + y * 311.7 + seed * 74.3) * 43758.5453123;
+        const hash2 = Math.sin(x * 269.5 + y * 183.3 + seed * 92.7) * 43758.5453123;
+        return Math.abs((hash + hash2) / 2 - Math.floor((hash + hash2) / 2));
+    }
+
+    /**
+     * Octave noise (multiple layers of noise for detail)
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} octaves - Number of noise layers
+     * @param {number} seed - Random seed
+     * @returns {number} - Noise value between 0 and 1
+     */
+    function octaveNoise(x, y, octaves = 4, seed = 0) {
+        let value = 0;
+        let amplitude = 1;
+        let frequency = 1;
+        let maxValue = 0;
+
+        for (let i = 0; i < octaves; i++) {
+            value += noise2D(x * frequency, y * frequency, seed + i) * amplitude;
+            maxValue += amplitude;
+            amplitude *= 0.5;
+            frequency *= 2;
+        }
+
+        return value / maxValue;
+    }
+
+    /**
+     * Generate procedural planet texture
+     * @param {Object} config - Texture configuration from orbit_map.yaml
+     * @returns {THREE.Texture} - Generated texture
+     */
+    function generatePlanetTexture(config) {
+        const width = 1024;
+        const height = 512; // Equirectangular projection (2:1 ratio)
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        const type = config.type || 'terrestrial_oceanic';
+        const primaryColor = config.primary_color || 0x4682B4;
+        const secondaryColor = config.secondary_color || 0x228B22;
+        const tertiaryColor = config.tertiary_color || null;
+        const noiseScale = config.noise_scale || 2.5;
+        const seed = config.seed || Math.random() * 1000;
+
+        // Convert hex colors to RGB
+        const primary = hexToRgb(primaryColor);
+        const secondary = hexToRgb(secondaryColor);
+        const tertiary = tertiaryColor ? hexToRgb(tertiaryColor) : null;
+
+        // Generate base planet texture based on type
+        switch (type) {
+            case 'terrestrial_oceanic':
+                generateOceanicTexture(ctx, width, height, primary, secondary, tertiary, noiseScale, seed);
+                break;
+            case 'barren_rocky':
+                generateBarrenTexture(ctx, width, height, primary, secondary, noiseScale, seed);
+                break;
+            case 'gas_giant':
+                generateGasGiantTexture(ctx, width, height, primary, secondary, noiseScale, seed);
+                break;
+            case 'ice_world':
+                generateIceTexture(ctx, width, height, primary, secondary, noiseScale, seed);
+                break;
+            case 'volcanic':
+                generateVolcanicTexture(ctx, width, height, primary, secondary, noiseScale, seed);
+                break;
+            default:
+                generateOceanicTexture(ctx, width, height, primary, secondary, tertiary, noiseScale, seed);
+        }
+
+        // TEMPORARILY DISABLED - Testing terrain without clouds
+        // if (config.cloud_layer) {
+        //     const cloudColor = config.cloud_color || 0xFFFFFF;
+        //     const cloudOpacity = config.cloud_opacity || 0.3;
+        //     addCloudLayer(ctx, width, height, hexToRgb(cloudColor), cloudOpacity, seed + 100);
+        // }
+
+        // Create Three.js texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.needsUpdate = true;
+
+        // Debug: Log texture info
+        console.log('Texture created:', {
+            width: canvas.width,
+            height: canvas.height,
+            type: type
+        });
+
+        // Debug: Show canvas in console (you can right-click and inspect it)
+        console.log('Canvas element:', canvas);
+
+        return texture;
+    }
+
+    /**
+     * Convert hex color to RGB object
+     */
+    function hexToRgb(hex) {
+        return {
+            r: (hex >> 16) & 255,
+            g: (hex >> 8) & 255,
+            b: hex & 255
+        };
+    }
+
+    /**
+     * Lerp between two RGB colors
+     */
+    function lerpColor(color1, color2, t) {
+        return {
+            r: Math.floor(color1.r + (color2.r - color1.r) * t),
+            g: Math.floor(color1.g + (color2.g - color1.g) * t),
+            b: Math.floor(color1.b + (color2.b - color1.b) * t)
+        };
+    }
+
+    /**
+     * Generate oceanic planet texture (Earth-like)
+     */
+    function generateOceanicTexture(ctx, width, height, ocean, land, ice, scale, seed) {
+        console.log('Generating oceanic texture using Canvas 2D API...');
+
+        // Fill background
+        ctx.fillStyle = '#141414';  // Dark background
+        ctx.fillRect(0, 0, width, height);
+
+        let bgCount = 0, tealCount = 0, amberCount = 0;
+
+        // Draw pixel by pixel using fillRect
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const nx = x / width * scale;
+                const ny = y / height * scale;
+
+                const elevation = octaveNoise(nx, ny, 6, seed);
+
+                // Pick color based on elevation
+                let color;
+                if (elevation < 0.4) {
+                    // Skip - already dark background
+                    bgCount++;
+                    continue;
+                } else if (elevation < 0.5) {
+                    color = '#64b4b4';  // Bright teal rgb(100,180,180)
+                    tealCount++;
+                } else {
+                    color = '#c89664';  // Bright amber rgb(200,150,100)
+                    amberCount++;
+                }
+
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, 1, 1);  // Draw 1x1 pixel
+            }
+        }
+
+        console.log(`Pixel counts - BG: ${bgCount}, Teal: ${tealCount}, Amber: ${amberCount}`);
+    }
+
+    /**
+     * Generate barren rocky texture (moon-like)
+     */
+    function generateBarrenTexture(ctx, width, height, dark, light, scale, seed) {
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const nx = x / width * scale;
+                const ny = y / height * scale;
+
+                const value = octaveNoise(nx, ny, 6, seed);
+                const craters = octaveNoise(nx * 3, ny * 3, 4, seed + 200);
+
+                // Crater-like features
+                let finalValue = value;
+                if (craters > 0.75) {
+                    finalValue = finalValue * 0.6; // Darken for craters
+                }
+
+                const color = lerpColor(dark, light, finalValue);
+
+                const i = (y * width + x) * 4;
+                data[i] = color.r;
+                data[i + 1] = color.g;
+                data[i + 2] = color.b;
+                data[i + 3] = 255;
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Generate gas giant texture (banded)
+     */
+    function generateGasGiantTexture(ctx, width, height, primary, secondary, scale, seed) {
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const nx = x / width * scale;
+                const ny = y / height * scale;
+
+                // Horizontal bands
+                const bands = Math.sin(ny * 8 + noise2D(nx, ny, seed) * 2) * 0.5 + 0.5;
+                const turbulence = octaveNoise(nx * 2, ny, 4, seed + 50) * 0.3;
+                const value = bands + turbulence;
+
+                const color = lerpColor(primary, secondary, value);
+
+                const i = (y * width + x) * 4;
+                data[i] = color.r;
+                data[i + 1] = color.g;
+                data[i + 2] = color.b;
+                data[i + 3] = 255;
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Generate ice world texture
+     */
+    function generateIceTexture(ctx, width, height, ice, darkIce, scale, seed) {
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const nx = x / width * scale;
+                const ny = y / height * scale;
+
+                const value = octaveNoise(nx, ny, 5, seed);
+                const cracks = octaveNoise(nx * 4, ny * 4, 3, seed + 100);
+
+                let finalValue = value;
+                if (cracks > 0.7) {
+                    finalValue = finalValue * 0.7; // Dark cracks
+                }
+
+                const color = lerpColor(darkIce, ice, finalValue);
+
+                const i = (y * width + x) * 4;
+                data[i] = color.r;
+                data[i + 1] = color.g;
+                data[i + 2] = color.b;
+                data[i + 3] = 255;
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Generate volcanic texture
+     */
+    function generateVolcanicTexture(ctx, width, height, rock, lava, scale, seed) {
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const nx = x / width * scale;
+                const ny = y / height * scale;
+
+                const terrain = octaveNoise(nx, ny, 5, seed);
+                const heat = octaveNoise(nx * 3, ny * 3, 4, seed + 150);
+
+                let color;
+                if (heat > 0.65 && terrain > 0.4) {
+                    // Lava flows
+                    color = lerpColor(lava, { r: 255, g: 200, b: 100 }, (heat - 0.65) * 3);
+                } else {
+                    // Dark volcanic rock
+                    color = lerpColor({ r: rock.r - 40, g: rock.g - 40, b: rock.b - 40 }, rock, terrain);
+                }
+
+                const i = (y * width + x) * 4;
+                data[i] = color.r;
+                data[i + 1] = color.g;
+                data[i + 2] = color.b;
+                data[i + 3] = 255;
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Add cloud layer over existing texture
+     */
+    function addCloudLayer(ctx, width, height, cloudColor, opacity, seed) {
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const nx = x / width * 4;
+                const ny = y / height * 4;
+
+                const clouds = octaveNoise(nx, ny, 4, seed);
+
+                if (clouds > 0.5) {
+                    const cloudAlpha = (clouds - 0.5) * 2 * opacity;
+                    const i = (y * width + x) * 4;
+
+                    // Blend cloud color with existing pixel
+                    data[i] = Math.floor(data[i] * (1 - cloudAlpha) + cloudColor.r * cloudAlpha);
+                    data[i + 1] = Math.floor(data[i + 1] * (1 - cloudAlpha) + cloudColor.g * cloudAlpha);
+                    data[i + 2] = Math.floor(data[i + 2] * (1 - cloudAlpha) + cloudColor.b * cloudAlpha);
+                }
+            }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    // ==================== END PROCEDURAL PLANET TEXTURE GENERATION ====================
+
     // Star rendering constants
     const STAR_DEFAULT_SIZE = 4;
     const STAR_SPHERE_SEGMENTS = 32;
@@ -4915,6 +5255,720 @@
 
         console.log('System map controls initialized with planet click handling');
     }
+
+    // Expose procedural texture generation globally for orbit map use
+    window.generatePlanetTexture = generatePlanetTexture;
+    window.hexToRgb = hexToRgb;
+    window.lerpColor = lerpColor;
+    window.octaveNoise = octaveNoise;
+    window.noise2D = noise2D;
+    </script>
+
+    <!-- Orbit Map (Planet Detail View) Script -->
+    <script type="module">
+    import * as THREE from 'three';
+    import { TGALoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/TGALoader.js';
+
+    // Global state for orbit map
+    window.orbitMapState = {
+        scene: null,
+        camera: null,
+        renderer: null,  // Will share renderer with system map
+        planet: null,    // Central planet mesh
+        moons: [],       // Orbiting moon meshes
+        stations: [],    // Orbital station meshes
+        markers: [],     // Surface marker meshes
+        orbits: [],      // Orbital path lines
+        currentBody: null,  // Which planet we're viewing (slug)
+        currentSystem: null,  // Which system the planet is in
+        orbitMapData: null,  // Loaded orbit_map.yaml data
+        animationFrameId: null,
+        startTime: Date.now(),
+        speedMultiplier: 1.0,
+        planetRotation: 0,  // Track planet rotation for surface markers
+        controlsInitialized: false  // Track if controls have been set up
+    };
+
+    /**
+     * Initialize orbit map scene
+     */
+    function initOrbitMap() {
+        // Reuse system map canvas
+        const canvas = document.getElementById('systemmap-canvas');
+        if (!canvas) return;
+
+        // Create new scene for orbit map
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        window.orbitMapState.scene = scene;
+
+        // Create camera
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 30, 50);
+        camera.lookAt(0, 0, 0);
+        window.orbitMapState.camera = camera;
+
+        // Create or reuse renderer
+        if (window.systemMapState && window.systemMapState.renderer) {
+            // Reuse system map renderer if it exists
+            window.orbitMapState.renderer = window.systemMapState.renderer;
+        } else {
+            // Create new renderer
+            const renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            window.orbitMapState.renderer = renderer;
+
+            // Also store in systemMapState for sharing
+            if (window.systemMapState) {
+                window.systemMapState.renderer = renderer;
+            }
+        }
+
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+        scene.add(ambientLight);
+
+        // Add background starfield (similar to system map)
+        createOrbitMapStarfield();
+
+        console.log('Orbit map scene initialized');
+    }
+
+    /**
+     * Create background starfield for orbit map
+     */
+    function createOrbitMapStarfield() {
+        const scene = window.orbitMapState.scene;
+        const starCount = 5000;
+        const starGeometry = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 3);
+
+        for (let i = 0; i < starCount; i++) {
+            const i3 = i * 3;
+            const radius = 400 + Math.random() * 200;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+            starPositions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            starPositions[i3 + 2] = radius * Math.cos(phi);
+        }
+
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xFFFFFF,
+            size: 1.5,
+            sizeAttenuation: true
+        });
+
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+    }
+
+    /**
+     * Load and display orbit map for a planet
+     * @param {string} systemSlug - System slug (e.g., "sol")
+     * @param {string} bodySlug - Planet slug (e.g., "earth")
+     */
+    async function loadOrbitMap(systemSlug, bodySlug) {
+        try {
+            const response = await fetch(`/api/orbit-map/${systemSlug}/${bodySlug}/`);
+            if (!response.ok) {
+                throw new Error(`Failed to load orbit map: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Orbit map data loaded:', data);
+
+            // Clear existing orbit map
+            clearOrbitMap();
+
+            // Initialize scene if not already done
+            if (!window.orbitMapState.scene) {
+                initOrbitMap();
+            }
+
+            // Show orbit map canvas (hide other views)
+            showOrbitMapCanvas();
+
+            // Store orbit map data
+            window.orbitMapState.orbitMapData = data;
+            window.orbitMapState.currentBody = bodySlug;
+            window.orbitMapState.currentSystem = systemSlug;
+            window.orbitMapState.startTime = Date.now();
+
+            // Set camera position from config
+            if (data.camera && data.camera.position) {
+                const camPos = data.camera.position;
+                window.orbitMapState.camera.position.set(camPos[0], camPos[1], camPos[2]);
+                window.orbitMapState.camera.lookAt(0, 0, 0);
+            }
+
+            // Render the central planet
+            renderCentralPlanet(data.planet);
+
+            // Render moons
+            if (data.moons && data.moons.length > 0) {
+                data.moons.forEach(moon => renderMoon(moon));
+            }
+
+            // Render orbital stations
+            if (data.orbital_stations && data.orbital_stations.length > 0) {
+                data.orbital_stations.forEach(station => renderOrbitalStation(station));
+            }
+
+            // Render surface markers
+            if (data.surface_markers && data.surface_markers.length > 0) {
+                data.surface_markers.forEach(marker => renderSurfaceMarker(marker));
+            }
+
+            // Initialize controls (only once)
+            if (!window.orbitMapState.controlsInitialized) {
+                initOrbitMapControls();
+                window.orbitMapState.controlsInitialized = true;
+            }
+
+            // Start animation
+            if (!window.orbitMapState.animationFrameId) {
+                animateOrbitMap();
+            }
+
+            console.log('Orbit map rendered successfully');
+
+        } catch (error) {
+            console.error('Error loading orbit map:', error);
+        }
+    }
+
+    /**
+     * Render the central planet with procedural texture
+     */
+    function renderCentralPlanet(planetData) {
+        const scene = window.orbitMapState.scene;
+
+        // Remove old planet if it exists
+        if (window.orbitMapState.planet && window.orbitMapState.planet.mesh) {
+            const oldPlanet = window.orbitMapState.planet.mesh;
+            scene.remove(oldPlanet);
+
+            // Dispose of old resources
+            if (oldPlanet.geometry) oldPlanet.geometry.dispose();
+            if (oldPlanet.material) {
+                if (oldPlanet.material.map) oldPlanet.material.map.dispose();
+                oldPlanet.material.dispose();
+            }
+
+            // Remove old cloud layer if it exists
+            if (window.orbitMapState.planet.clouds) {
+                const oldClouds = window.orbitMapState.planet.clouds;
+                scene.remove(oldClouds);
+                if (oldClouds.geometry) oldClouds.geometry.dispose();
+                if (oldClouds.material) {
+                    if (oldClouds.material.map) oldClouds.material.map.dispose();
+                    oldClouds.material.dispose();
+                }
+            }
+
+            // Remove old lat/lon grid if it exists
+            if (window.orbitMapState.planet.latLonGrid) {
+                const oldGrid = window.orbitMapState.planet.latLonGrid;
+                scene.remove(oldGrid);
+                if (oldGrid.geometry) oldGrid.geometry.dispose();
+                if (oldGrid.material) oldGrid.material.dispose();
+            }
+
+            console.log('Removed old planet mesh, clouds, and grid');
+        }
+
+        const size = planetData.size || 15.0;
+        const geometry = new THREE.SphereGeometry(size, 64, 64);
+
+        // Load PNG texture (default or from planet config)
+        const textureLoader = new THREE.TextureLoader();
+        const texturePath = planetData.texture || '/textures/planet_default.png';
+        const texture = textureLoader.load(texturePath,
+            () => console.log('Planet texture loaded:', texturePath),
+            undefined,
+            (err) => console.error('Error loading texture:', err)
+        );
+
+        const material = new THREE.MeshBasicMaterial({
+            map: texture
+        });
+
+        const planet = new THREE.Mesh(geometry, material);
+        planet.rotation.y = 0;  // Will rotate in animation loop
+
+        // Apply axial tilt if specified
+        if (planetData.axial_tilt) {
+            planet.rotation.z = (planetData.axial_tilt * Math.PI) / 180;
+        }
+
+        scene.add(planet);
+
+        // Add lat/lon grid overlay
+        const latLonSegments = 32;  // More segments = smoother grid lines
+        const gridGeometry = new THREE.SphereGeometry(size * 1.02, latLonSegments, latLonSegments);
+        const gridMaterial = new THREE.MeshBasicMaterial({
+            color: 0x5a7a7a,  // Teal
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3,
+            depthWrite: false
+        });
+
+        const latLonGrid = new THREE.Mesh(gridGeometry, gridMaterial);
+
+        // Apply same axial tilt as planet
+        if (planetData.axial_tilt) {
+            latLonGrid.rotation.z = (planetData.axial_tilt * Math.PI) / 180;
+        }
+
+        scene.add(latLonGrid);
+
+        window.orbitMapState.planet = {
+            mesh: planet,
+            rotationSpeed: planetData.rotation_speed || 0.002,
+            latLonGrid: latLonGrid
+        };
+
+        console.log('Central planet rendered with texture and lat/lon grid');
+    }
+
+    /**
+     * Render an orbiting moon
+     */
+    function renderMoon(moonData) {
+        const scene = window.orbitMapState.scene;
+
+        const size = moonData.size || 3.0;
+        const geometry = new THREE.SphereGeometry(size, 32, 32);
+
+        // Generate procedural texture for moon
+        let material;
+        if (moonData.texture_config) {
+            const texture = generatePlanetTexture(moonData.texture_config);
+            material = new THREE.MeshStandardMaterial({
+                map: texture,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+        } else {
+            // Fallback: simple colored sphere
+            material = new THREE.MeshStandardMaterial({
+                color: moonData.color || 0xAAAAAA,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+        }
+
+        const moon = new THREE.Mesh(geometry, material);
+        scene.add(moon);
+
+        // Render orbital path
+        const orbitLine = renderOrbitPath(moonData);
+
+        // Store moon data
+        window.orbitMapState.moons.push({
+            mesh: moon,
+            name: moonData.name,
+            orbitalRadius: moonData.orbital_radius,
+            orbitalPeriod: moonData.orbital_period,
+            initialAngle: (moonData.orbital_angle || 0) * (Math.PI / 180),
+            inclination: moonData.inclination || 0,
+            clickable: moonData.clickable || false,
+            data: moonData
+        });
+
+        console.log(`Moon rendered: ${moonData.name}`);
+    }
+
+    /**
+     * Render orbital path line
+     */
+    function renderOrbitPath(bodyData) {
+        const scene = window.orbitMapState.scene;
+        const radius = bodyData.orbital_radius;
+        const inclination = bodyData.inclination || 0;
+
+        const curve = new THREE.EllipseCurve(
+            0, 0,
+            radius, radius,
+            0, 2 * Math.PI,
+            false,
+            0
+        );
+
+        const points = curve.getPoints(128);
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+        const material = new THREE.LineBasicMaterial({
+            color: 0x5a7a7a,  // Teal to match UI
+            opacity: 0.3,
+            transparent: true
+        });
+
+        const orbitLine = new THREE.Line(geometry, material);
+
+        // Apply orbital inclination
+        orbitLine.rotation.x = (inclination * Math.PI) / 180;
+
+        scene.add(orbitLine);
+        window.orbitMapState.orbits.push(orbitLine);
+
+        return orbitLine;
+    }
+
+    /**
+     * Render an orbital station
+     */
+    function renderOrbitalStation(stationData) {
+        const scene = window.orbitMapState.scene;
+
+        // Create station sprite (simple icon for now)
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+
+        // Draw station icon (simple square with border)
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.strokeStyle = '#8b7355';  // Amber
+        ctx.lineWidth = 3;
+        ctx.strokeRect(4, 4, 24, 24);
+        ctx.fillStyle = '#8b7355';
+        ctx.fillRect(8, 8, 16, 16);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(stationData.size || 1.5, stationData.size || 1.5, 1);
+
+        scene.add(sprite);
+
+        // Render orbital path
+        const orbitLine = renderOrbitPath(stationData);
+
+        // Store station data
+        window.orbitMapState.stations.push({
+            mesh: sprite,
+            name: stationData.name,
+            orbitalRadius: stationData.orbital_radius,
+            orbitalPeriod: stationData.orbital_period,
+            initialAngle: (stationData.orbital_angle || 0) * (Math.PI / 180),
+            inclination: stationData.inclination || 0,
+            data: stationData
+        });
+
+        console.log(`Orbital station rendered: ${stationData.name}`);
+    }
+
+    /**
+     * Render a surface marker on the planet
+     */
+    function renderSurfaceMarker(markerData) {
+        const scene = window.orbitMapState.scene;
+        const planetData = window.orbitMapState.orbitMapData.planet;
+        const planetRadius = planetData.size || 15.0;
+
+        // Create marker sprite
+        const canvas = document.createElement('canvas');
+        canvas.width = 24;
+        canvas.height = 24;
+        const ctx = canvas.getContext('2d');
+
+        // Draw marker based on type
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(12, 12, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#5a7a7a';  // Teal
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(12, 12, 10, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Add marker type indicator
+        ctx.fillStyle = '#5a7a7a';
+        ctx.fillRect(8, 8, 8, 8);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(2, 2, 1);
+
+        // Position on planet surface using lat/lon
+        const position = latLonToVector3(
+            markerData.latitude,
+            markerData.longitude,
+            planetRadius + 0.5  // Slightly above surface
+        );
+        sprite.position.copy(position);
+
+        scene.add(sprite);
+
+        // Store marker data
+        window.orbitMapState.markers.push({
+            mesh: sprite,
+            name: markerData.name,
+            latitude: markerData.latitude,
+            longitude: markerData.longitude,
+            radius: planetRadius,
+            data: markerData
+        });
+
+        console.log(`Surface marker rendered: ${markerData.name}`);
+    }
+
+    /**
+     * Convert latitude/longitude to 3D position on sphere
+     */
+    function latLonToVector3(lat, lon, radius) {
+        const phi = (90 - lat) * (Math.PI / 180);
+        const theta = (lon + 180) * (Math.PI / 180);
+
+        return new THREE.Vector3(
+            -(radius * Math.sin(phi) * Math.cos(theta)),
+            radius * Math.cos(phi),
+            radius * Math.sin(phi) * Math.sin(theta)
+        );
+    }
+
+    /**
+     * Animation loop for orbit map
+     */
+    function animateOrbitMap() {
+        window.orbitMapState.animationFrameId = requestAnimationFrame(animateOrbitMap);
+
+        const scene = window.orbitMapState.scene;
+        const camera = window.orbitMapState.camera;
+        const renderer = window.orbitMapState.renderer;
+
+        if (!scene || !camera || !renderer) return;
+
+        const currentTime = Date.now();
+        const elapsedSeconds = (currentTime - window.orbitMapState.startTime) / 1000;
+
+        // Rotate central planet
+        if (window.orbitMapState.planet) {
+            const planet = window.orbitMapState.planet;
+            planet.mesh.rotation.y += planet.rotationSpeed;
+            window.orbitMapState.planetRotation = planet.mesh.rotation.y;
+
+            // Rotate lat/lon grid with planet
+            if (planet.latLonGrid) {
+                planet.latLonGrid.rotation.y = planet.mesh.rotation.y;
+            }
+
+            // Rotate surface markers with planet
+            window.orbitMapState.markers.forEach(markerData => {
+                // Get base position from lat/lon
+                const basePosition = latLonToVector3(
+                    markerData.latitude,
+                    markerData.longitude,
+                    markerData.radius + 0.5
+                );
+
+                // Create rotation matrix matching planet's rotation
+                const rotationMatrix = new THREE.Matrix4().makeRotationY(planet.mesh.rotation.y);
+
+                // Apply rotation to position
+                const rotatedPosition = basePosition.clone().applyMatrix4(rotationMatrix);
+
+                markerData.mesh.position.copy(rotatedPosition);
+            });
+        }
+
+        // Animate orbiting moons
+        window.orbitMapState.moons.forEach(moonData => {
+            const orbitalSpeed = (2 * Math.PI) / moonData.orbitalPeriod;
+            const currentAngle = moonData.initialAngle + (orbitalSpeed * elapsedSeconds);
+
+            const x = moonData.orbitalRadius * Math.cos(currentAngle);
+            const z = moonData.orbitalRadius * Math.sin(currentAngle);
+            const y = 0;
+
+            moonData.mesh.position.set(x, y, z);
+        });
+
+        // Animate orbiting stations
+        window.orbitMapState.stations.forEach(stationData => {
+            const orbitalSpeed = (2 * Math.PI) / stationData.orbitalPeriod;
+            const currentAngle = stationData.initialAngle + (orbitalSpeed * elapsedSeconds);
+
+            const x = stationData.orbitalRadius * Math.cos(currentAngle);
+            const z = stationData.orbitalRadius * Math.sin(currentAngle);
+            const y = 0;
+
+            stationData.mesh.position.set(x, y, z);
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    /**
+     * Clear orbit map scene
+     */
+    function clearOrbitMap() {
+        const scene = window.orbitMapState.scene;
+        if (!scene) return;
+
+        // Remove planet
+        if (window.orbitMapState.planet) {
+            scene.remove(window.orbitMapState.planet.mesh);
+            window.orbitMapState.planet = null;
+        }
+
+        // Remove moons
+        window.orbitMapState.moons.forEach(m => scene.remove(m.mesh));
+        window.orbitMapState.moons = [];
+
+        // Remove stations
+        window.orbitMapState.stations.forEach(s => scene.remove(s.mesh));
+        window.orbitMapState.stations = [];
+
+        // Remove markers
+        window.orbitMapState.markers.forEach(m => scene.remove(m.mesh));
+        window.orbitMapState.markers = [];
+
+        // Remove orbits
+        window.orbitMapState.orbits.forEach(o => scene.remove(o));
+        window.orbitMapState.orbits = [];
+
+        console.log('Orbit map cleared');
+    }
+
+    /**
+     * Show orbit map canvas and hide other views (for testing)
+     */
+    function showOrbitMapCanvas() {
+        // Get canvas elements
+        const systemCanvas = document.getElementById('systemmap-canvas');
+        const galaxyCanvas = document.getElementById('galaxy-canvas');
+
+        // Show system map canvas (orbit map uses same canvas)
+        if (systemCanvas) {
+            systemCanvas.style.display = 'block';
+            systemCanvas.style.opacity = '1';
+        }
+
+        // Hide galaxy canvas
+        if (galaxyCanvas) {
+            galaxyCanvas.style.display = 'none';
+        }
+
+        // Hide other view containers
+        const standbyView = document.querySelector('.standby-container');
+        const dashboardView = document.querySelector('.dashboard-container');
+
+        if (standbyView) standbyView.style.display = 'none';
+        if (dashboardView) dashboardView.style.display = 'none';
+
+        console.log('Orbit map canvas visible');
+    }
+
+    /**
+     * Initialize orbit map camera controls (zoom, rotate, pan)
+     */
+    function initOrbitMapControls() {
+        const canvas = document.getElementById('systemmap-canvas');
+        if (!canvas) return;
+
+        const MIN_ZOOM = 20;
+        const MAX_ZOOM = 150;
+        const ZOOM_SPEED = 0.05;
+        const ROTATE_SPEED = 0.003;
+
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        // Mouse wheel zoom
+        window.addEventListener('wheel', (event) => {
+            if (canvas.style.display !== 'block') return;
+
+            const target = event.target;
+            const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content');
+            if (isPanel) return;
+
+            event.preventDefault();
+
+            const camera = window.orbitMapState.camera;
+            if (!camera) return;
+
+            const zoomDirection = event.deltaY > 0 ? 1 : -1;
+            const currentDistance = camera.position.length();
+            const newDistance = currentDistance * (1 + zoomDirection * ZOOM_SPEED);
+
+            if (newDistance >= MIN_ZOOM && newDistance <= MAX_ZOOM) {
+                const scale = newDistance / currentDistance;
+                camera.position.multiplyScalar(scale);
+            }
+        }, { passive: false });
+
+        // Mouse drag to rotate
+        canvas.addEventListener('mousedown', (event) => {
+            if (event.button === 0) {  // Left click
+                isDragging = true;
+                previousMousePosition = { x: event.clientX, y: event.clientY };
+            }
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (!isDragging) return;
+
+            const camera = window.orbitMapState.camera;
+            if (!camera) return;
+
+            const deltaX = event.clientX - previousMousePosition.x;
+            const deltaY = event.clientY - previousMousePosition.y;
+
+            // Rotate camera around the origin
+            const rotationMatrix = new THREE.Matrix4();
+            rotationMatrix.makeRotationY(-deltaX * ROTATE_SPEED);
+            camera.position.applyMatrix4(rotationMatrix);
+
+            // Vertical rotation
+            const axis = new THREE.Vector3().crossVectors(
+                camera.position.clone().normalize(),
+                new THREE.Vector3(0, 1, 0)
+            ).normalize();
+            const verticalRotation = new THREE.Matrix4().makeRotationAxis(axis, -deltaY * ROTATE_SPEED);
+            camera.position.applyMatrix4(verticalRotation);
+
+            camera.lookAt(0, 0, 0);
+
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        console.log('Orbit map controls initialized');
+    }
+
+    // Expose functions globally for testing
+    window.loadOrbitMap = loadOrbitMap;
+    window.initOrbitMap = initOrbitMap;
+    window.clearOrbitMap = clearOrbitMap;
+    window.showOrbitMapCanvas = showOrbitMapCanvas;
+    window.initOrbitMapControls = initOrbitMapControls;
+
+    console.log('Orbit map renderer loaded');
     </script>
 
     <!-- Star System Selection Script -->

@@ -1,0 +1,104 @@
+# Earth Orbital Environment Visualization
+# Defines the 3D view when drilling down into Earth from the Sol system map
+
+planet:
+  name: "Earth"
+  type: "planet"
+  size: 15.0  # Radius in scene units
+  rotation_speed: 0.002  # Radians per frame
+  axial_tilt: 23.5  # Degrees
+
+  # Procedural texture configuration
+  texture_config:
+    type: "terrestrial_oceanic"
+    primary_color: 0x4682B4  # Ocean blue
+    secondary_color: 0x228B22  # Land green
+    tertiary_color: 0xFFFFFF  # Polar ice caps
+    cloud_layer: true
+    cloud_color: 0xFFFFFF
+    cloud_opacity: 0.3
+    noise_scale: 2.5
+
+camera:
+  position: [0, 30, 50]
+  lookAt: [0, 0, 0]
+  fov: 60
+  zoom_limits: [20, 150]
+
+# Earth's moon
+moons:
+  - name: "Luna"
+    location_slug: "luna"
+    orbital_radius: 40  # Scene units, not real scale
+    orbital_period: 180  # Animation period in days
+    orbital_angle: 0  # Starting position in degrees
+    inclination: 5.1  # Orbital inclination in degrees
+    size: 3.5
+    color: 0xAAAAAA
+    texture_config:
+      type: "barren_rocky"
+      primary_color: 0x999999
+      secondary_color: 0x777777
+      noise_scale: 1.8
+    clickable: true
+    has_facilities: true
+    info:
+      description: "Earth's natural satellite"
+      population: "~2,500"
+
+# Orbital stations around Earth
+orbital_stations:
+  - name: "Gateway Station"
+    location_slug: "gateway-station"
+    orbital_radius: 25
+    orbital_period: 90
+    orbital_angle: 120
+    inclination: 0
+    size: 1.5
+    icon_type: "station"
+    info:
+      description: "Primary orbital hub for Earth"
+      population: "~15,000"
+      type: "Commercial/Residential"
+
+  - name: "Earth Defense Grid Array"
+    location_slug: "defense-grid"
+    orbital_radius: 28
+    orbital_period: 95
+    orbital_angle: 240
+    inclination: 15
+    size: 1.2
+    icon_type: "defense_platform"
+    info:
+      description: "Military defense installation"
+      status: "OPERATIONAL"
+      type: "Defense Platform"
+
+# Surface markers for facilities on Earth
+surface_markers:
+  - name: "Research Base Alpha"
+    location_slug: "research-base-alpha"
+    latitude: 39.79
+    longitude: -116.39
+    marker_type: "research"
+    info:
+      description: "Classified research facility"
+      status: "OPERATIONAL"
+
+  - name: "Cape Canaveral Spaceport"
+    location_slug: "cape-canaveral"
+    latitude: 28.57
+    longitude: -80.65
+    marker_type: "spaceport"
+    info:
+      description: "Major launch complex"
+      traffic: "High"
+
+  - name: "USCSS Morrigan"
+    location_slug: "uscss-morrigan"
+    latitude: 34.90
+    longitude: -117.88
+    marker_type: "ship"
+    info:
+      description: "Landed at Edwards AFB"
+      status: "Docked for maintenance"

@@ -1,0 +1,17 @@
+name: "Phoebe"
+type: "moon"
+parent_body: "tau-ceti-e"
+
+# Physical properties
+radius: "1,450 km"
+gravity: "0.14 G"
+atmosphere: "Trace (negligible)"
+temperature_range: "-185°C to 95°C"
+
+# Orbital properties
+orbital_radius: "420,000 km"
+orbital_period: "28.2 days"
+
+# Status
+status: "UNINHABITED"
+description: "Larger of Tau Ceti e's two moons. Iron-rich composition makes it a potential mining target, but no operations established yet."

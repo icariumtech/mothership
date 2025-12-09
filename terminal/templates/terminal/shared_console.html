@@ -2162,62 +2162,76 @@
                 console.error('Error loading star map:', error);
             });
 
+        // Frame counter for throttling expensive operations
+        let frameCount = 0;
+
         // Animation loop with star pulsing
         function animate() {
             requestAnimationFrame(animate);
 
-            // Pulse stars
-            const time = Date.now() * 0.001; // Time in seconds
-            stars.forEach(star => {
-                if (star.userData.sprite) {
-                    // Pulse between 0.4 and 1.0 opacity using sine wave (more dramatic)
-                    const pulseSpeed = 2.0; // Speed of pulsing (faster)
-                    const pulseAmount = 0.3; // How much to pulse (30% variation)
-                    const pulse = Math.sin(time * pulseSpeed + star.userData.pulseOffset) * pulseAmount;
+            frameCount++;
 
-                    // Set opacity between 0.4 and 1.0
-                    const newOpacity = 0.7 + pulse;
-                    star.userData.sprite.material.opacity = Math.max(0.4, Math.min(1.0, newOpacity));
-                }
-            });
+            // Only update star/nebula animations every 3rd frame (20fps instead of 60fps)
+            // This significantly improves performance while keeping animations smooth
+            if (frameCount % 3 === 0) {
+                // Pulse stars
+                const time = Date.now() * 0.001; // Time in seconds
+                stars.forEach(star => {
+                    if (star.userData.sprite) {
+                        // Pulse between 0.4 and 1.0 opacity using sine wave (more dramatic)
+                        const pulseSpeed = 2.0; // Speed of pulsing (faster)
+                        const pulseAmount = 0.3; // How much to pulse (30% variation)
+                        const pulse = Math.sin(time * pulseSpeed + star.userData.pulseOffset) * pulseAmount;
 
-            // Animate nebula particles based on type
-            if (typeof nebulaParticles !== 'undefined') {
-                nebulaParticles.forEach(particle => {
-                    const type = particle.userData.nebulaType;
-
-                    if (type === 'emission') {
-                        // Emission nebulae: Gentle pulsing (flickering ionized gas)
-                        const pulseSpeed = 0.5;  // Slow pulse
-                        const pulseAmount = 0.15;  // Subtle variation (15%)
-                        const pulse = Math.sin(time * pulseSpeed + particle.userData.pulseOffset) * pulseAmount;
-                        particle.material.opacity = particle.userData.baseOpacity * (1.0 + pulse);
-
-                    } else if (type === 'planetary') {
-                        // Planetary nebulae: Slow rotation around center
-                        const angle = time * particle.userData.rotationSpeed;
-                        const currentOffset = particle.position.clone().sub(particle.userData.nebulaCenter);
-                        const distance = currentOffset.length();
-
-                        // Rotate around Y-axis
-                        const rotatedX = currentOffset.x * Math.cos(angle * 0.1) - currentOffset.z * Math.sin(angle * 0.1);
-                        const rotatedZ = currentOffset.x * Math.sin(angle * 0.1) + currentOffset.z * Math.cos(angle * 0.1);
-
-                        particle.position.set(
-                            particle.userData.nebulaCenter.x + rotatedX,
-                            particle.userData.nebulaCenter.y + currentOffset.y,
-                            particle.userData.nebulaCenter.z + rotatedZ
-                        );
-
-                    } else if (type === 'reflection') {
-                        // Reflection nebulae: Very subtle shimmer
-                        const pulseSpeed = 0.3;
-                        const pulseAmount = 0.08;  // Very subtle (8%)
-                        const pulse = Math.sin(time * pulseSpeed + particle.userData.pulseOffset) * pulseAmount;
-                        particle.material.opacity = particle.userData.baseOpacity * (1.0 + pulse);
+                        // Set opacity between 0.4 and 1.0
+                        const newOpacity = 0.7 + pulse;
+                        star.userData.sprite.material.opacity = Math.max(0.4, Math.min(1.0, newOpacity));
                     }
-                    // Dark nebulae: No animation (static dust clouds)
                 });
+
+                // Animate nebula particles based on type
+                if (typeof nebulaParticles !== 'undefined') {
+                    nebulaParticles.forEach(particle => {
+                        const type = particle.userData.nebulaType;
+
+                        if (type === 'emission') {
+                            // Emission nebulae: Gentle pulsing (flickering ionized gas)
+                            const pulseSpeed = 0.5;  // Slow pulse
+                            const pulseAmount = 0.15;  // Subtle variation (15%)
+                            const pulse = Math.sin(time * pulseSpeed + particle.userData.pulseOffset) * pulseAmount;
+                            particle.material.opacity = particle.userData.baseOpacity * (1.0 + pulse);
+
+                        } else if (type === 'planetary') {
+                            // Planetary nebulae: Slow rotation around center
+                            const angle = time * particle.userData.rotationSpeed;
+
+                            // Calculate offset without cloning (avoid garbage collection overhead)
+                            const offsetX = particle.position.x - particle.userData.nebulaCenter.x;
+                            const offsetY = particle.position.y - particle.userData.nebulaCenter.y;
+                            const offsetZ = particle.position.z - particle.userData.nebulaCenter.z;
+
+                            // Rotate around Y-axis
+                            const cosAngle = Math.cos(angle * 0.1);
+                            const sinAngle = Math.sin(angle * 0.1);
+                            const rotatedX = offsetX * cosAngle - offsetZ * sinAngle;
+                            const rotatedZ = offsetX * sinAngle + offsetZ * cosAngle;
+
+                            particle.position.set(
+                                particle.userData.nebulaCenter.x + rotatedX,
+                                particle.userData.nebulaCenter.y + offsetY,
+                                particle.userData.nebulaCenter.z + rotatedZ
+                            );
+
+                        } else if (type === 'reflection') {
+                            // Reflection nebulae: Very subtle shimmer
+                            const pulseSpeed = 0.3;
+                            const pulseAmount = 0.08;  // Very subtle (8%)
+                            const pulse = Math.sin(time * pulseSpeed + particle.userData.pulseOffset) * pulseAmount;
+                            particle.material.opacity = particle.userData.baseOpacity * (1.0 + pulse);
+                        }
+                        // Dark nebulae: No animation (static dust clouds)
+                    });
+                }
             }
 
             // Check if we should resume auto-rotation after user inactivity
@@ -2231,24 +2245,27 @@
 
             // Auto-rotate camera around selected star
             if (window.starMapState.autoRotate && !window.starMapState.animating) {
-                const offset = camera.position.clone().sub(lookAtTarget);
-                const radius = offset.length();
+                // Calculate offset without cloning (avoid garbage collection overhead)
+                const offsetX = camera.position.x - lookAtTarget.x;
+                const offsetY = camera.position.y - lookAtTarget.y;
+                const offsetZ = camera.position.z - lookAtTarget.z;
+                const radius = Math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ);
 
                 // Get current angle
-                let theta = Math.atan2(offset.x, offset.z);
+                let theta = Math.atan2(offsetX, offsetZ);
 
                 // Increment angle for rotation
                 theta += window.starMapState.autoRotateSpeed;
 
                 // Keep current elevation (phi)
-                const phi = Math.acos(offset.y / radius);
+                const phi = Math.acos(offsetY / radius);
 
                 // Calculate new position
-                offset.x = radius * Math.sin(phi) * Math.sin(theta);
-                offset.y = radius * Math.cos(phi);
-                offset.z = radius * Math.sin(phi) * Math.cos(theta);
+                const sinPhi = Math.sin(phi);
+                camera.position.x = lookAtTarget.x + radius * sinPhi * Math.sin(theta);
+                camera.position.y = lookAtTarget.y + radius * Math.cos(phi);
+                camera.position.z = lookAtTarget.z + radius * sinPhi * Math.cos(theta);
 
-                camera.position.copy(lookAtTarget).add(offset);
                 camera.lookAt(lookAtTarget);
             }
 

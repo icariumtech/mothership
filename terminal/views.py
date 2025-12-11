@@ -369,6 +369,10 @@ def get_system_map_json(request, system_slug):
                 planet_dir = Path(settings.BASE_DIR) / 'data' / 'galaxy' / system_slug / location_slug
 
                 if planet_dir.exists():
+                    # Check for orbit map
+                    orbit_map_file = planet_dir / 'orbit_map.yaml'
+                    body['has_orbit_map'] = orbit_map_file.exists()
+
                     # Check each subdirectory (potential facility)
                     for subdir in planet_dir.iterdir():
                         if subdir.is_dir() and subdir.name not in ['comms', 'map', 'maps']:
@@ -395,14 +399,18 @@ def get_system_map_json(request, system_slug):
                             else:
                                 # No location.yaml, assume surface facility
                                 surface_count += 1
+                else:
+                    # Planet directory doesn't exist
+                    body['has_orbit_map'] = False
 
                 # Add counts to body data
                 body['surface_facility_count'] = surface_count
                 body['orbital_station_count'] = orbital_count
             else:
-                # No location slug means no facilities
+                # No location slug means no facilities and no orbit map
                 body['surface_facility_count'] = 0
                 body['orbital_station_count'] = 0
+                body['has_orbit_map'] = False
 
         return JsonResponse(system_map)
     else:

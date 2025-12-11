@@ -531,6 +531,15 @@ All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function
 ✓ **Default Orbit Rendering**: Orbits default to teal color (0x5a7a7a) at 0.45 opacity unless overridden in system YAML, matching UI palette
 ✓ **Simple Circle Planets**: Planets rendered as teal-outlined circles with solid black centers (billboard sprites) for consistent visibility regardless of color or distance
 ✓ **Planet Depth Occlusion**: Sprites use depth buffer to properly occlude orbit lines behind planets
+✓ **Orbit Map System**: Detailed 3D visualization of individual planets with moons, stations, and surface locations
+✓ **Planet Drill-Down Navigation**: Click arrow buttons on planets to transition from system view to orbit view
+✓ **Planet Texture System**: Equirectangular PNG textures mapped to spherical planet geometry with rotation animation
+✓ **Moon Rendering**: Orbiting moons with textures, orbital paths, configurable periods, and inclination support
+✓ **Orbital Stations**: Sprite-based stations positioned on orbital paths with animation
+✓ **Surface Markers**: Lat/lon positioned markers (city, research, spaceport) with visibility culling for far side of planet
+✓ **Orbit Map Menu**: Dynamic menu showing moons, stations, and surface locations as clickable items
+✓ **Back Navigation**: "BACK TO SYSTEM" button (amber styled) to return from orbit view to system view
+✓ **Module Scope Handling**: Functions made globally accessible via window object for cross-module communication
 
 ## Planned Features
 - [ ] Terminal conversation view renderer
@@ -702,6 +711,79 @@ Nebulae add atmospheric depth to the galaxy map with type-specific visual charac
 
 **Nebula Color Guidelines:**
 Use muted colors that match the terminal UI palette (teal #5a7a9a, amber #8b7355, muted purples/reds). Opacity should typically be 0.04-0.08 for subtle atmospheric effect.
+
+### Orbit Map (YAML File)
+`data/galaxy/{system_slug}/{planet_slug}/orbit_map.yaml`
+
+Defines the 3D visualization of a planet's orbital environment with moons, stations, and surface locations.
+
+```yaml
+planet:
+  name: "Tau Ceti f"
+  type: "planet"
+  size: 17.5              # Planet radius
+  rotation_speed: 0.0022  # Rotation animation speed
+  axial_tilt: 0           # Degrees of axial tilt
+  texture: "/textures/terrestrial/Terrestrial-EQUIRECTANGULAR-1-2048x1024.png"
+
+camera:
+  position: [0, 35, 58]   # Camera starting position
+  lookAt: [0, 0, 0]       # Camera target
+  fov: 60                 # Field of view
+  zoom_limits: [25, 175]  # Min/max zoom distance
+
+moons:
+  - name: "Verdant"
+    location_slug: "verdant"
+    orbital_radius: 50
+    orbital_period: 220     # Animation period in frames
+    orbital_angle: 45       # Starting angle in orbit
+    inclination: 4.2        # Orbital plane tilt (degrees)
+    size: 2.5
+    color: 0x7A6B5D
+    texture: "/textures/rock/Rock-EQUIRECTANGULAR-1-2048x1024.png"
+    clickable: false
+    has_facilities: false
+    info:
+      description: "Small tidally-locked moon"
+
+orbital_stations:
+  - name: "Verdant Orbital"
+    location_slug: "verdant-orbital"
+    orbital_radius: 32
+    orbital_period: 90
+    orbital_angle: 135
+    inclination: 0
+    size: 1.5
+    icon_type: "station"
+    info:
+      description: "Supply depot and transit hub"
+      population: "~3,500"
+      type: "Commercial/Supply"
+
+surface_markers:
+  - name: "Verdant Base"
+    location_slug: "verdant-base"
+    latitude: -8.3          # Degrees (-90 to 90)
+    longitude: 72.5         # Degrees (-180 to 180)
+    marker_type: "city"     # city, research, spaceport
+    info:
+      description: "Main settlement"
+      population: "~15,000"
+```
+
+**Key Features:**
+- **Planet Textures**: Equirectangular PNG images mapped to spherical geometry
+- **Lat/Lon Grid**: Optional latitude/longitude grid overlay for reference
+- **Moon Orbits**: Animated orbital paths with configurable inclination
+- **Surface Markers**: 3D positioned based on lat/lon with visibility culling (far side hidden)
+- **Orbital Stations**: Sprite-based objects on orbital paths
+- **Menu Integration**: All elements shown in star map panel when viewing orbit map
+
+**Known Issues:**
+- Orbit lines don't align with orbiting objects (needs recalculation)
+- Lat/lon grid duplicates when returning to orbit map (needs proper cleanup)
+- Orbital inclination system needs redesign for equator-relative angles
 
 ### Terminal (YAML File)
 `data/galaxy/locations/{path...}/comms/{terminal_slug}/terminal.yaml`
@@ -936,6 +1018,17 @@ Returns broadcast messages since ID:
 - Primary package manager: pip with requirements.txt
 - Keep dependencies minimal and well-documented
 - Pin dependency versions for reproducible builds
+
+## JavaScript/Frontend Development
+- Use ES6 modules (`<script type="module">`) for code organization
+- **Module Scope Issue**: ES6 modules have isolated scopes - functions in one module cannot call functions in another module directly
+- **Solution**: Make functions globally accessible by assigning to `window` object: `window.functionName = functionName;`
+- **Example**: System map module and orbit map module are separate - navigation functions must be exposed via `window`
+- Use Three.js for 3D visualizations (galaxy map, system map, orbit map)
+- Use GSAP for smooth animations and transitions
+- Minimize global namespace pollution - only expose functions that need cross-module communication
+- Use `async/await` for API calls and texture loading
+- Handle module loading order - ensure dependencies are loaded before use
 
 ## Testing
 - Maintain test coverage with pytest

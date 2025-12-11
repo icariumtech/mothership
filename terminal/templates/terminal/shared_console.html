@@ -928,6 +928,30 @@
             }
         }
 
+        /* Orbit map drill-down button (same style as system map button) */
+        .orbit-map-btn-container {
+            flex-shrink: 0;
+            background-color: var(--color-bg-panel-dark);
+            border-left: 1px solid var(--color-border-subtle);
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 48px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .orbit-map-btn-container:hover {
+            background-color: var(--color-bg-panel);
+        }
+
+        .orbit-map-btn-icon {
+            color: var(--color-teal);
+            font-size: 16px;
+        }
+
         /* System Info Panel */
         .system-info-panel {
             position: absolute;
@@ -2601,6 +2625,7 @@
         orbits: [],
         star: null,
         currentSystem: null,
+        currentSystemSlug: null,  // Track current system slug for navigation
         animationFrameId: null,
         startTime: Date.now(),
         controlsInitialized: false,
@@ -2824,8 +2849,9 @@
             const data = await response.json();
             console.log('System map data loaded:', data);
 
-            // Store current system
+            // Store current system and slug
             window.systemMapState.currentSystem = data;
+            window.systemMapState.currentSystemSlug = systemSlug;
 
             // Clear existing objects
             clearSystemMap();
@@ -3648,6 +3674,177 @@
         }
     }
 
+    // ==================== ORBIT MAP NAVIGATION ====================
+
+    // Navigate back from orbit map to system map
+    function returnToSystemMap() {
+        console.log('Returning to system map from orbit map');
+
+        // Clear orbit map
+        if (window.clearOrbitMap) {
+            window.clearOrbitMap();
+        }
+
+        // Stop orbit map animation
+        if (window.orbitMapState && window.orbitMapState.animationFrameId) {
+            cancelAnimationFrame(window.orbitMapState.animationFrameId);
+            window.orbitMapState.animationFrameId = null;
+        }
+
+        // Restore system map animation
+        if (!window.systemMapState.animationFrameId) {
+            window.systemMapState.startTime = Date.now();
+            animateSystemMap();
+        }
+
+        // Restore planet list
+        const systemData = window.systemMapState.currentSystem;
+        if (systemData) {
+            showPlanetList(systemData);
+        }
+    }
+
+    // Make function globally accessible for orbit map menu delegation
+    window.returnToSystemMap = returnToSystemMap;
+
+    // Update menu panel to show orbit map contents
+    function updateOrbitMapMenu(orbitData) {
+        console.log('🟢 updateOrbitMapMenu called with:', orbitData);
+        const starMapPanel = document.getElementById('star-map-panel');
+        if (!starMapPanel) {
+            console.error('❌ star-map-panel element not found!');
+            return;
+        }
+        console.log('🟢 Found star-map-panel, current display:', window.getComputedStyle(starMapPanel).display);
+
+        let menuHTML = `
+            <div class="star-system-row back-to-system-btn"
+                 role="button"
+                 tabindex="0"
+                 aria-label="Return to system view"
+                 data-action="back-to-system"
+                 style="margin-bottom: 12px; border-color: var(--color-amber);">
+                <div class="star-system-content">
+                    <div class="star-system-checkbox" style="display: flex; align-items: center; justify-content: center; color: var(--color-amber); font-size: 14px; background: none; border: none; margin-left: 2px;">◀</div>
+                    <div class="star-system-name" style="color: var(--color-amber);">BACK TO SYSTEM</div>
+                </div>
+            </div>
+        `;
+
+        // Show moons as clickable rows
+        if (orbitData.moons && orbitData.moons.length > 0) {
+            orbitData.moons.forEach(moon => {
+                const moonName = moon.name || 'Unknown Moon';
+                const hasFacilities = moon.has_facilities || false;
+
+                let indicatorsHTML = '';
+                if (hasFacilities) {
+                    indicatorsHTML = '<div class="facility-indicators">';
+                    indicatorsHTML += '<div class="facility-indicator facility-square" title="Has facilities"></div>';
+                    indicatorsHTML += '</div>';
+                }
+
+                menuHTML += `
+                    <div class="star-system-row"
+                         role="button"
+                         tabindex="0"
+                         data-type="moon"
+                         data-name="${moonName}">
+                        <div class="star-system-content">
+                            <div class="star-system-checkbox"></div>
+                            <div class="star-system-name">${moonName}</div>
+                            ${indicatorsHTML}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Show orbital stations as clickable rows
+        if (orbitData.orbital_stations && orbitData.orbital_stations.length > 0) {
+            orbitData.orbital_stations.forEach(station => {
+                const stationName = station.name || 'Unknown Station';
+
+                menuHTML += `
+                    <div class="star-system-row"
+                         role="button"
+                         tabindex="0"
+                         data-type="station"
+                         data-name="${stationName}">
+                        <div class="star-system-content">
+                            <div class="star-system-checkbox"></div>
+                            <div class="star-system-name">${stationName}</div>
+                            <div class="facility-indicators">
+                                <div class="facility-indicator facility-triangle" title="Orbital station"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Show surface markers as clickable rows
+        if (orbitData.surface_markers && orbitData.surface_markers.length > 0) {
+            orbitData.surface_markers.forEach(marker => {
+                const markerName = marker.name || 'Unknown Location';
+                const markerType = marker.marker_type || 'base';
+
+                menuHTML += `
+                    <div class="star-system-row"
+                         role="button"
+                         tabindex="0"
+                         data-type="surface"
+                         data-name="${markerName}">
+                        <div class="star-system-content">
+                            <div class="star-system-checkbox"></div>
+                            <div class="star-system-name">${markerName}</div>
+                            <div class="facility-indicators">
+                                <div class="facility-indicator facility-square" title="${markerType}"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        starMapPanel.innerHTML = menuHTML;
+        console.log('🟢 Menu HTML set! Length:', menuHTML.length, 'First 100 chars:', menuHTML.substring(0, 100));
+
+        // Add event delegation for back button and items
+        setupOrbitMapMenuDelegation();
+        console.log('🟢 Event delegation setup complete');
+    }
+
+    // Make function globally accessible for orbit map module
+    window.updateOrbitMapMenu = updateOrbitMapMenu;
+
+    // Event delegation for orbit map menu
+    function setupOrbitMapMenuDelegation() {
+        const starMapPanel = document.getElementById('star-map-panel');
+        if (!starMapPanel) return;
+
+        // Remove old listeners if they exist
+        if (starMapPanel._orbitMapMenuHandler) {
+            starMapPanel.removeEventListener('click', starMapPanel._orbitMapMenuHandler);
+            starMapPanel._orbitMapMenuHandler = null;
+        }
+
+        // Create new delegated click handler
+        const clickHandler = function(event) {
+            const target = event.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+
+            if (action === 'back-to-system') {
+                returnToSystemMap();
+            }
+        };
+
+        starMapPanel.addEventListener('click', clickHandler);
+        starMapPanel._orbitMapMenuHandler = clickHandler;
+    }
+
     // ==================== PLANET LIST FEATURE ====================
 
     // Constants for planet zoom and camera positioning
@@ -4324,18 +4521,34 @@
                     indicatorsHTML += '</div>';
                 }
 
+                // Build orbit map arrow button
+                const bodySlug = body.location_slug || bodyName.toLowerCase().replace(/\s+/g, '-');
+                let orbitMapArrowHTML = '';
+                if (body.has_orbit_map) {
+                    orbitMapArrowHTML = `
+                        <div class="orbit-map-btn-container"
+                             data-action="view-orbit-map"
+                             data-planet-slug="${bodySlug}"
+                             title="View orbit map">
+                            <span class="orbit-map-btn-icon">▶</span>
+                        </div>
+                    `;
+                }
+
                 planetsHTML += `
                     <div class="star-system-row planet-row"
                          role="button"
                          tabindex="0"
                          aria-label="Select ${bodyName}"
                          data-planet="${bodyName}"
+                         data-planet-slug="${bodySlug}"
                          data-action="select-planet">
                         <div class="star-system-content">
                             <div class="star-system-checkbox" role="checkbox" aria-checked="false"></div>
                             <div class="star-system-name">${bodyName}</div>
                             ${indicatorsHTML}
                         </div>
+                        ${orbitMapArrowHTML}
                     </div>
                 `;
             });
@@ -4379,6 +4592,22 @@
 
             if (action === 'back-to-galaxy') {
                 hideSystemMap();
+            } else if (action === 'view-orbit-map') {
+                console.log('🔵 Arrow clicked!');
+                event.stopPropagation(); // Prevent planet selection
+                const planetSlug = target.dataset.planetSlug;
+                const systemSlug = window.systemMapState.currentSystemSlug;
+                console.log('🔵 Planet slug:', planetSlug, 'System slug:', systemSlug);
+
+                // Stop system map animation before loading orbit map
+                if (window.systemMapState.animationFrameId) {
+                    cancelAnimationFrame(window.systemMapState.animationFrameId);
+                    window.systemMapState.animationFrameId = null;
+                }
+
+                // Use existing loadOrbitMap function
+                console.log('🔵 Calling loadOrbitMap...');
+                loadOrbitMap(systemSlug, planetSlug);
             } else if (action === 'select-planet') {
                 const planetName = target.dataset.planet;
                 const isCurrentlyChecked = target.classList.contains('checked');
@@ -5462,7 +5691,11 @@
                 animateOrbitMap();
             }
 
-            console.log('Orbit map rendered successfully');
+            // Update menu to show orbit map contents and back button
+            console.log('🔵 About to call updateOrbitMapMenu');
+            window.updateOrbitMapMenu(data);
+
+            console.log('✅ Orbit map rendered successfully');
 
         } catch (error) {
             console.error('Error loading orbit map:', error);
@@ -5904,12 +6137,13 @@
 
         // Hide other view containers
         const standbyView = document.querySelector('.standby-container');
-        const dashboardView = document.querySelector('.dashboard-container');
 
         if (standbyView) standbyView.style.display = 'none';
-        if (dashboardView) dashboardView.style.display = 'none';
 
-        console.log('Orbit map canvas visible');
+        // Keep dashboard visible so star-map-panel remains accessible
+        // The orbit map shows with the dashboard panel containing the navigation menu
+
+        console.log('Orbit map canvas visible, dashboard kept visible for menu');
     }
 
     /**

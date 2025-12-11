@@ -5510,6 +5510,7 @@
         }
 
         const size = planetData.size || 15.0;
+        // Use SphereGeometry for equirectangular textures (standard texture format)
         const geometry = new THREE.SphereGeometry(size, 64, 64);
 
         // Load PNG texture (default or from planet config)
@@ -5571,11 +5572,24 @@
         const scene = window.orbitMapState.scene;
 
         const size = moonData.size || 3.0;
+        // Use SphereGeometry for equirectangular textures (standard texture format)
         const geometry = new THREE.SphereGeometry(size, 32, 32);
 
-        // Generate procedural texture for moon
+        // Load texture for moon (direct texture or procedural)
         let material;
-        if (moonData.texture_config) {
+        if (moonData.texture) {
+            // Load direct texture (e.g., icosahedral texture)
+            const textureLoader = new THREE.TextureLoader();
+            const texture = textureLoader.load(moonData.texture,
+                () => console.log('Moon texture loaded:', moonData.texture),
+                undefined,
+                (err) => console.error('Error loading moon texture:', err)
+            );
+            material = new THREE.MeshBasicMaterial({
+                map: texture
+            });
+        } else if (moonData.texture_config) {
+            // Generate procedural texture
             const texture = generatePlanetTexture(moonData.texture_config);
             material = new THREE.MeshStandardMaterial({
                 map: texture,

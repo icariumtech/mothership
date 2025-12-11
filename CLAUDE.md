@@ -1040,6 +1040,97 @@ python generate_deck_layout.py
 - Cargo Bay, Medical, Life Support
 - Connection corridors and hatches
 
+## Planet Texture Conversion
+
+### `convert_to_amber_gradient.py`
+Python script using Pillow to convert planet textures to retro sci-fi amber monochrome gradient.
+
+**Purpose:**
+Converts noisy source textures to a consistent retro aesthetic by scanning all unique colors and remapping them to a black-to-amber gradient based on perceived brightness.
+
+**Visual Style:**
+- **Target Color**: Bright gold/amber (#D4A855)
+- **Gradient**: Black (0x000000) to bright amber
+- **Brightness Calculation**: ITU-R BT.709 luminance formula (0.2126*R + 0.7152*G + 0.0722*B)
+- **Gamma Correction**: Adjustable per planet type to control brightness distribution
+  - Lower gamma (1.4) = brighter midtones, preserves detail
+  - Higher gamma (2.0) = darker midtones, more contrast
+- **Posterization**: Limited gradient steps (128) create banding effect typical of retro displays
+
+**Usage:**
+```bash
+source .venv/bin/activate
+python scripts/convert_to_amber_gradient.py input.png output.png [gradient_steps] [gamma]
+```
+
+**Parameters:**
+- `input.png` - Source texture file (equirectangular format for sphere mapping)
+- `output.png` - Output file path
+- `gradient_steps` - Number of color steps in gradient (default: 128)
+- `gamma` - Gamma correction value (default: 2.2, lower = brighter)
+
+**Example:**
+```bash
+# Convert volcanic texture with 128 steps and gamma 1.4 (brighter for detail)
+python scripts/convert_to_amber_gradient.py \
+  textures/volcanic_source/lava_planet.png \
+  textures/volcanic/lava_planet.png \
+  128 1.4
+```
+
+### `batch_convert_textures.sh`
+Batch processing script that automatically converts all planet textures from source directories with optimal gamma settings per planet type.
+
+**Directory Structure:**
+```
+textures/
+├── gas_source/        → textures/gas/
+├── rock_source/       → textures/rock/
+├── terrestrial_source/ → textures/terrestrial/
+└── volcanic_source/   → textures/volcanic/
+```
+
+**Auto-Selected Gamma Values:**
+- **Gas Giants**: gamma 2.0 (higher contrast for cloud bands)
+- **Rocky Planets**: gamma 1.8 (balanced)
+- **Terrestrial Planets**: gamma 1.4 (brighter to preserve terrain detail)
+- **Volcanic Planets**: gamma 1.4 (brighter to show lava flows and surface features)
+
+**Usage:**
+```bash
+source .venv/bin/activate
+./scripts/batch_convert_textures.sh
+```
+
+**Process:**
+- Scans each `*_source` directory for PNG files
+- Automatically selects optimal gamma based on directory name
+- Converts all textures with 128 gradient steps
+- Creates output directories if they don't exist
+- Reports progress and file size reduction
+
+**Output:**
+- Typically 50-75% file size reduction
+- Consistent amber aesthetic across all planet types
+- Preserved detail appropriate to planet type
+
+**Technical Details:**
+The conversion pipeline:
+1. Loads source image and scans all unique colors
+2. Calculates perceived brightness for each color
+3. Creates 128-step gradient from black to amber
+4. Applies gamma correction to brightness mapping
+5. Remaps each pixel to closest gradient color
+6. Saves optimized PNG with reduced color palette
+
+**Three.js Integration:**
+Textures are used with equirectangular mapping on SphereGeometry:
+```javascript
+const geometry = new THREE.SphereGeometry(size, 64, 64);
+const texture = textureLoader.load(texturePath);
+const material = new THREE.MeshBasicMaterial({ map: texture });
+```
+
 ## Environment Configuration
 - Use environment variables for configuration (`.env` files)
 - Keep environment-specific settings separate from code

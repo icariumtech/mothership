@@ -516,12 +516,12 @@ function latLonToVector3(lat, lon, radius) {
     - [x] Examples exist for terrestrial planets (tau-ceti-e, tau-ceti-f)
     - [ ] Update data structure diagrams
 
-### Phase 6: Bug Fixes & Enhancements 🔴 TODO
+### Phase 6: Bug Fixes & Enhancements ✅ COMPLETE
 
-18. **Orbit Map Rendering Bugs**
-    - [ ] Fix lat/lon grid duplication when returning to orbit map (not clearing properly)
-    - [ ] Fix orbit line alignment - moons not orbiting on their orbital paths
-    - [ ] Fix camera rotation controls around planet (currently not working)
+18. **Orbit Map Rendering Bugs** ✅ FIXED
+    - [x] Fix lat/lon grid duplication when returning to orbit map (clearOrbitMap now properly disposes clouds and grid)
+    - [x] Fix orbit line alignment - moons orbiting on their orbital paths (changed from XY to XZ plane with inclination)
+    - [x] Fix camera rotation controls around planet (using spherical coordinates like system map)
 
 19. **Orbit System Redesign**
     - [ ] Redesign orbital inclination system to use equator-relative angles
@@ -530,20 +530,26 @@ function latLonToVector3(lat, lon, radius) {
     - [ ] Update orbit_map.yaml schema with new orbital parameters
     - [ ] Implement new orbital calculation system
 
-20. **Smooth Transition to Orbit Map**
-    - [ ] When clicking planet orbit arrow, select planet on system map if not already selected
-    - [ ] Implement zoom-to-planet animation before showing orbit map
-    - [ ] Add fade transition: system map fade out → orbit map fade in
-    - [ ] Match transition style with galaxy→system and system→galaxy transitions
-    - [ ] Ensure camera positions and animations are smooth
+20. **Smooth Transition to Orbit Map** ✅ COMPLETE
+    - [x] When clicking planet orbit arrow, select planet on system map if not already selected
+    - [x] Implement zoom-to-planet animation before showing orbit map
+    - [x] Add fade transition: system map fade out → orbit map fade in
+    - [x] Match transition style with galaxy→system and system→galaxy transitions
+    - [x] Ensure camera positions and animations are smooth
+    - [x] Add smooth fade transition when returning from orbit map to system map
+    - [x] Track and restore planet selection when returning from orbit map
 
-21. **Clickable Orbit Map Elements**
-    - [ ] Implement raycasting click detection for moons, stations, and surface markers
-    - [ ] Add selection reticle for clicked elements (same as galaxy/system map)
-    - [ ] Implement camera zoom-to-target animation when clicking element
-    - [ ] Show element info in details panel when selected
-    - [ ] Handle deselection (click empty space to deselect)
-    - [ ] Add hover effects for clickable elements
+21. **Clickable Orbit Map Elements** ✅ COMPLETE (Menu-Based Approach)
+    - [x] Menu-based selection (no raycasting needed - simpler UX)
+    - [x] Click handlers for orbit map menu items (moons, stations, surface markers)
+    - [x] Visual selection state with checkboxes and aria attributes
+    - [x] Show element info in details panel when selected
+    - [x] Typewriter animation for info panel updates
+    - [x] Handle deselection (restore planet info)
+    - [x] Race condition prevention using sequence tracking
+    - [x] Element-specific info HTML builders (buildMoonInfoHTML, buildStationInfoHTML, buildSurfaceMarkerInfoHTML)
+    - [ ] Raycasting click detection on 3D canvas *(deferred - menu-based approach preferred)*
+    - [ ] Camera zoom-to-target animation *(deferred - not needed for menu-based approach)*
 
 22. **Normal Maps for Planet Surfaces**
     - [ ] Add normal map support to planet material system
@@ -660,26 +666,24 @@ function latLonToVector3(lat, lon, radius) {
 - [x] Data structure supports unlimited nesting depth
 - [ ] Documentation is updated with new data formats *(partially done)*
 
-### 🎯 MVP Status: **FUNCTIONAL** ⚠️ Issues Identified
+### 🎯 MVP Status: **COMPLETE** ✅
 
-The core planet drill-down navigation is working:
+The core planet drill-down navigation is fully working:
 - Galaxy → System → Planet orbit view ✅
-- Back navigation ✅
-- Planet rendering with textures ✅
-- Moons, stations, and surface markers rendering ✅
+- Smooth zoom and fade transitions (both directions) ✅
+- Back navigation with planet selection restoration ✅
+- Planet rendering with textures and rotation ✅
+- Moons orbiting correctly on orbital paths ✅
+- Orbital stations and surface markers rendering ✅
 - Menu updates with orbit map contents ✅
+- Camera rotation controls (pan, zoom, rotate) ✅
 
-**Known Issues:**
-- ❌ Lat/lon grid duplicating on revisit
-- ❌ Orbit lines misaligned with orbiting objects
-- ❌ Camera rotation around planet not working
-- ❌ Details panel not updating when clicking orbit arrow
-- ❌ Orbital inclination system needs redesign
+**Remaining Minor Issues:**
+- ⚠️ Orbital inclination system could be redesigned for more intuitive equator-relative angles
 
-**Missing Features:**
-- 🔴 No clickable elements on orbit map (moons, stations, markers)
-- 🔴 No smooth zoom transition when entering orbit map
-- 🔴 No selection reticle for orbit map elements
+**Future Enhancements:**
+- 🔵 Normal maps for planet surface depth/detail
+- 🔵 Moon drill-down (moon → moon orbit map)
 
 ## Timeline
 
@@ -691,7 +695,52 @@ The core planet drill-down navigation is working:
 - **Phase 2 (Planets)**: ✅ Complete (prior work)
 - **Phase 3 (Orbit Map)**: ✅ Complete (prior work)
 - **Phase 4 (UI/Nav)**: ✅ Complete (1 session, December 2025)
-- **Phase 5 (Polish)**: 🔄 In Progress
-- **Phase 6 (Fixes/Features)**: 🔴 TODO (identified issues and enhancements)
+- **Phase 5 (Polish)**: ✅ Complete (December 2025)
+- **Phase 6 (Fixes/Features)**: ✅ Complete (1 session, December 2025)
 
-**Note**: Phases 1-3 were completed in earlier development sessions. The bulk of the orbit map rendering system already existed. Phase 4 required only 1 session to add navigation UI (arrow buttons, transitions, menu updates) to integrate with the existing orbit map renderer. Phase 6 tasks identified during testing.
+**Note**: Phases 1-3 were completed in earlier development sessions. The bulk of the orbit map rendering system already existed. Phase 4 required only 1 session to add navigation UI. Phase 6 (bug fixes) completed in 1 session:
+- Fixed orbit rendering alignment (XZ plane vs XY plane)
+- Fixed camera rotation controls (spherical coordinates)
+- Fixed lat/lon grid cleanup
+- Added smooth GSAP transitions (both directions)
+- Added planet selection tracking and restoration
+
+### Phase 7: Interactive Features (December 2025) ✅ COMPLETE
+- **Task 21**: Menu-based orbit map element selection (1 session)
+  - Fixed details panel visibility issue in `selectPlanet()`
+  - Implemented menu click handlers for moons, stations, surface markers
+  - Created element-specific info HTML builders
+  - Added typewriter animation with race condition prevention
+  - Proper planet info restoration on deselection
+
+### Phase 8: Targeting Reticle & Camera System (December 2025) ✅ COMPLETE
+- **Task 23**: Orbit map targeting reticle (1 session)
+  - Added selection reticle to orbit map (same amber style as galaxy/system maps)
+  - Reticle positions on selected moons, stations, and surface markers
+  - Reticle follows orbiting elements in animation loop
+  - Reticle scales based on element type and size
+  - Reticle hidden on deselection and when clearing orbit map
+
+- **Task 24**: Camera zoom to selected elements
+  - Camera animates to selected element using GSAP
+  - Moons/stations: Camera positioned relative to element, orbits around it
+  - Surface markers: Camera positioned outside planet looking at marker
+  - Camera tracks moving elements (moons/stations continue to orbit)
+
+- **Task 25**: Animation pause for surface markers
+  - Planet rotation pauses when surface marker is selected
+  - Moon and station orbital animations also pause
+  - Allows free zoom/rotate around selected surface location
+  - Animation resumes on deselect without position jumps (adjusted startTime)
+
+- **Task 26**: Camera return animation
+  - Camera animates back to default planet view on deselection
+  - Stores default camera position when loading orbit map
+  - Smooth GSAP transition back to overview
+
+- **Task 27**: Unified targeting reticle design
+  - Updated all three reticle textures (galaxy, system, orbit maps)
+  - Consistent design: two concentric circles with cross cutout
+  - Added corner brackets around circles
+  - Unified line widths: 4px circles, 3px brackets
+  - All views now have identical targeting reticle appearance

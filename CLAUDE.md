@@ -538,8 +538,18 @@ All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function
 ✓ **Orbital Stations**: Sprite-based stations positioned on orbital paths with animation
 ✓ **Surface Markers**: Lat/lon positioned markers (city, research, spaceport) with visibility culling for far side of planet
 ✓ **Orbit Map Menu**: Dynamic menu showing moons, stations, and surface locations as clickable items
+✓ **Orbit Map Element Selection**: Click menu items to select moons, stations, or surface markers with visual feedback
+✓ **Element Details Panel**: Shows element-specific info (type, description, population, coordinates) with typewriter animation
+✓ **Selection Race Condition Prevention**: Sequence tracking ensures correct panel content during rapid selections/deselections
+✓ **Planet Info Restoration**: Deselecting elements properly restores full planet details from system map data
 ✓ **Back Navigation**: "BACK TO SYSTEM" button (amber styled) to return from orbit view to system view
 ✓ **Module Scope Handling**: Functions made globally accessible via window object for cross-module communication
+✓ **Orbit Map Targeting Reticle**: Amber targeting reticle appears on selected moons, stations, and surface markers with appropriate scaling
+✓ **Camera Zoom to Elements**: Camera animates to selected orbit map elements, centering on moons/stations or zooming to surface markers
+✓ **Camera Tracking for Orbiting Elements**: Camera follows selected moons and stations as they orbit, keeping element centered
+✓ **Surface Marker Animation Pause**: Planet rotation and orbital animations pause when surface marker is selected, allowing free camera control
+✓ **Camera Return Animation**: Smooth animated return to default planet view when deselecting elements
+✓ **Unified Targeting Reticle**: Consistent reticle design across galaxy, system, and orbit maps (concentric circles with cross cutout and corner brackets)
 
 ## Planned Features
 - [ ] Terminal conversation view renderer
@@ -779,11 +789,28 @@ surface_markers:
 - **Surface Markers**: 3D positioned based on lat/lon with visibility culling (far side hidden)
 - **Orbital Stations**: Sprite-based objects on orbital paths
 - **Menu Integration**: All elements shown in star map panel when viewing orbit map
+- **Interactive Selection**: Click menu items to select moons, stations, or surface markers
+- **Details Panel**: Shows element-specific information with typewriter animation
+- **Race Condition Prevention**: Sequence tracking ensures correct panel content during rapid selections
+
+**Interactive Features:**
+When viewing an orbit map, users can:
+1. **Select Elements** - Click any moon, station, or surface marker in the menu
+2. **View Details** - Details panel updates with element-specific information:
+   - **Moons**: Type, description, population, orbital radius, facilities
+   - **Stations**: Type, description, population, status, orbital radius
+   - **Surface Markers**: Type, description, population, coordinates, traffic
+3. **Deselect** - Click selected item again to restore planet overview
+4. **Visual Feedback** - Checkbox indicators show selection state
+
+**Implementation Details:**
+- `selectOrbitMapElement(elementType, elementName)` - Handles selection with typewriter effect
+- `unselectOrbitMapElement()` - Restores full planet info from system map data
+- `buildMoonInfoHTML()`, `buildStationInfoHTML()`, `buildSurfaceMarkerInfoHTML()` - Element-specific renderers
+- Sequence tracking prevents race conditions during typewriter animations
 
 **Known Issues:**
-- Orbit lines don't align with orbiting objects (needs recalculation)
-- Lat/lon grid duplicates when returning to orbit map (needs proper cleanup)
-- Orbital inclination system needs redesign for equator-relative angles
+- Orbital inclination system could be redesigned for more intuitive equator-relative angles
 
 ### Terminal (YAML File)
 `data/galaxy/locations/{path...}/comms/{terminal_slug}/terminal.yaml`

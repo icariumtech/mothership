@@ -1833,7 +1833,7 @@
 
             // Draw outer circle
             ctx.strokeStyle = amberColor;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
             ctx.stroke();
@@ -1843,15 +1843,44 @@
             ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
             ctx.stroke();
 
+            // Draw corner brackets
+            const bracketSize = 18;
+            const bracketDistance = 95;
+            ctx.lineWidth = 3;
+            // Top-left
+            ctx.beginPath();
+            ctx.moveTo(centerX - bracketDistance, centerY - bracketDistance + bracketSize);
+            ctx.lineTo(centerX - bracketDistance, centerY - bracketDistance);
+            ctx.lineTo(centerX - bracketDistance + bracketSize, centerY - bracketDistance);
+            ctx.stroke();
+            // Top-right
+            ctx.beginPath();
+            ctx.moveTo(centerX + bracketDistance - bracketSize, centerY - bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance + bracketSize);
+            ctx.stroke();
+            // Bottom-left
+            ctx.beginPath();
+            ctx.moveTo(centerX - bracketDistance, centerY + bracketDistance - bracketSize);
+            ctx.lineTo(centerX - bracketDistance, centerY + bracketDistance);
+            ctx.lineTo(centerX - bracketDistance + bracketSize, centerY + bracketDistance);
+            ctx.stroke();
+            // Bottom-right
+            ctx.beginPath();
+            ctx.moveTo(centerX + bracketDistance - bracketSize, centerY + bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance - bracketSize);
+            ctx.stroke();
+
             // Use destination-out to cut out the cross
             ctx.globalCompositeOperation = 'destination-out';
 
             // Horizontal cross bar
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-            ctx.fillRect(centerX - 90, centerY - 4, 180, 8);
+            ctx.fillRect(centerX - 90, centerY - 5, 180, 10);
 
             // Vertical cross bar
-            ctx.fillRect(centerX - 4, centerY - 90, 8, 180);
+            ctx.fillRect(centerX - 5, centerY - 90, 10, 180);
 
             // Reset composite operation
             ctx.globalCompositeOperation = 'source-over';
@@ -2629,6 +2658,7 @@
         animationFrameId: null,
         startTime: Date.now(),
         controlsInitialized: false,
+        isActive: false,  // Track if this view is currently active
         speedMultiplier: 10,  // Default, will be calculated per-system
         selectedPlanet: null,  // Track currently selected planet
         raycaster: null,       // For planet click detection
@@ -2791,7 +2821,7 @@
 
             // Draw outer circle
             ctx.strokeStyle = amberColor;
-            ctx.lineWidth = 6;
+            ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
             ctx.stroke();
@@ -2801,15 +2831,44 @@
             ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
             ctx.stroke();
 
+            // Draw corner brackets
+            const bracketSize = 18;
+            const bracketDistance = 95;
+            ctx.lineWidth = 3;
+            // Top-left
+            ctx.beginPath();
+            ctx.moveTo(centerX - bracketDistance, centerY - bracketDistance + bracketSize);
+            ctx.lineTo(centerX - bracketDistance, centerY - bracketDistance);
+            ctx.lineTo(centerX - bracketDistance + bracketSize, centerY - bracketDistance);
+            ctx.stroke();
+            // Top-right
+            ctx.beginPath();
+            ctx.moveTo(centerX + bracketDistance - bracketSize, centerY - bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance + bracketSize);
+            ctx.stroke();
+            // Bottom-left
+            ctx.beginPath();
+            ctx.moveTo(centerX - bracketDistance, centerY + bracketDistance - bracketSize);
+            ctx.lineTo(centerX - bracketDistance, centerY + bracketDistance);
+            ctx.lineTo(centerX - bracketDistance + bracketSize, centerY + bracketDistance);
+            ctx.stroke();
+            // Bottom-right
+            ctx.beginPath();
+            ctx.moveTo(centerX + bracketDistance - bracketSize, centerY + bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance);
+            ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance - bracketSize);
+            ctx.stroke();
+
             // Use destination-out to cut out the cross
             ctx.globalCompositeOperation = 'destination-out';
 
             // Horizontal cross bar
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-            ctx.fillRect(centerX - 90, centerY - 4, 180, 8);
+            ctx.fillRect(centerX - 90, centerY - 5, 180, 10);
 
             // Vertical cross bar
-            ctx.fillRect(centerX - 4, centerY - 90, 8, 180);
+            ctx.fillRect(centerX - 5, centerY - 90, 10, 180);
 
             // Reset composite operation
             ctx.globalCompositeOperation = 'source-over';
@@ -2906,6 +2965,12 @@
             if (!window.systemMapState.controlsInitialized) {
                 initSystemMapControls();
                 window.systemMapState.controlsInitialized = true;
+            }
+
+            // Set system map as active view
+            window.systemMapState.isActive = true;
+            if (window.orbitMapState) {
+                window.orbitMapState.isActive = false;
             }
 
             // Start animation
@@ -3678,44 +3743,228 @@
 
     // Navigate back from orbit map to system map
     function returnToSystemMap() {
-        console.log('Returning to system map from orbit map');
+        const canvas = document.getElementById('systemmap-canvas');
 
-        // Clear orbit map
-        if (window.clearOrbitMap) {
-            window.clearOrbitMap();
-        }
+        if (typeof gsap !== 'undefined' && canvas) {
 
-        // Stop orbit map animation
-        if (window.orbitMapState && window.orbitMapState.animationFrameId) {
-            cancelAnimationFrame(window.orbitMapState.animationFrameId);
-            window.orbitMapState.animationFrameId = null;
-        }
+            // Fade out orbit map
+            gsap.to(canvas, {
+                opacity: 0,
+                duration: 0.3,
+                ease: "power2.in",
+                onComplete: function() {
+                    // Clear orbit map
+                    if (window.clearOrbitMap) {
+                        window.clearOrbitMap();
+                    }
 
-        // Restore system map animation
-        if (!window.systemMapState.animationFrameId) {
-            window.systemMapState.startTime = Date.now();
-            animateSystemMap();
-        }
+                    // Stop orbit map animation
+                    if (window.orbitMapState && window.orbitMapState.animationFrameId) {
+                        cancelAnimationFrame(window.orbitMapState.animationFrameId);
+                        window.orbitMapState.animationFrameId = null;
+                    }
 
-        // Restore planet list
-        const systemData = window.systemMapState.currentSystem;
-        if (systemData) {
-            showPlanetList(systemData);
+                    // Switch active view flags
+                    window.orbitMapState.isActive = false;
+                    window.systemMapState.isActive = true;
+
+                    // Restore system map animation
+                    if (!window.systemMapState.animationFrameId) {
+                        window.systemMapState.startTime = Date.now();
+                        animateSystemMap();
+                    }
+
+                    // Restore planet list with the previously viewed planet selected
+                    const systemData = window.systemMapState.currentSystem;
+                    if (systemData) {
+                        const lastViewedPlanet = window.systemMapState.lastViewedPlanet;
+                        showPlanetList(systemData);
+
+                        // Restore planet selection if there was one
+                        if (lastViewedPlanet) {
+                            const planetRow = document.querySelector(`.planet-row[data-planet="${lastViewedPlanet}"]`);
+                            if (planetRow) {
+                                planetRow.classList.add('checked');
+                                const checkbox = planetRow.querySelector('[role="checkbox"]');
+                                if (checkbox) checkbox.setAttribute('aria-checked', 'true');
+
+                                // Restore planet info panel
+                                const planet = systemData.bodies?.find(b => b.name === lastViewedPlanet);
+                                if (planet) {
+                                    selectPlanet(planet);
+                                    zoomToPlanet(planet.name);
+                                }
+                            }
+                        }
+                    }
+
+                    // Fade in system map
+                    gsap.to(canvas, {
+                        opacity: 1,
+                        duration: 0.4,
+                        ease: "power2.out"
+                    });
+                }
+            });
+        } else {
+            // Fallback: instant transition
+            if (window.clearOrbitMap) {
+                window.clearOrbitMap();
+            }
+            if (window.orbitMapState && window.orbitMapState.animationFrameId) {
+                cancelAnimationFrame(window.orbitMapState.animationFrameId);
+                window.orbitMapState.animationFrameId = null;
+            }
+            window.orbitMapState.isActive = false;
+            window.systemMapState.isActive = true;
+            if (!window.systemMapState.animationFrameId) {
+                window.systemMapState.startTime = Date.now();
+                animateSystemMap();
+            }
+            const systemData = window.systemMapState.currentSystem;
+            if (systemData) {
+                showPlanetList(systemData);
+            }
         }
     }
 
-    // Make function globally accessible for orbit map menu delegation
+    // Transition from system map to orbit map with zoom animation
+    function transitionToOrbitMap(systemSlug, planetSlug) {
+        // Find the planet mesh to zoom toward
+        const planetData = window.systemMapState.planets.find(p => p.locationSlug === planetSlug);
+        if (!planetData || !planetData.mesh) {
+            window.loadOrbitMap(systemSlug, planetSlug);
+            return;
+        }
+
+        // Get the system data to find planet by name
+        const systemData = window.systemMapState.currentSystem;
+        const planet = systemData?.bodies?.find(b => (b.location_slug || b.name.toLowerCase().replace(/\s+/g, '-')) === planetSlug);
+
+        if (!planet) {
+            window.loadOrbitMap(systemSlug, planetSlug);
+            return;
+        }
+
+        // Check if planet is already selected
+        const isPlanetSelected = window.systemMapState.selectedPlanet?.name === planet.name;
+
+        if (!isPlanetSelected) {
+
+            // Find all planet rows and deselect them
+            const starMapPanel = document.getElementById('star-map-panel');
+            const allPlanetRows = starMapPanel.querySelectorAll('.planet-row');
+            allPlanetRows.forEach(row => {
+                row.classList.remove('checked');
+                const cb = row.querySelector('[role="checkbox"]');
+                if (cb) cb.setAttribute('aria-checked', 'false');
+            });
+
+            // Select this planet's row
+            const planetRow = document.querySelector(`.planet-row[data-planet="${planet.name}"]`);
+
+            if (planetRow) {
+                planetRow.classList.add('checked');
+                const checkbox = planetRow.querySelector('[role="checkbox"]');
+                if (checkbox) checkbox.setAttribute('aria-checked', 'true');
+
+                // Update info panel
+                selectPlanet(planet);
+
+                // Trigger zoom animation directly
+                zoomToPlanet(planet.name);
+
+                // Wait for zoom to complete, then transition
+                setTimeout(() => {
+                    doOrbitTransition(systemSlug, planetSlug, planetData);
+                }, 1100);
+                return;
+            }
+        }
+
+        // Planet already selected, go straight to transition
+        doOrbitTransition(systemSlug, planetSlug, planetData);
+    }
+
+    // Internal function to perform the actual orbit map transition
+    function doOrbitTransition(systemSlug, planetSlug, planetData) {
+        // Store which planet we're viewing for later restoration
+        window.systemMapState.lastViewedPlanet = planetData.name;
+
+        // Stop system map animation
+        if (window.systemMapState.animationFrameId) {
+            cancelAnimationFrame(window.systemMapState.animationFrameId);
+            window.systemMapState.animationFrameId = null;
+        }
+
+        const camera = window.systemMapState.camera;
+        const planetPosition = new THREE.Vector3();
+        planetData.mesh.getWorldPosition(planetPosition);
+        const canvas = document.getElementById('systemmap-canvas');
+
+        // Calculate zoom target (get very close to the planet)
+        const startPos = camera.position.clone();
+        const direction = new THREE.Vector3().subVectors(planetPosition, startPos).normalize();
+        const planetSize = planetData.size || 5;
+        const targetDistance = planetSize * 1.5; // Zoom very close
+        const targetPos = planetPosition.clone().add(direction.clone().multiplyScalar(-targetDistance));
+
+        if (typeof gsap !== 'undefined') {
+            const scene = window.systemMapState.scene;
+            const renderer = window.systemMapState.renderer;
+
+            // Create a timeline for the full transition
+            const timeline = gsap.timeline();
+
+            // Step 1: Zoom even closer to planet (0.6s)
+            timeline.to(camera.position, {
+                x: targetPos.x,
+                y: targetPos.y,
+                z: targetPos.z,
+                duration: 0.6,
+                ease: "power2.inOut",
+                onUpdate: function() {
+                    camera.lookAt(planetPosition);
+                    if (scene && renderer) {
+                        renderer.render(scene, camera);
+                    }
+                }
+            });
+
+            // Step 2: Fade out canvas (0.3s)
+            timeline.to(canvas, {
+                opacity: 0,
+                duration: 0.3,
+                ease: "power2.in",
+                onComplete: function() {
+                    window.loadOrbitMap(systemSlug, planetSlug);
+                }
+            });
+
+            // Step 3: Fade back in (0.4s)
+            timeline.to(canvas, {
+                opacity: 1,
+                duration: 0.4,
+                ease: "power2.out"
+            });
+
+        } else {
+            // Fallback: instant transition
+            window.loadOrbitMap(systemSlug, planetSlug);
+        }
+    }
+
+    // Make functions globally accessible
     window.returnToSystemMap = returnToSystemMap;
+    window.transitionToOrbitMap = transitionToOrbitMap;
 
     // Update menu panel to show orbit map contents
     function updateOrbitMapMenu(orbitData) {
-        console.log('🟢 updateOrbitMapMenu called with:', orbitData);
         const starMapPanel = document.getElementById('star-map-panel');
         if (!starMapPanel) {
             console.error('❌ star-map-panel element not found!');
             return;
         }
-        console.log('🟢 Found star-map-panel, current display:', window.getComputedStyle(starMapPanel).display);
 
         let menuHTML = `
             <div class="star-system-row back-to-system-btn"
@@ -3751,7 +4000,7 @@
                          data-type="moon"
                          data-name="${moonName}">
                         <div class="star-system-content">
-                            <div class="star-system-checkbox"></div>
+                            <div class="star-system-checkbox" role="checkbox" aria-checked="false"></div>
                             <div class="star-system-name">${moonName}</div>
                             ${indicatorsHTML}
                         </div>
@@ -3772,7 +4021,7 @@
                          data-type="station"
                          data-name="${stationName}">
                         <div class="star-system-content">
-                            <div class="star-system-checkbox"></div>
+                            <div class="star-system-checkbox" role="checkbox" aria-checked="false"></div>
                             <div class="star-system-name">${stationName}</div>
                             <div class="facility-indicators">
                                 <div class="facility-indicator facility-triangle" title="Orbital station"></div>
@@ -3796,7 +4045,7 @@
                          data-type="surface"
                          data-name="${markerName}">
                         <div class="star-system-content">
-                            <div class="star-system-checkbox"></div>
+                            <div class="star-system-checkbox" role="checkbox" aria-checked="false"></div>
                             <div class="star-system-name">${markerName}</div>
                             <div class="facility-indicators">
                                 <div class="facility-indicator facility-square" title="${markerType}"></div>
@@ -3808,11 +4057,9 @@
         }
 
         starMapPanel.innerHTML = menuHTML;
-        console.log('🟢 Menu HTML set! Length:', menuHTML.length, 'First 100 chars:', menuHTML.substring(0, 100));
 
         // Add event delegation for back button and items
         setupOrbitMapMenuDelegation();
-        console.log('🟢 Event delegation setup complete');
     }
 
     // Make function globally accessible for orbit map module
@@ -3831,18 +4078,507 @@
 
         // Create new delegated click handler
         const clickHandler = function(event) {
-            const target = event.target.closest('[data-action]');
-            if (!target) return;
-
-            const action = target.dataset.action;
-
-            if (action === 'back-to-system') {
+            // Check for back button
+            const backButton = event.target.closest('[data-action="back-to-system"]');
+            if (backButton) {
                 returnToSystemMap();
+                return;
+            }
+
+            // Check for orbit map element selection
+            const elementRow = event.target.closest('[data-type]');
+            if (elementRow) {
+                const elementType = elementRow.dataset.type;
+                const elementName = elementRow.dataset.name;
+
+                // Toggle selection
+                const isCurrentlySelected = elementRow.classList.contains('checked');
+
+                if (isCurrentlySelected) {
+                    // Deselect - clear selection
+                    elementRow.classList.remove('checked');
+                    const checkbox = elementRow.querySelector('.star-system-checkbox');
+                    if (checkbox) checkbox.setAttribute('aria-checked', 'false');
+                    unselectOrbitMapElement();
+                } else {
+                    // Deselect all other elements
+                    const allRows = starMapPanel.querySelectorAll('[data-type]');
+                    allRows.forEach(row => {
+                        row.classList.remove('checked');
+                        const cb = row.querySelector('.star-system-checkbox');
+                        if (cb) cb.setAttribute('aria-checked', 'false');
+                    });
+
+                    // Select this element
+                    elementRow.classList.add('checked');
+                    const checkbox = elementRow.querySelector('.star-system-checkbox');
+                    if (checkbox) checkbox.setAttribute('aria-checked', 'true');
+
+                    // Show element info in panel
+                    selectOrbitMapElement(elementType, elementName);
+                }
             }
         };
 
         starMapPanel.addEventListener('click', clickHandler);
         starMapPanel._orbitMapMenuHandler = clickHandler;
+    }
+
+    /**
+     * Select an orbit map element and show its info in the details panel
+     * @param {string} elementType - Type of element: 'moon', 'station', or 'surface'
+     * @param {string} elementName - Name of the element
+     */
+    async function selectOrbitMapElement(elementType, elementName) {
+        const infoPanel = document.getElementById('system-info-panel');
+        const infoPanelName = document.getElementById('system-info-name');
+        const infoPanelContent = document.getElementById('system-info-content');
+
+        if (!infoPanel || !infoPanelName || !infoPanelContent) {
+            console.error('System info panel elements not found');
+            return;
+        }
+
+        // Track this operation with a sequence number to prevent race conditions
+        if (!window.systemMapState.infoPanelUpdateSequence) {
+            window.systemMapState.infoPanelUpdateSequence = 0;
+        }
+        window.systemMapState.infoPanelUpdateSequence++;
+        const thisSequence = window.systemMapState.infoPanelUpdateSequence;
+
+        // Get the orbit map data
+        const orbitData = window.orbitMapState?.orbitMapData;
+        if (!orbitData) {
+            console.error('Orbit map data not found');
+            return;
+        }
+
+        // Find the element in the orbit data
+        let elementData = null;
+        if (elementType === 'moon' && orbitData.moons) {
+            elementData = orbitData.moons.find(m => m.name === elementName);
+        } else if (elementType === 'station' && orbitData.orbital_stations) {
+            elementData = orbitData.orbital_stations.find(s => s.name === elementName);
+        } else if (elementType === 'surface' && orbitData.surface_markers) {
+            elementData = orbitData.surface_markers.find(m => m.name === elementName);
+        }
+
+        if (!elementData) {
+            console.error(`Element not found: ${elementType} - ${elementName}`);
+            return;
+        }
+
+        // Find the mesh for this element in the scene
+        let elementMesh = null;
+        if (elementType === 'moon') {
+            const moonData = window.orbitMapState.moons.find(m => m.name === elementName);
+            elementMesh = moonData?.mesh;
+        } else if (elementType === 'station') {
+            const stationData = window.orbitMapState.stations.find(s => s.name === elementName);
+            elementMesh = stationData?.mesh;
+        } else if (elementType === 'surface') {
+            const markerData = window.orbitMapState.markers.find(m => m.name === elementName);
+            elementMesh = markerData?.mesh;
+        }
+
+        if (!elementMesh) {
+            console.error(`Mesh not found for ${elementType}: ${elementName}`);
+            return;
+        }
+
+        // Store selected element reference
+        window.orbitMapState.selectedElement = {
+            type: elementType,
+            name: elementName,
+            mesh: elementMesh,
+            data: elementData
+        };
+
+        // Position and show the selection reticle
+        if (window.orbitMapState.selectionReticle) {
+            const reticle = window.orbitMapState.selectionReticle;
+
+            // Position reticle on element
+            reticle.position.copy(elementMesh.position);
+
+            // Scale reticle based on element type and size
+            let reticleScale = 5;  // Default
+            if (elementType === 'moon') {
+                reticleScale = (elementData.size || 2.5) * 6.0;  // Bigger reticle for moons
+            } else if (elementType === 'station') {
+                reticleScale = (elementData.size || 1.5) * 4.0;
+            } else if (elementType === 'surface') {
+                reticleScale = 3.0;  // Fixed size for surface markers
+            }
+            reticle.scale.set(reticleScale, reticleScale, 1);
+
+            // Show reticle
+            reticle.visible = true;
+        }
+
+        // Animate camera to zoom to selected element (using GSAP)
+        const camera = window.orbitMapState.camera;
+        const elementPosition = elementMesh.position.clone();
+        const planetRadius = orbitData.planet?.size || 15;
+
+        // For orbiting objects (moons/stations), position camera relative to the element
+        // so it orbits around the element, not the planet
+        let cameraTarget;
+
+        if (elementType === 'moon' || elementType === 'station') {
+            // Get element size for distance calculation
+            const elementSize = elementData.size || (elementType === 'moon' ? 2.5 : 1.5);
+
+            // Camera distance from element (closer for smaller objects)
+            const distanceFromElement = elementType === 'moon'
+                ? elementSize * 8 + 10  // Moons: farther back
+                : elementSize * 6 + 8;   // Stations: closer
+
+            // Position camera offset from element (away from planet, slightly above)
+            const directionFromPlanet = elementPosition.clone().normalize();
+            cameraTarget = elementPosition.clone()
+                .add(directionFromPlanet.multiplyScalar(distanceFromElement));
+
+            // Add upward offset for better viewing angle
+            cameraTarget.y += distanceFromElement * 0.4;
+
+            // Store that we're tracking this element (animation loop will update lookAt)
+            window.orbitMapState.cameraLookAt = null;  // null = track selectedElement
+
+        } else {
+            // For surface markers, position camera outside planet looking at marker
+            const directionToElement = elementPosition.clone().normalize();
+            const cameraDistanceFromCenter = planetRadius * 2.2;
+
+            cameraTarget = directionToElement.multiplyScalar(cameraDistanceFromCenter);
+            cameraTarget.y += planetRadius * 0.3;
+
+            // Pause planet/orbit animation while viewing surface marker
+            // This keeps the marker stationary so user can zoom/rotate freely
+            window.orbitMapState.animationPaused = true;
+            window.orbitMapState.pausedAt = Date.now();
+
+            // Surface markers - camera looks at element but doesn't track (animation paused)
+            window.orbitMapState.cameraLookAt = null;
+        }
+
+        // Animate camera position
+        gsap.to(camera.position, {
+            duration: 1.0,
+            x: cameraTarget.x,
+            y: cameraTarget.y,
+            z: cameraTarget.z,
+            ease: "power2.inOut",
+            onUpdate: function() {
+                // During animation, look at element's current position
+                if (window.orbitMapState.selectedElement?.mesh) {
+                    camera.lookAt(window.orbitMapState.selectedElement.mesh.position);
+                }
+            },
+            onComplete: function() {
+                // Ensure final look direction is correct
+                if (window.orbitMapState.selectedElement?.mesh) {
+                    camera.lookAt(window.orbitMapState.selectedElement.mesh.position);
+                }
+            }
+        });
+
+        // Build info HTML based on element type
+        let contentHTML = '';
+        if (elementType === 'moon') {
+            contentHTML = buildMoonInfoHTML(elementData);
+        } else if (elementType === 'station') {
+            contentHTML = buildStationInfoHTML(elementData);
+        } else if (elementType === 'surface') {
+            contentHTML = buildSurfaceMarkerInfoHTML(elementData);
+        }
+
+        // Fade out old content first
+        infoPanelContent.style.opacity = '0';
+        infoPanelContent.style.transition = 'opacity 300ms ease';
+
+        // Wait for fade out
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Check if this operation is still current
+        if (window.systemMapState.infoPanelUpdateSequence !== thisSequence) {
+            console.log('Orbit map element selection superseded, skipping panel update');
+            return;
+        }
+
+        // Update panel title
+        infoPanelName.textContent = elementName.toUpperCase();
+        infoPanelContent.style.opacity = '1';
+        infoPanel.classList.add('visible');
+
+        // Typewriter effect for content
+        window.typewriteContent(infoPanelContent, contentHTML).then(() => {
+            // After typewriter completes, verify this operation is still current
+            if (window.systemMapState.infoPanelUpdateSequence !== thisSequence) {
+                console.log('Orbit map element selection was superseded during typewriter - force-correcting panel');
+                validateAndCorrectPanel(true);
+            } else {
+                console.log(`Selected ${elementType}:`, elementName);
+            }
+        });
+    }
+
+    /**
+     * Unselect orbit map element and restore planet info
+     */
+    function unselectOrbitMapElement() {
+        const infoPanel = document.getElementById('system-info-panel');
+        const infoPanelName = document.getElementById('system-info-name');
+        const infoPanelContent = document.getElementById('system-info-content');
+
+        if (!infoPanel || !infoPanelName || !infoPanelContent) return;
+
+        // Increment sequence to supersede any ongoing typewriter
+        if (!window.systemMapState.infoPanelUpdateSequence) {
+            window.systemMapState.infoPanelUpdateSequence = 0;
+        }
+        window.systemMapState.infoPanelUpdateSequence++;
+
+        // Restore full planet info from system map data
+        const planetData = window.systemMapState?.selectedPlanet;
+        if (planetData) {
+            infoPanelName.textContent = planetData.name.toUpperCase();
+            infoPanelContent.innerHTML = buildPlanetInfoHTML(planetData);
+        }
+
+        // Hide selection reticle
+        if (window.orbitMapState.selectionReticle) {
+            window.orbitMapState.selectionReticle.visible = false;
+        }
+
+        // Clear selected element reference BEFORE animation so tracking stops
+        window.orbitMapState.selectedElement = null;
+
+        // Resume animation if it was paused (for surface markers)
+        if (window.orbitMapState.animationPaused && window.orbitMapState.pausedAt) {
+            // Adjust startTime to account for pause duration so orbits don't jump
+            const pauseDuration = Date.now() - window.orbitMapState.pausedAt;
+            window.orbitMapState.startTime += pauseDuration;
+            window.orbitMapState.animationPaused = false;
+            window.orbitMapState.pausedAt = null;
+        }
+
+        // Clear surface camera offset if it was set
+        window.orbitMapState.surfaceCameraOffset = null;
+
+        // Set camera to look at planet center again
+        window.orbitMapState.cameraLookAt = { x: 0, y: 0, z: 0 };
+
+        // Animate camera back to default planet view
+        const camera = window.orbitMapState.camera;
+        const defaultPos = window.orbitMapState.defaultCameraPosition;
+
+        if (camera && defaultPos) {
+            gsap.to(camera.position, {
+                duration: 1.0,
+                x: defaultPos.x,
+                y: defaultPos.y,
+                z: defaultPos.z,
+                ease: "power2.inOut",
+                onUpdate: function() {
+                    camera.lookAt(0, 0, 0);  // Look at planet center during animation
+                },
+                onComplete: function() {
+                    camera.lookAt(0, 0, 0);  // Ensure final look direction
+                }
+            });
+        }
+
+        console.log('Deselected orbit map element, restored planet info');
+    }
+
+    /**
+     * Build info HTML for a moon
+     */
+    function buildMoonInfoHTML(moon) {
+        let html = '<div class="info-section">';
+        html += '<div class="info-label">TYPE</div>';
+        html += '<div class="info-value">Moon</div>';
+        html += '</div>';
+
+        if (moon.info) {
+            if (moon.info.description) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">DESCRIPTION</div>';
+                html += `<div class="info-value">${moon.info.description}</div>`;
+                html += '</div>';
+            }
+
+            if (moon.info.population) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">POPULATION</div>';
+                html += `<div class="info-value">${moon.info.population}</div>`;
+                html += '</div>';
+            }
+        }
+
+        if (moon.orbital_radius) {
+            html += '<div class="info-section">';
+            html += '<div class="info-label">ORBITAL RADIUS</div>';
+            html += `<div class="info-value">${moon.orbital_radius} AU</div>`;
+            html += '</div>';
+        }
+
+        if (moon.has_facilities) {
+            html += '<div class="info-section">';
+            html += '<div class="info-label">FACILITIES</div>';
+            html += '<div class="info-value">Surface installations present</div>';
+            html += '</div>';
+        }
+
+        return html;
+    }
+
+    /**
+     * Build info HTML for an orbital station
+     */
+    function buildStationInfoHTML(station) {
+        let html = '<div class="info-section">';
+        html += '<div class="info-label">TYPE</div>';
+        html += `<div class="info-value">${station.info?.type || 'Orbital Station'}</div>`;
+        html += '</div>';
+
+        if (station.info) {
+            if (station.info.description) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">DESCRIPTION</div>';
+                html += `<div class="info-value">${station.info.description}</div>`;
+                html += '</div>';
+            }
+
+            if (station.info.population) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">POPULATION</div>';
+                html += `<div class="info-value">${station.info.population}</div>`;
+                html += '</div>';
+            }
+
+            if (station.info.status) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">STATUS</div>';
+                html += `<div class="info-value">${station.info.status}</div>`;
+                html += '</div>';
+            }
+        }
+
+        if (station.orbital_radius) {
+            html += '<div class="info-section">';
+            html += '<div class="info-label">ORBITAL RADIUS</div>';
+            html += `<div class="info-value">${station.orbital_radius} AU</div>`;
+            html += '</div>';
+        }
+
+        return html;
+    }
+
+    /**
+     * Build info HTML for a surface marker
+     */
+    function buildSurfaceMarkerInfoHTML(marker) {
+        let html = '<div class="info-section">';
+        html += '<div class="info-label">TYPE</div>';
+        html += `<div class="info-value">${marker.info?.type || marker.marker_type || 'Surface Location'}</div>`;
+        html += '</div>';
+
+        if (marker.info) {
+            if (marker.info.description) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">DESCRIPTION</div>';
+                html += `<div class="info-value">${marker.info.description}</div>`;
+                html += '</div>';
+            }
+
+            if (marker.info.population) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">POPULATION</div>';
+                html += `<div class="info-value">${marker.info.population}</div>`;
+                html += '</div>';
+            }
+
+            if (marker.info.traffic) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">TRAFFIC</div>';
+                html += `<div class="info-value">${marker.info.traffic}</div>`;
+                html += '</div>';
+            }
+
+            if (marker.info.status) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">STATUS</div>';
+                html += `<div class="info-value">${marker.info.status}</div>`;
+                html += '</div>';
+            }
+        }
+
+        if (marker.latitude !== undefined && marker.longitude !== undefined) {
+            html += '<div class="info-section">';
+            html += '<div class="info-label">COORDINATES</div>';
+            html += `<div class="info-value">${marker.latitude.toFixed(2)}°, ${marker.longitude.toFixed(2)}°</div>`;
+            html += '</div>';
+        }
+
+        return html;
+    }
+
+    /**
+     * Build info HTML for planet in orbit map view
+     */
+    function buildPlanetOrbitInfoHTML(planet) {
+        const orbitData = window.orbitMapState?.orbitMapData;
+
+        let html = '<div class="info-section">';
+        html += '<div class="info-label">TYPE</div>';
+        html += '<div class="info-value">Planet</div>';
+        html += '</div>';
+
+        // Show orbital environment summary
+        if (orbitData) {
+            const moonCount = orbitData.moons?.length || 0;
+            const stationCount = orbitData.orbital_stations?.length || 0;
+            const surfaceCount = orbitData.surface_markers?.length || 0;
+
+            if (moonCount > 0) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">MOONS</div>';
+                html += `<div class="info-value">${moonCount}</div>`;
+                html += '</div>';
+            }
+
+            if (stationCount > 0) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">ORBITAL STATIONS</div>';
+                html += `<div class="info-value">${stationCount}</div>`;
+                html += '</div>';
+            }
+
+            if (surfaceCount > 0) {
+                html += '<div class="info-section">';
+                html += '<div class="info-label">SURFACE LOCATIONS</div>';
+                html += `<div class="info-value">${surfaceCount}</div>`;
+                html += '</div>';
+            }
+        }
+
+        if (planet.size) {
+            html += '<div class="info-section">';
+            html += '<div class="info-label">RADIUS</div>';
+            html += `<div class="info-value">${planet.size} units</div>`;
+            html += '</div>';
+        }
+
+        if (planet.axial_tilt !== undefined) {
+            html += '<div class="info-section">';
+            html += '<div class="info-label">AXIAL TILT</div>';
+            html += `<div class="info-value">${planet.axial_tilt}°</div>`;
+            html += '</div>';
+        }
+
+        return html;
     }
 
     // ==================== PLANET LIST FEATURE ====================
@@ -4221,6 +4957,9 @@
         infoPanelContent.style.opacity = '1';
         const contentHTML = buildPlanetInfoHTML(planetData);
 
+        // Make panel visible
+        infoPanel.classList.add('visible');
+
         // Start typewriter but don't await it - let it run in background
         window.typewriteContent(infoPanelContent, contentHTML).then(() => {
             // After typewriter completes, verify this operation is still current
@@ -4593,21 +5332,12 @@
             if (action === 'back-to-galaxy') {
                 hideSystemMap();
             } else if (action === 'view-orbit-map') {
-                console.log('🔵 Arrow clicked!');
                 event.stopPropagation(); // Prevent planet selection
                 const planetSlug = target.dataset.planetSlug;
                 const systemSlug = window.systemMapState.currentSystemSlug;
-                console.log('🔵 Planet slug:', planetSlug, 'System slug:', systemSlug);
 
-                // Stop system map animation before loading orbit map
-                if (window.systemMapState.animationFrameId) {
-                    cancelAnimationFrame(window.systemMapState.animationFrameId);
-                    window.systemMapState.animationFrameId = null;
-                }
-
-                // Use existing loadOrbitMap function
-                console.log('🔵 Calling loadOrbitMap...');
-                loadOrbitMap(systemSlug, planetSlug);
+                // Transition to orbit map with zoom animation
+                transitionToOrbitMap(systemSlug, planetSlug);
             } else if (action === 'select-planet') {
                 const planetName = target.dataset.planet;
                 const isCurrentlyChecked = target.classList.contains('checked');
@@ -5186,8 +5916,9 @@
 
         // Mouse wheel zoom - attach to window so it works anywhere
         window.addEventListener('wheel', (event) => {
-            // Only handle wheel events when system map is visible
+            // Only handle wheel events when system map is visible and active
             if (canvas.style.display !== 'block') return;
+            if (!window.systemMapState || !window.systemMapState.isActive) return;  // Only handle if system map is active
 
             // Check if mouse is over a panel or scrollable content
             const target = event.target;
@@ -5248,8 +5979,9 @@
         let previousPosition = { x: 0, y: 0 };
 
         window.addEventListener('mousedown', (event) => {
-            // Only handle when system map is visible
+            // Only handle when system map is visible and active
             if (canvas.style.display !== 'block') return;
+            if (!window.systemMapState || !window.systemMapState.isActive) return;  // Only handle if system map is active
 
             // Don't start dragging if clicking on UI panels or interactive elements
             const target = event.target;
@@ -5271,6 +6003,7 @@
 
         window.addEventListener('mousemove', (event) => {
             if (!isDragging || canvas.style.display !== 'block') return;
+            if (!window.systemMapState || !window.systemMapState.isActive) return;  // Only handle if system map is active
 
             const camera = window.systemMapState.camera;
             if (!camera) return;
@@ -5532,7 +6265,15 @@
         startTime: Date.now(),
         speedMultiplier: 1.0,
         planetRotation: 0,  // Track planet rotation for surface markers
-        controlsInitialized: false  // Track if controls have been set up
+        controlsInitialized: false,  // Track if controls have been set up
+        isActive: false,  // Track if this view is currently active
+        selectionReticle: null,  // Targeting reticle for selected elements
+        selectedElement: null,  // Currently selected element {type, name, mesh}
+        defaultCameraPosition: { x: 0, y: 30, z: 50 },  // Default camera position to return to
+        cameraLookAt: { x: 0, y: 0, z: 0 },  // Current camera target (planet center or selected element)
+        surfaceCameraOffset: null,  // Camera offset for following surface markers
+        animationPaused: false,  // Pause planet/orbit animation when surface marker selected
+        pausedAt: null  // Timestamp when animation was paused
     };
 
     /**
@@ -5588,7 +6329,105 @@
         // Add background starfield (similar to system map)
         createOrbitMapStarfield();
 
+        // Create selection reticle (same pattern as system map)
+        const reticleTexture = createReticleTexture();
+        const selectionReticle = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: reticleTexture,
+            transparent: true,
+            opacity: 0.8,
+            depthTest: false,  // Always render on top
+            depthWrite: false
+        }));
+        selectionReticle.scale.set(10, 10, 1);  // Default scale, will be adjusted per element
+        selectionReticle.visible = false;  // Hidden by default
+        scene.add(selectionReticle);
+
+        // Store reticle reference globally
+        window.orbitMapState.selectionReticle = selectionReticle;
+
         console.log('Orbit map scene initialized');
+    }
+
+    /**
+     * Create reticle texture for orbit map (same as system map)
+     */
+    function createReticleTexture() {
+        const size = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const centerX = size / 2;
+        const centerY = size / 2;
+
+        // Amber color (muted yellow) - #8b7355
+        const amberColor = 'rgba(139, 115, 85, 1.0)';
+
+        // Clear canvas
+        ctx.clearRect(0, 0, size, size);
+
+        // Use compositing to create cutout effect
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Draw outer circle
+        ctx.strokeStyle = amberColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Draw inner circle
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Draw corner brackets
+        const bracketSize = 18;
+        const bracketDistance = 95;
+        ctx.lineWidth = 3;
+        // Top-left
+        ctx.beginPath();
+        ctx.moveTo(centerX - bracketDistance, centerY - bracketDistance + bracketSize);
+        ctx.lineTo(centerX - bracketDistance, centerY - bracketDistance);
+        ctx.lineTo(centerX - bracketDistance + bracketSize, centerY - bracketDistance);
+        ctx.stroke();
+        // Top-right
+        ctx.beginPath();
+        ctx.moveTo(centerX + bracketDistance - bracketSize, centerY - bracketDistance);
+        ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance);
+        ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance + bracketSize);
+        ctx.stroke();
+        // Bottom-left
+        ctx.beginPath();
+        ctx.moveTo(centerX - bracketDistance, centerY + bracketDistance - bracketSize);
+        ctx.lineTo(centerX - bracketDistance, centerY + bracketDistance);
+        ctx.lineTo(centerX - bracketDistance + bracketSize, centerY + bracketDistance);
+        ctx.stroke();
+        // Bottom-right
+        ctx.beginPath();
+        ctx.moveTo(centerX + bracketDistance - bracketSize, centerY + bracketDistance);
+        ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance);
+        ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance - bracketSize);
+        ctx.stroke();
+
+        // Use destination-out to cut out the cross
+        ctx.globalCompositeOperation = 'destination-out';
+
+        // Horizontal cross bar
+        ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+        ctx.fillRect(centerX - 90, centerY - 5, 180, 10);
+
+        // Vertical cross bar
+        ctx.fillRect(centerX - 5, centerY - 90, 10, 180);
+
+        // Reset composite operation
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
     }
 
     /**
@@ -5655,12 +6494,19 @@
             window.orbitMapState.currentSystem = systemSlug;
             window.orbitMapState.startTime = Date.now();
 
-            // Set camera position from config
+            // Set camera position from config and store as default
             if (data.camera && data.camera.position) {
                 const camPos = data.camera.position;
                 window.orbitMapState.camera.position.set(camPos[0], camPos[1], camPos[2]);
                 window.orbitMapState.camera.lookAt(0, 0, 0);
+                // Store default position for returning after element selection
+                window.orbitMapState.defaultCameraPosition = { x: camPos[0], y: camPos[1], z: camPos[2] };
+            } else {
+                // Use fallback default
+                window.orbitMapState.defaultCameraPosition = { x: 0, y: 30, z: 50 };
             }
+            // Reset camera target to planet center
+            window.orbitMapState.cameraLookAt = { x: 0, y: 0, z: 0 };
 
             // Render the central planet
             renderCentralPlanet(data.planet);
@@ -5686,14 +6532,20 @@
                 window.orbitMapState.controlsInitialized = true;
             }
 
+            // Switch active view flags
+            window.systemMapState.isActive = false;
+            window.orbitMapState.isActive = true;
+
             // Start animation
             if (!window.orbitMapState.animationFrameId) {
                 animateOrbitMap();
             }
 
             // Update menu to show orbit map contents and back button
-            console.log('🔵 About to call updateOrbitMapMenu');
             window.updateOrbitMapMenu(data);
+
+            // Planet info already showing from selectPlanet() call in transitionToOrbitMap
+            // Don't overwrite it here - keep the full planet details
 
             console.log('✅ Orbit map rendered successfully');
 
@@ -5867,15 +6719,16 @@
         const radius = bodyData.orbital_radius;
         const inclination = bodyData.inclination || 0;
 
-        const curve = new THREE.EllipseCurve(
-            0, 0,
-            radius, radius,
-            0, 2 * Math.PI,
-            false,
-            0
-        );
+        // Create points in XZ plane (horizontal) to match moon animation
+        const points = [];
+        const segments = 128;
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const x = radius * Math.cos(angle);
+            const z = radius * Math.sin(angle);
+            points.push(new THREE.Vector3(x, 0, z));
+        }
 
-        const points = curve.getPoints(128);
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
 
         const material = new THREE.LineBasicMaterial({
@@ -5886,7 +6739,7 @@
 
         const orbitLine = new THREE.Line(geometry, material);
 
-        // Apply orbital inclination
+        // Apply orbital inclination (rotate around X axis to tilt the orbit)
         orbitLine.rotation.x = (inclination * Math.PI) / 180;
 
         scene.add(orbitLine);
@@ -6027,8 +6880,11 @@
         const currentTime = Date.now();
         const elapsedSeconds = (currentTime - window.orbitMapState.startTime) / 1000;
 
-        // Rotate central planet
-        if (window.orbitMapState.planet) {
+        // Skip animation updates if paused (surface marker selected)
+        const isPaused = window.orbitMapState.animationPaused;
+
+        // Rotate central planet (unless paused)
+        if (window.orbitMapState.planet && !isPaused) {
             const planet = window.orbitMapState.planet;
             planet.mesh.rotation.y += planet.rotationSpeed;
             window.orbitMapState.planetRotation = planet.mesh.rotation.y;
@@ -6057,29 +6913,75 @@
             });
         }
 
-        // Animate orbiting moons
-        window.orbitMapState.moons.forEach(moonData => {
-            const orbitalSpeed = (2 * Math.PI) / moonData.orbitalPeriod;
-            const currentAngle = moonData.initialAngle + (orbitalSpeed * elapsedSeconds);
+        // Animate orbiting moons (unless paused)
+        if (!isPaused) {
+            window.orbitMapState.moons.forEach(moonData => {
+                const orbitalSpeed = (2 * Math.PI) / moonData.orbitalPeriod;
+                const currentAngle = moonData.initialAngle + (orbitalSpeed * elapsedSeconds);
 
-            const x = moonData.orbitalRadius * Math.cos(currentAngle);
-            const z = moonData.orbitalRadius * Math.sin(currentAngle);
-            const y = 0;
+                // Calculate position in flat XZ plane
+                const x = moonData.orbitalRadius * Math.cos(currentAngle);
+                const z = moonData.orbitalRadius * Math.sin(currentAngle);
+                let y = 0;
 
-            moonData.mesh.position.set(x, y, z);
-        });
+                // Apply orbital inclination if present
+                if (moonData.inclination) {
+                    const inclinationRad = (moonData.inclination * Math.PI) / 180;
+                    // Rotate around X axis: y' = y*cos - z*sin, z' = y*sin + z*cos
+                    const yRotated = y * Math.cos(inclinationRad) - z * Math.sin(inclinationRad);
+                    const zRotated = y * Math.sin(inclinationRad) + z * Math.cos(inclinationRad);
+                    y = yRotated;
+                    moonData.mesh.position.set(x, y, zRotated);
+                } else {
+                    moonData.mesh.position.set(x, y, z);
+                }
+            });
+        }
 
-        // Animate orbiting stations
-        window.orbitMapState.stations.forEach(stationData => {
-            const orbitalSpeed = (2 * Math.PI) / stationData.orbitalPeriod;
-            const currentAngle = stationData.initialAngle + (orbitalSpeed * elapsedSeconds);
+        // Animate orbiting stations (unless paused)
+        if (!isPaused) {
+            window.orbitMapState.stations.forEach(stationData => {
+                const orbitalSpeed = (2 * Math.PI) / stationData.orbitalPeriod;
+                const currentAngle = stationData.initialAngle + (orbitalSpeed * elapsedSeconds);
 
-            const x = stationData.orbitalRadius * Math.cos(currentAngle);
-            const z = stationData.orbitalRadius * Math.sin(currentAngle);
-            const y = 0;
+                // Calculate position in flat XZ plane
+                const x = stationData.orbitalRadius * Math.cos(currentAngle);
+                const z = stationData.orbitalRadius * Math.sin(currentAngle);
+                let y = 0;
 
-            stationData.mesh.position.set(x, y, z);
-        });
+                // Apply orbital inclination if present
+                if (stationData.inclination) {
+                    const inclinationRad = (stationData.inclination * Math.PI) / 180;
+                    // Rotate around X axis: y' = y*cos - z*sin, z' = y*sin + z*cos
+                    const yRotated = y * Math.cos(inclinationRad) - z * Math.sin(inclinationRad);
+                    const zRotated = y * Math.sin(inclinationRad) + z * Math.cos(inclinationRad);
+                    y = yRotated;
+                    stationData.mesh.position.set(x, y, zRotated);
+                } else {
+                    stationData.mesh.position.set(x, y, z);
+                }
+            });
+        }
+
+        // Update selection reticle position to follow selected element
+        if (window.orbitMapState.selectionReticle && window.orbitMapState.selectionReticle.visible) {
+            const selectedElement = window.orbitMapState.selectedElement;
+            if (selectedElement && selectedElement.mesh) {
+                // Update reticle position to match element's current position
+                window.orbitMapState.selectionReticle.position.copy(selectedElement.mesh.position);
+            }
+        }
+
+        // Update camera to track selected orbiting element (moons/stations only)
+        // Surface markers don't need tracking since animation is paused when they're selected
+        if (window.orbitMapState.cameraLookAt === null && window.orbitMapState.selectedElement?.mesh) {
+            const selectedElement = window.orbitMapState.selectedElement;
+
+            // Only track orbiting elements (moons/stations), not surface markers
+            if (selectedElement.type !== 'surface') {
+                camera.lookAt(window.orbitMapState.selectedElement.mesh.position);
+            }
+        }
 
         renderer.render(scene, camera);
     }
@@ -6091,9 +6993,35 @@
         const scene = window.orbitMapState.scene;
         if (!scene) return;
 
-        // Remove planet
+        // Remove planet (including clouds and lat/lon grid)
         if (window.orbitMapState.planet) {
-            scene.remove(window.orbitMapState.planet.mesh);
+            // Remove planet mesh
+            if (window.orbitMapState.planet.mesh) {
+                scene.remove(window.orbitMapState.planet.mesh);
+            }
+
+            // Remove cloud layer if it exists
+            if (window.orbitMapState.planet.clouds) {
+                scene.remove(window.orbitMapState.planet.clouds);
+                if (window.orbitMapState.planet.clouds.geometry) {
+                    window.orbitMapState.planet.clouds.geometry.dispose();
+                }
+                if (window.orbitMapState.planet.clouds.material) {
+                    window.orbitMapState.planet.clouds.material.dispose();
+                }
+            }
+
+            // Remove lat/lon grid if it exists
+            if (window.orbitMapState.planet.latLonGrid) {
+                scene.remove(window.orbitMapState.planet.latLonGrid);
+                if (window.orbitMapState.planet.latLonGrid.geometry) {
+                    window.orbitMapState.planet.latLonGrid.geometry.dispose();
+                }
+                if (window.orbitMapState.planet.latLonGrid.material) {
+                    window.orbitMapState.planet.latLonGrid.material.dispose();
+                }
+            }
+
             window.orbitMapState.planet = null;
         }
 
@@ -6113,7 +7041,18 @@
         window.orbitMapState.orbits.forEach(o => scene.remove(o));
         window.orbitMapState.orbits = [];
 
-        console.log('Orbit map cleared');
+        // Hide selection reticle
+        if (window.orbitMapState.selectionReticle) {
+            window.orbitMapState.selectionReticle.visible = false;
+        }
+
+        // Clear selected element and camera tracking
+        window.orbitMapState.selectedElement = null;
+        window.orbitMapState.surfaceCameraOffset = null;
+        window.orbitMapState.animationPaused = false;
+        window.orbitMapState.pausedAt = null;
+
+        console.log('Orbit map cleared (including clouds and lat/lon grid)');
     }
 
     /**
@@ -6164,6 +7103,7 @@
         // Mouse wheel zoom
         window.addEventListener('wheel', (event) => {
             if (canvas.style.display !== 'block') return;
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;  // Only handle if orbit map is active
 
             const target = event.target;
             const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content');
@@ -6184,8 +7124,20 @@
             }
         }, { passive: false });
 
-        // Mouse drag to rotate
-        canvas.addEventListener('mousedown', (event) => {
+        // Mouse drag to rotate - attach to window (like system map)
+        window.addEventListener('mousedown', (event) => {
+            if (canvas.style.display !== 'block') return;
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;  // Only handle if orbit map is active
+
+            // Don't start dragging if clicking on UI panels or interactive elements
+            const target = event.target;
+            const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .star-system-row, .system-info-panel, .dashboard-panel-content');
+            const isButton = target.closest('button, .orbit-map-btn-container, .back-btn-container');
+
+            if (isPanel || isButton) {
+                return;
+            }
+
             if (event.button === 0) {  // Left click
                 isDragging = true;
                 previousMousePosition = { x: event.clientX, y: event.clientY };
@@ -6194,6 +7146,7 @@
 
         window.addEventListener('mousemove', (event) => {
             if (!isDragging) return;
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;  // Only handle if orbit map is active
 
             const camera = window.orbitMapState.camera;
             if (!camera) return;
@@ -6201,25 +7154,38 @@
             const deltaX = event.clientX - previousMousePosition.x;
             const deltaY = event.clientY - previousMousePosition.y;
 
-            // Rotate camera around the origin
-            const rotationMatrix = new THREE.Matrix4();
-            rotationMatrix.makeRotationY(-deltaX * ROTATE_SPEED);
-            camera.position.applyMatrix4(rotationMatrix);
+            // Use spherical coordinates for rotation (same as system map)
+            const lookAtTarget = new THREE.Vector3(0, 0, 0);  // Always rotate around origin
+            const offset = camera.position.clone().sub(lookAtTarget);
+            const radius = offset.length();
 
-            // Vertical rotation
-            const axis = new THREE.Vector3().crossVectors(
-                camera.position.clone().normalize(),
-                new THREE.Vector3(0, 1, 0)
-            ).normalize();
-            const verticalRotation = new THREE.Matrix4().makeRotationAxis(axis, -deltaY * ROTATE_SPEED);
-            camera.position.applyMatrix4(verticalRotation);
+            // Convert to spherical coordinates
+            let theta = Math.atan2(offset.x, offset.z);
+            let phi = Math.acos(offset.y / radius);
 
-            camera.lookAt(0, 0, 0);
+            // Update angles based on mouse movement
+            theta -= deltaX * ROTATE_SPEED;
+            phi -= deltaY * ROTATE_SPEED;
+
+            // Clamp phi to avoid gimbal lock
+            phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+            // Convert back to Cartesian coordinates
+            offset.x = radius * Math.sin(phi) * Math.sin(theta);
+            offset.y = radius * Math.cos(phi);
+            offset.z = radius * Math.sin(phi) * Math.cos(theta);
+
+            camera.position.copy(lookAtTarget).add(offset);
+            camera.lookAt(lookAtTarget);
 
             previousMousePosition = { x: event.clientX, y: event.clientY };
         });
 
         window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        window.addEventListener('mouseleave', () => {
             isDragging = false;
         });
 

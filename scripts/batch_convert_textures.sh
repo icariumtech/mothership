@@ -66,9 +66,9 @@ for SOURCE_DIR in "${SOURCE_DIRS[@]}"; do
         continue
     fi
 
-    # Count PNG files
-    PNG_COUNT=$(find "$SOURCE_DIR" -maxdepth 1 -name "*.png" | wc -l)
-    echo "Found $PNG_COUNT PNG files"
+    # Count PNG files (excluding Bump-* files)
+    PNG_COUNT=$(find "$SOURCE_DIR" -maxdepth 1 -name "*.png" ! -name "Bump-*" | wc -l)
+    echo "Found $PNG_COUNT PNG files (excluding bump maps)"
 
     if [ $PNG_COUNT -eq 0 ]; then
         echo "No PNG files found in $SOURCE_DIR, skipping..."
@@ -83,6 +83,11 @@ for SOURCE_DIR in "${SOURCE_DIRS[@]}"; do
 
         # Get filename without path
         FILENAME=$(basename "$SOURCE_FILE")
+
+        # Skip bump map files (will be processed separately)
+        if [[ "$FILENAME" == Bump-* ]]; then
+            continue
+        fi
 
         # Create target file path
         TARGET_FILE="$TARGET_DIR/$FILENAME"

@@ -8,6 +8,7 @@ planet:
   rotation_speed: 0.0022
   axial_tilt: 0  # No tilt - spins straight up
   texture: "/textures/terrestrial/Terrestrial-EQUIRECTANGULAR-1-2048x1024.png"  # Icosahedral texture (testing)
+  sun_declination: 23  # Season angle: +degrees = northern summer, -degrees = southern summer
 
 camera:
   position: [0, 35, 58]

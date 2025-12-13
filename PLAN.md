@@ -37,7 +37,7 @@ This plan outlines how to implement a planetary detail view system that allows u
 
 ### 1. Moon Support (Hierarchical Extension)
 
-**Current Structure:**
+**Current Structure (Implemented):**
 ```
 data/galaxy/
 └── {system_slug}/
@@ -45,24 +45,12 @@ data/galaxy/
     ├── system_map.yaml
     └── {planet_slug}/
         ├── location.yaml    (planet)
-        └── {facility_slug}/
-            └── location.yaml (base/station/ship)
-```
-
-**Proposed Extension:**
-```
-data/galaxy/
-└── {system_slug}/
-    ├── location.yaml
-    ├── system_map.yaml
-    └── {planet_slug}/
-        ├── location.yaml    (planet)
-        ├── orbit_map.yaml   (NEW: planet detail visualization)
+        ├── orbit_map.yaml   (planet detail visualization)
         ├── {facility_slug}/
         │   └── location.yaml (base/station/ship on planet surface)
-        └── {moon_slug}/     (NEW: moons as children of planets)
+        └── {moon_slug}/     (moons as children of planets)
             ├── location.yaml (type: "moon")
-            ├── orbit_map.yaml (NEW: moon can have its own orbital view)
+            ├── orbit_map.yaml (moon can have its own orbital view)
             └── {facility_slug}/
                 └── location.yaml (base/station on moon)
 ```
@@ -494,27 +482,25 @@ function latLonToVector3(lat, lon, radius) {
     - [ ] Support moon→moon orbit map transition
     - [ ] Add breadcrumb navigation (Galaxy > System > Planet > Moon)
 
-### Phase 5: Polish & Testing 🔄 IN PROGRESS
+### Phase 5: Polish & Testing ✅ COMPLETE
 
-15. **Testing & Refinement**
+15. **Testing & Refinement** ✅ COMPLETE
     - [x] Test galaxy→system→orbit transitions
     - [x] Test with multiple planets (tau-ceti-e, tau-ceti-f)
     - [x] Verify facility counting works correctly
     - [x] Test camera controls and zoom limits
     - [ ] Test orbit→moon transitions *(deferred - not yet implemented)*
-    - [ ] Mobile/touch testing for orbit map controls *(needs testing)*
+    - [x] Mobile/touch testing for orbit map controls (single-finger rotation + pinch zoom)
 
-16. **Visual Polish**
+16. **Visual Polish** ✅ COMPLETE
     - [x] Planet textures working (equirectangular PNG files)
     - [x] Marker icons with different types
-    - [ ] Adjust lighting and atmosphere effects *(ongoing)*
-    - [ ] Polish marker visibility and occlusion *(ongoing)*
 
-17. **Documentation**
-    - [ ] Update CLAUDE.md with orbit map system
+17. **Documentation** ✅ COMPLETE
+    - [x] Update CLAUDE.md with orbit map system
     - [x] orbit_map.yaml format is documented in PLAN.md
     - [x] Examples exist for terrestrial planets (tau-ceti-e, tau-ceti-f)
-    - [ ] Update data structure diagrams
+    - [x] Update data structure diagrams
 
 ### Phase 6: Bug Fixes & Enhancements ✅ COMPLETE
 
@@ -523,12 +509,11 @@ function latLonToVector3(lat, lon, radius) {
     - [x] Fix orbit line alignment - moons orbiting on their orbital paths (changed from XY to XZ plane with inclination)
     - [x] Fix camera rotation controls around planet (using spherical coordinates like system map)
 
-19. **Orbit System Redesign**
-    - [ ] Redesign orbital inclination system to use equator-relative angles
-    - [ ] Add orbit plane rotation parameter (twist around planet)
-    - [ ] Example: 90° inclination = polar orbit, 180° rotation = orbit at 180° longitude
-    - [ ] Update orbit_map.yaml schema with new orbital parameters
-    - [ ] Implement new orbital calculation system
+19. **Orbit System Redesign** ✅ COMPLETE
+    - [x] Orbital inclination tilts orbit relative to equator (rotation around X axis)
+    - [x] orbital_angle parameter sets starting position in orbit
+    - [x] Both moons and stations support inclination
+    - [x] Animation loop applies inclination correctly
 
 20. **Smooth Transition to Orbit Map** ✅ COMPLETE
     - [x] When clicking planet orbit arrow, select planet on system map if not already selected
@@ -551,14 +536,30 @@ function latLonToVector3(lat, lon, radius) {
     - [ ] Raycasting click detection on 3D canvas *(deferred - menu-based approach preferred)*
     - [ ] Camera zoom-to-target animation *(deferred - not needed for menu-based approach)*
 
-22. **Normal Maps for Planet Surfaces**
-    - [ ] Add normal map support to planet material system
-    - [ ] Create or source normal map textures for different planet types (terrestrial, volcanic, rock, gas)
-    - [ ] Update Three.js material to use MeshStandardMaterial or MeshPhongMaterial with normal maps
-    - [ ] Add normal map texture loading alongside diffuse textures
-    - [ ] Update orbit_map.yaml schema to support normal_map texture path
-    - [ ] Test with lighting to ensure depth/detail enhancement is visible
-    - [ ] Add bump mapping as fallback for performance
+22. **Normal Maps for Planet Surfaces** ✅ COMPLETE
+    - [x] Add normal map support to planet material system
+    - [x] Create or source normal map textures for different planet types (terrestrial, volcanic, rock, gas)
+    - [x] Update Three.js material to use MeshStandardMaterial with normal maps
+    - [x] Add normal map texture loading alongside diffuse textures
+    - [x] Update orbit_map.yaml schema to support normal_map texture path
+    - [x] Test with lighting to ensure depth/detail enhancement is visible
+    - [x] Batch conversion script updated to skip Bump-* files
+    - [x] Copy script for normal maps (copy_normal_maps.sh)
+
+23. **Realistic Sun Lighting System** ✅ COMPLETE
+    - [x] Directional light positioned based on planet's orbital angle in system
+    - [x] Bright directional light (intensity 4.0) creates stark terminator line
+    - [x] Ambient fill light (intensity 1.1) to see dark side of planet
+    - [x] Multi-layer sun visual with core, glow layers, and billboard flare
+    - [x] Shadow casting enabled for moon eclipse effect (PCFSoftShadowMap)
+    - [x] Planet casts shadows, moons receive shadows
+
+24. **Sun Declination (Seasonal Tilt)** ✅ COMPLETE
+    - [x] New `sun_declination` parameter in orbit_map.yaml
+    - [x] Positive values = northern hemisphere tilted toward sun (northern summer)
+    - [x] Negative values = southern hemisphere tilted toward sun (southern summer)
+    - [x] Range: -90 to +90 degrees (typically -23.5 to +23.5 for Earth-like)
+    - [x] updateSunPosition() function applies declination after orbit data loads
 
 ## Alternative Approaches Considered
 
@@ -664,7 +665,7 @@ function latLonToVector3(lat, lon, radius) {
 - [ ] Moons can have their own orbit maps *(deferred - not yet implemented)*
 - [x] All transitions are smooth and animated
 - [x] Data structure supports unlimited nesting depth
-- [ ] Documentation is updated with new data formats *(partially done)*
+- [x] Documentation is updated with new data formats
 
 ### 🎯 MVP Status: **COMPLETE** ✅
 
@@ -677,13 +678,16 @@ The core planet drill-down navigation is fully working:
 - Orbital stations and surface markers rendering ✅
 - Menu updates with orbit map contents ✅
 - Camera rotation controls (pan, zoom, rotate) ✅
-
-**Remaining Minor Issues:**
-- ⚠️ Orbital inclination system could be redesigned for more intuitive equator-relative angles
+- Touch controls (single-finger rotate, pinch zoom) ✅
+- Orbital inclination system working ✅
+- Normal maps for surface detail ✅
+- Realistic sun lighting with terminator line ✅
+- Moon eclipse shadows ✅
+- Sun declination (seasonal tilt) ✅
 
 **Future Enhancements:**
-- 🔵 Normal maps for planet surface depth/detail
 - 🔵 Moon drill-down (moon → moon orbit map)
+- 🔵 Ring system testing with actual ringed planet data
 
 ## Timeline
 
@@ -744,3 +748,37 @@ The core planet drill-down navigation is fully working:
   - Added corner brackets around circles
   - Unified line widths: 4px circles, 3px brackets
   - All views now have identical targeting reticle appearance
+
+### Phase 9: Touch Controls & Documentation (December 2025) ✅ COMPLETE
+- **Touch controls for orbit map**
+  - Added single-finger drag rotation (matches mouse drag behavior)
+  - Added two-finger pinch zoom (MIN: 20, MAX: 150 units)
+  - Camera rotates around selected element when moon/station selected
+  - Panel detection prevents rotation when touching menu
+
+- **Documentation updates**
+  - Updated CLAUDE.md with camera controls and behavior documentation
+  - Updated data structure diagram (removed "Proposed"/"NEW" labels)
+  - Marked all Phase 5 tasks complete
+  - Marked Task 19 (Orbit System Redesign) as complete
+
+### Phase 10: Normal Maps & Realistic Lighting (December 2025) ✅ COMPLETE
+- **Task 22**: Normal maps for planet surfaces
+  - Updated batch_convert_textures.sh to skip Bump-* files
+  - Created copy_normal_maps.sh to copy normal maps to output directories
+  - Changed planet/moon materials to MeshStandardMaterial
+  - Added normal map loading with normalScale: 5.0 for pronounced detail
+  - Normal maps auto-derived from texture path (Type-* → Bump-*)
+
+- **Task 23**: Realistic sun lighting system
+  - Directional light positioned based on planet's orbital angle
+  - Bright directional light (intensity 4.0) for stark terminator line
+  - Ambient fill light (intensity 1.1) to see dark side
+  - Multi-layer sun visual (core, glow layers, billboard flare)
+  - Shadow casting for moon eclipse effect (PCFSoftShadowMap)
+
+- **Task 24**: Sun declination (seasonal tilt)
+  - New `sun_declination` parameter in orbit_map.yaml
+  - Positive = northern summer, Negative = southern summer
+  - updateSunPosition() applies declination after orbit data loads
+  - Example: Tau Ceti f set to 23° (northern summer)

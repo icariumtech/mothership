@@ -6301,12 +6301,13 @@
         window.orbitMapState.camera = camera;
 
         // Create or reuse renderer
+        let renderer;
         if (window.systemMapState && window.systemMapState.renderer) {
             // Reuse system map renderer if it exists
-            window.orbitMapState.renderer = window.systemMapState.renderer;
+            renderer = window.systemMapState.renderer;
         } else {
             // Create new renderer
-            const renderer = new THREE.WebGLRenderer({
+            renderer = new THREE.WebGLRenderer({
                 canvas: canvas,
                 antialias: true,
                 alpha: true
@@ -6314,17 +6315,118 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
 
-            window.orbitMapState.renderer = renderer;
-
             // Also store in systemMapState for sharing
             if (window.systemMapState) {
                 window.systemMapState.renderer = renderer;
             }
         }
 
-        // Add ambient light
-        const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+        // Enable shadow maps for eclipse effect
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;  // Soft shadows
+        window.orbitMapState.renderer = renderer;
+
+        // Ambient fill light - see dark side while keeping terminator visible
+        const ambientLight = new THREE.AmbientLight(0x778899, 1.1);  // Stronger fill light
         scene.add(ambientLight);
+
+        // Default sun position (will be updated when orbit data loads)
+        const sunDistance = 200;
+        const sunPosition = new THREE.Vector3(-sunDistance, 0, 0);
+
+        // Intense directional light for stark terminator line
+        const directionalLight = new THREE.DirectionalLight(0xFFFFF0, 4.0);  // Very bright warm white
+        directionalLight.position.copy(sunPosition);
+
+        // Enable shadow casting for eclipse effect
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 50;
+        directionalLight.shadow.camera.far = 400;
+        // Shadow camera frustum needs to cover orbital area
+        directionalLight.shadow.camera.left = -100;
+        directionalLight.shadow.camera.right = 100;
+        directionalLight.shadow.camera.top = 100;
+        directionalLight.shadow.camera.bottom = -100;
+        directionalLight.shadow.bias = -0.001;  // Reduce shadow acne
+
+        scene.add(directionalLight);
+        window.orbitMapState.directionalLight = directionalLight;
+
+        // Create sun with multiple glow layers for intense effect
+        const sunGroup = new THREE.Group();
+        sunGroup.position.copy(sunPosition);
+
+        // Core sun sphere (blinding white center)
+        const sunCoreGeometry = new THREE.SphereGeometry(5, 32, 32);
+        const sunCoreMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFFFFF,  // Pure white
+        });
+        const sunCore = new THREE.Mesh(sunCoreGeometry, sunCoreMaterial);
+        sunGroup.add(sunCore);
+
+        // Inner glow layer
+        const innerGlowGeometry = new THREE.SphereGeometry(8, 32, 32);
+        const innerGlowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFFFDD,
+            transparent: true,
+            opacity: 0.7,
+            side: THREE.BackSide
+        });
+        const innerGlow = new THREE.Mesh(innerGlowGeometry, innerGlowMaterial);
+        sunGroup.add(innerGlow);
+
+        // Middle glow layer
+        const middleGlowGeometry = new THREE.SphereGeometry(14, 32, 32);
+        const middleGlowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFEE88,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.BackSide
+        });
+        const middleGlow = new THREE.Mesh(middleGlowGeometry, middleGlowMaterial);
+        sunGroup.add(middleGlow);
+
+        // Outer glow layer (corona)
+        const outerGlowGeometry = new THREE.SphereGeometry(22, 32, 32);
+        const outerGlowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFCC44,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.BackSide
+        });
+        const outerGlow = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
+        sunGroup.add(outerGlow);
+
+        // Add sun flare sprite (billboard that always faces camera)
+        const flareCanvas = document.createElement('canvas');
+        flareCanvas.width = 256;
+        flareCanvas.height = 256;
+        const flareCtx = flareCanvas.getContext('2d');
+        const flareGradient = flareCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+        flareGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        flareGradient.addColorStop(0.08, 'rgba(255, 255, 220, 0.9)');
+        flareGradient.addColorStop(0.2, 'rgba(255, 238, 136, 0.5)');
+        flareGradient.addColorStop(0.4, 'rgba(255, 200, 80, 0.2)');
+        flareGradient.addColorStop(0.7, 'rgba(255, 170, 50, 0.05)');
+        flareGradient.addColorStop(1, 'rgba(255, 150, 30, 0)');
+        flareCtx.fillStyle = flareGradient;
+        flareCtx.fillRect(0, 0, 256, 256);
+
+        const flareTexture = new THREE.CanvasTexture(flareCanvas);
+        const flareMaterial = new THREE.SpriteMaterial({
+            map: flareTexture,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            opacity: 1.0
+        });
+        const sunFlare = new THREE.Sprite(flareMaterial);
+        sunFlare.scale.set(60, 60, 1);  // Large intense flare
+        sunGroup.add(sunFlare);
+
+        scene.add(sunGroup);
+        window.orbitMapState.sunGroup = sunGroup;
 
         // Add background starfield (similar to system map)
         createOrbitMapStarfield();
@@ -6508,6 +6610,9 @@
             // Reset camera target to planet center
             window.orbitMapState.cameraLookAt = { x: 0, y: 0, z: 0 };
 
+            // Update sun position based on planet's orbital angle and declination
+            updateSunPosition(data.planet);
+
             // Render the central planet
             renderCentralPlanet(data.planet);
 
@@ -6552,6 +6657,61 @@
         } catch (error) {
             console.error('Error loading orbit map:', error);
         }
+    }
+
+    /**
+     * Update sun position based on planet's orbital angle and sun declination
+     */
+    function updateSunPosition(planetData) {
+        const sunDistance = 200;
+
+        // Calculate sun direction based on planet's orbital position
+        let sunDirection = new THREE.Vector3(-1, 0, 0);  // Default direction
+
+        // Try to get actual orbital angle from selected planet data
+        const selectedPlanet = window.systemMapState?.selectedPlanet;
+        if (selectedPlanet && selectedPlanet.orbital_angle !== undefined) {
+            // Planet is at angle θ from star, so star is at angle θ + 180° from planet
+            const angleRad = ((selectedPlanet.orbital_angle || 0) + 180) * (Math.PI / 180);
+            sunDirection = new THREE.Vector3(
+                Math.cos(angleRad),
+                0,
+                Math.sin(angleRad)
+            );
+            console.log('Sun positioned based on orbital angle:', selectedPlanet.orbital_angle);
+        }
+
+        // Apply sun declination (season angle) from planet data
+        // Positive = northern hemisphere tilted toward sun (northern summer)
+        // Negative = southern hemisphere tilted toward sun (southern summer)
+        const sunDeclination = planetData?.sun_declination || 0;
+        if (sunDeclination !== 0) {
+            // Convert declination to radians and apply as elevation
+            const declinationRad = sunDeclination * (Math.PI / 180);
+            // Elevate sun direction by declination angle
+            sunDirection.y = Math.sin(declinationRad);
+            // Scale horizontal components to maintain unit vector length
+            const horizontalScale = Math.cos(declinationRad);
+            sunDirection.x *= horizontalScale;
+            sunDirection.z *= horizontalScale;
+            console.log('Sun declination applied:', sunDeclination, 'degrees');
+        }
+        sunDirection.normalize();
+
+        // Calculate new sun position
+        const sunPosition = sunDirection.clone().multiplyScalar(sunDistance);
+
+        // Update directional light position
+        if (window.orbitMapState.directionalLight) {
+            window.orbitMapState.directionalLight.position.copy(sunPosition);
+        }
+
+        // Update sun visual position
+        if (window.orbitMapState.sunGroup) {
+            window.orbitMapState.sunGroup.position.copy(sunPosition);
+        }
+
+        console.log('Sun position updated:', sunPosition);
     }
 
     /**
@@ -6607,12 +6767,37 @@
             (err) => console.error('Error loading texture:', err)
         );
 
-        const material = new THREE.MeshBasicMaterial({
-            map: texture
+        // Derive normal map path from diffuse texture path
+        // Pattern: /textures/type/Type-EQUIRECTANGULAR-N-size.png -> /textures/type/Bump-EQUIRECTANGULAR-N-size.png
+        const normalMapPath = planetData.normal_map || texturePath.replace(/\/[^\/]+-EQUIRECTANGULAR-/, '/Bump-EQUIRECTANGULAR-');
+
+        // Create material with normal map support
+        const material = new THREE.MeshStandardMaterial({
+            map: texture,
+            roughness: 0.7,
+            metalness: 0.0
         });
+
+        // Load normal map (RGB encoded surface normals - optional)
+        if (normalMapPath && normalMapPath !== texturePath) {
+            textureLoader.load(normalMapPath,
+                (normalMap) => {
+                    material.normalMap = normalMap;
+                    material.normalScale = new THREE.Vector2(5.0, 5.0);  // Cranked up for maximum detail
+                    material.needsUpdate = true;
+                    console.log('Planet normal map loaded:', normalMapPath);
+                },
+                undefined,
+                (err) => console.warn('Normal map not found (optional):', normalMapPath)
+            );
+        }
 
         const planet = new THREE.Mesh(geometry, material);
         planet.rotation.y = 0;  // Will rotate in animation loop
+
+        // Planet casts shadows (for moon eclipse effect)
+        planet.castShadow = true;
+        planet.receiveShadow = true;
 
         // Apply axial tilt if specified
         if (planetData.axial_tilt) {
@@ -6670,27 +6855,52 @@
                 undefined,
                 (err) => console.error('Error loading moon texture:', err)
             );
-            material = new THREE.MeshBasicMaterial({
-                map: texture
+
+            // Derive normal map path from diffuse texture path
+            const normalMapPath = moonData.normal_map || moonData.texture.replace(/\/[^\/]+-EQUIRECTANGULAR-/, '/Bump-EQUIRECTANGULAR-');
+
+            material = new THREE.MeshStandardMaterial({
+                map: texture,
+                roughness: 0.8,
+                metalness: 0.0
             });
+
+            // Load normal map (RGB encoded surface normals - optional)
+            if (normalMapPath && normalMapPath !== moonData.texture) {
+                textureLoader.load(normalMapPath,
+                    (normalMap) => {
+                        material.normalMap = normalMap;
+                        material.normalScale = new THREE.Vector2(5.0, 5.0);  // Cranked up for maximum detail
+                        material.needsUpdate = true;
+                        console.log('Moon normal map loaded:', normalMapPath);
+                    },
+                    undefined,
+                    (err) => console.warn('Moon normal map not found (optional):', normalMapPath)
+                );
+            }
         } else if (moonData.texture_config) {
             // Generate procedural texture
             const texture = generatePlanetTexture(moonData.texture_config);
             material = new THREE.MeshStandardMaterial({
                 map: texture,
-                roughness: 0.9,
-                metalness: 0.1
+                roughness: 0.8,
+                metalness: 0.0
             });
         } else {
             // Fallback: simple colored sphere
             material = new THREE.MeshStandardMaterial({
                 color: moonData.color || 0xAAAAAA,
-                roughness: 0.9,
-                metalness: 0.1
+                roughness: 0.8,
+                metalness: 0.0
             });
         }
 
         const moon = new THREE.Mesh(geometry, material);
+
+        // Moon receives shadows (eclipsed by planet)
+        moon.castShadow = true;
+        moon.receiveShadow = true;
+
         scene.add(moon);
 
         // Render orbital path
@@ -7154,8 +7364,13 @@
             const deltaX = event.clientX - previousMousePosition.x;
             const deltaY = event.clientY - previousMousePosition.y;
 
-            // Use spherical coordinates for rotation (same as system map)
-            const lookAtTarget = new THREE.Vector3(0, 0, 0);  // Always rotate around origin
+            // Rotate around selected element if one exists, otherwise around planet center
+            const lookAtTarget = new THREE.Vector3(0, 0, 0);
+            const selectedElement = window.orbitMapState.selectedElement;
+            if (selectedElement && selectedElement.mesh) {
+                lookAtTarget.copy(selectedElement.mesh.position);
+            }
+
             const offset = camera.position.clone().sub(lookAtTarget);
             const radius = offset.length();
 
@@ -7189,7 +7404,156 @@
             isDragging = false;
         });
 
-        console.log('Orbit map controls initialized');
+        // Touch controls - single finger rotation
+        let isTouching = false;
+
+        window.addEventListener('touchstart', (event) => {
+            // Only handle when orbit map is active
+            if (canvas.style.display !== 'block') return;
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;
+
+            if (event.touches.length === 1) {
+                // Check if touching a panel or button
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .star-system-row, .system-info-panel, .dashboard-panel-content');
+                const isButton = target.closest('button, .orbit-map-btn-container, .back-btn-container');
+                if (isPanel || isButton) return;
+
+                isTouching = true;
+                previousMousePosition = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+            }
+        });
+
+        window.addEventListener('touchmove', (event) => {
+            // Only handle when orbit map is active
+            if (canvas.style.display !== 'block') return;
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;
+
+            if (isTouching && event.touches.length === 1) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .star-system-row, .system-info-panel, .dashboard-panel-content');
+                if (isPanel) {
+                    isTouching = false;
+                    return;
+                }
+
+                event.preventDefault();
+
+                const camera = window.orbitMapState.camera;
+                if (!camera) return;
+
+                const touch = event.touches[0];
+                const deltaX = touch.clientX - previousMousePosition.x;
+                const deltaY = touch.clientY - previousMousePosition.y;
+
+                // Rotate around selected element if one exists, otherwise around planet center
+                const lookAtTarget = new THREE.Vector3(0, 0, 0);
+                const selectedElement = window.orbitMapState.selectedElement;
+                if (selectedElement && selectedElement.mesh) {
+                    lookAtTarget.copy(selectedElement.mesh.position);
+                }
+
+                const offset = camera.position.clone().sub(lookAtTarget);
+                const radius = offset.length();
+
+                // Convert to spherical coordinates
+                let theta = Math.atan2(offset.x, offset.z);
+                let phi = Math.acos(offset.y / radius);
+
+                // Update angles based on touch movement
+                theta -= deltaX * ROTATE_SPEED;
+                phi -= deltaY * ROTATE_SPEED;
+
+                // Clamp phi to avoid gimbal lock
+                phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+                // Convert back to Cartesian coordinates
+                offset.x = radius * Math.sin(phi) * Math.sin(theta);
+                offset.y = radius * Math.cos(phi);
+                offset.z = radius * Math.sin(phi) * Math.cos(theta);
+
+                camera.position.copy(lookAtTarget).add(offset);
+                camera.lookAt(lookAtTarget);
+
+                previousMousePosition = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;
+            isTouching = false;
+        });
+
+        // Pinch zoom for mobile - two finger
+        let lastTouchDistance = 0;
+
+        window.addEventListener('touchstart', (event) => {
+            // Only handle when orbit map is active
+            if (canvas.style.display !== 'block') return;
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;
+
+            if (event.touches.length === 2) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .star-system-row, .system-info-panel, .dashboard-panel-content');
+                if (isPanel) return;
+
+                const dx = event.touches[0].clientX - event.touches[1].clientX;
+                const dy = event.touches[0].clientY - event.touches[1].clientY;
+                lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+            }
+        });
+
+        window.addEventListener('touchmove', (event) => {
+            // Only handle when orbit map is active
+            if (canvas.style.display !== 'block') return;
+            if (!window.orbitMapState || !window.orbitMapState.isActive) return;
+
+            if (event.touches.length === 2) {
+                // Check if touching a panel
+                const target = event.touches[0].target;
+                const isPanel = target.closest('.panel-base, .panel-wrapper, .panel-content, .star-system-row, .system-info-panel, .dashboard-panel-content');
+                if (isPanel) return;
+
+                event.preventDefault();
+
+                const camera = window.orbitMapState.camera;
+                if (!camera) return;
+
+                const dx = event.touches[0].clientX - event.touches[1].clientX;
+                const dy = event.touches[0].clientY - event.touches[1].clientY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                const delta = distance - lastTouchDistance;
+                const currentDistance = camera.position.length();
+
+                // Apply zoom - pinch out (increasing distance) = zoom in, pinch in = zoom out
+                let newDistance;
+                if (delta > 0) {
+                    // Fingers moving apart - zoom in
+                    newDistance = currentDistance * (1 - ZOOM_SPEED);
+                } else {
+                    // Fingers moving together - zoom out
+                    newDistance = currentDistance * (1 + ZOOM_SPEED);
+                }
+
+                if (newDistance >= MIN_ZOOM && newDistance <= MAX_ZOOM) {
+                    const scale = newDistance / currentDistance;
+                    camera.position.multiplyScalar(scale);
+                }
+
+                lastTouchDistance = distance;
+            }
+        }, { passive: false });
+
+        console.log('Orbit map controls initialized (mouse + touch)');
     }
 
     // Expose functions globally for testing

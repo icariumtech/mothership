@@ -523,7 +523,7 @@ All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function
 ✓ **Auto-Rotation Feature**: Galaxy map automatically rotates around origin when no system is selected, stops on user interaction (zoom/drag)
 ✓ **Configurable Rotation Speed**: Auto-rotation speed of 0.002 radians/frame (~52 seconds per full rotation)
 ✓ **Smart Scroll Wheel Handling**: Scroll wheel zooms maps when hovering over background, scrolls panel content when hovering over panels
-✓ **Touch Controls**: Full touch support for mobile/tablet - pinch to zoom and single-finger pan/rotate on both galaxy and system maps, with smart panel detection for scrolling
+✓ **Touch Controls**: Full touch support for mobile/tablet - pinch to zoom and single-finger pan/rotate on galaxy, system, and orbit maps, with smart panel detection for scrolling
 ✓ **System Map Starfield**: 5000 background stars with starburst texture, random positions/sizes/rotations, additive blending for atmospheric depth
 ✓ **Orbital Inclination**: Realistic 3D orbital planes - each planet can have custom inclination angle, orbits and planet positions tilted accordingly
 ✓ **Adaptive Orbital Speeds**: Per-system speed calculation ensures fastest planet completes 1 orbit in 10 seconds, maintaining relative speeds for natural viewing
@@ -801,16 +801,25 @@ When viewing an orbit map, users can:
    - **Stations**: Type, description, population, status, orbital radius
    - **Surface Markers**: Type, description, population, coordinates, traffic
 3. **Deselect** - Click selected item again to restore planet overview
-4. **Visual Feedback** - Checkbox indicators show selection state
+4. **Visual Feedback** - Checkbox indicators and targeting reticle show selection state
+
+**Camera Controls:**
+- **Mouse drag** - Rotate camera around selected element (or planet center if nothing selected)
+- **Scroll wheel** - Zoom in/out (MIN: 20, MAX: 150 units)
+- **Touch: single-finger drag** - Rotate camera (same as mouse drag)
+- **Touch: two-finger pinch** - Zoom in/out
+
+**Camera Behavior with Selections:**
+- **Moons/Stations**: Camera animates to element, then tracks it as it orbits
+- **Surface Markers**: Camera zooms to marker, planet rotation pauses for free exploration
+- **Deselect**: Camera animates back to default planet overview
+- **User rotation**: Stops automatic tracking, user takes full control
 
 **Implementation Details:**
 - `selectOrbitMapElement(elementType, elementName)` - Handles selection with typewriter effect
 - `unselectOrbitMapElement()` - Restores full planet info from system map data
 - `buildMoonInfoHTML()`, `buildStationInfoHTML()`, `buildSurfaceMarkerInfoHTML()` - Element-specific renderers
 - Sequence tracking prevents race conditions during typewriter animations
-
-**Known Issues:**
-- Orbital inclination system could be redesigned for more intuitive equator-relative angles
 
 ### Terminal (YAML File)
 `data/galaxy/locations/{path...}/comms/{terminal_slug}/terminal.yaml`

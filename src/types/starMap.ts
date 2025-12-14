@@ -11,6 +11,7 @@ export interface StarSystem {
   type: string;
   label?: boolean;
   location_slug?: string;
+  has_system_map?: boolean;
   info?: {
     description?: string;
     population?: string;

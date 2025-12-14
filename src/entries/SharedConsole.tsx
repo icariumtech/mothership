@@ -87,7 +87,7 @@ function SharedConsole() {
     .filter(system => system.label)
     .map(system => ({
       name: system.name,
-      hasSystemMap: !!system.location_slug,
+      hasSystemMap: !!system.has_system_map,
     }));
 
   // Get data from initial Django context (fallback)

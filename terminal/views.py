@@ -368,6 +368,16 @@ def get_star_map_json(request):
         with open(star_map_path, 'r') as f:
             star_map_data = yaml.safe_load(f)
 
+        # Add has_system_map field to each system by checking if system_map.yaml exists
+        galaxy_path = os.path.join(settings.BASE_DIR, 'data', 'galaxy')
+        for system in star_map_data.get('systems', []):
+            location_slug = system.get('location_slug')
+            if location_slug:
+                system_map_file = os.path.join(galaxy_path, location_slug, 'system_map.yaml')
+                system['has_system_map'] = os.path.exists(system_map_file)
+            else:
+                system['has_system_map'] = False
+
         return JsonResponse(star_map_data)
     except FileNotFoundError:
         return JsonResponse({

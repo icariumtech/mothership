@@ -759,6 +759,14 @@ python manage.py runserver
 - Fetches `/api/star-map/` on mount
 - Builds star systems list from API data
 - Memoized content building to prevent re-renders
+- API enhanced with `has_system_map` field (checks for `system_map.yaml` existence)
+
+#### Star System Row Styling (Refined)
+- Drill-down arrow button fills full height of row (right side)
+- Taller buttons (12px vertical padding)
+- Wider arrow section (18px horizontal padding)
+- Teal background/border for arrow button, amber icon
+- Arrow only shown for systems with `has_system_map: true`
 
 **Files Created:**
 - `src/hooks/useTypewriter.ts`
@@ -767,6 +775,8 @@ python manage.py runserver
 
 **Files Modified:**
 - `src/entries/SharedConsole.tsx` - API fetch, selection state, InfoPanel integration
+- `src/components/domain/dashboard/CampaignDashboard.css` - Star system row styling
+- `terminal/views.py` - Added `has_system_map` field to star-map API
 
 **Deliverables:**
 - [x] useTypewriter hook with inline cursor
@@ -775,6 +785,8 @@ python manage.py runserver
 - [x] Info panel with typewriter animation
 - [x] Triangle decoration (indicator boxes/rectangle removed per user preference)
 - [x] API integration for star map data
+- [x] Drill-down button styling (full-height, teal bg, amber icon)
+- [x] `has_system_map` API field for conditional arrow display
 
 **STATUS: ✅ COMPLETE**
 

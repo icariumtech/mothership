@@ -277,10 +277,8 @@
 /* Star System Rows */
 .star-system-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  margin: 4px 0;
+  align-items: stretch;
+  margin: 5px 0;
   background-color: var(--color-bg-panel-dark);
   border: 1px solid var(--color-border-subtle);
   cursor: pointer;
@@ -301,6 +299,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
+  padding: 12px 10px;
 }
 
 .star-system-checkbox {
@@ -309,6 +309,7 @@
   border: 1px solid var(--color-border-main);
   background-color: transparent;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .star-system-checkbox.checked {
@@ -323,19 +324,22 @@
 }
 
 .system-map-btn-container {
-  padding: 4px 8px;
-  background-color: rgba(139, 115, 85, 0.2);
-  border: 1px solid var(--color-amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  background-color: rgba(74, 107, 107, 0.2);
+  border-left: 1px solid var(--color-teal);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .system-map-btn-container:hover {
-  background-color: var(--color-amber);
+  background-color: var(--color-teal);
 }
 
 .system-map-btn-container:hover .system-map-btn-icon {
-  color: #000;
+  color: var(--color-amber-bright);
 }
 
 .system-map-btn-icon {

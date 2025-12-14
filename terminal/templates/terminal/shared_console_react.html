@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOTHERSHIP Terminal (React)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'js/assets/style.css' %}">
+    <style>
+        /* Ensure fonts load */
+        @font-face {
+            font-family: 'Cascadia Code';
+            src: local('Cascadia Code'), local('CascadiaCode');
+        }
+    </style>
+</head>
+<body>
+    <div id="shared-console-root"></div>
+
+    <script>
+        // Pass Django data to React
+        window.INITIAL_DATA = {
+            activeView: {
+                view_type: "{{ active_view.view_type|default:'STANDBY' }}",
+                location_slug: "{{ active_view.location_slug|default:'' }}",
+                view_slug: "{{ active_view.view_slug|default:'' }}",
+                overlay_location_slug: "{{ active_view.overlay_location_slug|default:'' }}",
+                overlay_terminal_slug: "{{ active_view.overlay_terminal_slug|default:'' }}",
+                updated_at: "{{ active_view.updated_at|date:'Y-m-d H:i:s'|default:'' }}"
+            },
+            starSystems: {{ star_systems_json|safe|default:'[]' }},
+            campaignTitle: "THE OUTER VEIL CAMPAIGN",
+            crew: [
+                "Dr. Elena Vasquez - Science Officer",
+                "Marcus \"Wrench\" Chen - Engineer",
+                "Lt. Sarah Kim - Security",
+                "Alex Novak - Pilot"
+            ],
+            notes: [
+                "Investigating anomalous readings",
+                "Specimen requires containment",
+                "Station comms experiencing intermittent interference",
+                "Crew morale declining - recommend shore leave",
+                "Unexplained power fluctuations in sector 7"
+            ]
+        };
+    </script>
+    <script type="module" src="{% static 'js/shared-console.bundle.js' %}"></script>
+</body>
+</html>

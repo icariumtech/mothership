@@ -1,4 +1,5 @@
 {% extends 'terminal/base.html' %}
+{% load static %}
 
 {% block title %}GM Console - Send Messages{% endblock %}
 
@@ -1164,4 +1165,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- REACT TEST - REMOVE AFTER VALIDATION -->
+<div id="test-panel-root" style="position: fixed; bottom: 20px; right: 20px; width: 400px; height: 200px; z-index: 1000;"></div>
+<link rel="stylesheet" href="{% static 'js/assets/style.css' %}">
+<script type="module" src="{% static 'js/test-panel.bundle.js' %}"></script>
 {% endblock %}

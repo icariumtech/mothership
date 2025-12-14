@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('terminal/', views.display_view, name='terminal'),  # Shared public display (no login)
+    path('terminal/react/', views.display_view_react, name='terminal_react'),  # React version (test)
     path('messages/', views.terminal_view, name='messages'),  # Personal player messages (requires login)
     path('gmconsole/', views.gm_console, name='gm_console'),  # GM controls (requires login)
     path('logout/', views.logout_view, name='terminal_logout'),

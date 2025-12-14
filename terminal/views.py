@@ -248,6 +248,48 @@ def display_view(request):
     })
 
 
+def display_view_react(request):
+    """
+    React version of the shared terminal display.
+    Test endpoint for React migration.
+    """
+    from terminal.models import ActiveView
+
+    # Get current active view from GM console
+    active_view = ActiveView.get_current()
+
+    # Load star map data for star system list
+    star_map_path = os.path.join(settings.BASE_DIR, 'data', 'galaxy', 'star_map.yaml')
+    star_systems_json = '[]'
+    try:
+        with open(star_map_path, 'r') as f:
+            star_map_data = yaml.safe_load(f)
+            systems = star_map_data.get('systems', [])
+
+            # Create array of systems for React
+            systems_list = []
+            for system in systems:
+                if system.get('label'):  # Only include labeled systems
+                    location_slug = system.get('location_slug', '')
+                    has_system_map = False
+                    if location_slug:
+                        system_map_file = os.path.join(settings.BASE_DIR, 'data', 'galaxy', location_slug, 'system_map.yaml')
+                        has_system_map = os.path.exists(system_map_file)
+
+                    systems_list.append({
+                        'name': system['name'],
+                        'hasSystemMap': has_system_map
+                    })
+            star_systems_json = json.dumps(systems_list)
+    except (FileNotFoundError, Exception):
+        pass
+
+    return render(request, 'terminal/shared_console_react.html', {
+        'active_view': active_view,
+        'star_systems_json': star_systems_json,
+    })
+
+
 def get_messages_json(request):
     """
     API endpoint to fetch messages as JSON for real-time updates.

@@ -23,7 +23,7 @@ This is an AI-executable plan for migrating from Django templates to React.js. T
 |-------|--------|-------------|
 | Phase 0 | ✅ COMPLETE | Foundation Setup (Vite, TypeScript, React) |
 | Phase A | ✅ COMPLETE | Shared Console Layout Shell (Header, Standby, Dashboard) |
-| Phase B | 🔲 PENDING | Dashboard Logic (Star system interaction, info panels) |
+| Phase B | ✅ COMPLETE | Dashboard Logic (Star system interaction, info panels) |
 | Phase C | 🔲 PENDING | Galaxy Map (Three.js → React Three Fiber) |
 | Phase D | 🔲 PENDING | System Map (Planet orbits, navigation) |
 | Phase E | 🔲 PENDING | Orbit Map (Planet detail view) |
@@ -721,36 +721,62 @@ python manage.py runserver
 
 ---
 
-### Phase B: Dashboard Logic (NEXT)
+### Phase B: Dashboard Logic (COMPLETE)
 
 **Goal:** Wire up star system interaction and info panels
 
-**Planned Components:**
+**Completed Components:**
+
+#### useTypewriter Hook
+**File:** `src/hooks/useTypewriter.ts`
+- Character-by-character typing animation
+- Inline cursor at end of typed text (not on separate line)
+- HTML tag preservation during animation
+- Configurable speed and cursor character
+- Sequence tracking to prevent race conditions
+
+#### InfoPanel Component (Generic/Reusable)
+**File:** `src/components/domain/dashboard/InfoPanel.tsx`
+- Generic floating info panel with typewriter effect
+- Props: `title`, `content`, `visible`, `showDecorators`, `typewriterSpeed`
+- Triangle decoration positioned dynamically below panel
+- ResizeObserver for responsive positioning
+
+**Helper Functions for Content Building:**
+- `buildInfoHTML(fields)` - Generic field builder
+- `buildSystemInfoHTML(system)` - Star systems
+- `buildPlanetInfoHTML(planet)` - Planets
+- `buildMoonInfoHTML(moon)` - Moons
+- `buildStationInfoHTML(station)` - Stations/facilities
+- `buildSurfaceMarkerInfoHTML(marker)` - Surface locations
 
 #### Star System Selection
-- Click star system row to select
-- Visual feedback (checkbox, highlight)
-- Update selectedSystem state
+- Click star system row to select/deselect
+- Visual feedback (checkbox fill, amber highlight)
+- Info panel displays selected system data
 
-#### System Info Panel
-- Display selected system information
-- Typewriter animation for text
-- Decorative elements (indicator boxes, rectangle, triangle)
-- Dynamic positioning based on panel
+#### Star Map API Integration
+- Fetches `/api/star-map/` on mount
+- Builds star systems list from API data
+- Memoized content building to prevent re-renders
 
-#### System Map Navigation
-- Click arrow button to navigate to system map view
-- Integrate with view switching API
-
-**Files to Create:**
-- `src/components/domain/dashboard/SystemInfoPanel.tsx`
+**Files Created:**
 - `src/hooks/useTypewriter.ts`
+- `src/components/domain/dashboard/InfoPanel.tsx`
+- `src/components/domain/dashboard/InfoPanel.css`
 
-**Files to Modify:**
-- `src/components/domain/dashboard/CampaignDashboard.tsx` - Add selection logic
-- `src/entries/SharedConsole.tsx` - Handle system map navigation
+**Files Modified:**
+- `src/entries/SharedConsole.tsx` - API fetch, selection state, InfoPanel integration
 
-**STATUS: 🔲 PENDING**
+**Deliverables:**
+- [x] useTypewriter hook with inline cursor
+- [x] Generic InfoPanel component (reusable for planets, moons, stations)
+- [x] Star system selection with visual feedback
+- [x] Info panel with typewriter animation
+- [x] Triangle decoration (indicator boxes/rectangle removed per user preference)
+- [x] API integration for star map data
+
+**STATUS: ✅ COMPLETE**
 
 ---
 

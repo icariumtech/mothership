@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../styles/global.css';
 import { TerminalHeader } from '@components/layout/TerminalHeader';
 import { StandbyView } from '@components/domain/dashboard/StandbyView';
 import { CampaignDashboard, StarSystem } from '@components/domain/dashboard/CampaignDashboard';
+import { InfoPanel, buildSystemInfoHTML } from '@components/domain/dashboard/InfoPanel';
 
 // View types matching Django's ActiveView model
 type ViewType = 'STANDBY' | 'CAMPAIGN_DASHBOARD' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
@@ -15,6 +16,24 @@ interface ActiveView {
   overlay_location_slug: string;
   overlay_terminal_slug: string;
   updated_at: string;
+}
+
+interface StarMapSystem {
+  name: string;
+  position: number[];
+  color: number;
+  size: number;
+  type: string;
+  label?: boolean;
+  location_slug?: string;
+  info?: {
+    description?: string;
+    population?: string;
+  };
+}
+
+interface StarMapData {
+  systems: StarMapSystem[];
 }
 
 interface InitialData {
@@ -37,6 +56,21 @@ function SharedConsole() {
     window.INITIAL_DATA?.activeView || null
   );
   const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
+  const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
+
+  // Fetch star map data on mount
+  useEffect(() => {
+    async function fetchStarMapData() {
+      try {
+        const response = await fetch('/api/star-map/');
+        const data = await response.json();
+        setStarMapData(data);
+      } catch (error) {
+        console.error('Failed to fetch star map data:', error);
+      }
+    }
+    fetchStarMapData();
+  }, []);
 
   // Poll for active view changes
   useEffect(() => {
@@ -64,8 +98,15 @@ function SharedConsole() {
   const viewType = activeView?.view_type || 'STANDBY';
   const isStandby = viewType === 'STANDBY';
 
-  // Get data from initial Django context
-  const starSystems = window.INITIAL_DATA?.starSystems || [];
+  // Build star systems list from API data
+  const starSystems: StarSystem[] = (starMapData?.systems || [])
+    .filter(system => system.label)
+    .map(system => ({
+      name: system.name,
+      hasSystemMap: !!system.location_slug,
+    }));
+
+  // Get data from initial Django context (fallback)
   const crew = window.INITIAL_DATA?.crew || [
     'Dr. Elena Vasquez - Science Officer',
     'Marcus "Wrench" Chen - Engineer',
@@ -79,13 +120,41 @@ function SharedConsole() {
   ];
   const campaignTitle = window.INITIAL_DATA?.campaignTitle || 'THE OUTER VEIL CAMPAIGN';
 
+  // Get selected system data and build content HTML
+  const selectedSystemData = useMemo(() => {
+    if (!selectedSystem || !starMapData) return null;
+    const system = starMapData.systems.find(s => s.name === selectedSystem);
+    if (!system) return null;
+    return {
+      name: system.name,
+      type: system.type,
+      description: system.info?.description,
+      population: system.info?.population,
+      position: system.position,
+      has_system_map: !!system.location_slug,
+      location_slug: system.location_slug,
+    };
+  }, [selectedSystem, starMapData]);
+
+  // Build info panel content HTML (memoized to prevent re-renders)
+  const infoPanelContent = useMemo(() => {
+    if (!selectedSystemData) return '';
+    return buildSystemInfoHTML(selectedSystemData);
+  }, [selectedSystemData]);
+
   const handleSystemSelect = (systemName: string) => {
     setSelectedSystem(prev => prev === systemName ? null : systemName);
   };
 
   const handleSystemMapClick = (systemName: string) => {
     console.log('Navigate to system map:', systemName);
-    // TODO: Trigger navigation to system map view
+    // Find the system's location_slug
+    const system = starMapData?.systems.find(s => s.name === systemName);
+    if (system?.location_slug) {
+      // TODO: Trigger navigation to system map view
+      // This would typically POST to the GM console or update active view
+      console.log('Would navigate to:', system.location_slug);
+    }
   };
 
   return (
@@ -107,15 +176,24 @@ function SharedConsole() {
       )}
 
       {viewType === 'CAMPAIGN_DASHBOARD' && (
-        <CampaignDashboard
-          campaignTitle={campaignTitle}
-          crew={crew}
-          notes={notes}
-          starSystems={starSystems}
-          selectedSystem={selectedSystem}
-          onSystemSelect={handleSystemSelect}
-          onSystemMapClick={handleSystemMapClick}
-        />
+        <>
+          <CampaignDashboard
+            campaignTitle={campaignTitle}
+            crew={crew}
+            notes={notes}
+            starSystems={starSystems}
+            selectedSystem={selectedSystem}
+            onSystemSelect={handleSystemSelect}
+            onSystemMapClick={handleSystemMapClick}
+          />
+
+          {/* Info Panel - reusable floating panel for selected item info */}
+          <InfoPanel
+            title={selectedSystemData?.name?.toUpperCase() || 'SYSTEM INFO'}
+            content={infoPanelContent}
+            visible={!!selectedSystem}
+          />
+        </>
       )}
 
       {/* Other view types can be added here */}

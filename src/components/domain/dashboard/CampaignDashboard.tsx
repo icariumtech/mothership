@@ -122,22 +122,6 @@ export function CampaignDashboard({
         </DashboardPanel>
       </div>
 
-      {/* System Info Panel - positioned absolutely */}
-      <div id="system-info-panel" className={`system-info-panel ${selectedSystem ? 'visible' : ''}`}>
-        <div className="dashboard-panel-header">
-          <h3 id="system-info-name">{selectedSystem || 'SYSTEM INFO'}</h3>
-        </div>
-        <div className="dashboard-panel-content">
-          <div id="system-info-content">
-            {/* Dynamic content will be inserted here */}
-          </div>
-        </div>
-      </div>
-
-      {/* Decorative elements for system info panel */}
-      <div className={`system-info-indicator-boxes ${selectedSystem ? 'visible' : ''}`} />
-      <div className={`system-info-rectangle ${selectedSystem ? 'visible' : ''}`} />
-      <div className={`system-info-triangle ${selectedSystem ? 'visible' : ''}`} />
     </div>
   );
 }

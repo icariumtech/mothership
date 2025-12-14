@@ -24,7 +24,7 @@ This is an AI-executable plan for migrating from Django templates to React.js. T
 | Phase 0 | ✅ COMPLETE | Foundation Setup (Vite, TypeScript, React) |
 | Phase A | ✅ COMPLETE | Shared Console Layout Shell (Header, Standby, Dashboard) |
 | Phase B | ✅ COMPLETE | Dashboard Logic (Star system interaction, info panels) |
-| Phase C | 🔲 PENDING | Galaxy Map (Three.js → React Three Fiber) |
+| Phase C | ✅ COMPLETE | Galaxy Map (Three.js TypeScript class with React wrapper) |
 | Phase D | 🔲 PENDING | System Map (Planet orbits, navigation) |
 | Phase E | 🔲 PENDING | Orbit Map (Planet detail view) |
 | Phase F | 🔲 PENDING | Message System Migration |
@@ -780,24 +780,81 @@ python manage.py runserver
 
 ---
 
-### Phase C-E: Three.js Maps (PLANNED)
+### Phase C: Galaxy Map (COMPLETE)
 
-**Phase C: Galaxy Map**
-- Convert Three.js galaxy visualization to React Three Fiber
-- Star rendering, nebulae, travel routes
-- Camera controls, zoom, auto-rotation
+**Goal:** Extract Three.js galaxy map from inline HTML to modular TypeScript with React wrapper
+
+**Approach:** Extract & Wrap (Option B) - Keep existing Three.js logic, extract to TypeScript class, wrap in React component
+
+**Completed Components:**
+
+#### GalaxyScene TypeScript Class
+**File:** `src/three/GalaxyScene.ts` (~800 lines)
+- Extracted all galaxy visualization logic from shared_console.html
+- Creates Three.js scene, camera, renderer
+- Generates procedural star textures (starburst with additive blending)
+- Renders star systems with labels and selection reticles
+- Animates nebulae (emission pulsing, reflection shimmer, planetary rotation)
+- Draws travel routes with gradient fade effect
+- Handles camera controls (mouse drag, scroll zoom, touch gestures)
+- Auto-rotation with 5-second inactivity resume
+- Proper cleanup via dispose() method
+
+#### StarMapData Types
+**File:** `src/types/starMap.ts`
+- TypeScript interfaces for API data structures
+- `StarSystem`, `TravelRoute`, `Nebula`, `CameraConfig`, `StarMapData`
+
+#### GalaxyMap React Wrapper
+**File:** `src/components/domain/maps/GalaxyMap.tsx`
+- React wrapper managing Three.js lifecycle
+- Props: `data`, `selectedSystem`, `onSystemSelect`, `visible`
+- useEffect hooks for initialization, data loading, selection sync
+- Proper cleanup on unmount
+
+**Files Created:**
+- `src/types/starMap.ts` - TypeScript types
+- `src/three/GalaxyScene.ts` - Three.js class (~800 lines)
+- `src/components/domain/maps/GalaxyMap.tsx` - React wrapper
+- `src/components/domain/maps/GalaxyMap.css` - Container styling
+
+**Files Modified:**
+- `src/entries/SharedConsole.tsx` - Integrated GalaxyMap component
+
+**Build Output:**
+- `terminal/static/js/shared-console.bundle.js` (539 KB, 134 KB gzipped)
+- Note: Bundle size increase due to Three.js inclusion
+
+**Deliverables:**
+- [x] GalaxyScene TypeScript class with full functionality
+- [x] Star rendering with procedural textures
+- [x] Nebulae animations (pulsing, shimmer, rotation)
+- [x] Travel routes with fade effect
+- [x] Camera controls (mouse drag, scroll zoom, touch)
+- [x] Auto-rotation with inactivity detection
+- [x] System selection with targeting reticle
+- [x] React wrapper with proper lifecycle management
+- [x] TypeScript types for API data
+
+**STATUS: ✅ COMPLETE**
+
+---
+
+### Phase D-E: Three.js Maps (PENDING)
 
 **Phase D: System Map**
+- Extract system map logic to SystemScene.ts
 - Planet orbits with inclination
 - Orbital animations
 - Planet drill-down navigation
 
 **Phase E: Orbit Map**
+- Extract orbit map logic to OrbitScene.ts
 - Planet detail view with moons/stations
 - Surface markers with lat/lon positioning
 - Targeting reticle and camera tracking
 
-**STATUS: 🔲 PENDING (requires Phase B completion)**
+**STATUS: 🔲 PENDING**
 
 ---
 

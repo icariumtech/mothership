@@ -5,6 +5,8 @@ import { TerminalHeader } from '@components/layout/TerminalHeader';
 import { StandbyView } from '@components/domain/dashboard/StandbyView';
 import { CampaignDashboard, StarSystem } from '@components/domain/dashboard/CampaignDashboard';
 import { InfoPanel, buildSystemInfoHTML } from '@components/domain/dashboard/InfoPanel';
+import { GalaxyMap } from '@components/domain/maps/GalaxyMap';
+import type { StarMapData } from '../types/starMap';
 
 // View types matching Django's ActiveView model
 type ViewType = 'STANDBY' | 'CAMPAIGN_DASHBOARD' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
@@ -16,24 +18,6 @@ interface ActiveView {
   overlay_location_slug: string;
   overlay_terminal_slug: string;
   updated_at: string;
-}
-
-interface StarMapSystem {
-  name: string;
-  position: number[];
-  color: number;
-  size: number;
-  type: string;
-  label?: boolean;
-  location_slug?: string;
-  info?: {
-    description?: string;
-    population?: string;
-  };
-}
-
-interface StarMapData {
-  systems: StarMapSystem[];
 }
 
 interface InitialData {
@@ -177,6 +161,13 @@ function SharedConsole() {
 
       {viewType === 'CAMPAIGN_DASHBOARD' && (
         <>
+          {/* Galaxy Map - renders behind dashboard panels */}
+          <GalaxyMap
+            data={starMapData}
+            selectedSystem={selectedSystem}
+            onSystemSelect={handleSystemSelect}
+          />
+
           <CampaignDashboard
             campaignTitle={campaignTitle}
             crew={crew}

@@ -34,6 +34,12 @@ export interface SystemPlanet {
   orbitalStationCount?: number;
 }
 
+export interface OrbitElement {
+  name: string;
+  type: 'moon' | 'station' | 'surface';
+  hasFacilities?: boolean;
+}
+
 interface CampaignDashboardProps {
   campaignTitle?: string;
   crew?: string[];
@@ -50,6 +56,13 @@ interface CampaignDashboardProps {
   onPlanetSelect?: (planetName: string) => void;
   onBackToGalaxy?: () => void;
   onOrbitMapClick?: (planetName: string) => void;
+  // Orbit map view props
+  orbitElements?: OrbitElement[];
+  selectedOrbitElement?: string | null;
+  selectedOrbitElementType?: 'moon' | 'station' | 'surface' | null;
+  onOrbitElementSelect?: (elementType: string, elementName: string) => void;
+  onBackToSystem?: () => void;
+  currentPlanetName?: string;
 }
 
 export function CampaignDashboard({
@@ -67,7 +80,14 @@ export function CampaignDashboard({
   selectedPlanet = null,
   onPlanetSelect,
   onBackToGalaxy,
-  onOrbitMapClick
+  onOrbitMapClick,
+  // Orbit map view props
+  orbitElements = [],
+  selectedOrbitElement = null,
+  selectedOrbitElementType = null,
+  onOrbitElementSelect,
+  onBackToSystem,
+  currentPlanetName = '',
 }: CampaignDashboardProps) {
   // Render star systems list for galaxy view
   const renderGalaxyList = () => (
@@ -175,6 +195,118 @@ export function CampaignDashboard({
     </>
   );
 
+  // Render orbit elements list for orbit view
+  const renderOrbitList = () => {
+    // Group elements by type
+    const moons = orbitElements.filter(e => e.type === 'moon');
+    const stations = orbitElements.filter(e => e.type === 'station');
+    const surface = orbitElements.filter(e => e.type === 'surface');
+
+    return (
+      <>
+        {/* Back to System button */}
+        <div
+          className="star-system-row back-to-system-btn"
+          onClick={() => onBackToSystem?.()}
+          style={{ marginBottom: 12, borderColor: 'var(--color-amber)' }}
+        >
+          <div className="star-system-content">
+            <div
+              className="star-system-checkbox"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-amber)',
+                fontSize: 14,
+                background: 'none',
+                border: 'none',
+                marginLeft: 2
+              }}
+            >
+              ◀
+            </div>
+            <div className="star-system-name" style={{ color: 'var(--color-amber)' }}>
+              BACK TO SYSTEM
+            </div>
+          </div>
+        </div>
+
+        {/* Planet header */}
+        {currentPlanetName && (
+          <div className="orbit-section-header">{currentPlanetName.toUpperCase()}</div>
+        )}
+
+        {/* Moons section */}
+        {moons.length > 0 && (
+          <>
+            <div className="orbit-section-label">MOONS</div>
+            {moons.map((element) => (
+              <div
+                key={`moon-${element.name}`}
+                className={`star-system-row orbit-element-row ${selectedOrbitElement === element.name && selectedOrbitElementType === 'moon' ? 'selected' : ''}`}
+                onClick={() => onOrbitElementSelect?.('moon', element.name)}
+              >
+                <div className="star-system-content">
+                  <div className={`star-system-checkbox ${selectedOrbitElement === element.name && selectedOrbitElementType === 'moon' ? 'checked' : ''}`} />
+                  <div className="star-system-name">{element.name}</div>
+                  {element.hasFacilities && (
+                    <div className="planet-indicators">
+                      <span className="planet-indicator surface-indicator" title="Has facilities">■</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Stations section */}
+        {stations.length > 0 && (
+          <>
+            <div className="orbit-section-label">ORBITAL STATIONS</div>
+            {stations.map((element) => (
+              <div
+                key={`station-${element.name}`}
+                className={`star-system-row orbit-element-row ${selectedOrbitElement === element.name && selectedOrbitElementType === 'station' ? 'selected' : ''}`}
+                onClick={() => onOrbitElementSelect?.('station', element.name)}
+              >
+                <div className="star-system-content">
+                  <div className={`star-system-checkbox ${selectedOrbitElement === element.name && selectedOrbitElementType === 'station' ? 'checked' : ''}`} />
+                  <div className="star-system-name">{element.name}</div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Surface markers section */}
+        {surface.length > 0 && (
+          <>
+            <div className="orbit-section-label">SURFACE LOCATIONS</div>
+            {surface.map((element) => (
+              <div
+                key={`surface-${element.name}`}
+                className={`star-system-row orbit-element-row ${selectedOrbitElement === element.name && selectedOrbitElementType === 'surface' ? 'selected' : ''}`}
+                onClick={() => onOrbitElementSelect?.('surface', element.name)}
+              >
+                <div className="star-system-content">
+                  <div className={`star-system-checkbox ${selectedOrbitElement === element.name && selectedOrbitElementType === 'surface' ? 'checked' : ''}`} />
+                  <div className="star-system-name">{element.name}</div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Empty state */}
+        {moons.length === 0 && stations.length === 0 && surface.length === 0 && (
+          <p>&gt; No orbital elements</p>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="campaign-dashboard">
       {/* Top Panel - Campaign Title */}
@@ -209,6 +341,7 @@ export function CampaignDashboard({
         <DashboardPanel title="STAR MAP" className="chamfer-tl-br corner-line-tl-br">
           {mapViewMode === 'galaxy' && renderGalaxyList()}
           {mapViewMode === 'system' && renderPlanetList()}
+          {mapViewMode === 'orbit' && renderOrbitList()}
         </DashboardPanel>
 
         {/* STATUS Panel */}

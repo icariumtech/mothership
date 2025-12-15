@@ -161,6 +161,7 @@ export function buildPlanetInfoHTML(planet: {
 
 /**
  * Build HTML for moon info
+ * Supports both flat fields and nested info object from orbit map API
  */
 export function buildMoonInfoHTML(moon: {
   type?: string;
@@ -168,11 +169,16 @@ export function buildMoonInfoHTML(moon: {
   population?: string;
   orbital_radius?: number;
   has_facilities?: boolean;
+  info?: {
+    description?: string;
+    population?: string;
+    type?: string;
+  };
 }): string {
   const fields: InfoField[] = [
-    { label: 'TYPE', value: moon.type?.toUpperCase() },
-    { label: 'DESCRIPTION', value: moon.description },
-    { label: 'POPULATION', value: moon.population },
+    { label: 'TYPE', value: (moon.info?.type || moon.type || 'Moon').toUpperCase() },
+    { label: 'DESCRIPTION', value: moon.info?.description || moon.description },
+    { label: 'POPULATION', value: moon.info?.population || moon.population },
     { label: 'ORBITAL RADIUS', value: moon.orbital_radius ? `${moon.orbital_radius} km` : undefined },
     { label: 'FACILITIES', value: moon.has_facilities ? 'PRESENT' : undefined },
   ];
@@ -181,6 +187,7 @@ export function buildMoonInfoHTML(moon: {
 
 /**
  * Build HTML for station/facility info
+ * Supports both flat fields and nested info object from orbit map API
  */
 export function buildStationInfoHTML(station: {
   type?: string;
@@ -188,12 +195,18 @@ export function buildStationInfoHTML(station: {
   population?: string;
   status?: string;
   orbital_radius?: number;
+  info?: {
+    description?: string;
+    population?: string;
+    type?: string;
+    status?: string;
+  };
 }): string {
   const fields: InfoField[] = [
-    { label: 'TYPE', value: station.type?.toUpperCase() },
-    { label: 'DESCRIPTION', value: station.description },
-    { label: 'POPULATION', value: station.population },
-    { label: 'STATUS', value: station.status?.toUpperCase() },
+    { label: 'TYPE', value: (station.info?.type || station.type || 'Orbital Station').toUpperCase() },
+    { label: 'DESCRIPTION', value: station.info?.description || station.description },
+    { label: 'POPULATION', value: station.info?.population || station.population },
+    { label: 'STATUS', value: (station.info?.status || station.status)?.toUpperCase() },
     { label: 'ORBITAL RADIUS', value: station.orbital_radius ? `${station.orbital_radius} km` : undefined },
   ];
   return buildInfoHTML(fields);
@@ -201,23 +214,34 @@ export function buildStationInfoHTML(station: {
 
 /**
  * Build HTML for surface marker info
+ * Supports both flat fields and nested info object from orbit map API
  */
 export function buildSurfaceMarkerInfoHTML(marker: {
   type?: string;
+  marker_type?: string;
   description?: string;
   population?: string;
   latitude?: number;
   longitude?: number;
   traffic?: string;
+  status?: string;
+  info?: {
+    description?: string;
+    population?: string;
+    type?: string;
+    status?: string;
+    traffic?: string;
+  };
 }): string {
   const fields: InfoField[] = [
-    { label: 'TYPE', value: marker.type?.toUpperCase() },
-    { label: 'DESCRIPTION', value: marker.description },
-    { label: 'POPULATION', value: marker.population },
+    { label: 'TYPE', value: (marker.info?.type || marker.marker_type || marker.type || 'Surface Location').toUpperCase() },
+    { label: 'DESCRIPTION', value: marker.info?.description || marker.description },
+    { label: 'POPULATION', value: marker.info?.population || marker.population },
     { label: 'COORDINATES', value: marker.latitude !== undefined && marker.longitude !== undefined
       ? `${marker.latitude.toFixed(1)}°, ${marker.longitude.toFixed(1)}°`
       : undefined },
-    { label: 'TRAFFIC', value: marker.traffic },
+    { label: 'TRAFFIC', value: marker.info?.traffic || marker.traffic },
+    { label: 'STATUS', value: (marker.info?.status || marker.status)?.toUpperCase() },
   ];
   return buildInfoHTML(fields);
 }

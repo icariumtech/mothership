@@ -26,6 +26,12 @@ export interface StarSystem {
   hasSystemMap: boolean;
 }
 
+export interface SystemPlanet {
+  name: string;
+  hasOrbitMap: boolean;
+  locationSlug?: string;
+}
+
 interface CampaignDashboardProps {
   campaignTitle?: string;
   crew?: string[];
@@ -35,6 +41,13 @@ interface CampaignDashboardProps {
   onSystemSelect?: (systemName: string) => void;
   onSystemMapClick?: (systemName: string) => void;
   selectedSystem?: string | null;
+  // System map view props
+  mapViewMode?: 'galaxy' | 'system' | 'orbit';
+  systemPlanets?: SystemPlanet[];
+  selectedPlanet?: string | null;
+  onPlanetSelect?: (planetName: string) => void;
+  onBackToGalaxy?: () => void;
+  onOrbitMapClick?: (planetName: string) => void;
 }
 
 export function CampaignDashboard({
@@ -45,8 +58,112 @@ export function CampaignDashboard({
   statusItems = [],
   onSystemSelect,
   onSystemMapClick,
-  selectedSystem = null
+  selectedSystem = null,
+  // System map view props
+  mapViewMode = 'galaxy',
+  systemPlanets = [],
+  selectedPlanet = null,
+  onPlanetSelect,
+  onBackToGalaxy,
+  onOrbitMapClick
 }: CampaignDashboardProps) {
+  // Render star systems list for galaxy view
+  const renderGalaxyList = () => (
+    <>
+      {starSystems.length > 0 ? (
+        starSystems.map((system) => (
+          <div
+            key={system.name}
+            className={`star-system-row ${selectedSystem === system.name ? 'selected' : ''}`}
+            onClick={() => onSystemSelect?.(system.name)}
+          >
+            <div className="star-system-content">
+              <div className={`star-system-checkbox ${selectedSystem === system.name ? 'checked' : ''}`} />
+              <div className="star-system-name">{system.name}</div>
+            </div>
+            {system.hasSystemMap && (
+              <div
+                className="system-map-btn-container"
+                title="View system map"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSystemMapClick?.(system.name);
+                }}
+              >
+                <span className="system-map-btn-icon">▶</span>
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <p>&gt; No star systems found</p>
+      )}
+    </>
+  );
+
+  // Render planet list for system view
+  const renderPlanetList = () => (
+    <>
+      {/* Back to Galaxy button */}
+      <div
+        className="star-system-row back-to-galaxy-btn"
+        onClick={() => onBackToGalaxy?.()}
+        style={{ marginBottom: 12, borderColor: 'var(--color-amber)' }}
+      >
+        <div className="star-system-content">
+          <div
+            className="star-system-checkbox"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-amber)',
+              fontSize: 14,
+              background: 'none',
+              border: 'none',
+              marginLeft: 2
+            }}
+          >
+            ◀
+          </div>
+          <div className="star-system-name" style={{ color: 'var(--color-amber)' }}>
+            BACK TO GALAXY
+          </div>
+        </div>
+      </div>
+
+      {/* Planet list */}
+      {systemPlanets.length > 0 ? (
+        systemPlanets.map((planet) => (
+          <div
+            key={planet.name}
+            className={`star-system-row planet-row ${selectedPlanet === planet.name ? 'selected' : ''}`}
+            onClick={() => onPlanetSelect?.(planet.name)}
+          >
+            <div className="star-system-content">
+              <div className={`star-system-checkbox ${selectedPlanet === planet.name ? 'checked' : ''}`} />
+              <div className="star-system-name">{planet.name}</div>
+            </div>
+            {planet.hasOrbitMap && (
+              <div
+                className="system-map-btn-container"
+                title="View orbit map"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOrbitMapClick?.(planet.name);
+                }}
+              >
+                <span className="system-map-btn-icon">▶</span>
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <p>&gt; No planetary bodies in system</p>
+      )}
+    </>
+  );
+
   return (
     <div className="campaign-dashboard">
       {/* Top Panel - Campaign Title */}
@@ -77,36 +194,10 @@ export function CampaignDashboard({
 
       {/* Right Column */}
       <div className="dashboard-right">
-        {/* STAR MAP Panel */}
+        {/* STAR MAP Panel - shows different content based on view mode */}
         <DashboardPanel title="STAR MAP" className="chamfer-tl-br corner-line-tl-br">
-          {starSystems.length > 0 ? (
-            starSystems.map((system) => (
-              <div
-                key={system.name}
-                className={`star-system-row ${selectedSystem === system.name ? 'selected' : ''}`}
-                onClick={() => onSystemSelect?.(system.name)}
-              >
-                <div className="star-system-content">
-                  <div className={`star-system-checkbox ${selectedSystem === system.name ? 'checked' : ''}`} />
-                  <div className="star-system-name">{system.name}</div>
-                </div>
-                {system.hasSystemMap && (
-                  <div
-                    className="system-map-btn-container"
-                    title="View system map"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSystemMapClick?.(system.name);
-                    }}
-                  >
-                    <span className="system-map-btn-icon">▶</span>
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <p>&gt; No star systems found</p>
-          )}
+          {mapViewMode === 'galaxy' && renderGalaxyList()}
+          {mapViewMode === 'system' && renderPlanetList()}
         </DashboardPanel>
 
         {/* STATUS Panel */}

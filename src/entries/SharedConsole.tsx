@@ -1,15 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../styles/global.css';
 import { TerminalHeader } from '@components/layout/TerminalHeader';
 import { StandbyView } from '@components/domain/dashboard/StandbyView';
 import { CampaignDashboard, StarSystem } from '@components/domain/dashboard/CampaignDashboard';
-import { InfoPanel, buildSystemInfoHTML } from '@components/domain/dashboard/InfoPanel';
+import { InfoPanel, buildSystemInfoHTML, buildPlanetInfoHTML } from '@components/domain/dashboard/InfoPanel';
 import { GalaxyMap } from '@components/domain/maps/GalaxyMap';
+import { SystemMap } from '@components/domain/maps/SystemMap';
 import type { StarMapData } from '../types/starMap';
+import type { SystemMapData, BodyData } from '../types/systemMap';
 
 // View types matching Django's ActiveView model
 type ViewType = 'STANDBY' | 'CAMPAIGN_DASHBOARD' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
+
+// Map view modes for CAMPAIGN_DASHBOARD
+type MapViewMode = 'galaxy' | 'system' | 'orbit';
 
 interface ActiveView {
   view_type: ViewType;
@@ -42,6 +47,12 @@ function SharedConsole() {
   const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
   const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
 
+  // Map view state
+  const [mapViewMode, setMapViewMode] = useState<MapViewMode>('galaxy');
+  const [currentSystemSlug, setCurrentSystemSlug] = useState<string | null>(null);
+  const [systemMapData, setSystemMapData] = useState<SystemMapData | null>(null);
+  const [selectedPlanet, setSelectedPlanet] = useState<BodyData | null>(null);
+
   // Fetch star map data on mount
   useEffect(() => {
     async function fetchStarMapData() {
@@ -69,6 +80,9 @@ function SharedConsole() {
           // Reset selection on view change
           if (data.view_type === 'CAMPAIGN_DASHBOARD') {
             setSelectedSystem(null);
+            setMapViewMode('galaxy');
+            setCurrentSystemSlug(null);
+            setSelectedPlanet(null);
           }
         }
       } catch (error) {
@@ -120,26 +134,95 @@ function SharedConsole() {
     };
   }, [selectedSystem, starMapData]);
 
-  // Build info panel content HTML (memoized to prevent re-renders)
+  // Build info panel content based on current view mode and selection
   const infoPanelContent = useMemo(() => {
-    if (!selectedSystemData) return '';
-    return buildSystemInfoHTML(selectedSystemData);
-  }, [selectedSystemData]);
+    if (mapViewMode === 'system' && selectedPlanet) {
+      return buildPlanetInfoHTML(selectedPlanet);
+    }
+    if (mapViewMode === 'system' && systemMapData) {
+      // Show system info when in system view but no planet selected
+      return buildSystemInfoHTML({
+        type: systemMapData.star.type,
+      });
+    }
+    if (selectedSystemData) {
+      return buildSystemInfoHTML(selectedSystemData);
+    }
+    return '';
+  }, [selectedSystemData, mapViewMode, selectedPlanet, systemMapData]);
 
-  const handleSystemSelect = (systemName: string) => {
+  // Determine info panel title
+  const infoPanelTitle = useMemo(() => {
+    if (mapViewMode === 'system' && selectedPlanet) {
+      return selectedPlanet.name.toUpperCase();
+    }
+    if (mapViewMode === 'system' && systemMapData) {
+      return systemMapData.star.name.toUpperCase();
+    }
+    if (selectedSystemData) {
+      return selectedSystemData.name.toUpperCase();
+    }
+    return 'SYSTEM INFO';
+  }, [selectedSystemData, mapViewMode, selectedPlanet, systemMapData]);
+
+  // Determine if info panel should be visible
+  const infoPanelVisible = useMemo(() => {
+    if (mapViewMode === 'galaxy') {
+      return !!selectedSystem;
+    }
+    if (mapViewMode === 'system') {
+      return true; // Always show panel in system view
+    }
+    return false;
+  }, [mapViewMode, selectedSystem]);
+
+  const handleSystemSelect = useCallback((systemName: string) => {
     setSelectedSystem(prev => prev === systemName ? null : systemName);
-  };
+  }, []);
 
-  const handleSystemMapClick = (systemName: string) => {
+  const handleSystemMapClick = useCallback((systemName: string) => {
     console.log('Navigate to system map:', systemName);
     // Find the system's location_slug
     const system = starMapData?.systems.find(s => s.name === systemName);
     if (system?.location_slug) {
-      // TODO: Trigger navigation to system map view
-      // This would typically POST to the GM console or update active view
-      console.log('Would navigate to:', system.location_slug);
+      setCurrentSystemSlug(system.location_slug);
+      setMapViewMode('system');
+      setSelectedPlanet(null);
     }
-  };
+  }, [starMapData]);
+
+  const handleBackToGalaxy = useCallback(() => {
+    console.log('Returning to galaxy view');
+    setMapViewMode('galaxy');
+    setCurrentSystemSlug(null);
+    setSystemMapData(null);
+    setSelectedPlanet(null);
+  }, []);
+
+  const handleSystemLoaded = useCallback((data: SystemMapData | null) => {
+    console.log('System loaded:', data?.star.name);
+    setSystemMapData(data);
+  }, []);
+
+  const handlePlanetSelect = useCallback((planetData: BodyData | null) => {
+    console.log('Planet selected:', planetData?.name);
+    setSelectedPlanet(planetData);
+  }, []);
+
+  const handleOrbitMapNavigate = useCallback((systemSlug: string, planetSlug: string) => {
+    console.log('Navigate to orbit map:', systemSlug, planetSlug);
+    // TODO: Implement orbit map view (Phase E)
+  }, []);
+
+  // Build planet list for menu when in system view
+  const systemPlanets = useMemo(() => {
+    if (!systemMapData?.bodies) return [];
+    return systemMapData.bodies.map(body => ({
+      name: body.name,
+      hasOrbitMap: !!body.has_orbit_map,
+      locationSlug: body.location_slug,
+    }));
+  }, [systemMapData]);
 
   return (
     <>
@@ -161,28 +244,62 @@ function SharedConsole() {
 
       {viewType === 'CAMPAIGN_DASHBOARD' && (
         <>
-          {/* Galaxy Map - renders behind dashboard panels */}
-          <GalaxyMap
-            data={starMapData}
-            selectedSystem={selectedSystem}
-            onSystemSelect={handleSystemSelect}
-          />
+          {/* Galaxy Map - renders behind dashboard panels (hidden when in system view) */}
+          {mapViewMode === 'galaxy' && (
+            <GalaxyMap
+              data={starMapData}
+              selectedSystem={selectedSystem}
+              onSystemSelect={handleSystemSelect}
+            />
+          )}
+
+          {/* System Map - renders when viewing a specific system */}
+          {mapViewMode === 'system' && (
+            <SystemMap
+              systemSlug={currentSystemSlug}
+              selectedPlanet={selectedPlanet?.name || null}
+              onPlanetSelect={handlePlanetSelect}
+              onOrbitMapNavigate={handleOrbitMapNavigate}
+              onBackToGalaxy={handleBackToGalaxy}
+              onSystemLoaded={handleSystemLoaded}
+            />
+          )}
 
           <CampaignDashboard
             campaignTitle={campaignTitle}
             crew={crew}
             notes={notes}
-            starSystems={starSystems}
-            selectedSystem={selectedSystem}
-            onSystemSelect={handleSystemSelect}
-            onSystemMapClick={handleSystemMapClick}
+            starSystems={mapViewMode === 'galaxy' ? starSystems : []}
+            selectedSystem={mapViewMode === 'galaxy' ? selectedSystem : null}
+            onSystemSelect={mapViewMode === 'galaxy' ? handleSystemSelect : undefined}
+            onSystemMapClick={mapViewMode === 'galaxy' ? handleSystemMapClick : undefined}
+            mapViewMode={mapViewMode}
+            systemPlanets={mapViewMode === 'system' ? systemPlanets : undefined}
+            selectedPlanet={selectedPlanet?.name || null}
+            onPlanetSelect={mapViewMode === 'system' ? (name) => {
+              const planet = systemMapData?.bodies?.find(b => b.name === name);
+              if (planet) {
+                if (selectedPlanet?.name === name) {
+                  handlePlanetSelect(null);
+                } else {
+                  handlePlanetSelect(planet);
+                }
+              }
+            } : undefined}
+            onBackToGalaxy={mapViewMode === 'system' ? handleBackToGalaxy : undefined}
+            onOrbitMapClick={mapViewMode === 'system' ? (planetName) => {
+              const planet = systemMapData?.bodies?.find(b => b.name === planetName);
+              if (planet?.location_slug && currentSystemSlug) {
+                handleOrbitMapNavigate(currentSystemSlug, planet.location_slug);
+              }
+            } : undefined}
           />
 
           {/* Info Panel - reusable floating panel for selected item info */}
           <InfoPanel
-            title={selectedSystemData?.name?.toUpperCase() || 'SYSTEM INFO'}
+            title={infoPanelTitle}
             content={infoPanelContent}
-            visible={!!selectedSystem}
+            visible={infoPanelVisible}
           />
         </>
       )}

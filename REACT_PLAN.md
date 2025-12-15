@@ -25,7 +25,7 @@ This is an AI-executable plan for migrating from Django templates to React.js. T
 | Phase A | ✅ COMPLETE | Shared Console Layout Shell (Header, Standby, Dashboard) |
 | Phase B | ✅ COMPLETE | Dashboard Logic (Star system interaction, info panels) |
 | Phase C | ✅ COMPLETE | Galaxy Map (Three.js TypeScript class with React wrapper) |
-| Phase D | 🔲 PENDING | System Map (Planet orbits, navigation) |
+| Phase D | ✅ COMPLETE | System Map (Planet orbits, navigation) |
 | Phase E | 🔲 PENDING | Orbit Map (Planet detail view) |
 | Phase F | 🔲 PENDING | Message System Migration |
 
@@ -852,19 +852,106 @@ python manage.py runserver
 
 ---
 
-### Phase D-E: Three.js Maps (PENDING)
+### Phase D: System Map (COMPLETE)
 
-**Phase D: System Map**
-- Extract system map logic to SystemScene.ts
-- Planet orbits with inclination
-- Orbital animations
-- Planet drill-down navigation
+**Goal:** Extract Three.js system map from inline HTML to modular TypeScript with React wrapper
 
-**Phase E: Orbit Map**
-- Extract orbit map logic to OrbitScene.ts
-- Planet detail view with moons/stations
+**Approach:** Extract & Wrap - Keep existing Three.js logic, extract to TypeScript class, wrap in React component
+
+**Completed Components:**
+
+#### SystemScene TypeScript Class
+**File:** `src/three/SystemScene.ts` (~900 lines)
+- Extracted system map visualization logic from shared_console.html
+- Creates Three.js scene, camera, renderer
+- Renders central star with glow effect and point light
+- Renders planets as teal-outlined circle sprites
+- Draws orbital paths with configurable color/opacity
+- Animates planets along their orbits with inclination
+- Handles camera controls (mouse drag, scroll zoom, touch gestures)
+- Selection reticle for selected planets
+- Camera tracking follows selected planet as it orbits
+- GSAP-powered camera animations for smooth zoom transitions
+- Proper cleanup via dispose() method
+
+#### SystemMapData Types
+**File:** `src/types/systemMap.ts`
+- TypeScript interfaces for API data structures
+- `StarData`, `BodyData`, `OrbitSettings`, `CameraConfig`, `SystemMapData`
+- `PlanetRenderData` for internal animation state
+- `SystemSceneCallbacks` for event handling
+
+#### SystemMap React Wrapper
+**File:** `src/components/domain/maps/SystemMap.tsx`
+- React wrapper managing Three.js lifecycle
+- Props: `systemSlug`, `selectedPlanet`, `onPlanetSelect`, `onOrbitMapNavigate`, `onBackToGalaxy`, `onSystemLoaded`
+- useEffect hooks for initialization, system loading, selection sync
+- Exposes `systemMapSelectPlanet` function via window for menu integration
+- Proper cleanup on unmount
+
+#### CampaignDashboard Updates
+**File:** `src/components/domain/dashboard/CampaignDashboard.tsx`
+- Added `mapViewMode` prop to switch between galaxy/system/orbit views
+- Added planet list rendering for system view mode
+- Added "BACK TO GALAXY" button with amber styling
+- Reuses star system row styling for planets
+
+#### SharedConsole Integration
+**File:** `src/entries/SharedConsole.tsx`
+- Added map view mode state (`galaxy`, `system`, `orbit`)
+- Added system slug and planet selection state
+- Conditional rendering of GalaxyMap vs SystemMap
+- Info panel content adapts to show system star info or selected planet info
+- Menu panel content adapts to show star systems or planets
+
+**Files Created:**
+- `src/types/systemMap.ts` - TypeScript types
+- `src/three/SystemScene.ts` - Three.js class (~900 lines)
+- `src/components/domain/maps/SystemMap.tsx` - React wrapper
+
+**Files Modified:**
+- `src/entries/SharedConsole.tsx` - Integrated SystemMap, added view mode state
+- `src/components/domain/dashboard/CampaignDashboard.tsx` - Added system view props
+- `src/components/domain/dashboard/InfoPanel.tsx` - Already had buildPlanetInfoHTML
+
+**Build Output:**
+- `terminal/static/js/shared-console.bundle.js` (637 KB, 169 KB gzipped)
+- Note: Bundle size increase due to Two Three.js scenes
+
+**Deliverables:**
+- [x] SystemScene TypeScript class with full functionality
+- [x] Star rendering with glow effect
+- [x] Planet rendering with teal circle sprites
+- [x] Orbital animations with inclination
+- [x] Camera controls (mouse drag, scroll zoom, touch)
+- [x] Planet selection with targeting reticle
+- [x] Camera tracking follows selected planet
+- [x] GSAP camera animations for smooth transitions
+- [x] React wrapper with proper lifecycle management
+- [x] Navigation from galaxy to system view
+- [x] "BACK TO GALAXY" button
+- [x] Planet list in menu panel
+- [x] TypeScript types for API data
+
+**STATUS: ✅ COMPLETE**
+
+---
+
+### Phase E: Orbit Map (PENDING)
+
+**Goal:** Extract orbit map logic to OrbitScene.ts
+
+**Components to Implement:**
+- OrbitScene TypeScript class
+- Planet detail view with textured sphere
+- Moons with orbital paths and animations
+- Orbital stations with sprite rendering
 - Surface markers with lat/lon positioning
+- Visibility culling for far-side markers
 - Targeting reticle and camera tracking
+- Camera pause when surface marker selected
+- Element selection from menu
+- OrbitMap React wrapper
 
 **STATUS: 🔲 PENDING**
 

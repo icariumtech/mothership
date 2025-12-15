@@ -30,6 +30,8 @@ export interface SystemPlanet {
   name: string;
   hasOrbitMap: boolean;
   locationSlug?: string;
+  surfaceFacilityCount?: number;
+  orbitalStationCount?: number;
 }
 
 interface CampaignDashboardProps {
@@ -143,6 +145,15 @@ export function CampaignDashboard({
             <div className="star-system-content">
               <div className={`star-system-checkbox ${selectedPlanet === planet.name ? 'checked' : ''}`} />
               <div className="star-system-name">{planet.name}</div>
+              {/* Indicators for facilities */}
+              <div className="planet-indicators">
+                {(planet.surfaceFacilityCount ?? 0) > 0 && (
+                  <span className="planet-indicator surface-indicator" title="Surface facilities">■</span>
+                )}
+                {(planet.orbitalStationCount ?? 0) > 0 && (
+                  <span className="planet-indicator orbital-indicator" title="Orbital stations">▲</span>
+                )}
+              </div>
             </div>
             {planet.hasOrbitMap && (
               <div

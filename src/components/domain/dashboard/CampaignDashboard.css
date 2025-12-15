@@ -346,3 +346,25 @@
   color: var(--color-amber);
   font-size: 10px;
 }
+
+/* Planet Indicators */
+.planet-indicators {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-right: 8px;
+}
+
+.planet-indicator {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.surface-indicator {
+  color: var(--color-amber);
+}
+
+.orbital-indicator {
+  color: var(--color-amber);
+}

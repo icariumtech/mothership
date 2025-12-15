@@ -139,13 +139,20 @@ function SharedConsole() {
     if (mapViewMode === 'system' && selectedPlanet) {
       return buildPlanetInfoHTML(selectedPlanet);
     }
-    if (mapViewMode === 'system' && systemMapData) {
+    if (mapViewMode === 'system' && !selectedPlanet) {
       // Show system info when in system view but no planet selected
-      return buildSystemInfoHTML({
-        type: systemMapData.star.type,
-      });
+      // Use selectedSystemData from galaxy map (has description, population, etc.)
+      // Fall back to systemMapData if no selection data available
+      if (selectedSystemData) {
+        return buildSystemInfoHTML(selectedSystemData);
+      }
+      if (systemMapData) {
+        return buildSystemInfoHTML({
+          type: systemMapData.star.type,
+        });
+      }
     }
-    if (selectedSystemData) {
+    if (mapViewMode === 'galaxy' && selectedSystemData) {
       return buildSystemInfoHTML(selectedSystemData);
     }
     return '';
@@ -185,6 +192,8 @@ function SharedConsole() {
     // Find the system's location_slug
     const system = starMapData?.systems.find(s => s.name === systemName);
     if (system?.location_slug) {
+      // Set selectedSystem so we preserve system info in the details panel
+      setSelectedSystem(systemName);
       setCurrentSystemSlug(system.location_slug);
       setMapViewMode('system');
       setSelectedPlanet(null);
@@ -221,6 +230,8 @@ function SharedConsole() {
       name: body.name,
       hasOrbitMap: !!body.has_orbit_map,
       locationSlug: body.location_slug,
+      surfaceFacilityCount: body.surface_facility_count,
+      orbitalStationCount: body.orbital_station_count,
     }));
   }, [systemMapData]);
 

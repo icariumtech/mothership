@@ -183,7 +183,8 @@ export class GalaxyScene {
   public selectSystem(systemName: string | null): void {
     if (!systemName) {
       this.selectionReticle.visible = false;
-      this.autoRotate = true;
+      // Animate camera back to origin when deselecting
+      this.animateCameraToOrigin();
       return;
     }
 
@@ -196,10 +197,159 @@ export class GalaxyScene {
   }
 
   /**
+   * Select a system and wait for the selection animation to complete
+   * Returns a promise that resolves when the animation finishes
+   */
+  public selectSystemAndWait(systemName: string, duration = 2000): Promise<void> {
+    return new Promise((resolve) => {
+      const position = this.starPositions.get(systemName);
+      if (!position) {
+        resolve();
+        return;
+      }
+
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+
+      this.animating = true;
+      this.autoRotate = false;
+
+      // Show reticle
+      this.selectionReticle.position.copy(position);
+      this.selectionReticle.visible = true;
+
+      const startPosition = this.camera.position.clone();
+      const startLookAt = this.lookAtTarget.clone();
+      const startTime = Date.now();
+
+      // Calculate end position (same as animateCameraToTarget)
+      const distance = 80;
+      const angle = Math.atan2(startPosition.x - startLookAt.x, startPosition.z - startLookAt.z);
+      const endPosition = new THREE.Vector3(
+        position.x + Math.sin(angle) * distance,
+        position.y + 30,
+        position.z + Math.cos(angle) * distance
+      );
+
+      const updateCamera = (): void => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        const eased = progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+        this.camera.position.lerpVectors(startPosition, endPosition, eased);
+        this.lookAtTarget.lerpVectors(startLookAt, position, eased);
+        this.camera.lookAt(this.lookAtTarget);
+
+        if (progress < 1) {
+          this.animationFrameId = requestAnimationFrame(updateCamera);
+        } else {
+          this.animating = false;
+          this.animationFrameId = null;
+          resolve();
+        }
+      };
+
+      updateCamera();
+    });
+  }
+
+  /**
    * Set auto-rotation state
    */
   public setAutoRotate(enabled: boolean): void {
     this.autoRotate = enabled;
+  }
+
+  /**
+   * Position camera on a system immediately without animation
+   * Used when returning from system view to have camera already in position
+   */
+  public positionCameraOnSystem(systemName: string): void {
+    const position = this.starPositions.get(systemName);
+    if (!position) return;
+
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    this.animating = false;
+    this.autoRotate = false;
+
+    // Show reticle
+    this.selectionReticle.position.copy(position);
+    this.selectionReticle.visible = true;
+
+    // Calculate camera position (same as animateCameraToTarget end position)
+    const currentAngle = Math.atan2(
+      this.camera.position.x - this.lookAtTarget.x,
+      this.camera.position.z - this.lookAtTarget.z
+    );
+    const distance = 80;
+    const cameraPosition = new THREE.Vector3(
+      position.x + Math.sin(currentAngle) * distance,
+      position.y + 30,
+      position.z + Math.cos(currentAngle) * distance
+    );
+
+    // Set camera position and lookAt immediately
+    this.camera.position.copy(cameraPosition);
+    this.lookAtTarget.copy(position);
+    this.camera.lookAt(this.lookAtTarget);
+  }
+
+  /**
+   * Animate camera diving into a system (for transition to system view)
+   * Returns a promise that resolves when the dive animation completes
+   */
+  public diveToSystem(systemName: string, duration = 800): Promise<void> {
+    return new Promise((resolve) => {
+      const position = this.starPositions.get(systemName);
+      if (!position) {
+        resolve();
+        return;
+      }
+
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+
+      this.animating = true;
+      this.autoRotate = false;
+
+      const startPosition = this.camera.position.clone();
+      const startTime = Date.now();
+
+      // Dive very close to the star
+      const endPosition = position.clone().add(new THREE.Vector3(0, 2, 5));
+
+      const updateCamera = (): void => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease-in for accelerating dive effect
+        const eased = progress * progress * progress;
+
+        this.camera.position.lerpVectors(startPosition, endPosition, eased);
+        this.camera.lookAt(position);
+
+        if (progress < 1) {
+          this.animationFrameId = requestAnimationFrame(updateCamera);
+        } else {
+          this.animating = false;
+          this.animationFrameId = null;
+          resolve();
+        }
+      };
+
+      updateCamera();
+    });
   }
 
   /**
@@ -698,6 +848,51 @@ export class GalaxyScene {
       } else {
         this.animating = false;
         this.animationFrameId = null;
+      }
+    };
+
+    updateCamera();
+  }
+
+  /**
+   * Animate camera back to origin (0,0,0) when deselecting
+   */
+  private animateCameraToOrigin(duration = 1500): void {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
+    this.animating = true;
+
+    const startPosition = this.camera.position.clone();
+    const startLookAt = this.lookAtTarget.clone();
+    const startTime = Date.now();
+
+    // Default camera position: (0, 0, 100) looking at origin
+    const endPosition = new THREE.Vector3(0, 0, 100);
+    const endLookAt = new THREE.Vector3(0, 0, 0);
+
+    const updateCamera = (): void => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease in-out quad
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+      this.camera.position.lerpVectors(startPosition, endPosition, eased);
+      this.lookAtTarget.lerpVectors(startLookAt, endLookAt, eased);
+      this.camera.lookAt(this.lookAtTarget);
+
+      if (progress < 1) {
+        this.animationFrameId = requestAnimationFrame(updateCamera);
+      } else {
+        this.animating = false;
+        this.animationFrameId = null;
+        // Enable auto-rotation after animation completes
+        this.autoRotate = true;
       }
     };
 

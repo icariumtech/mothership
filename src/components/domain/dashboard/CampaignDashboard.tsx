@@ -62,7 +62,6 @@ interface CampaignDashboardProps {
   selectedOrbitElementType?: 'moon' | 'station' | 'surface' | null;
   onOrbitElementSelect?: (elementType: string, elementName: string) => void;
   onBackToSystem?: () => void;
-  currentPlanetName?: string;
 }
 
 export function CampaignDashboard({
@@ -87,7 +86,6 @@ export function CampaignDashboard({
   selectedOrbitElementType = null,
   onOrbitElementSelect,
   onBackToSystem,
-  currentPlanetName = '',
 }: CampaignDashboardProps) {
   // Render star systems list for galaxy view
   const renderGalaxyList = () => (
@@ -231,11 +229,6 @@ export function CampaignDashboard({
             </div>
           </div>
         </div>
-
-        {/* Planet header */}
-        {currentPlanetName && (
-          <div className="orbit-section-header">{currentPlanetName.toUpperCase()}</div>
-        )}
 
         {/* Moons section */}
         {moons.length > 0 && (

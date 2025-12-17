@@ -6,9 +6,10 @@
  * - Data loading from API
  * - System selection state sync
  * - Callbacks to parent
+ * - Transition animations
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { GalaxyScene } from '../../../three/GalaxyScene';
 import type { StarMapData } from '../../../types/starMap';
 import './GalaxyMap.css';
@@ -22,16 +23,49 @@ interface GalaxyMapProps {
   onSystemSelect?: (systemName: string) => void;
   /** Whether the map is visible */
   visible?: boolean;
+  /** Transition state: 'idle' | 'transitioning-out' | 'transitioning-in' */
+  transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
+  /** Whether to hide the container (keeps scene mounted but invisible) */
+  hidden?: boolean;
 }
 
-export function GalaxyMap({
+export interface GalaxyMapHandle {
+  diveToSystem: (systemName: string) => Promise<void>;
+  selectSystemAndWait: (systemName: string) => Promise<void>;
+  positionCameraOnSystem: (systemName: string) => void;
+}
+
+export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(({
   data,
   selectedSystem,
   onSystemSelect,
   visible = true,
-}: GalaxyMapProps) {
+  transitionState = 'idle',
+  hidden = false,
+}, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<GalaxyScene | null>(null);
+
+  // Expose methods to parent
+  useImperativeHandle(ref, () => ({
+    diveToSystem: (systemName: string) => {
+      if (sceneRef.current) {
+        return sceneRef.current.diveToSystem(systemName);
+      }
+      return Promise.resolve();
+    },
+    selectSystemAndWait: (systemName: string) => {
+      if (sceneRef.current) {
+        return sceneRef.current.selectSystemAndWait(systemName);
+      }
+      return Promise.resolve();
+    },
+    positionCameraOnSystem: (systemName: string) => {
+      if (sceneRef.current) {
+        sceneRef.current.positionCameraOnSystem(systemName);
+      }
+    }
+  }), []);
 
   // Initialize scene
   useEffect(() => {
@@ -68,10 +102,12 @@ export function GalaxyMap({
 
   if (!visible) return null;
 
+  const containerClass = `galaxy-map-container${transitionState !== 'idle' ? ` ${transitionState}` : ''}${hidden ? ' hidden' : ''}`;
+
   return (
     <div
       ref={containerRef}
-      className="galaxy-map-container"
+      className={containerClass}
     />
   );
-}
+});

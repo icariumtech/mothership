@@ -1,16 +1,19 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../styles/global.css';
 import { TerminalHeader } from '@components/layout/TerminalHeader';
 import { StandbyView } from '@components/domain/dashboard/StandbyView';
 import { CampaignDashboard, StarSystem, OrbitElement } from '@components/domain/dashboard/CampaignDashboard';
 import { InfoPanel, buildSystemInfoHTML, buildPlanetInfoHTML, buildMoonInfoHTML, buildStationInfoHTML, buildSurfaceMarkerInfoHTML } from '@components/domain/dashboard/InfoPanel';
-import { GalaxyMap } from '@components/domain/maps/GalaxyMap';
-import { SystemMap } from '@components/domain/maps/SystemMap';
-import { OrbitMap } from '@components/domain/maps/OrbitMap';
+import { GalaxyMap, GalaxyMapHandle } from '@components/domain/maps/GalaxyMap';
+import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
+import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../types/orbitMap';
+
+// Transition state type
+type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
 
 // View types matching Django's ActiveView model
 type ViewType = 'STANDBY' | 'CAMPAIGN_DASHBOARD' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
@@ -61,6 +64,16 @@ function SharedConsole() {
   const [selectedOrbitElement, setSelectedOrbitElement] = useState<string | null>(null);
   const [selectedOrbitElementType, setSelectedOrbitElementType] = useState<'moon' | 'station' | 'surface' | null>(null);
   const [selectedOrbitElementData, setSelectedOrbitElementData] = useState<MoonData | StationData | SurfaceMarkerData | null>(null);
+
+  // Transition state for map switching animations
+  const [galaxyTransition, setGalaxyTransition] = useState<TransitionState>('idle');
+  const [systemTransition, setSystemTransition] = useState<TransitionState>('idle');
+  const [orbitTransition, setOrbitTransition] = useState<TransitionState>('idle');
+
+  // Refs for map components to call dive methods
+  const galaxyMapRef = useRef<GalaxyMapHandle>(null);
+  const systemMapRef = useRef<SystemMapHandle>(null);
+  const orbitMapRef = useRef<OrbitMapHandle>(null);
 
   // Fetch star map data on mount
   useEffect(() => {
@@ -237,26 +250,66 @@ function SharedConsole() {
     setSelectedSystem(prev => prev === systemName ? null : systemName);
   }, []);
 
-  const handleSystemMapClick = useCallback((systemName: string) => {
-    console.log('Navigate to system map:', systemName);
+  const handleSystemMapClick = useCallback(async (systemName: string) => {
     // Find the system's location_slug
     const system = starMapData?.systems.find(s => s.name === systemName);
     if (system?.location_slug) {
-      // Set selectedSystem so we preserve system info in the details panel
+      // If system is not already selected, first select it and wait for animation
+      if (selectedSystem !== systemName) {
+        await galaxyMapRef.current?.selectSystemAndWait(systemName);
+        // Don't setSelectedSystem here - it triggers a useEffect that cancels the dive animation
+      }
+
+      // Start dive animation and fade out
+      setGalaxyTransition('transitioning-out');
+      await galaxyMapRef.current?.diveToSystem(systemName);
+
+      // Now update selectedSystem after dive is complete
       setSelectedSystem(systemName);
+
+      // Switch to system view with fade-in
       setCurrentSystemSlug(system.location_slug);
       setMapViewMode('system');
       setSelectedPlanet(null);
+      setSystemTransition('transitioning-in');
+
+      // Reset transitions after animation completes
+      setTimeout(() => {
+        setGalaxyTransition('idle');
+        setSystemTransition('idle');
+      }, 1200);
     }
-  }, [starMapData]);
+  }, [starMapData, selectedSystem]);
 
   const handleBackToGalaxy = useCallback(() => {
     console.log('Returning to galaxy view');
-    setMapViewMode('galaxy');
-    setCurrentSystemSlug(null);
-    setSystemMapData(null);
-    setSelectedPlanet(null);
-  }, []);
+
+    // Position galaxy camera on selected system immediately (before any state changes)
+    if (selectedSystem) {
+      galaxyMapRef.current?.positionCameraOnSystem(selectedSystem);
+    }
+
+    // Start zoom out animation (don't await - runs in parallel with fade)
+    systemMapRef.current?.zoomOut();
+
+    // Start fade out of system view
+    setSystemTransition('transitioning-out');
+
+    // After fade out completes (1s), switch to galaxy view
+    setTimeout(() => {
+      setMapViewMode('galaxy');
+      setCurrentSystemSlug(null);
+      setSystemMapData(null);
+      setSelectedPlanet(null);
+      setGalaxyTransition('transitioning-in');
+
+      // Reset transitions after fade-in animation completes
+      setTimeout(() => {
+        setSystemTransition('idle');
+        setGalaxyTransition('idle');
+      }, 1200);
+    }, 1000); // Wait for fade-out to complete
+  }, [selectedSystem]);
 
   const handleSystemLoaded = useCallback((data: SystemMapData | null) => {
     console.log('System loaded:', data?.star.name);
@@ -268,25 +321,66 @@ function SharedConsole() {
     setSelectedPlanet(planetData);
   }, []);
 
-  const handleOrbitMapNavigate = useCallback((systemSlug: string, planetSlug: string) => {
-    console.log('Navigate to orbit map:', systemSlug, planetSlug);
-    // Navigate to orbit view
+  const handleOrbitMapNavigate = useCallback(async (systemSlug: string, planetSlug: string, planetName: string) => {
+    console.log('Navigate to orbit map:', systemSlug, planetSlug, planetName);
+
+    // If planet is not already selected, first select it and wait for animation
+    if (selectedPlanet?.name !== planetName) {
+      console.log('Selecting planet first:', planetName);
+      await systemMapRef.current?.selectPlanetAndWait(planetName);
+      // Update state to reflect selection (for info panel)
+      const planet = systemMapData?.bodies?.find(b => b.name === planetName);
+      if (planet) {
+        setSelectedPlanet(planet);
+      }
+    }
+
+    // Start dive animation and fade out
+    setSystemTransition('transitioning-out');
+    await systemMapRef.current?.diveToPlanet(planetName);
+
+    // Navigate to orbit view with fade-in
     setCurrentBodySlug(planetSlug);
     setMapViewMode('orbit');
     setSelectedOrbitElement(null);
     setSelectedOrbitElementType(null);
     setSelectedOrbitElementData(null);
-  }, []);
+    setOrbitTransition('transitioning-in');
 
-  const handleBackToSystem = useCallback(() => {
+    // Reset transitions after animation completes
+    setTimeout(() => {
+      setSystemTransition('idle');
+      setOrbitTransition('idle');
+    }, 1200);
+  }, [selectedPlanet, systemMapData]);
+
+  const handleBackToSystem = useCallback(async () => {
     console.log('Returning to system view');
-    setMapViewMode('system');
+
+    // Start zoom out animation and fade out
+    setOrbitTransition('transitioning-out');
+    await orbitMapRef.current?.zoomOut();
+
+    // Position camera on selected planet immediately (SystemMap stays mounted during orbit view)
+    if (selectedPlanet?.name) {
+      systemMapRef.current?.positionCameraOnPlanet(selectedPlanet.name);
+    }
+
+    // Clear orbit state and switch to system view
     setCurrentBodySlug(null);
     setOrbitMapData(null);
     setSelectedOrbitElement(null);
     setSelectedOrbitElementType(null);
     setSelectedOrbitElementData(null);
-  }, []);
+    setMapViewMode('system');
+    setSystemTransition('transitioning-in');
+
+    // Reset transitions after animation completes
+    setTimeout(() => {
+      setOrbitTransition('idle');
+      setSystemTransition('idle');
+    }, 1200);
+  }, [selectedPlanet]);
 
   const handleOrbitMapLoaded = useCallback((data: OrbitMapData | null) => {
     console.log('Orbit map loaded:', data?.planet?.name);
@@ -378,30 +472,36 @@ function SharedConsole() {
 
       {viewType === 'CAMPAIGN_DASHBOARD' && (
         <>
-          {/* Galaxy Map - renders behind dashboard panels (hidden when in system view) */}
-          {mapViewMode === 'galaxy' && (
+          {/* Galaxy Map - renders behind dashboard panels, stays mounted during system view */}
+          {(mapViewMode === 'galaxy' || mapViewMode === 'system' || galaxyTransition !== 'idle') && (
             <GalaxyMap
+              ref={galaxyMapRef}
               data={starMapData}
               selectedSystem={selectedSystem}
               onSystemSelect={handleSystemSelect}
+              transitionState={galaxyTransition}
+              hidden={mapViewMode === 'system' || mapViewMode === 'orbit'}
             />
           )}
 
-          {/* System Map - renders when viewing a specific system */}
-          {mapViewMode === 'system' && (
+          {/* System Map - renders when viewing a specific system or orbit (stays mounted) */}
+          {(mapViewMode === 'system' || mapViewMode === 'orbit' || systemTransition !== 'idle') && (
             <SystemMap
+              ref={systemMapRef}
               systemSlug={currentSystemSlug}
               selectedPlanet={selectedPlanet?.name || null}
               onPlanetSelect={handlePlanetSelect}
-              onOrbitMapNavigate={handleOrbitMapNavigate}
               onBackToGalaxy={handleBackToGalaxy}
               onSystemLoaded={handleSystemLoaded}
+              transitionState={systemTransition}
+              hidden={mapViewMode === 'orbit'}
             />
           )}
 
           {/* Orbit Map - renders when viewing a specific planet */}
-          {mapViewMode === 'orbit' && (
+          {(mapViewMode === 'orbit' || orbitTransition !== 'idle') && (
             <OrbitMap
+              ref={orbitMapRef}
               systemSlug={currentSystemSlug}
               bodySlug={currentBodySlug}
               selectedElement={selectedOrbitElement}
@@ -409,6 +509,7 @@ function SharedConsole() {
               onElementSelect={handleOrbitElementSelect}
               onBackToSystem={handleBackToSystem}
               onOrbitMapLoaded={handleOrbitMapLoaded}
+              transitionState={orbitTransition}
             />
           )}
 
@@ -437,7 +538,7 @@ function SharedConsole() {
             onOrbitMapClick={mapViewMode === 'system' ? (planetName) => {
               const planet = systemMapData?.bodies?.find(b => b.name === planetName);
               if (planet?.location_slug && currentSystemSlug) {
-                handleOrbitMapNavigate(currentSystemSlug, planet.location_slug);
+                handleOrbitMapNavigate(currentSystemSlug, planet.location_slug, planetName);
               }
             } : undefined}
             // Orbit view props
@@ -462,7 +563,6 @@ function SharedConsole() {
               }
             } : undefined}
             onBackToSystem={mapViewMode === 'orbit' ? handleBackToSystem : undefined}
-            currentPlanetName={selectedPlanet?.name || orbitMapData?.planet?.name}
           />
 
           {/* Info Panel - reusable floating panel for selected item info */}

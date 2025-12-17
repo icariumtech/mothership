@@ -1,0 +1,26 @@
+/* System Map Container */
+#systemmap-canvas {
+  opacity: 1;
+  transition: opacity 1s ease-out;
+}
+
+#systemmap-canvas.transitioning-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#systemmap-canvas.transitioning-in {
+  animation: mapFadeZoomIn 1.2s ease-out forwards;
+}
+
+/* Shared map transition animations */
+@keyframes mapFadeZoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

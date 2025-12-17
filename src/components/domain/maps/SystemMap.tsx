@@ -5,9 +5,10 @@
  * Displays a solar system with star, planets, and orbits.
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { SystemScene } from '../../../three/SystemScene';
 import type { BodyData, SystemMapData } from '../../../types/systemMap';
+import './SystemMap.css';
 
 interface SystemMapProps {
   /** System slug to load (e.g., 'sol', 'tau-ceti') */
@@ -22,19 +23,85 @@ interface SystemMapProps {
   onBackToGalaxy?: () => void;
   /** Callback when system data is loaded */
   onSystemLoaded?: (data: SystemMapData | null) => void;
+  /** Transition state */
+  transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
+  /** Whether to hide the canvas (keeps scene mounted but invisible) */
+  hidden?: boolean;
 }
 
-export function SystemMap({
+export interface SystemMapHandle {
+  diveToPlanet: (planetName: string) => Promise<void>;
+  zoomOutFromPlanet: (planetName: string) => Promise<void>;
+  selectPlanetAndWait: (planetName: string) => Promise<void>;
+  positionCameraOnPlanet: (planetName: string) => void;
+  zoomOut: () => Promise<void>;
+  zoomIn: () => void;
+}
+
+export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(({
   systemSlug,
   selectedPlanet,
   onPlanetSelect,
   onOrbitMapNavigate,
   onBackToGalaxy,
-  onSystemLoaded
-}: SystemMapProps) {
+  onSystemLoaded,
+  transitionState = 'idle',
+  hidden = false
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<SystemScene | null>(null);
   const loadedSystemRef = useRef<string | null>(null);
+  // Track selectedPlanet in a ref so we can access it in the system load callback
+  // without adding it as a dependency (which would cause unnecessary reloads)
+  const selectedPlanetRef = useRef<string | null>(selectedPlanet);
+
+  // Expose dive methods to parent
+  useImperativeHandle(ref, () => ({
+    diveToPlanet: (planetName: string) => {
+      if (sceneRef.current) {
+        return sceneRef.current.diveToPlanet(planetName);
+      }
+      return Promise.resolve();
+    },
+    zoomOutFromPlanet: (planetName: string) => {
+      if (sceneRef.current) {
+        return sceneRef.current.zoomOutFromPlanet(planetName);
+      }
+      return Promise.resolve();
+    },
+    selectPlanetAndWait: (planetName: string) => {
+      const scene = sceneRef.current;
+      if (!scene) return Promise.resolve();
+
+      const currentSystem = scene.getCurrentSystem();
+      const planetData = currentSystem?.bodies?.find(b => b.name === planetName);
+      if (planetData) {
+        return scene.selectPlanetAndWait(planetData);
+      }
+      return Promise.resolve();
+    },
+    positionCameraOnPlanet: (planetName: string) => {
+      if (sceneRef.current) {
+        sceneRef.current.positionCameraOnPlanet(planetName);
+      }
+    },
+    zoomOut: () => {
+      if (sceneRef.current) {
+        return sceneRef.current.zoomOut();
+      }
+      return Promise.resolve();
+    },
+    zoomIn: () => {
+      if (sceneRef.current) {
+        sceneRef.current.zoomIn();
+      }
+    }
+  }), []);
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    selectedPlanetRef.current = selectedPlanet;
+  }, [selectedPlanet]);
 
   // Initialize scene
   useEffect(() => {
@@ -71,6 +138,17 @@ export function SystemMap({
         loadedSystemRef.current = systemSlug;
         scene.show();
         onSystemLoaded?.(data);
+
+        // Sync any pending planet selection after system is loaded and shown
+        // This handles the case when returning from orbit view with a planet already selected
+        const pendingSelection = selectedPlanetRef.current;
+        if (pendingSelection && data?.bodies) {
+          const planetData = data.bodies.find(b => b.name === pendingSelection);
+          if (planetData) {
+            console.log('Syncing pending planet selection:', pendingSelection);
+            scene.selectPlanet(planetData);
+          }
+        }
       });
     } else if (!systemSlug) {
       scene.hide();
@@ -131,10 +209,13 @@ export function SystemMap({
     };
   }, [handleSelectPlanet]);
 
+  const canvasClass = transitionState !== 'idle' ? transitionState : undefined;
+
   return (
     <canvas
       ref={canvasRef}
       id="systemmap-canvas"
+      className={canvasClass}
       style={{
         position: 'fixed',
         top: 0,
@@ -142,8 +223,8 @@ export function SystemMap({
         width: '100vw',
         height: '100vh',
         zIndex: 0,
-        display: systemSlug ? 'block' : 'none'
+        display: systemSlug && !hidden ? 'block' : 'none'
       }}
     />
   );
-}
+});

@@ -717,6 +717,145 @@ export class SystemScene {
     this.callbacks.onPlanetSelect?.(planetData);
   }
 
+  /**
+   * Select a planet and wait for the selection animation to complete
+   * Returns a promise that resolves when the animation finishes
+   */
+  selectPlanetAndWait(planetData: BodyData): Promise<void> {
+    return new Promise((resolve) => {
+      // Clear camera offset
+      this.cameraOffset = null;
+      this.lastPlanetAngle = 0;
+
+      // Kill ongoing animations
+      gsap.killTweensOf(this.camera.position);
+
+      // Store selected planet
+      this.selectedPlanet = planetData;
+
+      // Find planet mesh
+      const selectedPlanetMesh = this.planets.find(p => p.name === planetData.name);
+      if (!selectedPlanetMesh) {
+        console.error('Planet mesh not found');
+        resolve();
+        return;
+      }
+
+      // Calculate zoom distance
+      const zoomDistance = selectedPlanetMesh.orbitalRadius * PLANET_ZOOM_DISTANCE_RATIO;
+      const actualZoomDistance = Math.max(zoomDistance, MIN_PLANET_ZOOM_DISTANCE);
+
+      const desiredOffset = new THREE.Vector3(
+        actualZoomDistance * CAMERA_ANGLE_45_DEG,
+        actualZoomDistance * CAMERA_ANGLE_45_DEG,
+        actualZoomDistance * CAMERA_ANGLE_45_DEG
+      );
+
+      const startPos = this.camera.position.clone();
+      const startLookAt = new THREE.Vector3(0, 0, 0);
+
+      // Animate camera
+      const animState = { progress: 0 };
+      gsap.to(animState, {
+        progress: 1,
+        duration: CAMERA_ANIMATION_DURATION,
+        ease: CAMERA_ANIMATION_EASE,
+        onUpdate: () => {
+          const currentPlanetPos = new THREE.Vector3();
+          selectedPlanetMesh.mesh.getWorldPosition(currentPlanetPos);
+          const targetPos = currentPlanetPos.clone().add(desiredOffset);
+
+          this.camera.position.lerpVectors(startPos, targetPos, animState.progress);
+
+          const currentLookAt = new THREE.Vector3();
+          currentLookAt.lerpVectors(startLookAt, currentPlanetPos, animState.progress);
+          this.camera.lookAt(currentLookAt);
+
+          if (this.selectionReticle) {
+            this.selectionReticle.position.copy(currentPlanetPos);
+          }
+        },
+        onComplete: () => {
+          const finalPlanetPos = new THREE.Vector3();
+          selectedPlanetMesh.mesh.getWorldPosition(finalPlanetPos);
+
+          this.cameraOffset = new THREE.Vector3(
+            this.camera.position.x - finalPlanetPos.x,
+            this.camera.position.y - finalPlanetPos.y,
+            this.camera.position.z - finalPlanetPos.z
+          );
+
+          this.lastPlanetAngle = Math.atan2(finalPlanetPos.z, finalPlanetPos.x);
+          resolve();
+        }
+      });
+
+      // Show reticle
+      if (this.selectionReticle) {
+        const reticleScale = (planetData.size || 1.0) * 6.0;
+        this.selectionReticle.scale.set(reticleScale, reticleScale, 1);
+        this.selectionReticle.visible = true;
+      }
+
+      // Notify callback
+      this.callbacks.onPlanetSelect?.(planetData);
+    });
+  }
+
+  /**
+   * Position camera on a planet immediately without animation
+   * Used when returning from orbit view to have camera already in position
+   */
+  positionCameraOnPlanet(planetName: string): void {
+    // Find planet data
+    const planetData = this.currentSystem?.bodies?.find(b => b.name === planetName);
+    if (!planetData) return;
+
+    // Find planet mesh
+    const selectedPlanetMesh = this.planets.find(p => p.name === planetName);
+    if (!selectedPlanetMesh) return;
+
+    // Kill ongoing animations
+    gsap.killTweensOf(this.camera.position);
+
+    // Store selected planet
+    this.selectedPlanet = planetData;
+
+    // Calculate zoom distance (same as selectPlanet)
+    const zoomDistance = selectedPlanetMesh.orbitalRadius * PLANET_ZOOM_DISTANCE_RATIO;
+    const actualZoomDistance = Math.max(zoomDistance, MIN_PLANET_ZOOM_DISTANCE);
+
+    const desiredOffset = new THREE.Vector3(
+      actualZoomDistance * CAMERA_ANGLE_45_DEG,
+      actualZoomDistance * CAMERA_ANGLE_45_DEG,
+      actualZoomDistance * CAMERA_ANGLE_45_DEG
+    );
+
+    // Get current planet position and set camera immediately
+    const planetPos = new THREE.Vector3();
+    selectedPlanetMesh.mesh.getWorldPosition(planetPos);
+    const targetPos = planetPos.clone().add(desiredOffset);
+
+    this.camera.position.copy(targetPos);
+    this.camera.lookAt(planetPos);
+
+    // Set up camera offset for tracking
+    this.cameraOffset = new THREE.Vector3(
+      this.camera.position.x - planetPos.x,
+      this.camera.position.y - planetPos.y,
+      this.camera.position.z - planetPos.z
+    );
+    this.lastPlanetAngle = Math.atan2(planetPos.z, planetPos.x);
+
+    // Show reticle
+    if (this.selectionReticle) {
+      this.selectionReticle.position.copy(planetPos);
+      const reticleScale = (planetData.size || 1.0) * 6.0;
+      this.selectionReticle.scale.set(reticleScale, reticleScale, 1);
+      this.selectionReticle.visible = true;
+    }
+  }
+
   unselectPlanet(): void {
     if (!this.currentSystem) return;
 
@@ -771,6 +910,226 @@ export class SystemScene {
 
     // Notify callback
     this.callbacks.onPlanetSelect?.(null);
+  }
+
+  /**
+   * Animate camera diving into a planet (for transition to orbit view)
+   * Returns a promise that resolves when the dive animation completes
+   */
+  diveToPlanet(planetName: string, duration = 800): Promise<void> {
+    return new Promise((resolve) => {
+      const planetData = this.planets.find(p => p.name === planetName);
+      if (!planetData) {
+        resolve();
+        return;
+      }
+
+      // Kill ongoing animations
+      gsap.killTweensOf(this.camera.position);
+      this.cameraOffset = null;
+
+      const startPosition = this.camera.position.clone();
+      const startTime = Date.now();
+
+      const updateCamera = (): void => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Get current planet position (it's moving)
+        const planetPos = planetData.mesh.position.clone();
+
+        // Dive very close to the planet
+        const endPosition = planetPos.clone().add(new THREE.Vector3(0, 1, 3));
+
+        // Ease-in for accelerating dive effect
+        const eased = progress * progress * progress;
+
+        this.camera.position.lerpVectors(startPosition, endPosition, eased);
+        this.camera.lookAt(planetPos);
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCamera);
+        } else {
+          resolve();
+        }
+      };
+
+      updateCamera();
+    });
+  }
+
+  /**
+   * Animate camera zooming out from close to a planet (for transition from orbit view)
+   * Starts with camera very close to the planet and zooms out to normal selected view
+   * Returns a promise that resolves when the zoom out animation completes
+   */
+  zoomOutFromPlanet(planetName: string, duration = 800): Promise<void> {
+    return new Promise((resolve) => {
+      const planetData = this.planets.find(p => p.name === planetName);
+      if (!planetData) {
+        resolve();
+        return;
+      }
+
+      // Kill ongoing animations
+      gsap.killTweensOf(this.camera.position);
+      this.cameraOffset = null;
+
+      // Calculate zoom distance (same as selectPlanet)
+      const zoomDistance = planetData.orbitalRadius * PLANET_ZOOM_DISTANCE_RATIO;
+      const actualZoomDistance = Math.max(zoomDistance, MIN_PLANET_ZOOM_DISTANCE);
+
+      // Get current planet position
+      const planetPos = planetData.mesh.position.clone();
+
+      // Start camera very close to the planet
+      const startPosition = planetPos.clone().add(new THREE.Vector3(0, 1, 3));
+      this.camera.position.copy(startPosition);
+      this.camera.lookAt(planetPos);
+
+      const startTime = Date.now();
+
+      const updateCamera = (): void => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Get current planet position (it's moving)
+        const currentPlanetPos = planetData.mesh.position.clone();
+
+        // Target position at normal selected view distance
+        const endOffset = new THREE.Vector3(
+          actualZoomDistance * CAMERA_ANGLE_45_DEG,
+          actualZoomDistance * CAMERA_ANGLE_45_DEG,
+          actualZoomDistance * CAMERA_ANGLE_45_DEG
+        );
+        const endPosition = currentPlanetPos.clone().add(endOffset);
+
+        // Update start position relative to current planet position for smooth tracking
+        const currentStartPosition = currentPlanetPos.clone().add(new THREE.Vector3(0, 1, 3));
+
+        // Ease-out for decelerating zoom out effect
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        this.camera.position.lerpVectors(currentStartPosition, endPosition, eased);
+        this.camera.lookAt(currentPlanetPos);
+
+        // Update reticle position
+        if (this.selectionReticle) {
+          this.selectionReticle.position.copy(currentPlanetPos);
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCamera);
+        } else {
+          // Set up camera tracking for the selected planet
+          const finalPlanetPos = planetData.mesh.position.clone();
+          this.cameraOffset = new THREE.Vector3(
+            this.camera.position.x - finalPlanetPos.x,
+            this.camera.position.y - finalPlanetPos.y,
+            this.camera.position.z - finalPlanetPos.z
+          );
+          this.lastPlanetAngle = Math.atan2(finalPlanetPos.z, finalPlanetPos.x);
+
+          resolve();
+        }
+      };
+
+      updateCamera();
+    });
+  }
+
+  /**
+   * Animate camera zooming out/away from current view (for transition to galaxy view)
+   * Returns a promise that resolves when the zoom out animation completes
+   */
+  zoomOut(duration = 600): Promise<void> {
+    return new Promise((resolve) => {
+      // Kill ongoing animations
+      gsap.killTweensOf(this.camera.position);
+      this.cameraOffset = null;
+
+      const startPosition = this.camera.position.clone();
+      const startTime = Date.now();
+
+      // Determine what we're looking at
+      let lookAtTarget = new THREE.Vector3(0, 0, 0);
+      if (this.selectedPlanet) {
+        const planetData = this.planets.find(p => p.name === this.selectedPlanet?.name);
+        if (planetData) {
+          planetData.mesh.getWorldPosition(lookAtTarget);
+        }
+      }
+
+      // Calculate end position - zoom out significantly
+      const direction = startPosition.clone().sub(lookAtTarget).normalize();
+      const zoomOutDistance = 200;
+      const endPosition = lookAtTarget.clone().add(direction.multiplyScalar(zoomOutDistance));
+
+      const updateCamera = (): void => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease-in for accelerating zoom effect
+        const eased = progress * progress;
+
+        this.camera.position.lerpVectors(startPosition, endPosition, eased);
+        this.camera.lookAt(lookAtTarget);
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCamera);
+        } else {
+          resolve();
+        }
+      };
+
+      updateCamera();
+    });
+  }
+
+  /**
+   * Animate camera zooming in from a distance (for transition from galaxy view)
+   * Starts camera far away and zooms in to the default view position
+   */
+  zoomIn(duration = 1000): void {
+    if (!this.currentSystem?.camera) {
+      return;
+    }
+
+    // Kill ongoing animations
+    gsap.killTweensOf(this.camera.position);
+    this.cameraOffset = null;
+
+    const startTime = Date.now();
+
+    // Get target position from system data
+    const targetPos = this.currentSystem.camera.position;
+    const targetLookAt = new THREE.Vector3(...this.currentSystem.camera.lookAt);
+    const endPosition = new THREE.Vector3(targetPos[0], targetPos[1], targetPos[2]);
+
+    // Start from a distant position (zoomed out)
+    const direction = endPosition.clone().sub(targetLookAt).normalize();
+    const startPosition = targetLookAt.clone().add(direction.multiplyScalar(300));
+
+    // Set camera to start position
+    this.camera.position.copy(startPosition);
+    this.camera.lookAt(targetLookAt);
+
+    const updateCamera = (): void => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease-out for decelerating zoom in effect
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      this.camera.position.lerpVectors(startPosition, endPosition, eased);
+      this.camera.lookAt(targetLookAt);
+
+      if (progress < 1) {
+        requestAnimationFrame(updateCamera);
+      }
+    };
+
+    updateCamera();
   }
 
   // ==================== CONTROLS ====================

@@ -370,18 +370,9 @@
 }
 
 /* Orbit View Styles */
-.orbit-section-header {
-  color: var(--color-teal);
-  font-size: 14px;
-  letter-spacing: 2px;
-  padding: 8px 0 12px 0;
-  border-bottom: 1px solid var(--color-border-subtle);
-  margin-bottom: 8px;
-}
-
 .orbit-section-label {
   color: var(--color-text-muted);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1px;
   padding: 12px 0 6px 0;
   text-transform: uppercase;

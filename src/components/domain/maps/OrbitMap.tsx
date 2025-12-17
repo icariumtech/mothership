@@ -5,9 +5,10 @@
  * for controlling the orbit map display.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { OrbitScene } from '../../../three/OrbitScene';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../../../types/orbitMap';
+import './OrbitMap.css';
 
 interface OrbitMapProps {
   systemSlug: string | null;
@@ -17,9 +18,16 @@ interface OrbitMapProps {
   onElementSelect?: (elementType: string | null, elementData: MoonData | StationData | SurfaceMarkerData | null) => void;
   onBackToSystem?: () => void;
   onOrbitMapLoaded?: (data: OrbitMapData | null) => void;
+  /** Transition state */
+  transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
 }
 
-export function OrbitMap({
+export interface OrbitMapHandle {
+  zoomOut: () => Promise<void>;
+  zoomIn: () => Promise<void>;
+}
+
+export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(({
   systemSlug,
   bodySlug,
   selectedElement,
@@ -27,9 +35,26 @@ export function OrbitMap({
   onElementSelect,
   onBackToSystem,
   onOrbitMapLoaded,
-}: OrbitMapProps) {
+  transitionState = 'idle',
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<OrbitScene | null>(null);
+
+  // Expose zoom methods to parent
+  useImperativeHandle(ref, () => ({
+    zoomOut: () => {
+      if (sceneRef.current) {
+        return sceneRef.current.zoomOut();
+      }
+      return Promise.resolve();
+    },
+    zoomIn: () => {
+      if (sceneRef.current) {
+        return sceneRef.current.zoomIn();
+      }
+      return Promise.resolve();
+    }
+  }), []);
 
   // Initialize scene on mount
   useEffect(() => {
@@ -95,10 +120,13 @@ export function OrbitMap({
     }
   }, [selectedElement, selectedElementType]);
 
+  const canvasClass = transitionState !== 'idle' ? transitionState : undefined;
+
   return (
     <canvas
       ref={canvasRef}
       id="orbitmap-canvas"
+      className={canvasClass}
       style={{
         position: 'fixed',
         top: 0,
@@ -109,4 +137,4 @@ export function OrbitMap({
       }}
     />
   );
-}
+});

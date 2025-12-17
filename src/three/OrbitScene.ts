@@ -818,6 +818,81 @@ export class OrbitScene {
   }
 
   /**
+   * Animate camera zooming away from the planet (for transition back to system view)
+   * Returns a promise that resolves when the zoom out animation completes
+   */
+  zoomOut(duration = 800): Promise<void> {
+    return new Promise((resolve) => {
+      const startPosition = this.camera.position.clone();
+      const startTime = Date.now();
+
+      // Zoom out to a very distant position
+      const endPosition = new THREE.Vector3(0, 150, 250);
+
+      const updateCamera = (): void => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease-in for accelerating zoom out effect
+        const eased = progress * progress * progress;
+
+        this.camera.position.lerpVectors(startPosition, endPosition, eased);
+        this.camera.lookAt(0, 0, 0);
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCamera);
+        } else {
+          resolve();
+        }
+      };
+
+      updateCamera();
+    });
+  }
+
+  /**
+   * Animate camera zooming in from a distance (for transition from system view)
+   * Starts camera far away and zooms in to the default view position
+   * Returns a promise that resolves when the zoom in animation completes
+   */
+  zoomIn(duration = 800): Promise<void> {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+
+      // Start from a distant position
+      const startPosition = new THREE.Vector3(0, 150, 250);
+      const endPosition = new THREE.Vector3(
+        this.defaultCameraPosition.x,
+        this.defaultCameraPosition.y,
+        this.defaultCameraPosition.z
+      );
+
+      // Set camera to start position
+      this.camera.position.copy(startPosition);
+      this.camera.lookAt(0, 0, 0);
+
+      const updateCamera = (): void => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease-out for decelerating zoom in effect
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        this.camera.position.lerpVectors(startPosition, endPosition, eased);
+        this.camera.lookAt(0, 0, 0);
+
+        if (progress < 1) {
+          requestAnimationFrame(updateCamera);
+        } else {
+          resolve();
+        }
+      };
+
+      updateCamera();
+    });
+  }
+
+  /**
    * Start rendering
    */
   show(): void {

@@ -92,8 +92,6 @@ export class SystemScene {
   // Camera tracking
   private cameraOffset: THREE.Vector3 | null = null;
   private lastPlanetAngle = 0;
-  private raycaster: THREE.Raycaster;
-  private mouse = new THREE.Vector2();
 
   // Controls state
   private controlsInitialized = false;
@@ -112,7 +110,6 @@ export class SystemScene {
     touchstart?: (e: TouchEvent) => void;
     touchmove?: (e: TouchEvent) => void;
     touchend?: () => void;
-    click?: (e: MouseEvent) => void;
     resize?: () => void;
   } = {};
 
@@ -148,9 +145,6 @@ export class SystemScene {
     // Add ambient light
     const ambientLight = new THREE.AmbientLight(0x222244, 0.2);
     this.scene.add(ambientLight);
-
-    // Create raycaster for planet click detection
-    this.raycaster = new THREE.Raycaster();
 
     // Create star texture for background
     this.starTexture = this.createStarTexture();
@@ -1366,47 +1360,6 @@ export class SystemScene {
     this.boundHandlers.touchend = () => { this.isTouching = false; };
     window.addEventListener('touchend', this.boundHandlers.touchend);
 
-    // Click handler for planet selection
-    this.boundHandlers.click = (event: MouseEvent) => {
-      if (!this.isActive) return;
-
-      const target = event.target as HTMLElement;
-      if (target !== this.canvas) return;
-
-      const rect = this.canvas.getBoundingClientRect();
-      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      this.raycaster.setFromCamera(this.mouse, this.camera);
-
-      const clickablePlanets = this.planets
-        .filter(p => p.clickable)
-        .map(p => p.mesh);
-
-      const intersects = this.raycaster.intersectObjects(clickablePlanets);
-
-      if (intersects.length > 0) {
-        const clickedMesh = intersects[0].object;
-        const planetData = this.planets.find(p => p.mesh === clickedMesh);
-
-        if (planetData && this.currentSystem?.bodies) {
-          const fullPlanetData = this.currentSystem.bodies.find(b => b.name === planetData.name);
-
-          if (fullPlanetData) {
-            if (this.selectedPlanet?.name === fullPlanetData.name) {
-              this.unselectPlanet();
-            } else {
-              this.selectPlanet(fullPlanetData);
-            }
-            this.callbacks.onPlanetClick?.(planetData.name, fullPlanetData);
-          }
-        }
-      } else if (this.selectedPlanet) {
-        this.unselectPlanet();
-      }
-    };
-    window.addEventListener('click', this.boundHandlers.click);
-
     this.controlsInitialized = true;
     console.log('System map controls initialized');
   }
@@ -1491,9 +1444,6 @@ export class SystemScene {
     }
     if (this.boundHandlers.touchend) {
       window.removeEventListener('touchend', this.boundHandlers.touchend);
-    }
-    if (this.boundHandlers.click) {
-      window.removeEventListener('click', this.boundHandlers.click);
     }
     if (this.boundHandlers.resize) {
       window.removeEventListener('resize', this.boundHandlers.resize);

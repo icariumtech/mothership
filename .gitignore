@@ -207,3 +207,7 @@ marimo/_lsp/
 __marimo__/
 sample_ui/
 node_modules/
+
+# Build artifacts (Vite/TypeScript bundles)
+terminal/static/js/*.bundle.js
+terminal/static/js/*.bundle.js.map

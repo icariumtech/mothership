@@ -28,6 +28,7 @@ This is an AI-executable plan for migrating from Django templates to React.js. T
 | Phase D | ✅ COMPLETE | System Map (Planet orbits, navigation) |
 | Phase E | ✅ COMPLETE | Orbit Map (Planet detail view) |
 | Phase F | 🔲 PENDING | Message System Migration |
+| Phase G | 🔲 PENDING | GM Console Migration (Standard Widgets) |
 
 ---
 
@@ -1399,7 +1400,1009 @@ python manage.py runserver
 
 **Risk:** MEDIUM - CSRF token handling must work correctly
 
-**STOP HERE and get user approval before proceeding to Phase 2**
+**STOP HERE and get user approval before proceeding to Phase G**
+
+---
+
+### Phase G: GM Console Migration (PENDING)
+
+**Goal:** Migrate GM Console to React using standard browser widgets (no custom terminal theming)
+
+**Design Decision:** The GM console is only viewed by the Game Master, so it doesn't need the custom terminal aesthetic. Using standard widgets will:
+- Save ~600 lines of custom CSS
+- Provide better accessibility out of the box
+- Enable faster development
+- Reduce maintenance burden
+
+**Approach:** Clean, functional UI with native HTML elements and minimal styling
+
+---
+
+#### Current GM Console Features to Migrate
+
+| Feature | Description | Complexity |
+|---------|-------------|------------|
+| Location Tree | Hierarchical tree with expand/collapse | Medium |
+| Display Button | Show location map on terminal | Low |
+| Show Button | Display terminal overlay | Low |
+| View Controls | Standby/Dashboard toggle buttons | Low |
+| Broadcast Form | Sender, priority, message, submit | Low |
+| Info Panel | Display active view metadata | Low |
+| State Persistence | localStorage for tree expansion | Medium |
+
+**Total JavaScript to Replace:** ~284 lines
+**Total Custom CSS to Skip:** ~600 lines
+
+---
+
+#### Step G.1: Create Type Definitions
+
+**File:** `src/types/gmConsole.ts`
+```typescript
+export interface Terminal {
+  slug: string;
+  name: string;
+  owner?: string;
+  description?: string;
+}
+
+export interface Location {
+  slug: string;
+  name: string;
+  type: string;  // system, planet, station, deck, room, etc.
+  status?: string;
+  description?: string;
+  children: Location[];
+  terminals: Terminal[];
+  has_map?: boolean;
+}
+
+export interface ActiveView {
+  location_slug: string;
+  view_type: string;
+  view_slug: string;
+  overlay_location_slug: string;
+  overlay_terminal_slug: string;
+  updated_at: string;
+}
+
+export interface BroadcastMessage {
+  sender: string;
+  content: string;
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+}
+```
+
+**Validation:** TypeScript compiles
+
+---
+
+#### Step G.2: Create API Service
+
+**File:** `src/services/gmConsoleApi.ts`
+```typescript
+import { api } from './api';
+import { Location, ActiveView, BroadcastMessage } from '@/types/gmConsole';
+
+export async function getLocations(): Promise<Location[]> {
+  const response = await api.get<{ locations: Location[] }>('/locations/');
+  return response.data.locations;
+}
+
+export async function getActiveView(): Promise<ActiveView> {
+  const response = await api.get<ActiveView>('/active-view/');
+  return response.data;
+}
+
+export async function switchView(locationSlug: string, viewType: string): Promise<void> {
+  await api.post('/switch-view/', { location_slug: locationSlug, view_type: viewType });
+}
+
+export async function showTerminal(locationSlug: string, terminalSlug: string): Promise<void> {
+  await api.post('/show-terminal/', { location_slug: locationSlug, terminal_slug: terminalSlug });
+}
+
+export async function sendBroadcast(message: BroadcastMessage): Promise<void> {
+  await api.post('/broadcast/', message);
+}
+
+export async function switchToStandby(): Promise<void> {
+  await api.post('/switch-view/', { view_type: 'STANDBY' });
+}
+
+export async function switchToDashboard(): Promise<void> {
+  await api.post('/switch-view/', { view_type: 'CAMPAIGN_DASHBOARD' });
+}
+```
+
+**Backend Changes Required:**
+- Add `GET /api/locations/` endpoint to return location hierarchy as JSON
+- Convert existing POST handlers to return JSON instead of redirects
+
+**Validation:** API endpoints return expected JSON
+
+---
+
+#### Step G.3: Create useTreeState Hook
+
+**File:** `src/hooks/useTreeState.ts`
+```typescript
+import { useState, useEffect, useCallback } from 'react';
+
+const STORAGE_KEY = 'gm-console-tree-state';
+
+export function useTreeState() {
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  // Persist to localStorage whenever expandedNodes changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...expandedNodes]));
+  }, [expandedNodes]);
+
+  const toggleNode = useCallback((slug: string) => {
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return next;
+    });
+  }, []);
+
+  const expandPath = useCallback((slugs: string[]) => {
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      slugs.forEach(slug => next.add(slug));
+      return next;
+    });
+  }, []);
+
+  const isExpanded = useCallback((slug: string) => {
+    return expandedNodes.has(slug);
+  }, [expandedNodes]);
+
+  return { expandedNodes, toggleNode, expandPath, isExpanded };
+}
+```
+
+**Validation:** Tree state persists across page refreshes
+
+---
+
+#### Step G.4: Create LocationTree Component
+
+**File:** `src/components/gm/LocationTree.tsx`
+```typescript
+import React from 'react';
+import { Location, Terminal } from '@/types/gmConsole';
+import { LocationNode } from './LocationNode';
+
+interface LocationTreeProps {
+  locations: Location[];
+  activeLocationSlug: string | null;
+  activeTerminalSlug: string | null;
+  expandedNodes: Set<string>;
+  onToggle: (slug: string) => void;
+  onDisplayLocation: (slug: string) => void;
+  onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
+}
+
+export function LocationTree({
+  locations,
+  activeLocationSlug,
+  activeTerminalSlug,
+  expandedNodes,
+  onToggle,
+  onDisplayLocation,
+  onShowTerminal
+}: LocationTreeProps) {
+  return (
+    <div className="location-tree">
+      {locations.map(location => (
+        <LocationNode
+          key={location.slug}
+          location={location}
+          depth={0}
+          activeLocationSlug={activeLocationSlug}
+          activeTerminalSlug={activeTerminalSlug}
+          expandedNodes={expandedNodes}
+          onToggle={onToggle}
+          onDisplayLocation={onDisplayLocation}
+          onShowTerminal={onShowTerminal}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+**File:** `src/components/gm/LocationNode.tsx`
+```typescript
+import React from 'react';
+import { Location } from '@/types/gmConsole';
+
+interface LocationNodeProps {
+  location: Location;
+  depth: number;
+  activeLocationSlug: string | null;
+  activeTerminalSlug: string | null;
+  expandedNodes: Set<string>;
+  onToggle: (slug: string) => void;
+  onDisplayLocation: (slug: string) => void;
+  onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
+}
+
+export function LocationNode({
+  location,
+  depth,
+  activeLocationSlug,
+  activeTerminalSlug,
+  expandedNodes,
+  onToggle,
+  onDisplayLocation,
+  onShowTerminal
+}: LocationNodeProps) {
+  const hasChildren = location.children.length > 0 || location.terminals.length > 0;
+  const isExpanded = expandedNodes.has(location.slug);
+  const isActive = location.slug === activeLocationSlug;
+
+  return (
+    <div className="location-node" style={{ marginLeft: depth * 20 }}>
+      {/* Location Row */}
+      <div
+        className={`location-row ${isActive ? 'active' : ''}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px',
+          backgroundColor: isActive ? '#e3f2fd' : 'transparent',
+          borderRadius: '4px',
+          marginBottom: '2px'
+        }}
+      >
+        {/* Expand/Collapse Toggle */}
+        {hasChildren ? (
+          <button
+            onClick={() => onToggle(location.slug)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px',
+              marginRight: '8px'
+            }}
+          >
+            {isExpanded ? '▼' : '▶'}
+          </button>
+        ) : (
+          <span style={{ width: '24px', marginRight: '8px' }} />
+        )}
+
+        {/* Location Name */}
+        <span style={{ flex: 1, fontWeight: 500 }}>
+          {location.name}
+          <span style={{ color: '#666', fontSize: '12px', marginLeft: '8px' }}>
+            ({location.type})
+          </span>
+        </span>
+
+        {/* Display Button (if location has map) */}
+        {location.has_map && (
+          <button
+            onClick={() => onDisplayLocation(location.slug)}
+            style={{
+              padding: '4px 12px',
+              marginLeft: '8px',
+              backgroundColor: isActive ? '#1976d2' : '#f5f5f5',
+              color: isActive ? 'white' : '#333',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            📺 Display
+          </button>
+        )}
+      </div>
+
+      {/* Children (expanded) */}
+      {isExpanded && (
+        <>
+          {/* Terminals */}
+          {location.terminals.map(terminal => (
+            <div
+              key={terminal.slug}
+              style={{
+                marginLeft: (depth + 1) * 20,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '6px 8px',
+                backgroundColor: terminal.slug === activeTerminalSlug ? '#fff3e0' : 'transparent',
+                borderRadius: '4px',
+                marginBottom: '2px'
+              }}
+            >
+              <span style={{ marginRight: '8px' }}>💻</span>
+              <span style={{ flex: 1 }}>
+                {terminal.name}
+                {terminal.owner && (
+                  <span style={{ color: '#666', fontSize: '12px', marginLeft: '8px' }}>
+                    ({terminal.owner})
+                  </span>
+                )}
+              </span>
+              <button
+                onClick={() => onShowTerminal(location.slug, terminal.slug)}
+                style={{
+                  padding: '4px 12px',
+                  backgroundColor: terminal.slug === activeTerminalSlug ? '#ff9800' : '#f5f5f5',
+                  color: terminal.slug === activeTerminalSlug ? 'white' : '#333',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                ▶ Show
+              </button>
+            </div>
+          ))}
+
+          {/* Child Locations (recursive) */}
+          {location.children.map(child => (
+            <LocationNode
+              key={child.slug}
+              location={child}
+              depth={depth + 1}
+              activeLocationSlug={activeLocationSlug}
+              activeTerminalSlug={activeTerminalSlug}
+              expandedNodes={expandedNodes}
+              onToggle={onToggle}
+              onDisplayLocation={onDisplayLocation}
+              onShowTerminal={onShowTerminal}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+**Validation:** Tree renders with expand/collapse functionality
+
+---
+
+#### Step G.5: Create BroadcastForm Component
+
+**File:** `src/components/gm/BroadcastForm.tsx`
+```typescript
+import React, { useState } from 'react';
+import { BroadcastMessage } from '@/types/gmConsole';
+
+interface BroadcastFormProps {
+  onSubmit: (message: BroadcastMessage) => Promise<void>;
+}
+
+export function BroadcastForm({ onSubmit }: BroadcastFormProps) {
+  const [sender, setSender] = useState('CHARON');
+  const [priority, setPriority] = useState<BroadcastMessage['priority']>('NORMAL');
+  const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit({ sender, priority, content });
+      setContent(''); // Clear message after successful send
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ flex: 1 }}>
+          <label htmlFor="sender" style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+            Sender
+          </label>
+          <input
+            id="sender"
+            type="text"
+            value={sender}
+            onChange={(e) => setSender(e.target.value)}
+            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          />
+        </div>
+
+        <div style={{ width: '150px' }}>
+          <label htmlFor="priority" style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+            Priority
+          </label>
+          <select
+            id="priority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as BroadcastMessage['priority'])}
+            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          >
+            <option value="LOW">LOW</option>
+            <option value="NORMAL">NORMAL</option>
+            <option value="HIGH">HIGH</option>
+            <option value="CRITICAL">CRITICAL</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="content" style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+          Message
+        </label>
+        <textarea
+          id="content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={6}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', resize: 'vertical' }}
+          placeholder="Enter broadcast message..."
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={isSubmitting || !content.trim()}
+        style={{
+          padding: '12px 24px',
+          backgroundColor: isSubmitting ? '#ccc' : '#1976d2',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: isSubmitting ? 'not-allowed' : 'pointer',
+          fontWeight: 600,
+          alignSelf: 'flex-end'
+        }}
+      >
+        {isSubmitting ? 'Transmitting...' : '📡 TRANSMIT'}
+      </button>
+    </form>
+  );
+}
+```
+
+**Validation:** Form submits and clears on success
+
+---
+
+#### Step G.6: Create ViewControls Component
+
+**File:** `src/components/gm/ViewControls.tsx`
+```typescript
+import React from 'react';
+
+interface ViewControlsProps {
+  currentView: string;
+  onStandby: () => void;
+  onDashboard: () => void;
+}
+
+export function ViewControls({ currentView, onStandby, onDashboard }: ViewControlsProps) {
+  return (
+    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+      <button
+        onClick={onStandby}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: currentView === 'STANDBY' ? '#1976d2' : '#f5f5f5',
+          color: currentView === 'STANDBY' ? 'white' : '#333',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontWeight: 500
+        }}
+      >
+        STANDBY
+      </button>
+      <button
+        onClick={onDashboard}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: currentView === 'CAMPAIGN_DASHBOARD' ? '#1976d2' : '#f5f5f5',
+          color: currentView === 'CAMPAIGN_DASHBOARD' ? 'white' : '#333',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontWeight: 500
+        }}
+      >
+        DASHBOARD
+      </button>
+    </div>
+  );
+}
+```
+
+**Validation:** Buttons toggle active state and trigger view switch
+
+---
+
+#### Step G.7: Create ActiveViewInfo Component
+
+**File:** `src/components/gm/ActiveViewInfo.tsx`
+```typescript
+import React from 'react';
+import { ActiveView, Location } from '@/types/gmConsole';
+
+interface ActiveViewInfoProps {
+  activeView: ActiveView | null;
+  locations: Location[];
+}
+
+function findLocation(locations: Location[], slug: string): Location | null {
+  for (const loc of locations) {
+    if (loc.slug === slug) return loc;
+    const found = findLocation(loc.children, slug);
+    if (found) return found;
+  }
+  return null;
+}
+
+export function ActiveViewInfo({ activeView, locations }: ActiveViewInfoProps) {
+  if (!activeView) {
+    return <div style={{ color: '#666' }}>No active view</div>;
+  }
+
+  const location = activeView.location_slug
+    ? findLocation(locations, activeView.location_slug)
+    : null;
+
+  return (
+    <div style={{
+      padding: '16px',
+      backgroundColor: '#f5f5f5',
+      borderRadius: '8px',
+      marginBottom: '16px'
+    }}>
+      <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>
+        ACTIVE VIEW
+      </h3>
+
+      <div style={{ display: 'grid', gap: '8px' }}>
+        <div>
+          <strong>Type:</strong> {activeView.view_type}
+        </div>
+
+        {location && (
+          <>
+            <div><strong>Location:</strong> {location.name}</div>
+            {location.status && <div><strong>Status:</strong> {location.status}</div>}
+            {location.description && <div><strong>Description:</strong> {location.description}</div>}
+          </>
+        )}
+
+        {activeView.overlay_terminal_slug && (
+          <div style={{
+            marginTop: '8px',
+            padding: '8px',
+            backgroundColor: '#fff3e0',
+            borderRadius: '4px'
+          }}>
+            <strong>Overlay Terminal:</strong> {activeView.overlay_terminal_slug}
+          </div>
+        )}
+
+        <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+          Updated: {activeView.updated_at}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**Validation:** Info panel displays current view state
+
+---
+
+#### Step G.8: Create GMConsole Entry Point
+
+**File:** `src/entries/GMConsole.tsx`
+```typescript
+import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom/client';
+import { Location, ActiveView } from '@/types/gmConsole';
+import { LocationTree } from '@/components/gm/LocationTree';
+import { BroadcastForm } from '@/components/gm/BroadcastForm';
+import { ViewControls } from '@/components/gm/ViewControls';
+import { ActiveViewInfo } from '@/components/gm/ActiveViewInfo';
+import { useTreeState } from '@/hooks/useTreeState';
+import * as api from '@/services/gmConsoleApi';
+
+function GMConsoleApp() {
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [activeView, setActiveView] = useState<ActiveView | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { expandedNodes, toggleNode, expandPath, isExpanded } = useTreeState();
+
+  // Load initial data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [locs, view] = await Promise.all([
+          api.getLocations(),
+          api.getActiveView()
+        ]);
+        setLocations(locs);
+        setActiveView(view);
+      } catch (err) {
+        console.error('Failed to load GM console data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  // Poll for active view changes
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const view = await api.getActiveView();
+        setActiveView(view);
+      } catch (err) {
+        console.error('Failed to poll active view:', err);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleDisplayLocation = useCallback(async (slug: string) => {
+    try {
+      await api.switchView(slug, 'ENCOUNTER_MAP');
+      const view = await api.getActiveView();
+      setActiveView(view);
+    } catch (err) {
+      console.error('Failed to display location:', err);
+    }
+  }, []);
+
+  const handleShowTerminal = useCallback(async (locationSlug: string, terminalSlug: string) => {
+    try {
+      await api.showTerminal(locationSlug, terminalSlug);
+      const view = await api.getActiveView();
+      setActiveView(view);
+    } catch (err) {
+      console.error('Failed to show terminal:', err);
+    }
+  }, []);
+
+  const handleStandby = useCallback(async () => {
+    try {
+      await api.switchToStandby();
+      const view = await api.getActiveView();
+      setActiveView(view);
+    } catch (err) {
+      console.error('Failed to switch to standby:', err);
+    }
+  }, []);
+
+  const handleDashboard = useCallback(async () => {
+    try {
+      await api.switchToDashboard();
+      const view = await api.getActiveView();
+      setActiveView(view);
+    } catch (err) {
+      console.error('Failed to switch to dashboard:', err);
+    }
+  }, []);
+
+  const handleBroadcast = useCallback(async (message: Parameters<typeof api.sendBroadcast>[0]) => {
+    await api.sendBroadcast(message);
+  }, []);
+
+  if (isLoading) {
+    return <div style={{ padding: '20px' }}>Loading GM Console...</div>;
+  }
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '400px 1fr',
+      gap: '24px',
+      padding: '24px',
+      height: '100vh',
+      boxSizing: 'border-box',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      {/* Left Sidebar - Location Browser */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        backgroundColor: '#fafafa',
+        borderRadius: '8px',
+        padding: '16px'
+      }}>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Location Browser</h2>
+
+        <ViewControls
+          currentView={activeView?.view_type || ''}
+          onStandby={handleStandby}
+          onDashboard={handleDashboard}
+        />
+
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <LocationTree
+            locations={locations}
+            activeLocationSlug={activeView?.location_slug || null}
+            activeTerminalSlug={activeView?.overlay_terminal_slug || null}
+            expandedNodes={expandedNodes}
+            onToggle={toggleNode}
+            onDisplayLocation={handleDisplayLocation}
+            onShowTerminal={handleShowTerminal}
+          />
+        </div>
+      </div>
+
+      {/* Right Side - Info & Broadcast */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <ActiveViewInfo activeView={activeView} locations={locations} />
+
+        <div style={{
+          flex: 1,
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          padding: '16px'
+        }}>
+          <h2 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Broadcast Message</h2>
+          <BroadcastForm onSubmit={handleBroadcast} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = document.getElementById('gm-console-root');
+if (root) {
+  ReactDOM.createRoot(root).render(<GMConsoleApp />);
+}
+```
+
+**Validation:** Full GM console renders and is functional
+
+---
+
+#### Step G.9: Update Vite Config
+
+**File:** `vite.config.ts` - Add new entry point:
+```typescript
+input: {
+  'shared-console': './src/entries/SharedConsole.tsx',
+  'gm-console': './src/entries/GMConsole.tsx',  // Add this
+},
+```
+
+**Validation:** Build includes gm-console.bundle.js
+
+---
+
+#### Step G.10: Create Django Template
+
+**File:** `terminal/templates/terminal/gm_console_react.html`
+```html
+{% extends 'terminal/base_minimal.html' %}
+{% load static %}
+
+{% block title %}GM Console{% endblock %}
+
+{% block content %}
+<div id="gm-console-root"></div>
+
+<script>
+  window.INITIAL_DATA = {
+    csrfToken: "{{ csrf_token }}"
+  };
+</script>
+
+<script type="module" src="{% static 'js/gm-console.bundle.js' %}"></script>
+{% endblock %}
+```
+
+**File:** `terminal/templates/terminal/base_minimal.html` (if needed)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Mothership GM{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #fff; }
+  </style>
+</head>
+<body>
+  {% block content %}{% endblock %}
+</body>
+</html>
+```
+
+**Add URL route** in `terminal/urls.py`:
+```python
+path('gmconsole/react/', views.gm_console_react, name='gm_console_react'),
+```
+
+**Add view** in `terminal/views.py`:
+```python
+@login_required
+def gm_console_react(request):
+    return render(request, 'terminal/gm_console_react.html')
+```
+
+**Validation:**
+- Visit http://127.0.0.1:8000/gmconsole/react/
+- All functionality works
+
+---
+
+#### Step G.11: Backend API Endpoints
+
+**Add to `terminal/views.py`:**
+
+```python
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+def api_locations(request):
+    """Return full location hierarchy as JSON"""
+    loader = DataLoader()
+    locations = loader.load_all_locations()
+
+    def serialize_location(loc):
+        return {
+            'slug': loc['slug'],
+            'name': loc['name'],
+            'type': loc.get('type', 'unknown'),
+            'status': loc.get('status'),
+            'description': loc.get('description'),
+            'has_map': bool(loc.get('map')),
+            'children': [serialize_location(c) for c in loc.get('children', [])],
+            'terminals': [
+                {
+                    'slug': t['slug'],
+                    'name': t['name'],
+                    'owner': t.get('owner'),
+                    'description': t.get('description')
+                }
+                for t in loc.get('terminals', [])
+            ]
+        }
+
+    return JsonResponse({
+        'locations': [serialize_location(loc) for loc in locations]
+    })
+
+@csrf_exempt
+def api_switch_view(request):
+    """Switch active view (returns JSON)"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    data = json.loads(request.body)
+    view_type = data.get('view_type', 'ENCOUNTER_MAP')
+    location_slug = data.get('location_slug', '')
+
+    active_view = ActiveView.get_current()
+    active_view.view_type = view_type
+    active_view.location_slug = location_slug
+    active_view.save()
+
+    return JsonResponse({'success': True})
+
+@csrf_exempt
+def api_show_terminal(request):
+    """Show terminal overlay (returns JSON)"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    data = json.loads(request.body)
+    location_slug = data.get('location_slug', '')
+    terminal_slug = data.get('terminal_slug', '')
+
+    active_view = ActiveView.get_current()
+    active_view.overlay_location_slug = location_slug
+    active_view.overlay_terminal_slug = terminal_slug
+    active_view.save()
+
+    return JsonResponse({'success': True})
+
+@csrf_exempt
+def api_broadcast(request):
+    """Send broadcast message (returns JSON)"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    data = json.loads(request.body)
+
+    message = Message.objects.create(
+        sender=data.get('sender', 'CHARON'),
+        content=data.get('content', ''),
+        priority=data.get('priority', 'NORMAL'),
+        created_by=request.user
+    )
+
+    return JsonResponse({'success': True, 'message_id': message.id})
+```
+
+**Add URL routes** in `terminal/urls.py`:
+```python
+path('api/locations/', views.api_locations, name='api_locations'),
+path('api/switch-view/', views.api_switch_view, name='api_switch_view'),
+path('api/show-terminal/', views.api_show_terminal, name='api_show_terminal'),
+path('api/broadcast/', views.api_broadcast, name='api_broadcast'),
+```
+
+**Validation:** All API endpoints return expected JSON
+
+---
+
+#### Step G.12: Migrate to React GM Console
+
+1. Test React version at `/gmconsole/react/`
+2. Verify all functionality works:
+   - Tree expand/collapse with persistence
+   - Display location maps
+   - Show terminal overlays
+   - View controls (Standby/Dashboard)
+   - Broadcast messages
+   - Info panel updates
+3. Once validated, update URL to serve React version at `/gmconsole/`
+4. Keep old Django template as backup (rename to `gm_console_legacy.html`)
+
+---
+
+**Deliverables:**
+- [ ] Type definitions for GM console
+- [ ] API service with all endpoints
+- [ ] useTreeState hook with localStorage persistence
+- [ ] LocationTree component (recursive)
+- [ ] LocationNode component
+- [ ] BroadcastForm component
+- [ ] ViewControls component
+- [ ] ActiveViewInfo component
+- [ ] GMConsole entry point
+- [ ] Backend JSON API endpoints
+- [ ] Django template integration
+- [ ] Full functionality parity with original
+
+**Files Created:**
+- `src/types/gmConsole.ts`
+- `src/services/gmConsoleApi.ts`
+- `src/hooks/useTreeState.ts`
+- `src/components/gm/LocationTree.tsx`
+- `src/components/gm/LocationNode.tsx`
+- `src/components/gm/BroadcastForm.tsx`
+- `src/components/gm/ViewControls.tsx`
+- `src/components/gm/ActiveViewInfo.tsx`
+- `src/entries/GMConsole.tsx`
+- `terminal/templates/terminal/gm_console_react.html`
+- `terminal/templates/terminal/base_minimal.html`
+
+**Files Modified:**
+- `vite.config.ts` - Add gm-console entry
+- `terminal/views.py` - Add JSON API endpoints
+- `terminal/urls.py` - Add API routes
+
+**Risk:** LOW - Standard widgets, isolated from terminal display
+
+**STATUS: 🔲 PENDING**
 
 ---
 

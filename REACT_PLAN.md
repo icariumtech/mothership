@@ -26,7 +26,7 @@ This is an AI-executable plan for migrating from Django templates to React.js. T
 | Phase B | ✅ COMPLETE | Dashboard Logic (Star system interaction, info panels) |
 | Phase C | ✅ COMPLETE | Galaxy Map (Three.js TypeScript class with React wrapper) |
 | Phase D | ✅ COMPLETE | System Map (Planet orbits, navigation) |
-| Phase E | 🔲 PENDING | Orbit Map (Planet detail view) |
+| Phase E | ✅ COMPLETE | Orbit Map (Planet detail view) |
 | Phase F | 🔲 PENDING | Message System Migration |
 
 ---
@@ -937,23 +937,77 @@ python manage.py runserver
 
 ---
 
-### Phase E: Orbit Map (PENDING)
+### Phase E: Orbit Map (COMPLETE)
 
 **Goal:** Extract orbit map logic to OrbitScene.ts
 
-**Components to Implement:**
-- OrbitScene TypeScript class
-- Planet detail view with textured sphere
-- Moons with orbital paths and animations
-- Orbital stations with sprite rendering
-- Surface markers with lat/lon positioning
-- Visibility culling for far-side markers
-- Targeting reticle and camera tracking
-- Camera pause when surface marker selected
-- Element selection from menu
-- OrbitMap React wrapper
+**Approach:** Extract & Wrap - Keep existing Three.js logic, extract to TypeScript class, wrap in React component
 
-**STATUS: 🔲 PENDING**
+**Completed Components:**
+
+#### OrbitScene TypeScript Class
+**File:** `src/three/OrbitScene.ts` (~1000 lines)
+- Extracted orbit map visualization logic from shared_console.html
+- Creates Three.js scene, camera, renderer
+- Renders textured planet sphere with rotation animation
+- Renders moons with orbital paths and animations
+- Renders orbital stations as sprites on orbital paths
+- Renders surface markers with lat/lon positioning
+- Visibility culling for far-side markers
+- Targeting reticle for selected elements
+- Camera tracking follows selected moons/stations as they orbit
+- Camera pause when surface marker selected
+- GSAP-powered camera animations for smooth zoom transitions
+- Proper cleanup via dispose() method
+
+#### OrbitMapData Types
+**File:** `src/types/orbitMap.ts`
+- TypeScript interfaces for API data structures
+- `PlanetData`, `MoonData`, `StationData`, `SurfaceMarkerData`
+- `OrbitMapData`, `OrbitSceneCallbacks`
+
+#### OrbitMap React Wrapper
+**File:** `src/components/domain/maps/OrbitMap.tsx`
+- React wrapper managing Three.js lifecycle
+- Props: `systemSlug`, `planetSlug`, `selectedElement`, `onElementSelect`, `onBackToSystem`, `onOrbitLoaded`
+- useEffect hooks for initialization, orbit loading, selection sync
+- Exposes `orbitMapSelectElement` function via window for menu integration
+- Proper cleanup on unmount
+
+#### CampaignDashboard Updates
+- Added orbit view mode with element list (moons, stations, surface markers)
+- Added "BACK TO SYSTEM" button with amber styling
+- Element-specific info panel content (moons, stations, surface markers)
+
+#### SharedConsole Integration
+- Smooth transitions between galaxy, system, and orbit views
+- Info panel adapts to show element-specific information
+- Menu panel shows orbit elements when viewing orbit map
+
+**Files Created:**
+- `src/types/orbitMap.ts` - TypeScript types
+- `src/three/OrbitScene.ts` - Three.js class (~1000 lines)
+- `src/components/domain/maps/OrbitMap.tsx` - React wrapper
+
+**Files Modified:**
+- `src/entries/SharedConsole.tsx` - Integrated OrbitMap, added orbit view state
+- `src/components/domain/dashboard/CampaignDashboard.tsx` - Added orbit view props
+- `src/components/domain/dashboard/InfoPanel.tsx` - Added moon/station/marker info builders
+
+**Deliverables:**
+- [x] OrbitScene TypeScript class with full functionality
+- [x] Planet detail view with textured sphere
+- [x] Moons with orbital paths and animations
+- [x] Orbital stations with sprite rendering
+- [x] Surface markers with lat/lon positioning
+- [x] Visibility culling for far-side markers
+- [x] Targeting reticle and camera tracking
+- [x] Camera pause when surface marker selected
+- [x] Element selection from menu
+- [x] OrbitMap React wrapper
+- [x] Smooth transitions between map views
+
+**STATUS: ✅ COMPLETE**
 
 ---
 

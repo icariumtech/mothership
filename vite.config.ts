@@ -24,6 +24,7 @@ export default defineConfig({
       input: {
         'test-panel': './src/entries/TestPanel.tsx',
         'shared-console': './src/entries/SharedConsole.tsx',
+        'gm-console': './src/entries/GMConsole.tsx',
       },
 
       output: {

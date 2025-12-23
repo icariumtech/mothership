@@ -491,3 +491,143 @@ def get_orbit_map_json(request, system_slug, body_slug):
             'system_slug': system_slug,
             'body_slug': body_slug
         }, status=404)
+
+
+@login_required
+def gm_console_react(request):
+    """
+    React version of the GM Console.
+    Provides a simpler, standard-widget UI for GM control.
+    """
+    return render(request, 'terminal/gm_console_react.html')
+
+
+@login_required
+def api_locations(request):
+    """
+    API endpoint to get the location tree for GM Console.
+    Returns hierarchical location structure with terminals.
+    """
+    from terminal.data_loader import load_all_locations
+
+    def transform_location(loc):
+        """Transform location data for the React frontend."""
+        return {
+            'slug': loc.get('slug', ''),
+            'name': loc.get('name', ''),
+            'type': loc.get('type', ''),
+            'status': loc.get('status', ''),
+            'description': loc.get('description', ''),
+            'has_map': loc.get('has_map', False),
+            'terminals': [
+                {
+                    'slug': t.get('slug', ''),
+                    'name': t.get('name', ''),
+                    'owner': t.get('owner', ''),
+                    'description': t.get('description', '')
+                }
+                for t in loc.get('terminals', [])
+            ],
+            'children': [transform_location(child) for child in loc.get('children', [])]
+        }
+
+    locations = load_all_locations()
+    transformed = [transform_location(loc) for loc in locations]
+
+    return JsonResponse({'locations': transformed})
+
+
+@login_required
+def api_switch_view(request):
+    """
+    API endpoint to switch the active view.
+    POST: { view_type: string, location_slug?: string, view_slug?: string }
+    """
+    from terminal.models import ActiveView
+    import json
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    active_view = ActiveView.get_current()
+    active_view.view_type = data.get('view_type', 'STANDBY')
+    active_view.location_slug = data.get('location_slug', '')
+    active_view.view_slug = data.get('view_slug', '')
+    # Clear overlay when switching views
+    active_view.overlay_location_slug = ''
+    active_view.overlay_terminal_slug = ''
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'view_type': active_view.view_type,
+        'location_slug': active_view.location_slug
+    })
+
+
+@login_required
+def api_show_terminal(request):
+    """
+    API endpoint to show a terminal overlay.
+    POST: { location_slug: string, terminal_slug: string }
+    """
+    from terminal.models import ActiveView
+    import json
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    active_view = ActiveView.get_current()
+    active_view.overlay_location_slug = data.get('location_slug', '')
+    active_view.overlay_terminal_slug = data.get('terminal_slug', '')
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'overlay_terminal_slug': active_view.overlay_terminal_slug
+    })
+
+
+@login_required
+def api_broadcast(request):
+    """
+    API endpoint to send a broadcast message.
+    POST: { sender: string, content: string, priority: string }
+    """
+    import json
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    content = data.get('content', '').strip()
+    if not content:
+        return JsonResponse({'error': 'Message content is required'}, status=400)
+
+    message = Message.objects.create(
+        sender=data.get('sender', 'CHARON'),
+        content=content,
+        priority=data.get('priority', 'NORMAL'),
+        created_by=request.user
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message_id': message.id
+    })

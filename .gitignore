@@ -211,3 +211,5 @@ node_modules/
 # Build artifacts (Vite/TypeScript bundles)
 terminal/static/js/*.bundle.js
 terminal/static/js/*.bundle.js.map
+terminal/static/js/chunks/
+terminal/static/js/assets/

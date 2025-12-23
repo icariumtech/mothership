@@ -1,27 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.contrib import messages as django_messages
 from django.http import JsonResponse
 from .models import Message
 import yaml
 import os
 import json
 from django.conf import settings
-
-
-def find_location_recursive(locations, slug):
-    """
-    Recursively search for a location by slug in a nested location structure.
-    """
-    for location in locations:
-        if location['slug'] == slug:
-            return location
-        if location.get('children'):
-            found = find_location_recursive(location['children'], slug)
-            if found:
-                return found
-    return None
 
 
 @login_required
@@ -42,112 +27,6 @@ def terminal_view(request):
     })
 
 
-@login_required
-def gm_console(request):
-    """
-    GM interface for sending messages to players and managing active view.
-    """
-    from terminal.data_loader import load_all_locations
-    from terminal.models import ActiveView
-
-    # Handle combined view switch + terminal overlay (Show terminal button)
-    # This happens when showing a terminal - we set both the location display AND the overlay
-    if request.method == 'POST' and 'overlay_terminal_slug' in request.POST and 'location_slug' in request.POST:
-        active_view = ActiveView.get_current()
-
-        # Set the main display view (location map)
-        active_view.location_slug = request.POST.get('location_slug', '')
-        active_view.view_type = request.POST.get('view_type', 'MESSAGES')
-        active_view.view_slug = request.POST.get('view_slug', '')
-
-        # Set the overlay (terminal)
-        active_view.overlay_location_slug = request.POST.get('overlay_location_slug', '')
-        active_view.overlay_terminal_slug = request.POST.get('overlay_terminal_slug', '')
-
-        active_view.updated_by = request.user
-        active_view.save()
-
-        django_messages.success(request, f'Displaying {active_view.location_slug} with terminal overlay: {active_view.overlay_terminal_slug}')
-        return redirect('gm_console')
-
-    # Handle terminal overlay only (Show button)
-    if request.method == 'POST' and 'show_terminal' in request.POST:
-        active_view = ActiveView.get_current()
-        active_view.overlay_location_slug = request.POST.get('location_slug', '')
-        active_view.overlay_terminal_slug = request.POST.get('terminal_slug', '')
-        active_view.updated_by = request.user
-        active_view.save()
-
-        django_messages.success(request, f'Showing terminal overlay: {active_view.overlay_terminal_slug}')
-        return redirect('gm_console')
-
-    # Handle view switching POST (Display button)
-    if request.method == 'POST' and 'switch_view' in request.POST:
-        active_view = ActiveView.get_current()
-        active_view.location_slug = request.POST.get('location_slug', '')
-        active_view.view_type = request.POST.get('view_type', 'MESSAGES')
-        active_view.view_slug = request.POST.get('view_slug', '')
-
-        # Clear terminal overlay when location changes
-        active_view.overlay_location_slug = ''
-        active_view.overlay_terminal_slug = ''
-
-        active_view.updated_by = request.user
-        active_view.save()
-
-        django_messages.success(request, f'Active view switched to {active_view.get_view_type_display()}')
-        return redirect('gm_console')
-
-    # Handle broadcast message POST
-    if request.method == 'POST' and 'send_message' in request.POST:
-        sender = request.POST.get('sender', 'CHARON')
-        content = request.POST.get('content')
-        priority = request.POST.get('priority', 'NORMAL')
-
-        if content:
-            message = Message.objects.create(
-                sender=sender,
-                content=content,
-                priority=priority,
-                created_by=request.user
-            )
-
-            # For now, broadcast to all players (no specific recipients)
-            # We'll add recipient selection later
-
-            django_messages.success(request, 'Message sent to all players!')
-            return redirect('gm_console')
-
-    # Load all campaign data
-    locations = load_all_locations()
-
-    # Get current active view
-    active_view = ActiveView.get_current()
-
-    # Find the currently selected location data for detailed display
-    current_location_data = None
-    current_terminal_data = None
-    if active_view.location_slug:
-        current_location_data = find_location_recursive(locations, active_view.location_slug)
-
-        # Find the terminal data if overlay is active
-        if active_view.overlay_terminal_slug and current_location_data:
-            for terminal in current_location_data.get('terminals', []):
-                if terminal['slug'] == active_view.overlay_terminal_slug:
-                    current_terminal_data = terminal
-                    break
-
-    recent_messages = Message.objects.all()[:20]
-
-    return render(request, 'terminal/gm_console.html', {
-        'recent_messages': recent_messages,
-        'locations': locations,
-        'active_view': active_view,
-        'current_location_data': current_location_data,
-        'current_terminal_data': current_terminal_data,
-    })
-
-
 def logout_view(request):
     """
     Custom logout view that handles both GET and POST.
@@ -158,94 +37,6 @@ def logout_view(request):
 
     # For GET requests, show a confirmation page
     return render(request, 'terminal/logout.html')
-
-
-def display_view(request):
-    """
-    Public display view for shared table monitor.
-    No login required - read-only kiosk mode.
-    Displays content based on GM's active view selection.
-    """
-    from terminal.models import ActiveView
-    from terminal.data_loader import load_all_locations, load_location
-
-    # Get current active view from GM console
-    active_view = ActiveView.get_current()
-
-    # Get all broadcast messages (no specific recipients)
-    all_messages = Message.objects.filter(
-        recipients__isnull=True
-    ).order_by('-created_at')[:50]
-
-    # Count messages per sender for sidebar, sorted by most recent message
-    from django.db.models import Count, Max
-    senders = {}
-    sender_counts = Message.objects.filter(
-        recipients__isnull=True
-    ).values('sender').annotate(
-        count=Count('id'),
-        latest=Max('created_at')
-    ).order_by('-latest')  # Sort by most recent message first
-
-    for item in sender_counts:
-        senders[item['sender']] = item['count']
-
-    # Get first sender for initial display (though we won't auto-select)
-    first_sender = list(senders.keys())[0] if senders else ''
-
-    # Load location data if active view has a location
-    location_data = None
-    if active_view.location_slug:
-        # Load all locations recursively to find the selected one
-        all_locations = load_all_locations()
-        location_data = find_location_recursive(all_locations, active_view.location_slug)
-
-    # Load star map data for star system buttons
-    star_map_path = os.path.join(settings.BASE_DIR, 'data', 'galaxy', 'star_map.yaml')
-    star_systems = []
-    star_systems_json = '{}'
-    try:
-        with open(star_map_path, 'r') as f:
-            star_map_data = yaml.safe_load(f)
-            star_systems = star_map_data.get('systems', [])
-
-            # Create a JSON-safe dictionary for JavaScript
-            systems_dict = {}
-            for system in star_systems:
-                # Check if system_map.yaml actually exists for this system
-                location_slug = system.get('location_slug', '')
-                has_system_map = False
-                if location_slug:
-                    system_map_file = os.path.join(settings.BASE_DIR, 'data', 'galaxy', location_slug, 'system_map.yaml')
-                    has_system_map = os.path.exists(system_map_file)
-
-                # Add the dynamically-checked flag to the system dict for template use
-                system['has_system_map'] = has_system_map
-
-                systems_dict[system['name']] = {
-                    'name': system['name'],
-                    'type': system.get('type', ''),
-                    'description': system.get('info', {}).get('description', ''),
-                    'population': system.get('info', {}).get('population', 'Unknown'),
-                    'position': system.get('position', [0, 0, 0]),
-                    'color': system.get('color', ''),
-                    'size': system.get('size', 1),
-                    'location_slug': location_slug,
-                    'has_system_map': has_system_map
-                }
-            star_systems_json = json.dumps(systems_dict)
-    except (FileNotFoundError, Exception):
-        pass  # If star map not found, just show empty list
-
-    return render(request, 'terminal/shared_console.html', {
-        'messages': all_messages,
-        'senders': senders,
-        'first_sender': first_sender,
-        'active_view': active_view,
-        'location_data': location_data,
-        'star_systems': star_systems,
-        'star_systems_json': star_systems_json,
-    })
 
 
 def display_view_react(request):

@@ -10,21 +10,12 @@ from django.conf import settings
 
 
 @login_required
-def terminal_view(request):
+def terminal_view_react(request):
     """
-    Display terminal messages for players.
+    React version of player messages terminal.
     Shows messages in retro computer terminal style.
     """
-    # Get messages for this user (or all messages if none specified)
-    user_messages = Message.objects.filter(
-        recipients=request.user
-    ) | Message.objects.filter(recipients__isnull=True)
-
-    user_messages = user_messages.distinct().order_by('-created_at')[:50]
-
-    return render(request, 'terminal/player_console.html', {
-        'messages': user_messages
-    })
+    return render(request, 'terminal/player_console_react.html')
 
 
 def logout_view(request):

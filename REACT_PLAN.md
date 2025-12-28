@@ -27,8 +27,8 @@ This is an AI-executable plan for migrating from Django templates to React.js. T
 | Phase C | ✅ COMPLETE | Galaxy Map (Three.js TypeScript class with React wrapper) |
 | Phase D | ✅ COMPLETE | System Map (Planet orbits, navigation) |
 | Phase E | ✅ COMPLETE | Orbit Map (Planet detail view) |
-| Phase F | 🔲 PENDING | Message System Migration |
-| Phase G | 🔲 PENDING | GM Console Migration (Standard Widgets) |
+| Phase F | ✅ COMPLETE | Message System Migration |
+| Phase G | ✅ COMPLETE | GM Console Migration (Ant Design Dark Theme) |
 
 ---
 
@@ -1012,7 +1012,7 @@ python manage.py runserver
 
 ---
 
-### Phase F: Message System Migration (DEFERRED)
+### Phase F: Message System Migration (COMPLETE)
 
 **Goal:** Migrate message rendering to React (eliminates 3x duplication)
 
@@ -1404,7 +1404,7 @@ python manage.py runserver
 
 ---
 
-### Phase G: GM Console Migration (PENDING)
+### Phase G: GM Console Migration (COMPLETE)
 
 **Goal:** Migrate GM Console to React using standard browser widgets (no custom terminal theming)
 

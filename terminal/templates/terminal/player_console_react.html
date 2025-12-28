@@ -1,0 +1,51 @@
+{% extends 'terminal/base.html' %}
+
+{% load static %}
+
+{% block title %}Terminal - Incoming Messages{% endblock %}
+
+{% block header %}CHARON COMMUNICATIONS TERMINAL{% endblock %}
+{% block subtitle %}SYSTEM ACTIVE{% endblock %}
+
+{% block extra_css %}
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    /* Hide footer */
+    .terminal-footer {
+        display: none;
+    }
+
+    /* Fixed positioning for content area */
+    .content {
+        position: fixed !important;
+        top: 82px;  /* header height (52px) + 30px margin */
+        left: 30px;
+        right: 30px;
+        bottom: 30px;
+        padding: 0 !important;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    #player-console-root {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="player-console-root"></div>
+
+<script type="module" src="{% static 'js/player-console.bundle.js' %}"></script>
+{% endblock %}

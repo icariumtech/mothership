@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     path('terminal/', views.display_view_react, name='terminal'),  # Shared public display (React)
-    path('messages/', views.terminal_view, name='messages'),  # Personal player messages (requires login)
+    path('messages/', views.terminal_view_react, name='messages'),  # Personal player messages (React)
     path('gmconsole/', views.gm_console_react, name='gm_console'),  # GM controls (React)
     path('logout/', views.logout_view, name='terminal_logout'),
     path('api/messages/', views.get_messages_json, name='messages_api'),

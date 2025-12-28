@@ -92,6 +92,7 @@ bodies:
 
   - name: "Saturn"
     type: "gas_giant"
+    location_slug: "saturn"
     orbital_radius: 140
     orbital_period: 10759
     orbital_angle: 150
@@ -102,6 +103,8 @@ bodies:
     ring_inner: 4.2
     ring_outer: 5.8
     ring_color: 0xE6C9A8
-    clickable: false
+    clickable: true
+    has_orbit_map: true
     info:
-      description: "Ringed gas giant"
+      description: "Ringed gas giant with major settlements on Titan"
+      population: "~135,000 (moons/stations)"

@@ -1,0 +1,112 @@
+# Saturn Orbital Environment Visualization
+# Famous for its spectacular ring system
+
+planet:
+  name: "Saturn"
+  type: "gas_giant"
+  size: 18.0  # Large gas giant
+  rotation_speed: 0.003  # Fast rotation (10.7 hour day)
+  axial_tilt: 26.7  # Degrees - notable tilt
+  texture: "/textures/gas/Gas Giant-EQUIRECTANGULAR-5-2048x1024.png"
+
+  # Ring system
+  rings:
+    inner_radius: 22.0
+    outer_radius: 36.0
+    color: 0xE6C9A8  # Pale tan/cream color
+    opacity: 0.7
+
+camera:
+  position: [0, 40, 70]
+  lookAt: [0, 0, 0]
+  fov: 60
+  zoom_limits: [30, 200]
+
+# Saturn's major moons
+moons:
+  - name: "Titan"
+    location_slug: "titan"
+    orbital_radius: 55
+    orbital_period: 200  # Animation period
+    orbital_angle: 45
+    inclination: 0.3
+    size: 4.0
+    color: 0xD4A574
+    texture: "/textures/rock/Rock-EQUIRECTANGULAR-3-2048x1024.png"
+    clickable: false
+    has_facilities: true
+    info:
+      description: "Saturn's largest moon with a thick atmosphere"
+      population: "~125,000"
+      type: "Inhabited Moon"
+
+  - name: "Enceladus"
+    location_slug: "enceladus"
+    orbital_radius: 42
+    orbital_period: 120
+    orbital_angle: 180
+    inclination: 0.0
+    size: 1.5
+    color: 0xFFFFFF
+    clickable: false
+    has_facilities: true
+    info:
+      description: "Ice moon with subsurface ocean and geysers"
+      population: "~2,500"
+      type: "Research Outpost"
+
+  - name: "Mimas"
+    location_slug: "mimas"
+    orbital_radius: 38
+    orbital_period: 90
+    orbital_angle: 270
+    inclination: 1.5
+    size: 1.0
+    color: 0xCCCCCC
+    clickable: false
+    info:
+      description: "Small ice moon with distinctive large crater"
+      type: "Uninhabited"
+
+  - name: "Rhea"
+    location_slug: "rhea"
+    orbital_radius: 48
+    orbital_period: 150
+    orbital_angle: 90
+    inclination: 0.3
+    size: 2.0
+    color: 0xDDDDDD
+    clickable: false
+    info:
+      description: "Second largest moon of Saturn"
+      type: "Mining Operations"
+
+# Orbital stations
+orbital_stations:
+  - name: "Cronos Station"
+    location_slug: "cronos-station"
+    orbital_radius: 28
+    orbital_period: 60
+    orbital_angle: 0
+    inclination: 5.0
+    size: 1.5
+    icon_type: "station"
+    info:
+      description: "Primary orbital hub for Saturn operations"
+      population: "~8,500"
+      type: "Research/Commercial"
+      status: "OPERATIONAL"
+
+  - name: "Ring Mining Platform Alpha"
+    location_slug: "ring-mining-alpha"
+    orbital_radius: 30
+    orbital_period: 70
+    orbital_angle: 120
+    inclination: 0.0
+    size: 1.2
+    icon_type: "station"
+    info:
+      description: "Ice harvesting facility within ring system"
+      population: "~350"
+      type: "Mining Platform"
+      status: "OPERATIONAL"

@@ -25,6 +25,7 @@ import type {
   PlanetRenderData,
   SelectedElement,
   OrbitSceneCallbacks,
+  RingData,
 } from '../types/orbitMap';
 
 // Constants
@@ -502,11 +503,66 @@ export class OrbitScene {
 
     this.scene.add(latLonGrid);
 
+    // Render rings if defined
+    let ringMesh: THREE.Mesh | undefined;
+    if (planetData.rings) {
+      ringMesh = this.renderRings(planetData.rings, planetData.axial_tilt);
+    }
+
     this.planet = {
       mesh: planetMesh,
       rotationSpeed: planetData.rotation_speed || 0.002,
       latLonGrid,
+      rings: ringMesh,
     };
+  }
+
+  private renderRings(ringData: RingData, axialTilt?: number): THREE.Mesh {
+    const innerRadius = ringData.inner_radius;
+    const outerRadius = ringData.outer_radius;
+    const color = ringData.color || 0xD2B48C;
+    const opacity = ringData.opacity ?? 0.6;
+
+    // Create ring geometry (flat disc with hole)
+    const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 128);
+
+    // Create ring material
+    let ringMaterial: THREE.Material;
+
+    if (ringData.texture) {
+      const textureLoader = new THREE.TextureLoader();
+      const ringTexture = textureLoader.load(ringData.texture);
+      ringTexture.rotation = Math.PI / 2;
+
+      ringMaterial = new THREE.MeshBasicMaterial({
+        map: ringTexture,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: opacity,
+        depthWrite: false,
+      });
+    } else {
+      ringMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: opacity,
+        depthWrite: false,
+      });
+    }
+
+    const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+
+    // Rotate ring to be horizontal (lies in XZ plane)
+    ringMesh.rotation.x = -Math.PI / 2;
+
+    // Apply planet's axial tilt to rings
+    if (axialTilt) {
+      ringMesh.rotation.z = (axialTilt * Math.PI) / 180;
+    }
+
+    this.scene.add(ringMesh);
+    return ringMesh;
   }
 
   private renderMoon(moonData: MoonData): void {
@@ -1015,6 +1071,9 @@ export class OrbitScene {
       }
       if (this.planet.clouds) {
         this.scene.remove(this.planet.clouds);
+      }
+      if (this.planet.rings) {
+        this.scene.remove(this.planet.rings);
       }
       this.planet = null;
     }

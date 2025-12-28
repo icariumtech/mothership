@@ -1,0 +1,28 @@
+name: "Saturn"
+type: "planet"
+parent_system: "sol"
+orbital_position: 6
+
+# Physical properties
+mass: "5.683 × 10^26 kg"
+radius: "58,232 km"
+gravity: "1.065 G (at cloud tops)"
+atmosphere: "Hydrogen-Helium (gas giant)"
+temperature: "-178°C (average cloud top)"
+
+# Notable features
+has_rings: true
+ring_composition: "Ice particles, rocky debris"
+
+# Status
+status: "UNINHABITED"
+population: "None (no solid surface)"
+orbital_period: "29.5 years"
+
+description: "The sixth planet from Sol, famous for its spectacular ring system. Multiple moons including the large moon Titan which hosts significant human settlements. Several mining and research stations orbit the gas giant."
+
+notable_moons:
+  - "Titan (largest, with atmosphere)"
+  - "Enceladus (ice geysers)"
+  - "Mimas"
+  - "Rhea"

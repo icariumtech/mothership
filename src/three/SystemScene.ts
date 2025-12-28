@@ -431,6 +431,38 @@ export class SystemScene {
 
     this.scene.add(planet);
 
+    // Create ring if planet has rings (tube geometry for visible thickness)
+    let ringMesh: THREE.Mesh | undefined;
+    if (bodyData.has_rings) {
+      const planetSize = (bodyData.size || 1) * PLANET_SIZE_MULTIPLIER;
+      // Ring is 1.5x the planet's visual radius
+      const ringRadius = (planetSize / 2) * 1.5;
+      // Lighter teal shade (planet circles are #5a7a7a)
+      const ringColor = 0x7a9a9a;
+      const ringOpacity = 0.8;
+      const tubeRadius = 0.15; // Thickness of the ring line
+
+      // Create a circular path for the tube
+      const curve = new THREE.EllipseCurve(0, 0, ringRadius, ringRadius, 0, 2 * Math.PI, false, 0);
+      const points2D = curve.getPoints(64);
+      const points3D = points2D.map(p => new THREE.Vector3(p.x, 0, p.y));
+
+      // Create a CatmullRomCurve3 from the points (closed loop)
+      const tubePath = new THREE.CatmullRomCurve3(points3D, true);
+
+      const ringGeometry = new THREE.TubeGeometry(tubePath, 64, tubeRadius, 8, true);
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: ringColor,
+        transparent: true,
+        opacity: ringOpacity,
+      });
+
+      ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+      ringMesh.position.copy(planet.position);
+
+      this.scene.add(ringMesh);
+    }
+
     // Store planet data for animation
     this.planets.push({
       mesh: planet,
@@ -440,7 +472,8 @@ export class SystemScene {
       inclination: bodyData.inclination || 0,
       name: bodyData.name,
       clickable: bodyData.clickable || false,
-      locationSlug: bodyData.location_slug
+      locationSlug: bodyData.location_slug,
+      ringMesh
     });
   }
 
@@ -491,6 +524,11 @@ export class SystemScene {
       planetData.mesh.position.x = x * Math.cos(inclinationRad);
       planetData.mesh.position.y = x * Math.sin(inclinationRad);
       planetData.mesh.position.z = z;
+
+      // Update ring position to follow planet
+      if (planetData.ringMesh) {
+        planetData.ringMesh.position.copy(planetData.mesh.position);
+      }
 
       planetData.mesh.rotation.y += PLANET_ROTATION_SPEED;
     });
@@ -587,8 +625,13 @@ export class SystemScene {
   }
 
   clearSystem(): void {
-    // Remove planets
-    this.planets.forEach(p => this.scene.remove(p.mesh));
+    // Remove planets and their rings
+    this.planets.forEach(p => {
+      this.scene.remove(p.mesh);
+      if (p.ringMesh) {
+        this.scene.remove(p.ringMesh);
+      }
+    });
     this.planets = [];
 
     // Remove orbits
@@ -700,9 +743,10 @@ export class SystemScene {
       }
     });
 
-    // Show reticle
+    // Show reticle (larger for ringed planets)
     if (this.selectionReticle) {
-      const reticleScale = (planetData.size || 1.0) * 6.0;
+      const baseScale = (planetData.size || 1.0) * 6.0;
+      const reticleScale = planetData.has_rings ? baseScale * 1.6 : baseScale;
       this.selectionReticle.scale.set(reticleScale, reticleScale, 1);
       this.selectionReticle.visible = true;
     }
@@ -784,9 +828,10 @@ export class SystemScene {
         }
       });
 
-      // Show reticle
+      // Show reticle (larger for ringed planets)
       if (this.selectionReticle) {
-        const reticleScale = (planetData.size || 1.0) * 6.0;
+        const baseScale = (planetData.size || 1.0) * 6.0;
+        const reticleScale = planetData.has_rings ? baseScale * 1.6 : baseScale;
         this.selectionReticle.scale.set(reticleScale, reticleScale, 1);
         this.selectionReticle.visible = true;
       }
@@ -841,10 +886,11 @@ export class SystemScene {
     );
     this.lastPlanetAngle = Math.atan2(planetPos.z, planetPos.x);
 
-    // Show reticle
+    // Show reticle (larger for ringed planets)
     if (this.selectionReticle) {
       this.selectionReticle.position.copy(planetPos);
-      const reticleScale = (planetData.size || 1.0) * 6.0;
+      const baseScale = (planetData.size || 1.0) * 6.0;
+      const reticleScale = planetData.has_rings ? baseScale * 1.6 : baseScale;
       this.selectionReticle.scale.set(reticleScale, reticleScale, 1);
       this.selectionReticle.visible = true;
     }

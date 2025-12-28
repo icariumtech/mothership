@@ -27,6 +27,12 @@ export interface BodyData {
   surface_facility_count?: number;
   orbital_station_count?: number;
   tidally_locked?: boolean;
+  // Ring system properties
+  has_rings?: boolean;
+  ring_inner?: number;
+  ring_outer?: number;
+  ring_color?: number;
+  ring_opacity?: number;
   info?: {
     description?: string;
     population?: string;
@@ -68,6 +74,7 @@ export interface PlanetRenderData {
   name: string;
   clickable: boolean;
   locationSlug?: string;
+  ringMesh?: any; // THREE.Mesh for ring geometry
 }
 
 /**

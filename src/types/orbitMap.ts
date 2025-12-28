@@ -3,6 +3,14 @@
  * Matches the structure returned by /api/orbit-map/{system_slug}/{body_slug}/
  */
 
+export interface RingData {
+  inner_radius: number;
+  outer_radius: number;
+  color?: number;
+  opacity?: number;
+  texture?: string;
+}
+
 export interface PlanetData {
   name: string;
   type?: string;
@@ -12,6 +20,7 @@ export interface PlanetData {
   texture?: string;
   normal_map?: string;
   sun_declination?: number;
+  rings?: RingData;
 }
 
 export interface MoonData {
@@ -130,6 +139,7 @@ export interface PlanetRenderData {
   rotationSpeed: number;
   latLonGrid?: any; // THREE.Mesh
   clouds?: any; // THREE.Mesh
+  rings?: any; // THREE.Mesh
 }
 
 /**

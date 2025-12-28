@@ -213,3 +213,4 @@ terminal/static/js/*.bundle.js
 terminal/static/js/*.bundle.js.map
 terminal/static/js/chunks/
 terminal/static/js/assets/
+node_modules

@@ -385,13 +385,13 @@ function latLonToVector3(lat, lon, radius) {
 
 1. **Extend Moon Support**
    - [x] Update planet location.yaml files to prepare for moon directories
-   - [ ] Create example moon directory structure (sol/earth/luna/) *(not needed for tau-ceti)*
+   - [x] Create example moon directory structure (sol/earth/luna/)
    - [x] Add moon location.yaml with type: "moon" *(tau-ceti-e, tau-ceti-f have moons)*
    - [x] Test that load_location_recursive() correctly loads moons
 
 2. **Create Orbit Map Data Files**
    - [x] Design orbit_map.yaml schema (finalized and documented)
-   - [ ] Create orbit_map.yaml for Earth *(deferred - not priority)*
+   - [x] Create orbit_map.yaml for Earth (uses procedural texture_config)
    - [x] Create orbit_map.yaml for Tau Ceti e (with moons and stations)
    - [x] Create orbit_map.yaml for Tau Ceti f (with moon, station, surface markers)
    - [x] Add surface_markers for existing facilities
@@ -474,7 +474,7 @@ function latLonToVector3(lat, lon, radius) {
     - [x] List moons in menu panel
     - [x] List orbital stations in menu panel
     - [x] List surface locations in menu panel
-    - [ ] Update details panel when clicking orbit arrow (should show planet details)
+    - [x] Update details panel when clicking orbit arrow (shows planet details)
     - [ ] Show detailed info when clicking moon/station/marker *(deferred)*
 
 14. **Moon Drill-Down** *(deferred - not yet needed)*

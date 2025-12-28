@@ -1,0 +1,383 @@
+@import '../../../styles/variables.css';
+
+/* Grid Layout */
+.campaign-dashboard {
+  width: 100vw;
+  height: 100vh;
+  background-color: transparent;
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  grid-template-rows: 52px 1fr;
+  grid-template-areas:
+    "top-left top-center top-right"
+    "left center right";
+  gap: 30px;
+  padding: 0 30px 30px 30px;
+}
+
+/* Panel Positioning */
+.dashboard-top {
+  grid-area: top-center;
+  width: 25vw;
+  justify-self: center;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-left {
+  grid-area: left;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 30px;
+  min-height: 0;
+}
+
+.dashboard-right {
+  grid-area: right;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 30px;
+  min-height: 0;
+}
+
+/* Base Panel Styling */
+.panel-base {
+  background-color: var(--color-bg-panel);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Chamfer Utilities */
+.chamfer-tl {
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
+}
+
+.chamfer-tr {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+
+.chamfer-bl {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.chamfer-br {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+
+.chamfer-tr-bl {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.chamfer-tl-br {
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+.chamfer-bl-br {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+/* Border Utilities */
+.border-all {
+  box-shadow:
+    inset 0 2px 0 0 var(--color-border-main),
+    inset -2px 0 0 0 var(--color-border-main),
+    inset 0 -2px 0 0 var(--color-border-main),
+    inset 2px 0 0 0 var(--color-border-main);
+}
+
+/* Corner Line Utilities */
+.corner-line-tr-bl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.corner-line-tr-bl::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.corner-line-tl-br::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.corner-line-tl-br::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.corner-line-bl-br::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.corner-line-bl-br::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+/* Top Panel */
+.dashboard-top-content {
+  color: var(--color-teal);
+  font-size: 18px;
+  letter-spacing: 3px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+/* Panel Headers */
+.dashboard-panel-header {
+  padding: 12px 2px 0 2px;
+  flex-shrink: 0;
+}
+
+.dashboard-panel-header h3 {
+  color: var(--color-teal);
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin: 0;
+  padding: 0 10px 5px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+/* Adjust h3 padding for chamfered corners */
+.chamfer-tr .dashboard-panel-header h3,
+.chamfer-tr-bl .dashboard-panel-header h3 {
+  padding-right: 22px;
+}
+
+.chamfer-tl .dashboard-panel-header h3,
+.chamfer-tl-br .dashboard-panel-header h3 {
+  padding-left: 22px;
+}
+
+/* Panel Content */
+.dashboard-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  margin-bottom: 2px;
+  margin-left: 2px;
+  margin-right: 2px;
+  background-color: #171717;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    #1a1a1a 2px,
+    #1a1a1a 3px
+  );
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+/* Scrollbar */
+.dashboard-panel-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.dashboard-panel-content::-webkit-scrollbar-track {
+  background: #171717;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    #1a1a1a 2px,
+    #1a1a1a 3px
+  );
+  border: none;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.dashboard-panel-content::-webkit-scrollbar-thumb {
+  background: #0f1515;
+  border: 1px solid #4a6b6b;
+}
+
+.dashboard-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #1a2525;
+}
+
+.dashboard-panel-content::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Star System Rows */
+.star-system-row {
+  display: flex;
+  align-items: stretch;
+  margin: 5px 0;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.star-system-row:hover {
+  border-color: var(--color-border-main);
+  background-color: rgba(74, 107, 107, 0.1);
+}
+
+.star-system-row.selected {
+  border-color: var(--color-amber);
+  background-color: rgba(139, 115, 85, 0.15);
+}
+
+.star-system-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  padding: 12px 10px;
+}
+
+.star-system-checkbox {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-border-main);
+  background-color: transparent;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.star-system-checkbox.checked {
+  background-color: var(--color-amber);
+  border-color: var(--color-amber);
+}
+
+.star-system-name {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.system-map-btn-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  background-color: rgba(74, 107, 107, 0.2);
+  border-left: 1px solid var(--color-teal);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.system-map-btn-container:hover {
+  background-color: var(--color-teal);
+}
+
+.system-map-btn-container:hover .system-map-btn-icon {
+  color: var(--color-amber-bright);
+}
+
+.system-map-btn-icon {
+  color: var(--color-amber);
+  font-size: 10px;
+}
+
+/* Planet Indicators */
+.planet-indicators {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-right: 8px;
+}
+
+.planet-indicator {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.surface-indicator {
+  color: var(--color-amber);
+}
+
+.orbital-indicator {
+  color: var(--color-amber);
+}
+
+/* Orbit View Styles */
+.orbit-section-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 12px 0 6px 0;
+  text-transform: uppercase;
+}
+
+.orbit-element-row {
+  margin: 3px 0;
+}

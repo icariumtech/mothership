@@ -1,0 +1,27 @@
+/* V2-1 Color Palette - Muted Multi-Color (Alien Romulus Style) */
+:root {
+  /* Primary colors - muted teal and amber */
+  --color-teal: #4a6b6b;
+  --color-teal-bright: #5a7a7a;
+  --color-amber: #8b7355;
+  --color-amber-bright: #9a8065;
+
+  /* Background colors */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-panel: #1a2525;
+  --color-bg-panel-dark: #0f1515;
+
+  /* Text colors */
+  --color-text-primary: #9a9a9a;
+  --color-text-secondary: #7a7a7a;
+  --color-text-muted: #5a5a5a;
+
+  /* Border colors */
+  --color-border-main: #4a6b6b;
+  --color-border-subtle: #2a3a3a;
+
+  /* State colors */
+  --color-active: #8b7355;
+  --color-inactive: #3a4a4a;
+}

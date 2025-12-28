@@ -1,0 +1,42 @@
+/* Galaxy Map Container */
+.galaxy-map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 1;
+  transition: opacity 1s ease-out;
+}
+
+.galaxy-map-container.transitioning-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.galaxy-map-container.hidden {
+  display: none;
+}
+
+.galaxy-map-container.transitioning-in {
+  animation: mapFadeZoomIn 1.2s ease-out forwards;
+}
+
+.galaxy-map-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Shared map transition animations */
+@keyframes mapFadeZoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

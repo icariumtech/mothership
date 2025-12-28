@@ -1,0 +1,152 @@
+@import '../../styles/variables.css';
+
+.panel-wrapper {
+  background-color: var(--color-bg-panel);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;  /* Fill parent container to enable content scrolling */
+
+  /* Base clip-path (will be overridden by specific chamfer classes) */
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+
+  /* Borders using box-shadow */
+  box-shadow:
+    inset 0 2px 0 0 var(--color-border-main),
+    inset -2px 0 0 0 var(--color-border-main),
+    inset 0 -2px 0 0 var(--color-border-main),
+    inset 2px 0 0 0 var(--color-border-main);
+}
+
+.panel-wrapper.active {
+  box-shadow:
+    inset 0 2px 0 0 var(--color-teal-bright),
+    inset -2px 0 0 0 var(--color-teal-bright),
+    inset 0 -2px 0 0 var(--color-teal-bright),
+    inset 2px 0 0 0 var(--color-teal-bright);
+}
+
+/* Diagonal corner lines */
+.panel-wrapper.chamfer-tl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+  pointer-events: none;
+}
+
+.panel-wrapper.chamfer-br::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+  pointer-events: none;
+}
+
+/* Active state for diagonal lines */
+.panel-wrapper.active.chamfer-tl::before {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-teal-bright) calc(50% - 2px),
+    var(--color-teal-bright) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.panel-wrapper.active.chamfer-br::after {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-teal-bright) calc(50% - 2px),
+    var(--color-teal-bright) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+/* Panel header */
+.panel-header {
+  padding: 12px 2px 0 2px;
+  flex-shrink: 0;
+}
+
+.panel-header h3 {
+  color: var(--color-teal);
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin: 0;
+  padding: 0 10px 5px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+/* Scrollable content */
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  margin: 2px 5px 2px 2px;
+  background-color: #171717;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    #1a1a1a 2px,
+    #1a1a1a 3px
+  );
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+/* Custom scrollbar */
+.panel-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: #171717;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    #1a1a1a 2px,
+    #1a1a1a 3px
+  );
+  border: none;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: #0f1515;
+  border: 1px solid #4a6b6b;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background: #1a2525;
+}
+
+.panel-content::-webkit-scrollbar-button {
+  display: none;
+}

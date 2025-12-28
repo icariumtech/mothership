@@ -1,0 +1,54 @@
+@import '../../styles/variables.css';
+
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 52px;
+  padding: 0 40px 0 22px;
+  background-color: #1a2828;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 1px,
+    rgba(0, 0, 0, 0.3) 1px,
+    rgba(0, 0, 0, 0.3) 2px
+  );
+  border-bottom: 1px solid var(--color-border-subtle);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.terminal-header-left {
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+}
+
+.terminal-header h1 {
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: #5a7575;
+  margin: 0;
+  font-weight: normal;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+.terminal-header .subtitle {
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: #5a7575;
+  margin: 0;
+  font-weight: normal;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+.terminal-header-right {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #8b7355;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}

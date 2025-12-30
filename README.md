@@ -37,7 +37,22 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-### 3. Run the Server
+### 3. Configure Environment Variables
+
+Copy the example environment file and configure your settings:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes (for CHARON AI) | Your Anthropic API key for Claude integration. Get one at https://console.anthropic.com/ |
+| `OBSIDIAN_VAULT_PATH` | No | Path to your Obsidian vault containing campaign lore. CHARON will read allowed sections from linked notes for context-aware responses. |
+
+### 4. Run the Server
 
 ```bash
 ./start_server.sh

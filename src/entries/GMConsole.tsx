@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ConfigProvider, theme, Layout, message } from 'antd';
+import { ConfigProvider, theme, Layout, message, Tabs } from 'antd';
+import { RobotOutlined, NotificationOutlined } from '@ant-design/icons';
 import { Location, ActiveView, BroadcastMessage } from '@/types/gmConsole';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { useTreeState } from '@/hooks/useTreeState';
 import { LocationTree } from '@/components/gm/LocationTree';
 import { BroadcastForm } from '@/components/gm/BroadcastForm';
 import { ViewControls } from '@/components/gm/ViewControls';
-import { ActiveViewInfo } from '@/components/gm/ActiveViewInfo';
 import { CharonPanel } from '@/components/gm/CharonPanel';
 import { charonApi } from '@/services/charonApi';
 
@@ -171,11 +171,56 @@ function GMConsole() {
             onDashboard={handleDashboard}
             onCharon={handleCharonActivate}
           />
-          <ActiveViewInfo activeView={activeView} locations={locations} />
-          <CharonPanel
-            currentViewType={activeView?.view_type || 'STANDBY'}
+          <Tabs
+            defaultActiveKey="charon"
+            type="card"
+            items={[
+              {
+                key: 'charon',
+                label: (
+                  <span>
+                    <RobotOutlined style={{ marginRight: 8 }} />
+                    CHARON TERMINAL
+                  </span>
+                ),
+                children: (
+                  <div style={{
+                    padding: 16,
+                    background: '#141414',
+                    border: '1px solid #303030',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    marginTop: -16
+                  }}>
+                    <CharonPanel
+                      currentViewType={activeView?.view_type || 'STANDBY'}
+                    />
+                  </div>
+                ),
+              },
+              {
+                key: 'broadcast',
+                label: (
+                  <span>
+                    <NotificationOutlined style={{ marginRight: 8 }} />
+                    BROADCAST MESSAGE
+                  </span>
+                ),
+                children: (
+                  <div style={{
+                    padding: 16,
+                    background: '#141414',
+                    border: '1px solid #303030',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    marginTop: -16
+                  }}>
+                    <BroadcastForm onSubmit={handleBroadcast} />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <BroadcastForm onSubmit={handleBroadcast} />
         </div>
       </Content>
     </Layout>

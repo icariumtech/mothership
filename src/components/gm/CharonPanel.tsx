@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Card,
   Button,
   Input,
   Space,
@@ -13,7 +12,6 @@ import {
   Tooltip,
 } from 'antd';
 import {
-  RobotOutlined,
   SendOutlined,
   CheckOutlined,
   CloseOutlined,
@@ -205,17 +203,8 @@ export function CharonPanel({ currentViewType }: CharonPanelProps) {
   return (
     <>
       {contextHolder}
-      <Card
-        title={
-          <Space>
-            <RobotOutlined />
-            <span>CHARON TERMINAL</span>
-          </Space>
-        }
-        size="small"
-      >
-        {/* Mode Toggle */}
-        <Space style={{ marginBottom: 16 }}>
+      {/* Mode Toggle */}
+      <Space style={{ marginBottom: 16 }}>
           <Text>Mode:</Text>
           <Button.Group>
             <Button
@@ -407,7 +396,6 @@ export function CharonPanel({ currentViewType }: CharonPanelProps) {
             />
           </>
         )}
-      </Card>
 
       {/* Edit Modal */}
       <Modal

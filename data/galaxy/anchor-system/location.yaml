@@ -1,0 +1,21 @@
+name: "Anchor System"
+type: "system"
+star_type: "K-type (Orange Dwarf)"
+galactic_coordinates: [15, -3, 8]
+status: "ACTIVE COLONY"
+
+description: "The Anchor System serves as the primary hub for the Outer Veil region. Named for its role as the stable anchor point for jump routes into the deeper reaches of the Veil."
+
+# Lore link to Obsidian vault note
+lore:
+  note: "02 Systems/Anchor System.md"
+  charon_sections:
+    - "Overview"
+    - "Physical Characteristics"
+    - "Astrography"
+  exclude_patterns:
+    - "^GM Notes"
+    - "^Secrets"
+    - "^Session"
+    - "^Adventure Hooks"
+    - "^Campaign"

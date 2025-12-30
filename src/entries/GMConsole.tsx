@@ -8,6 +8,8 @@ import { LocationTree } from '@/components/gm/LocationTree';
 import { BroadcastForm } from '@/components/gm/BroadcastForm';
 import { ViewControls } from '@/components/gm/ViewControls';
 import { ActiveViewInfo } from '@/components/gm/ActiveViewInfo';
+import { CharonPanel } from '@/components/gm/CharonPanel';
+import { charonApi } from '@/services/charonApi';
 
 const { Content, Sider } = Layout;
 
@@ -118,6 +120,18 @@ function GMConsole() {
     }
   }, [showStatus]);
 
+  const handleCharonActivate = useCallback(async () => {
+    try {
+      await charonApi.switchToCharon();
+      const viewData = await gmConsoleApi.getActiveView();
+      setActiveView(viewData);
+      showStatus('CHARON Terminal activated');
+    } catch (err) {
+      console.error('Error activating CHARON:', err);
+      showStatus('Failed to activate CHARON', 'error');
+    }
+  }, [showStatus]);
+
   if (loading) {
     return (
       <div style={{ padding: 20, textAlign: 'center', color: '#fff' }}>
@@ -155,8 +169,12 @@ function GMConsole() {
             currentView={activeView?.view_type || 'STANDBY'}
             onStandby={handleStandby}
             onDashboard={handleDashboard}
+            onCharon={handleCharonActivate}
           />
           <ActiveViewInfo activeView={activeView} locations={locations} />
+          <CharonPanel
+            currentViewType={activeView?.view_type || 'STANDBY'}
+          />
           <BroadcastForm onSubmit={handleBroadcast} />
         </div>
       </Content>

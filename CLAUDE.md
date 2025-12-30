@@ -550,6 +550,12 @@ All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function
 ✓ **Surface Marker Animation Pause**: Planet rotation and orbital animations pause when surface marker is selected, allowing free camera control
 ✓ **Camera Return Animation**: Smooth animated return to default planet view when deselecting elements
 ✓ **Unified Targeting Reticle**: Consistent reticle design across galaxy, system, and orbit maps (concentric circles with cross cutout and corner brackets)
+✓ **CHARON AI Terminal**: Fullscreen AI chat interface with centered panel (1/3 width, 3/4 height, 4-corner chamfered design)
+✓ **4-Corner Chamfered Panels**: Panel component supports configurable chamfered corners (any combination of tl, tr, bl, br)
+✓ **Typewriter Effect**: CHARON responses display character-by-character with blinking cursor
+✓ **Processing Indicator**: Animated "Processing..." with cycling dots while waiting for AI response
+✓ **Inline Query Input**: Query mode shows `> ` prompt inline with conversation flow
+✓ **Mode Switching**: CHARON terminal supports DISPLAY mode (blinking cursor) and QUERY mode (user input)
 
 ## Planned Features
 - [ ] Terminal conversation view renderer

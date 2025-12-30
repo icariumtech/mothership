@@ -22,6 +22,7 @@ export interface ActiveView {
   view_slug: string;
   overlay_location_slug: string;
   overlay_terminal_slug: string;
+  charon_mode: 'DISPLAY' | 'QUERY';
   updated_at: string;
 }
 

@@ -133,6 +133,8 @@ def get_active_view_json(request):
         'view_slug': active_view.view_slug or '',
         'overlay_location_slug': active_view.overlay_location_slug or '',
         'overlay_terminal_slug': active_view.overlay_terminal_slug or '',
+        'charon_mode': active_view.charon_mode,
+        'charon_location_path': active_view.charon_location_path or '',
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     })
 
@@ -413,3 +415,290 @@ def api_broadcast(request):
         'success': True,
         'message_id': message.id
     })
+
+
+# =============================================================================
+# CHARON Terminal API Endpoints
+# =============================================================================
+
+def api_charon_conversation(request):
+    """
+    Get current CHARON conversation (public for terminal display).
+    GET: Returns conversation messages and mode.
+    """
+    from terminal.models import ActiveView
+    from terminal.charon_session import CharonSessionManager
+
+    active_view = ActiveView.get_current()
+    conversation = CharonSessionManager.get_conversation()
+
+    return JsonResponse({
+        'mode': active_view.charon_mode,
+        'charon_location_path': active_view.charon_location_path or '',
+        'messages': conversation,
+        'updated_at': active_view.updated_at.isoformat(),
+    })
+
+
+def api_charon_submit_query(request):
+    """
+    Player submits query to CHARON (only works in Query mode).
+    POST: { query: string }
+    """
+    from terminal.models import ActiveView
+    from terminal.charon_session import CharonSessionManager, CharonMessage
+    from terminal.charon_ai import CharonAI
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    # Check if in query mode
+    active_view = ActiveView.get_current()
+    if active_view.charon_mode != 'QUERY':
+        return JsonResponse({'error': 'Terminal not in query mode'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    query = data.get('query', '').strip()
+    if not query:
+        return JsonResponse({'error': 'Query required'}, status=400)
+
+    # Add player query to conversation
+    query_msg = CharonMessage(role='user', content=query)
+    CharonSessionManager.add_message(query_msg)
+
+    # Generate AI response with location-specific knowledge
+    location_path = active_view.charon_location_path or None
+    ai = CharonAI(location_path=location_path)
+    conversation = CharonSessionManager.get_conversation()
+    response = ai.generate_response(query, conversation)
+
+    # Queue for GM approval
+    pending_id = CharonSessionManager.add_pending_response(
+        query=query,
+        response=response,
+        query_id=query_msg.message_id
+    )
+
+    return JsonResponse({
+        'success': True,
+        'query_id': query_msg.message_id,
+        'pending_id': pending_id,
+    })
+
+
+@login_required
+def api_charon_switch_mode(request):
+    """
+    Switch CHARON terminal mode (Display/Query).
+    POST: { mode: 'DISPLAY' | 'QUERY' }
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    mode = data.get('mode', 'DISPLAY')
+    if mode not in ('DISPLAY', 'QUERY'):
+        return JsonResponse({'error': 'Invalid mode. Must be DISPLAY or QUERY'}, status=400)
+
+    active_view = ActiveView.get_current()
+    active_view.charon_mode = mode
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({'success': True, 'mode': mode})
+
+
+@login_required
+def api_charon_set_location(request):
+    """
+    Set the active CHARON instance location.
+    POST: { location_path: string }
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    location_path = data.get('location_path', '')
+
+    active_view = ActiveView.get_current()
+    active_view.charon_location_path = location_path
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({'success': True, 'location_path': location_path})
+
+
+@login_required
+def api_charon_send_message(request):
+    """
+    GM sends message directly to CHARON terminal.
+    POST: { content: string }
+    """
+    from terminal.charon_session import CharonSessionManager, CharonMessage
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    content = data.get('content', '').strip()
+    if not content:
+        return JsonResponse({'error': 'Content required'}, status=400)
+
+    msg = CharonMessage(role='charon', content=content)
+    CharonSessionManager.add_message(msg)
+
+    return JsonResponse({'success': True, 'message_id': msg.message_id})
+
+
+@login_required
+def api_charon_generate(request):
+    """
+    GM prompts AI to generate a CHARON response for review.
+    POST: { prompt: string }
+    Returns a pending response for GM approval.
+    """
+    from terminal.charon_session import CharonSessionManager
+    from terminal.charon_ai import CharonAI
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    prompt = data.get('prompt', '').strip()
+    if not prompt:
+        return JsonResponse({'error': 'Prompt required'}, status=400)
+
+    # Get active CHARON location for knowledge context
+    from terminal.models import ActiveView
+    active_view = ActiveView.get_current()
+    location_path = active_view.charon_location_path or None
+
+    # Generate AI response based on GM's prompt with location knowledge
+    ai = CharonAI(location_path=location_path)
+    conversation = CharonSessionManager.get_conversation()
+
+    # Create a context message for the AI that includes the GM's prompt
+    context_prompt = f"[GM CONTEXT: {prompt}]\n\nGenerate a CHARON response based on this context."
+    response = ai.generate_response(context_prompt, conversation)
+
+    # Queue for GM approval (using prompt as the "query" for reference)
+    import uuid
+    pending_id = CharonSessionManager.add_pending_response(
+        query=f"[GM Prompt] {prompt}",
+        response=response,
+        query_id=str(uuid.uuid4())
+    )
+
+    return JsonResponse({
+        'success': True,
+        'pending_id': pending_id,
+        'response': response,
+    })
+
+
+@login_required
+def api_charon_pending(request):
+    """
+    GM gets list of pending AI responses for approval.
+    GET: Returns list of pending responses.
+    """
+    from terminal.charon_session import CharonSessionManager
+
+    pending = CharonSessionManager.get_pending_responses()
+    return JsonResponse({'pending': pending})
+
+
+@login_required
+def api_charon_approve(request):
+    """
+    GM approves a pending response.
+    POST: { pending_id: string, modified_content?: string }
+    """
+    from terminal.charon_session import CharonSessionManager
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    pending_id = data.get('pending_id')
+    if not pending_id:
+        return JsonResponse({'error': 'pending_id required'}, status=400)
+
+    modified = data.get('modified_content')
+    success = CharonSessionManager.approve_response(pending_id, modified)
+
+    if success:
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'error': 'Pending response not found'}, status=404)
+
+
+@login_required
+def api_charon_reject(request):
+    """
+    GM rejects a pending response.
+    POST: { pending_id: string }
+    """
+    from terminal.charon_session import CharonSessionManager
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    pending_id = data.get('pending_id')
+    if not pending_id:
+        return JsonResponse({'error': 'pending_id required'}, status=400)
+
+    success = CharonSessionManager.reject_response(pending_id)
+
+    if success:
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'error': 'Pending response not found'}, status=404)
+
+
+@login_required
+def api_charon_clear(request):
+    """
+    GM clears the CHARON conversation.
+    POST: {}
+    """
+    from terminal.charon_session import CharonSessionManager
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    CharonSessionManager.clear_conversation()
+    return JsonResponse({'success': True})

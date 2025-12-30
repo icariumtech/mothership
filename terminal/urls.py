@@ -16,4 +16,15 @@ urlpatterns = [
     path('api/gm/switch-view/', views.api_switch_view, name='api_switch_view'),
     path('api/gm/show-terminal/', views.api_show_terminal, name='api_show_terminal'),
     path('api/gm/broadcast/', views.api_broadcast, name='api_broadcast'),
+    # CHARON Terminal API endpoints
+    path('api/charon/conversation/', views.api_charon_conversation, name='charon_conversation'),
+    path('api/charon/submit-query/', views.api_charon_submit_query, name='charon_submit_query'),
+    path('api/gm/charon/mode/', views.api_charon_switch_mode, name='charon_switch_mode'),
+    path('api/gm/charon/location/', views.api_charon_set_location, name='charon_set_location'),
+    path('api/gm/charon/send/', views.api_charon_send_message, name='charon_send_message'),
+    path('api/gm/charon/generate/', views.api_charon_generate, name='charon_generate'),
+    path('api/gm/charon/pending/', views.api_charon_pending, name='charon_pending'),
+    path('api/gm/charon/approve/', views.api_charon_approve, name='charon_approve'),
+    path('api/gm/charon/reject/', views.api_charon_reject, name='charon_reject'),
+    path('api/gm/charon/clear/', views.api_charon_clear, name='charon_clear'),
 ]

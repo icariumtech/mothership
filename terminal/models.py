@@ -15,6 +15,12 @@ class ActiveView(models.Model):
         ('COMM_TERMINAL', 'Communications Terminal'),
         ('MESSAGES', 'Broadcast Messages'),
         ('SHIP_DASHBOARD', 'Ship Dashboard'),
+        ('CHARON_TERMINAL', 'CHARON Interactive Terminal'),
+    ]
+
+    CHARON_MODE_CHOICES = [
+        ('DISPLAY', 'Display Only'),
+        ('QUERY', 'Query Mode'),
     ]
 
     # Identifiers to locate the view data on disk
@@ -45,6 +51,19 @@ class ActiveView(models.Model):
         max_length=200,
         blank=True,
         help_text='Terminal slug to show as overlay'
+    )
+
+    # CHARON Terminal specific fields
+    charon_mode = models.CharField(
+        max_length=20,
+        choices=CHARON_MODE_CHOICES,
+        default='DISPLAY',
+        help_text='CHARON terminal interaction mode'
+    )
+    charon_location_path = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text='Path to active CHARON instance (e.g., "tau-ceti/tau-ceti-f/verdant-base")'
     )
 
     # Metadata

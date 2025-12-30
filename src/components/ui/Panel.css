@@ -26,7 +26,133 @@
     inset 2px 0 0 0 var(--color-teal-bright);
 }
 
-/* Diagonal corner lines */
+/* Clip-path variations for different corner combinations */
+
+/* All 4 corners */
+.panel-wrapper.chamfer-tl.chamfer-tr.chamfer-bl.chamfer-br {
+  clip-path: polygon(
+    12px 0, calc(100% - 12px) 0,
+    100% 12px, 100% calc(100% - 12px),
+    calc(100% - 12px) 100%, 12px 100%,
+    0 calc(100% - 12px), 0 12px
+  );
+}
+
+/* Top-left and bottom-right (default) */
+.panel-wrapper.chamfer-tl.chamfer-br:not(.chamfer-tr):not(.chamfer-bl) {
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+
+/* Top-right and bottom-left */
+.panel-wrapper.chamfer-tr.chamfer-bl:not(.chamfer-tl):not(.chamfer-br) {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+/* Diagonal corner lines - using extra elements for 4-corner support */
+.panel-wrapper .corner-tl,
+.panel-wrapper .corner-tr,
+.panel-wrapper .corner-bl,
+.panel-wrapper .corner-br {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.panel-wrapper .corner-tl {
+  top: 0;
+  left: 0;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.panel-wrapper .corner-tr {
+  top: 0;
+  right: 0;
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.panel-wrapper .corner-bl {
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.panel-wrapper .corner-br {
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    to top left,
+    transparent calc(50% - 2px),
+    var(--color-border-main) calc(50% - 2px),
+    var(--color-border-main) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+/* Active state for corner elements */
+.panel-wrapper.active .corner-tl,
+.panel-wrapper.active .corner-tr,
+.panel-wrapper.active .corner-bl,
+.panel-wrapper.active .corner-br {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 2px),
+    var(--color-teal-bright) calc(50% - 2px),
+    var(--color-teal-bright) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.panel-wrapper.active .corner-tr {
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 2px),
+    var(--color-teal-bright) calc(50% - 2px),
+    var(--color-teal-bright) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.panel-wrapper.active .corner-bl {
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 2px),
+    var(--color-teal-bright) calc(50% - 2px),
+    var(--color-teal-bright) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+.panel-wrapper.active .corner-br {
+  background: linear-gradient(
+    to top left,
+    transparent calc(50% - 2px),
+    var(--color-teal-bright) calc(50% - 2px),
+    var(--color-teal-bright) calc(50% + 2px),
+    transparent calc(50% + 2px)
+  );
+}
+
+/* Legacy pseudo-element support for 2-corner panels */
 .panel-wrapper.chamfer-tl::before {
   content: '';
   position: absolute;

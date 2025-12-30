@@ -1,0 +1,35 @@
+name: "Veil Station"
+type: "station"
+parent_system: "anchor-system"
+orbital_body: "Anchor-3"
+orbital_position: "L2 Lagrange Point"
+
+status: "OPERATIONAL"
+population: "~12,000"
+crew_capacity: 15000
+established: "2167"
+
+description: "The primary orbital station in the Anchor System, serving as the gateway to the Outer Veil. A bustling hub of commerce, industry, and interstellar travel."
+
+# Lore link to Obsidian vault note
+lore:
+  note: "03 Locations/Veil Station.md"
+  charon_sections:
+    - "Overview"
+    - "Description"
+    - "Major Sections"
+    - "Customs and Procedures"
+    - "Berthing and Docking"
+  exclude_patterns:
+    - "^GM Notes"
+    - "^Secrets"
+    - "^Session"
+    - "^Adventure Hooks"
+    - "^Campaign"
+    - "^Notable NPCs"
+
+# CHARON instance configuration
+charon:
+  instance_id: "VEIL-CHARON-001"
+  clearance_level: "INTERNAL"
+  designation: "Station Operations AI"

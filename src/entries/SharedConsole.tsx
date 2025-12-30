@@ -8,6 +8,7 @@ import { InfoPanel, buildSystemInfoHTML, buildPlanetInfoHTML, buildMoonInfoHTML,
 import { GalaxyMap, GalaxyMapHandle } from '@components/domain/maps/GalaxyMap';
 import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
 import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
+import { CharonTerminalView } from '@components/domain/charon/CharonTerminalView';
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../types/orbitMap';
@@ -16,7 +17,7 @@ import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../
 type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
 
 // View types matching Django's ActiveView model
-type ViewType = 'STANDBY' | 'CAMPAIGN_DASHBOARD' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
+type ViewType = 'STANDBY' | 'CAMPAIGN_DASHBOARD' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD' | 'CHARON_TERMINAL';
 
 // Map view modes for CAMPAIGN_DASHBOARD
 type MapViewMode = 'galaxy' | 'system' | 'orbit';
@@ -122,6 +123,7 @@ function SharedConsole() {
 
   const viewType = activeView?.view_type || 'STANDBY';
   const isStandby = viewType === 'STANDBY';
+  const isCharonTerminal = viewType === 'CHARON_TERMINAL';
 
   // Build star systems list from API data
   const starSystems: StarSystem[] = (starMapData?.systems || [])
@@ -457,17 +459,21 @@ function SharedConsole() {
       {/* Scanline overlay */}
       <div className="scanline-overlay" />
 
-      {/* Header - hidden in standby mode */}
+      {/* Header - hidden in standby and CHARON terminal modes */}
       <TerminalHeader
         title="MOTHERSHIP"
         subtitle="TERMINAL"
         rightText="STATION ACCESS"
-        hidden={isStandby}
+        hidden={isStandby || isCharonTerminal}
       />
 
       {/* View content */}
       {viewType === 'STANDBY' && (
         <StandbyView title="MOTHERSHIP" subtitle="The Outer Veil" />
+      )}
+
+      {viewType === 'CHARON_TERMINAL' && (
+        <CharonTerminalView />
       )}
 
       {viewType === 'CAMPAIGN_DASHBOARD' && (
@@ -575,7 +581,7 @@ function SharedConsole() {
       )}
 
       {/* Other view types can be added here */}
-      {viewType !== 'STANDBY' && viewType !== 'CAMPAIGN_DASHBOARD' && (
+      {viewType !== 'STANDBY' && viewType !== 'CAMPAIGN_DASHBOARD' && viewType !== 'CHARON_TERMINAL' && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',

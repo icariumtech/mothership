@@ -4,10 +4,12 @@ A retro-futuristic web application for game masters running Mothership RPG campa
 
 ## Features
 
+- **CHARON AI Terminal**: Interactive AI chat interface with typewriter effect, processing indicators, and inline query input
 - **Atmospheric Terminal Messaging**: Send in-character messages to players styled like classic sci-fi computer systems
-- **Retro CRT Aesthetic**: Green monospace terminal with scanline effects and screen flicker
+- **Retro CRT Aesthetic**: Muted teal/amber color scheme with chamfered angular panels and subtle scanline effects
+- **3D Galaxy Map**: Interactive Three.js visualization with stars, travel routes, nebulae, and drill-down to system/orbit views
 - **Priority Levels**: Mark messages as LOW, NORMAL, HIGH, or CRITICAL with visual indicators
-- **GM Console**: Easy-to-use interface for game masters to broadcast messages
+- **GM Console**: Easy-to-use interface for game masters to broadcast messages and control terminal displays
 - **Player Terminal**: Clean message viewer for players to receive communications
 
 ## Quick Start
@@ -88,16 +90,19 @@ Use the Django admin panel to create player accounts:
 
 - **Backend**: Django 5.2.7
 - **Database**: SQLite (development)
-- **Frontend**: HTML/CSS with retro terminal styling
+- **Frontend**: React 18, TypeScript, Three.js for 3D visualizations
+- **Build**: Vite with npm
+- **Styling**: CSS with muted teal/amber color palette, chamfered angular panels
 
 ## Next Steps
 
 Future features planned:
 - Campaign tracking (characters, ships, missions)
-- Interactive universe map
 - Session management and GM notes
 - Real-time message notifications
 - Player character sheet management
+- Sound effects and ambient audio
+- Combat/encounter tracking on maps
 
 ## License
 

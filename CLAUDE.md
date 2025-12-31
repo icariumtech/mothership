@@ -118,7 +118,7 @@ The application supports multiple view types that can be displayed on a shared t
 
 **View Types:**
 1. **Standby Screen** (`STANDBY`) - Default idle state with animated text
-2. **Campaign Dashboard** (`CAMPAIGN_DASHBOARD`) - Campaign overview with crew, missions, ship status
+2. **Bridge** (`BRIDGE`) - Ship bridge view with galaxy map, system navigation, and status panels
 3. **Broadcast Messages** (`MESSAGES`) - Traditional broadcast message system
 4. **Communication Terminals** (`COMM_TERMINAL`) - NPC terminal message logs with inbox/sent
 5. **Encounter Maps** (`ENCOUNTER_MAP`) - Tactical maps for combat scenarios
@@ -577,7 +577,7 @@ Tracks which view the shared terminal is currently displaying.
 class ActiveView(models.Model):
     # Main display
     location_slug = CharField       # e.g., "research_base_alpha"
-    view_type = CharField           # STANDBY, CAMPAIGN_DASHBOARD, MESSAGES, COMM_TERMINAL, ENCOUNTER_MAP, SHIP_DASHBOARD
+    view_type = CharField           # STANDBY, BRIDGE, MESSAGES, COMM_TERMINAL, ENCOUNTER_MAP, SHIP_DASHBOARD
     view_slug = CharField           # e.g., "commanders_terminal"
 
     # Overlay (terminal on top of map)

@@ -27,8 +27,8 @@ async function switchToStandby(): Promise<void> {
   await api.post('/gm/switch-view/', { view_type: 'STANDBY' });
 }
 
-async function switchToDashboard(): Promise<void> {
-  await api.post('/gm/switch-view/', { view_type: 'CAMPAIGN_DASHBOARD' });
+async function switchToBridge(): Promise<void> {
+  await api.post('/gm/switch-view/', { view_type: 'BRIDGE' });
 }
 
 export const gmConsoleApi = {
@@ -38,5 +38,5 @@ export const gmConsoleApi = {
   showTerminal,
   sendBroadcast,
   switchToStandby,
-  switchToDashboard
+  switchToBridge
 };

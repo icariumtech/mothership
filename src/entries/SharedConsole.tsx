@@ -18,9 +18,9 @@ import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../
 type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
 
 // View types matching Django's ActiveView model
-type ViewType = 'STANDBY' | 'CAMPAIGN_DASHBOARD' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD' | 'CHARON_TERMINAL';
+type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD' | 'CHARON_TERMINAL';
 
-// Map view modes for CAMPAIGN_DASHBOARD
+// Map view modes for BRIDGE view
 type MapViewMode = 'galaxy' | 'system' | 'orbit';
 
 interface ActiveView {
@@ -122,7 +122,7 @@ function SharedConsole() {
           }
 
           // Reset selection on view change to dashboard
-          if (data.view_type === 'CAMPAIGN_DASHBOARD') {
+          if (data.view_type === 'BRIDGE') {
             setSelectedSystem(null);
             setMapViewMode('galaxy');
             setCurrentSystemSlug(null);
@@ -510,7 +510,7 @@ function SharedConsole() {
         subtitle="TERMINAL"
         rightText="STATION ACCESS"
         hidden={isStandby || isCharonTerminal}
-        onCharonClick={viewType === 'CAMPAIGN_DASHBOARD' ? handleCharonDialogOpen : undefined}
+        onCharonClick={viewType === 'BRIDGE' ? handleCharonDialogOpen : undefined}
       />
 
       {/* View content */}
@@ -530,7 +530,7 @@ function SharedConsole() {
         }} />
       )}
 
-      {viewType === 'CAMPAIGN_DASHBOARD' && (
+      {viewType === 'BRIDGE' && (
         <>
           {/* Galaxy Map - renders behind dashboard panels, stays mounted during system view */}
           {(mapViewMode === 'galaxy' || mapViewMode === 'system' || galaxyTransition !== 'idle') && (
@@ -635,7 +635,7 @@ function SharedConsole() {
       )}
 
       {/* Other view types can be added here */}
-      {viewType !== 'STANDBY' && viewType !== 'CAMPAIGN_DASHBOARD' && viewType !== 'CHARON_TERMINAL' && (
+      {viewType !== 'STANDBY' && viewType !== 'BRIDGE' && viewType !== 'CHARON_TERMINAL' && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',

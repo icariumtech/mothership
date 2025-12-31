@@ -4,11 +4,11 @@ import { PauseCircleOutlined, DashboardOutlined, RobotOutlined } from '@ant-desi
 interface ViewControlsProps {
   currentView: string;
   onStandby: () => void;
-  onDashboard: () => void;
+  onBridge: () => void;
   onCharon: () => void;
 }
 
-export function ViewControls({ currentView, onStandby, onDashboard, onCharon }: ViewControlsProps) {
+export function ViewControls({ currentView, onStandby, onBridge, onCharon }: ViewControlsProps) {
   return (
     <Card title="VIEW CONTROLS" size="small">
       <Space>
@@ -20,11 +20,11 @@ export function ViewControls({ currentView, onStandby, onDashboard, onCharon }: 
           STANDBY
         </Button>
         <Button
-          type={currentView === 'CAMPAIGN_DASHBOARD' ? 'primary' : 'default'}
+          type={currentView === 'BRIDGE' ? 'primary' : 'default'}
           icon={<DashboardOutlined />}
-          onClick={onDashboard}
+          onClick={onBridge}
         >
-          DASHBOARD
+          BRIDGE
         </Button>
         <Button
           type={currentView === 'CHARON_TERMINAL' ? 'primary' : 'default'}

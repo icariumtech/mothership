@@ -10,7 +10,7 @@ class ActiveView(models.Model):
     """
     VIEW_TYPE_CHOICES = [
         ('STANDBY', 'Standby Screen'),
-        ('CAMPAIGN_DASHBOARD', 'Campaign Dashboard'),
+        ('BRIDGE', 'Bridge'),
         ('ENCOUNTER_MAP', 'Encounter Map'),
         ('COMM_TERMINAL', 'Communications Terminal'),
         ('MESSAGES', 'Broadcast Messages'),

@@ -97,15 +97,15 @@ function GMConsole() {
     }
   }, [showStatus]);
 
-  const handleDashboard = useCallback(async () => {
+  const handleBridge = useCallback(async () => {
     try {
-      await gmConsoleApi.switchToDashboard();
+      await gmConsoleApi.switchToBridge();
       const viewData = await gmConsoleApi.getActiveView();
       setActiveView(viewData);
-      showStatus('Switched to dashboard');
+      showStatus('Switched to bridge');
     } catch (err) {
-      console.error('Error switching to dashboard:', err);
-      showStatus('Failed to switch to dashboard', 'error');
+      console.error('Error switching to bridge:', err);
+      showStatus('Failed to switch to bridge', 'error');
     }
   }, [showStatus]);
 
@@ -180,7 +180,7 @@ function GMConsole() {
           <ViewControls
             currentView={activeView?.view_type || 'STANDBY'}
             onStandby={handleStandby}
-            onDashboard={handleDashboard}
+            onBridge={handleBridge}
             onCharon={handleCharonActivate}
           />
           <Tabs

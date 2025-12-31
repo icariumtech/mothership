@@ -27,4 +27,5 @@ urlpatterns = [
     path('api/gm/charon/approve/', views.api_charon_approve, name='charon_approve'),
     path('api/gm/charon/reject/', views.api_charon_reject, name='charon_reject'),
     path('api/gm/charon/clear/', views.api_charon_clear, name='charon_clear'),
+    path('api/gm/charon/toggle-dialog/', views.api_charon_toggle_dialog, name='charon_toggle_dialog'),
 ]

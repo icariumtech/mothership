@@ -65,6 +65,10 @@ class ActiveView(models.Model):
         blank=True,
         help_text='Path to active CHARON instance (e.g., "tau-ceti/tau-ceti-f/verdant-base")'
     )
+    charon_dialog_open = models.BooleanField(
+        default=False,
+        help_text='Whether the CHARON dialog overlay is visible to players'
+    )
 
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)

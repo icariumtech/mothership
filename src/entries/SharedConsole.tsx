@@ -8,7 +8,8 @@ import { InfoPanel, buildSystemInfoHTML, buildPlanetInfoHTML, buildMoonInfoHTML,
 import { GalaxyMap, GalaxyMapHandle } from '@components/domain/maps/GalaxyMap';
 import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
 import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
-import { CharonTerminalView } from '@components/domain/charon/CharonTerminalView';
+import { CharonDialog } from '@components/domain/charon/CharonDialog';
+import { charonApi } from '@/services/charonApi';
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../types/orbitMap';
@@ -28,6 +29,7 @@ interface ActiveView {
   view_slug: string;
   overlay_location_slug: string;
   overlay_terminal_slug: string;
+  charon_dialog_open: boolean;
   updated_at: string;
 }
 
@@ -71,6 +73,9 @@ function SharedConsole() {
   const [systemTransition, setSystemTransition] = useState<TransitionState>('idle');
   const [orbitTransition, setOrbitTransition] = useState<TransitionState>('idle');
 
+  // CHARON dialog state
+  const [charonDialogOpen, setCharonDialogOpen] = useState(false);
+
   // Refs for map components to call dive methods
   const galaxyMapRef = useRef<GalaxyMapHandle>(null);
   const systemMapRef = useRef<SystemMapHandle>(null);
@@ -99,8 +104,24 @@ function SharedConsole() {
 
         // Check if view changed
         if (data.updated_at !== activeView?.updated_at) {
+          const previousViewType = activeView?.view_type;
           setActiveView(data);
-          // Reset selection on view change
+
+          // Handle CHARON_TERMINAL view transitions
+          if (data.view_type === 'CHARON_TERMINAL' && previousViewType !== 'CHARON_TERMINAL') {
+            // Switching TO CHARON_TERMINAL - auto-open dialog
+            setCharonDialogOpen(true);
+            charonApi.toggleDialog(true).catch(console.error);
+          } else if (data.view_type !== 'CHARON_TERMINAL' && previousViewType === 'CHARON_TERMINAL') {
+            // Switching AWAY from CHARON_TERMINAL - auto-close dialog
+            setCharonDialogOpen(false);
+            charonApi.toggleDialog(false).catch(console.error);
+          } else {
+            // Sync charon dialog state for other transitions
+            setCharonDialogOpen(data.charon_dialog_open);
+          }
+
+          // Reset selection on view change to dashboard
           if (data.view_type === 'CAMPAIGN_DASHBOARD') {
             setSelectedSystem(null);
             setMapViewMode('galaxy');
@@ -112,6 +133,9 @@ function SharedConsole() {
             setSelectedOrbitElementType(null);
             setSelectedOrbitElementData(null);
           }
+        } else if (data.charon_dialog_open !== charonDialogOpen) {
+          // Sync dialog state even if updated_at didn't change
+          setCharonDialogOpen(data.charon_dialog_open);
         }
       } catch (error) {
         console.error('Failed to poll active view:', error);
@@ -119,7 +143,7 @@ function SharedConsole() {
     }, 2000);
 
     return () => clearInterval(pollInterval);
-  }, [activeView?.updated_at]);
+  }, [activeView?.updated_at, activeView?.view_type, charonDialogOpen]);
 
   const viewType = activeView?.view_type || 'STANDBY';
   const isStandby = viewType === 'STANDBY';
@@ -403,6 +427,27 @@ function SharedConsole() {
     }
   }, []);
 
+  // CHARON dialog handlers
+  const handleCharonDialogOpen = useCallback(async () => {
+    setCharonDialogOpen(true); // Immediate feedback
+    try {
+      await charonApi.toggleDialog(true);
+    } catch (error) {
+      console.error('Failed to open CHARON dialog:', error);
+      setCharonDialogOpen(false); // Revert on error
+    }
+  }, []);
+
+  const handleCharonDialogClose = useCallback(async () => {
+    setCharonDialogOpen(false); // Immediate feedback
+    try {
+      await charonApi.toggleDialog(false);
+    } catch (error) {
+      console.error('Failed to close CHARON dialog:', error);
+      setCharonDialogOpen(true); // Revert on error
+    }
+  }, []);
+
   // Build planet list for menu when in system view
   const systemPlanets = useMemo(() => {
     if (!systemMapData?.bodies) return [];
@@ -465,6 +510,7 @@ function SharedConsole() {
         subtitle="TERMINAL"
         rightText="STATION ACCESS"
         hidden={isStandby || isCharonTerminal}
+        onCharonClick={viewType === 'CAMPAIGN_DASHBOARD' ? handleCharonDialogOpen : undefined}
       />
 
       {/* View content */}
@@ -473,7 +519,15 @@ function SharedConsole() {
       )}
 
       {viewType === 'CHARON_TERMINAL' && (
-        <CharonTerminalView />
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: '#000',
+          zIndex: 1
+        }} />
       )}
 
       {viewType === 'CAMPAIGN_DASHBOARD' && (
@@ -592,6 +646,12 @@ function SharedConsole() {
           View type "{viewType}" not yet implemented in React
         </div>
       )}
+
+      {/* CHARON Dialog - overlay for quick CHARON access from dashboard */}
+      <CharonDialog
+        open={charonDialogOpen}
+        onClose={handleCharonDialogClose}
+      />
     </>
   );
 }

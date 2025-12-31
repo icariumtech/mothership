@@ -28,9 +28,11 @@ const { Text } = Typography;
 
 interface CharonPanelProps {
   currentViewType: string;
+  charonDialogOpen?: boolean;
+  onDialogToggle?: () => void;
 }
 
-export function CharonPanel({ currentViewType }: CharonPanelProps) {
+export function CharonPanel({ currentViewType, charonDialogOpen = false, onDialogToggle }: CharonPanelProps) {
   const [mode, setMode] = useState<CharonMode>('DISPLAY');
   const [locationPath, setLocationPath] = useState('');
   const [locationInput, setLocationInput] = useState('');
@@ -44,7 +46,8 @@ export function CharonPanel({ currentViewType }: CharonPanelProps) {
   const [editedContent, setEditedContent] = useState('');
   const [messageApi, contextHolder] = message.useMessage();
 
-  const isActive = currentViewType === 'CHARON_TERMINAL';
+  // CHARON panel is active when either the terminal view is displayed OR the dialog is open
+  const isActive = currentViewType === 'CHARON_TERMINAL' || charonDialogOpen;
 
   // Poll for updates when CHARON terminal is active
   useEffect(() => {
@@ -203,8 +206,9 @@ export function CharonPanel({ currentViewType }: CharonPanelProps) {
   return (
     <>
       {contextHolder}
-      {/* Mode Toggle */}
-      <Space style={{ marginBottom: 16 }}>
+      {/* Mode Toggle and Dialog */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Space>
           <Text>Mode:</Text>
           <Button.Group>
             <Button
@@ -235,6 +239,15 @@ export function CharonPanel({ currentViewType }: CharonPanelProps) {
             </Button>
           </Tooltip>
         </Space>
+        <Button
+          type={charonDialogOpen ? 'primary' : 'default'}
+          onClick={onDialogToggle}
+          size="small"
+          icon={charonDialogOpen ? <CheckOutlined /> : undefined}
+        >
+          SHOWING
+        </Button>
+      </div>
 
         {/* Location Selector */}
         <div style={{ marginBottom: 16 }}>

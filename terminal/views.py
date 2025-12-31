@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from .models import Message
 import yaml
 import os
@@ -135,6 +136,7 @@ def get_active_view_json(request):
         'overlay_terminal_slug': active_view.overlay_terminal_slug or '',
         'charon_mode': active_view.charon_mode,
         'charon_location_path': active_view.charon_location_path or '',
+        'charon_dialog_open': active_view.charon_dialog_open,
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     })
 
@@ -440,10 +442,13 @@ def api_charon_conversation(request):
     })
 
 
+@csrf_exempt
 def api_charon_submit_query(request):
     """
     Player submits query to CHARON (only works in Query mode).
     POST: { query: string }
+    Public endpoint - players submit queries from shared terminal.
+    CSRF exempt since this is called from unauthenticated player terminals.
     """
     from terminal.models import ActiveView
     from terminal.charon_session import CharonSessionManager, CharonMessage
@@ -702,3 +707,41 @@ def api_charon_clear(request):
 
     CharonSessionManager.clear_conversation()
     return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def api_charon_toggle_dialog(request):
+    """
+    Toggle the CHARON dialog overlay visibility.
+    POST: { open?: boolean }
+    If open is not specified, toggles the current state.
+    Public endpoint - players can open/close dialog from shared terminal.
+    CSRF exempt since this is called from unauthenticated player terminals.
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = {}
+
+    active_view = ActiveView.get_current()
+
+    # If 'open' is specified, set to that value; otherwise toggle
+    if 'open' in data:
+        active_view.charon_dialog_open = bool(data['open'])
+    else:
+        active_view.charon_dialog_open = not active_view.charon_dialog_open
+
+    # Only set updated_by if user is authenticated
+    if request.user.is_authenticated:
+        active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'charon_dialog_open': active_view.charon_dialog_open
+    })

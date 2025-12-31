@@ -132,6 +132,18 @@ function GMConsole() {
     }
   }, [showStatus]);
 
+  const handleToggleCharonDialog = useCallback(async () => {
+    try {
+      const result = await charonApi.toggleDialog();
+      const viewData = await gmConsoleApi.getActiveView();
+      setActiveView(viewData);
+      showStatus(result.charon_dialog_open ? 'CHARON dialog shown' : 'CHARON dialog hidden');
+    } catch (err) {
+      console.error('Error toggling CHARON dialog:', err);
+      showStatus('Failed to toggle CHARON dialog', 'error');
+    }
+  }, [showStatus]);
+
   if (loading) {
     return (
       <div style={{ padding: 20, textAlign: 'center', color: '#fff' }}>
@@ -194,6 +206,8 @@ function GMConsole() {
                   }}>
                     <CharonPanel
                       currentViewType={activeView?.view_type || 'STANDBY'}
+                      charonDialogOpen={activeView?.charon_dialog_open || false}
+                      onDialogToggle={handleToggleCharonDialog}
                     />
                   </div>
                 ),

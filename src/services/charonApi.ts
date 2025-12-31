@@ -79,6 +79,14 @@ async function switchToCharon(): Promise<void> {
   await api.post('/gm/switch-view/', { view_type: 'CHARON_TERMINAL' });
 }
 
+async function toggleDialog(open?: boolean): Promise<{ charon_dialog_open: boolean }> {
+  const response = await api.post<{ success: boolean; charon_dialog_open: boolean }>(
+    '/gm/charon/toggle-dialog/',
+    open !== undefined ? { open } : {}
+  );
+  return response.data;
+}
+
 export const charonApi = {
   // Public
   getConversation,
@@ -93,4 +101,5 @@ export const charonApi = {
   rejectResponse,
   clearConversation,
   switchToCharon,
+  toggleDialog,
 };

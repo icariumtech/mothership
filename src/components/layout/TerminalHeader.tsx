@@ -5,13 +5,15 @@ interface TerminalHeaderProps {
   subtitle?: string;
   rightText?: string;
   hidden?: boolean;
+  onCharonClick?: () => void;
 }
 
 export function TerminalHeader({
   title,
   subtitle,
   rightText,
-  hidden = false
+  hidden = false,
+  onCharonClick
 }: TerminalHeaderProps) {
   if (hidden) return null;
 
@@ -21,9 +23,18 @@ export function TerminalHeader({
         <h1>{title}</h1>
         {subtitle && <span className="subtitle">{subtitle}</span>}
       </div>
-      {rightText && (
-        <div className="terminal-header-right">{rightText}</div>
-      )}
+      <div className="terminal-header-right">
+        {onCharonClick && (
+          <button
+            className="charon-link"
+            onClick={onCharonClick}
+            type="button"
+          >
+            CHARON
+          </button>
+        )}
+        {rightText && <span>{rightText}</span>}
+      </div>
     </header>
   );
 }

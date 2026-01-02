@@ -1,11 +1,16 @@
 /**
  * EncounterMapDisplay - 2D map display for facilities
  *
- * Shows static map images for stations, ships, bases, decks, and rooms.
- * Clean full-screen display without UI overlays.
+ * Supports two map formats:
+ * 1. Interactive SVG maps (new) - YAML with rooms, doors, terminals, POIs
+ * 2. Legacy PNG images - Static map images
+ *
+ * Automatically routes to the correct renderer based on map data.
  */
 
 import './EncounterMapDisplay.css';
+import { EncounterMapRenderer } from './EncounterMapRenderer';
+import { EncounterMapData, isEncounterMap } from '../../../types/encounterMap';
 
 interface LocationData {
   slug: string;
@@ -17,6 +22,18 @@ interface LocationData {
   map?: {
     image_path?: string;
     name?: string;
+    // Encounter map fields (when present, use SVG renderer)
+    grid?: {
+      width: number;
+      height: number;
+      unit_size?: number;
+      show_grid?: boolean;
+    };
+    rooms?: any[];
+    corridors?: any[];
+    doors?: any[];
+    terminals?: any[];
+    poi?: any[];
   };
 }
 
@@ -25,7 +42,19 @@ interface EncounterMapDisplayProps {
 }
 
 export function EncounterMapDisplay({ locationData }: EncounterMapDisplayProps) {
-  const mapImagePath = locationData?.map?.image_path;
+  const mapData = locationData?.map;
+
+  // Check if this is an interactive encounter map (has rooms defined)
+  if (mapData && isEncounterMap(mapData)) {
+    return (
+      <EncounterMapRenderer
+        mapData={mapData as EncounterMapData}
+      />
+    );
+  }
+
+  // Legacy image-based map
+  const mapImagePath = mapData?.image_path;
 
   // No map available
   if (!mapImagePath) {

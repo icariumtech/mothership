@@ -29,6 +29,18 @@ interface LocationData {
   map?: {
     image_path?: string;
     name?: string;
+    // Encounter map fields (when present, use SVG renderer)
+    grid?: {
+      width: number;
+      height: number;
+      unit_size?: number;
+      show_grid?: boolean;
+    };
+    rooms?: any[];
+    corridors?: any[];
+    doors?: any[];
+    terminals?: any[];
+    poi?: any[];
   };
   // For systems/planets, we need parent info
   parent_slug?: string;

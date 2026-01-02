@@ -50,6 +50,9 @@ class DataLoader:
         # Load map if exists (single map per location in map/ directory)
         location_data['map'] = self.load_map(location_dir)
 
+        # Set has_map flag for tree selection
+        location_data['has_map'] = location_data['map'] is not None
+
         # For backwards compatibility, also set 'maps' as a list
         location_data['maps'] = [location_data['map']] if location_data['map'] else []
 

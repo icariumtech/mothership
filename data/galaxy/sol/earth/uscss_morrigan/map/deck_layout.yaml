@@ -1,5 +1,220 @@
 name: "USCSS Morrigan - Main Deck"
 location_name: "USCSS Morrigan"
 description: "Main deck layout showing bridge, engineering, and crew quarters"
-grid_size_x: 20
-grid_size_y: 15
+
+grid:
+  width: 28
+  height: 18
+  unit_size: 40
+  show_grid: false
+
+# Node-graph style: rooms are separate boxes, not touching
+rooms:
+  - id: bridge
+    name: "BRIDGE"
+    x: 1
+    y: 1
+    width: 5
+    height: 3
+    description: "Primary flight control and navigation center"
+    status: "OPERATIONAL"
+
+  - id: crew_quarters
+    name: "CREW QUARTERS"
+    x: 11
+    y: 1
+    width: 5
+    height: 3
+    description: "Crew sleeping pods and personal storage"
+    status: "OPERATIONAL"
+
+  - id: medical
+    name: "MEDICAL BAY"
+    x: 21
+    y: 1
+    width: 5
+    height: 3
+    description: "Medical treatment and quarantine facility"
+    status: "OPERATIONAL"
+
+  - id: engineering
+    name: "ENGINEERING"
+    x: 1
+    y: 7
+    width: 5
+    height: 4
+    description: "Main reactor and engine systems"
+    status: "WARNING"
+
+  - id: cargo_bay
+    name: "CARGO BAY"
+    x: 11
+    y: 7
+    width: 6
+    height: 4
+    description: "Primary cargo storage area"
+    status: "HAZARD"
+
+  - id: airlock_bay
+    name: "AIRLOCK BAY"
+    x: 21
+    y: 7
+    width: 5
+    height: 4
+    description: "EVA preparation and external access"
+    status: "OPERATIONAL"
+
+  - id: life_support
+    name: "LIFE SUPPORT"
+    x: 1
+    y: 14
+    width: 5
+    height: 3
+    description: "Atmospheric recycling and water reclamation"
+    status: "OPERATIONAL"
+
+# Connections define paths between rooms (node-graph style)
+connections:
+  - id: conn_bridge_crew
+    from: bridge
+    to: crew_quarters
+    door_type: standard
+    door_status: OPEN
+
+  - id: conn_crew_medical
+    from: crew_quarters
+    to: medical
+    door_type: standard
+    door_status: CLOSED
+
+  - id: conn_bridge_eng
+    from: bridge
+    to: engineering
+    door_type: blast_door
+    door_status: CLOSED
+
+  - id: conn_crew_cargo
+    from: crew_quarters
+    to: cargo_bay
+    door_type: standard
+    door_status: OPEN
+
+  - id: conn_eng_cargo
+    from: engineering
+    to: cargo_bay
+    door_type: standard
+    door_status: OPEN
+
+  - id: conn_cargo_airlock
+    from: cargo_bay
+    to: airlock_bay
+    door_type: airlock
+    door_status: SEALED
+
+  - id: conn_eng_lifesupport
+    from: engineering
+    to: life_support
+    door_type: emergency
+    door_status: LOCKED
+
+terminals:
+  - id: bridge_nav
+    room: bridge
+    position:
+      x: 2.5
+      y: 2
+    terminal_slug: "nav-console"
+    name: "NAV CONSOLE"
+
+  - id: bridge_comm
+    room: bridge
+    position:
+      x: 4.5
+      y: 2
+    terminal_slug: "comm-console"
+    name: "COMM CONSOLE"
+
+  - id: eng_reactor
+    room: engineering
+    position:
+      x: 3
+      y: 8.5
+    terminal_slug: "reactor-control"
+    name: "REACTOR CONTROL"
+
+  - id: med_terminal
+    room: medical
+    position:
+      x: 23.5
+      y: 2
+    terminal_slug: "medical-console"
+    name: "MEDICAL CONSOLE"
+
+  - id: cargo_manifest
+    room: cargo_bay
+    position:
+      x: 14
+      y: 8.5
+    terminal_slug: "cargo-manifest"
+    name: "CARGO MANIFEST"
+
+poi:
+  - id: escape_pod_1
+    type: "objective"
+    room: airlock_bay
+    position:
+      x: 23
+      y: 8
+    name: "ESCAPE POD A"
+    icon: "pod"
+    status: "READY"
+    description: "Emergency escape pod (4 person capacity)"
+
+  - id: escape_pod_2
+    type: "objective"
+    room: airlock_bay
+    position:
+      x: 23
+      y: 10
+    name: "ESCAPE POD B"
+    icon: "pod"
+    status: "READY"
+    description: "Emergency escape pod (4 person capacity)"
+
+  - id: breach_site
+    type: "hazard"
+    room: cargo_bay
+    position:
+      x: 15
+      y: 10
+    name: "HULL BREACH"
+    icon: "warning"
+    status: "CRITICAL"
+    description: "Structural damage - depressurization risk"
+
+  - id: supply_cache
+    type: "item"
+    room: cargo_bay
+    position:
+      x: 12
+      y: 8
+    name: "SUPPLY CRATE"
+    icon: "crate"
+    description: "Medical supplies and rations"
+
+  - id: reactor_core
+    type: "hazard"
+    room: engineering
+    position:
+      x: 4
+      y: 9.5
+    name: "REACTOR CORE"
+    icon: "warning"
+    status: "WARNING"
+    description: "Elevated radiation levels - protective gear required"
+
+metadata:
+  author: "GM"
+  created: "2183-06-15"
+  version: 2
+  tags: ["ship", "exploration", "combat"]

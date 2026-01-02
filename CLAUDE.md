@@ -508,6 +508,7 @@ All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function
 ✓ **Tree View GM Console**: Expandable/collapsible location tree with touch-friendly controls
 ✓ **View Switching**: DISPLAY button shows location maps, SHOW button displays terminal overlays
 ✓ **Encounter Map Display**: Terminal automatically shows maps when GM clicks DISPLAY
+✓ **Interactive Encounter Maps**: Node-graph style maps with rooms connected by orthogonal paths with 45-degree angles, doors at both ends of connections, terminals, POIs, legend panel, and pan/zoom support (mouse wheel zoom, drag to pan, touch pinch/drag)
 ✓ **Campaign Dashboard**: Multi-panel dashboard showing crew, missions, ship status, campaign info
 ✓ **Auto-refresh Terminal**: Polls for view changes every 2 seconds and auto-reloads
 ✓ **Map Image Generation**: Python script to generate retro sci-fi themed deck layouts
@@ -870,12 +871,169 @@ Message content in markdown...
 ### Encounter Maps
 `data/galaxy/locations/{path...}/map/{map_slug}.yaml` (singular `map/` directory!)
 
-Maps can exist at system, facility, or deck levels.
+Maps can exist at system, facility, or deck levels. Two formats are supported:
+
+#### Interactive Encounter Maps (Recommended)
+
+Node-graph style maps where rooms are separate boxes connected by path lines with doors. React renders interactive SVG with pan/zoom support.
+
+```yaml
+name: "USCSS Morrigan - Main Deck"
+location_name: "USCSS Morrigan"
+description: "Main deck layout showing bridge, engineering, and crew quarters"
+
+grid:
+  width: 28              # Grid units (total map width)
+  height: 18             # Grid units (total map height)
+  unit_size: 40          # Pixels per grid unit
+  show_grid: false       # Optional background grid
+
+# Rooms are separate rectangular boxes (not touching)
+rooms:
+  - id: bridge
+    name: "BRIDGE"
+    x: 1                  # Grid position (top-left corner)
+    y: 1
+    width: 5              # Grid units
+    height: 3
+    description: "Primary flight control and navigation center"
+    status: "OPERATIONAL"  # OPERATIONAL, WARNING, HAZARD, OFFLINE
+
+  - id: engineering
+    name: "ENGINEERING"
+    x: 1
+    y: 7
+    width: 5
+    height: 4
+    description: "Main reactor and engine systems"
+    status: "WARNING"
+
+  - id: cargo_bay
+    name: "CARGO BAY"
+    x: 11
+    y: 7
+    width: 6
+    height: 4
+    description: "Primary cargo storage area"
+    status: "HAZARD"
+
+# Connections define path lines between rooms with doors at both ends
+connections:
+  - id: conn_bridge_eng
+    from: bridge           # Room ID
+    to: engineering        # Room ID
+    door_type: blast_door  # standard, airlock, blast_door, emergency
+    door_status: CLOSED    # OPEN, CLOSED, LOCKED, SEALED, DAMAGED
+
+  - id: conn_eng_cargo
+    from: engineering
+    to: cargo_bay
+    door_type: standard
+    door_status: OPEN
+
+  - id: conn_cargo_airlock
+    from: cargo_bay
+    to: airlock_bay
+    door_type: airlock
+    door_status: SEALED
+
+# Terminals inside rooms (amber monitor icons)
+terminals:
+  - id: bridge_nav
+    room: bridge
+    position:
+      x: 2.5              # Grid position (can use decimals)
+      y: 2
+    terminal_slug: "nav-console"
+    name: "NAV CONSOLE"
+
+  - id: eng_reactor
+    room: engineering
+    position:
+      x: 3
+      y: 8.5
+    terminal_slug: "reactor-control"
+    name: "REACTOR CONTROL"
+
+# Points of Interest
+poi:
+  - id: escape_pod_1
+    type: "objective"      # objective, item, hazard, npc, player
+    room: airlock_bay
+    position:
+      x: 23
+      y: 8
+    name: "ESCAPE POD A"
+    icon: "pod"            # pod, warning, crate, or type name
+    status: "READY"
+    description: "Emergency escape pod (4 person capacity)"
+
+  - id: breach_site
+    type: "hazard"
+    room: cargo_bay
+    position:
+      x: 15
+      y: 10
+    name: "HULL BREACH"
+    icon: "warning"
+    status: "CRITICAL"
+    description: "Structural damage - depressurization risk"
+
+metadata:
+  author: "GM"
+  created: "2183-06-15"
+  version: 2
+  tags: ["ship", "exploration", "combat"]
+```
+
+**Node-Graph Map Features:**
+- **Rooms**: Separate rectangular boxes with labels, status colors, hover tooltips, click selection
+- **Connections**: Orthogonal path lines between rooms with 45-degree angle turns
+- **Doors**: Rendered at BOTH ends of each connection line, inline with room walls
+- **Terminals**: Amber monitor icons inside rooms, hoverable for name display
+- **POIs**: Geometric icons by type (triangle=objective, square=item, warning triangle=hazard)
+- **Pan/Zoom**: Mouse wheel to zoom (0.5x-3x), drag background to pan, pinch on touch devices
+- **Reset View**: Button appears when panned/zoomed to return to default view
+- **Legend**: Fixed panel showing door types and POI icons
+- **Status Effects**: Hazard rooms pulse red, warning rooms have amber border
+
+**Connection Path Routing:**
+- Paths automatically route between room edges using orthogonal lines
+- Turns use 45-degree angles for visual appeal
+- Door icons appear at both ends of each connection (at room walls)
+- Door orientation (vertical/horizontal) determined by which room edge the path exits
+
+**Door Types (with visual indicators):**
+| Type | Fill Color | Indicator | Use Case |
+|------|------------|-----------|----------|
+| `standard` | Teal | Plain rectangle | Normal interior doors |
+| `airlock` | Amber | Double rectangle | Pressure-sealed doors, EVA access |
+| `blast_door` | Bright teal | X pattern | Heavy security doors, containment |
+| `emergency` | Red | Horizontal stripe | Emergency access, usually locked |
+
+**POI Types:**
+| Type | Icon | Use Case |
+|------|------|----------|
+| `objective` | Triangle | Mission goals, escape pods |
+| `item` | Square | Loot, supplies, equipment |
+| `hazard` | Warning triangle | Dangers, radiation, breaches |
+| `npc` | Circle | NPCs, crew members |
+| `player` | Diamond | Player positions |
+
+**Implementation Files:**
+- `src/components/domain/encounter/EncounterMapRenderer.tsx` - Main SVG renderer with pan/zoom
+- `src/components/domain/encounter/EncounterMapRenderer.css` - Styles for rooms, doors, legend
+- `src/components/domain/encounter/EncounterMapDisplay.tsx` - Router for interactive vs legacy maps
+- `src/types/encounterMap.ts` - TypeScript interfaces for map data
+
+#### Legacy Image Maps
+
+Static PNG images with minimal YAML metadata (still supported):
 
 ```yaml
 name: "Main Facility"
 location_name: "Research Base Alpha - Main Level"
-description: "Main deck layout showing bridge, engineering, and crew quarters"
+description: "Main deck layout"
 grid_size_x: 20
 grid_size_y: 15
 ```
@@ -885,6 +1043,11 @@ grid_size_y: 15
 - Supported formats: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`
 - Example: `deck_layout.yaml` + `deck_layout.png`
 - Images are served via `/data/galaxy/locations/.../map/image.png` in development
+
+**Auto-Detection:**
+The system automatically detects the map format:
+- If YAML has `rooms` and `grid` keys → Interactive SVG renderer
+- If YAML has `image_path` or corresponding image file → Legacy image display
 
 ## Data Access Pattern
 

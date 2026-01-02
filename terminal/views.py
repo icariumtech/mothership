@@ -125,10 +125,11 @@ def get_active_view_json(request):
     Public endpoint - no login required.
     """
     from terminal.models import ActiveView
+    from terminal.data_loader import DataLoader
 
     active_view = ActiveView.get_current()
 
-    return JsonResponse({
+    response = {
         'location_slug': active_view.location_slug or '',
         'view_type': active_view.view_type,
         'view_slug': active_view.view_slug or '',
@@ -138,7 +139,29 @@ def get_active_view_json(request):
         'charon_location_path': active_view.charon_location_path or '',
         'charon_dialog_open': active_view.charon_dialog_open,
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
-    })
+    }
+
+    # For ENCOUNTER view, include location metadata for view rendering
+    if active_view.view_type == 'ENCOUNTER' and active_view.location_slug:
+        loader = DataLoader()
+        location = loader.find_location_by_slug(active_view.location_slug)
+        if location:
+            response['location_type'] = location.get('type', 'unknown')
+            response['location_name'] = location.get('name', '')
+            response['location_data'] = location
+
+            # Get hierarchical path for navigation (e.g., ['sol', 'earth'] for Earth)
+            location_path = loader.get_location_path(active_view.location_slug)
+            if location_path:
+                response['location_path'] = location_path
+                # For planets/moons, include system_slug for orbit map loading
+                if len(location_path) >= 1:
+                    response['location_data']['system_slug'] = location_path[0]
+                # For planets, the body is at index 1
+                if len(location_path) >= 2:
+                    response['location_data']['parent_slug'] = location_path[0]
+
+    return JsonResponse(response)
 
 
 def get_star_map_json(request):

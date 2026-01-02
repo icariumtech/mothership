@@ -61,17 +61,38 @@ function GMConsole() {
     messageApi.open({ type, content: msg });
   }, [messageApi]);
 
-  const handleDisplayLocation = useCallback(async (slug: string) => {
+  // Handle location selection for ENCOUNTER view
+  const handleSelectLocation = useCallback(async (slug: string | null) => {
     try {
-      await gmConsoleApi.switchView('ENCOUNTER_MAP', slug);
+      // Only update location if we're in ENCOUNTER view
+      if (activeView?.view_type === 'ENCOUNTER') {
+        await gmConsoleApi.switchView('ENCOUNTER', slug || '');
+        const viewData = await gmConsoleApi.getActiveView();
+        setActiveView(viewData);
+        if (slug) {
+          showStatus(`Selected ${slug}`);
+        } else {
+          showStatus('Cleared selection');
+        }
+      }
+    } catch (err) {
+      console.error('Error selecting location:', err);
+      showStatus('Failed to select location', 'error');
+    }
+  }, [activeView?.view_type, showStatus]);
+
+  // Switch to ENCOUNTER view
+  const handleEncounter = useCallback(async () => {
+    try {
+      await gmConsoleApi.switchView('ENCOUNTER', activeView?.location_slug || '');
       const viewData = await gmConsoleApi.getActiveView();
       setActiveView(viewData);
-      showStatus(`Displaying ${slug}`);
+      showStatus('Switched to encounter');
     } catch (err) {
-      console.error('Error switching view:', err);
-      showStatus('Failed to switch view', 'error');
+      console.error('Error switching to encounter:', err);
+      showStatus('Failed to switch to encounter', 'error');
     }
-  }, [showStatus]);
+  }, [activeView?.location_slug, showStatus]);
 
   const handleShowTerminal = useCallback(async (locationSlug: string, terminalSlug: string) => {
     try {
@@ -167,12 +188,13 @@ function GMConsole() {
         <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 16 }}>LOCATIONS</h2>
         <LocationTree
           locations={locations}
-          activeLocationSlug={activeView?.location_slug || null}
+          selectedLocationSlug={activeView?.view_type === 'ENCOUNTER' ? (activeView?.location_slug || null) : null}
           activeTerminalSlug={activeView?.overlay_terminal_slug || null}
           expandedNodes={expandedNodes}
           onToggle={toggleNode}
-          onDisplayLocation={handleDisplayLocation}
+          onSelectLocation={handleSelectLocation}
           onShowTerminal={handleShowTerminal}
+          selectionEnabled={activeView?.view_type === 'ENCOUNTER'}
         />
       </Sider>
       <Content style={{ padding: 24, background: '#000' }}>
@@ -181,6 +203,7 @@ function GMConsole() {
             currentView={activeView?.view_type || 'STANDBY'}
             onStandby={handleStandby}
             onBridge={handleBridge}
+            onEncounter={handleEncounter}
             onCharon={handleCharonActivate}
           />
           <Tabs

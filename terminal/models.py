@@ -11,7 +11,7 @@ class ActiveView(models.Model):
     VIEW_TYPE_CHOICES = [
         ('STANDBY', 'Standby Screen'),
         ('BRIDGE', 'Bridge'),
-        ('ENCOUNTER_MAP', 'Encounter Map'),
+        ('ENCOUNTER', 'Encounter Display'),
         ('COMM_TERMINAL', 'Communications Terminal'),
         ('MESSAGES', 'Broadcast Messages'),
         ('SHIP_DASHBOARD', 'Ship Dashboard'),

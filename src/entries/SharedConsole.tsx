@@ -9,6 +9,7 @@ import { GalaxyMap, GalaxyMapHandle } from '@components/domain/maps/GalaxyMap';
 import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
 import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
 import { CharonDialog } from '@components/domain/charon/CharonDialog';
+import { EncounterView } from '@components/domain/encounter/EncounterView';
 import { charonApi } from '@/services/charonApi';
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
@@ -18,7 +19,7 @@ import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../
 type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
 
 // View types matching Django's ActiveView model
-type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER_MAP' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD' | 'CHARON_TERMINAL';
+type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD' | 'CHARON_TERMINAL';
 
 // Map view modes for BRIDGE view
 type MapViewMode = 'galaxy' | 'system' | 'orbit';
@@ -31,6 +32,23 @@ interface ActiveView {
   overlay_terminal_slug: string;
   charon_dialog_open: boolean;
   updated_at: string;
+  // ENCOUNTER view specific fields
+  location_type?: string;
+  location_name?: string;
+  location_data?: {
+    slug: string;
+    name: string;
+    type: string;
+    status?: string;
+    description?: string;
+    has_map?: boolean;
+    map?: {
+      image_path?: string;
+      name?: string;
+    };
+    parent_slug?: string;
+    system_slug?: string;
+  };
 }
 
 interface InitialData {
@@ -506,11 +524,12 @@ function SharedConsole() {
 
       {/* Header - hidden in standby and CHARON terminal modes */}
       <TerminalHeader
-        title="MOTHERSHIP"
-        subtitle="TERMINAL"
-        rightText="STATION ACCESS"
+        title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : 'MOTHERSHIP'}
+        subtitle={viewType === 'ENCOUNTER' ? undefined : 'TERMINAL'}
+        rightText={viewType === 'ENCOUNTER' || viewType === 'BRIDGE' ? undefined : 'STATION ACCESS'}
         hidden={isStandby || isCharonTerminal}
         onCharonClick={viewType === 'BRIDGE' ? handleCharonDialogOpen : undefined}
+        typewriterTitle={viewType === 'ENCOUNTER'}
       />
 
       {/* View content */}
@@ -634,8 +653,17 @@ function SharedConsole() {
         </>
       )}
 
+      {/* ENCOUNTER view - clean display for player terminal */}
+      {viewType === 'ENCOUNTER' && (
+        <EncounterView
+          locationSlug={activeView?.location_slug || null}
+          locationType={activeView?.location_type || null}
+          locationData={activeView?.location_data || null}
+        />
+      )}
+
       {/* Other view types can be added here */}
-      {viewType !== 'STANDBY' && viewType !== 'BRIDGE' && viewType !== 'CHARON_TERMINAL' && (
+      {viewType !== 'STANDBY' && viewType !== 'BRIDGE' && viewType !== 'CHARON_TERMINAL' && viewType !== 'ENCOUNTER' && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',

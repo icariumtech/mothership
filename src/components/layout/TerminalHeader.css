@@ -71,3 +71,12 @@
 .terminal-header-right .charon-link:hover {
   color: #9a8065;
 }
+
+.terminal-header .typing-cursor {
+  animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}

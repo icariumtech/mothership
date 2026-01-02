@@ -1,34 +1,59 @@
 import { useMemo } from 'react';
 import { Tree, Button, Space, Tag } from 'antd';
-import { DesktopOutlined, MessageOutlined } from '@ant-design/icons';
+import { MessageOutlined } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { Location } from '@/types/gmConsole';
 
 interface LocationTreeProps {
   locations: Location[];
-  activeLocationSlug: string | null;
+  selectedLocationSlug: string | null;
   activeTerminalSlug: string | null;
   expandedNodes: Set<string>;
   onToggle: (slug: string) => void;
-  onDisplayLocation: (slug: string) => void;
+  onSelectLocation: (slug: string | null) => void;
   onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
+  selectionEnabled: boolean;
 }
 
 export function LocationTree({
   locations,
-  activeLocationSlug,
+  selectedLocationSlug,
   activeTerminalSlug,
   expandedNodes,
   onToggle,
-  onDisplayLocation,
-  onShowTerminal
+  onSelectLocation,
+  onShowTerminal,
+  selectionEnabled
 }: LocationTreeProps) {
+  // Track which keys are selectable (displayable locations)
+  const selectableKeys = useMemo(() => {
+    const keys = new Set<string>();
+
+    function collectSelectableKeys(locs: Location[]) {
+      for (const location of locs) {
+        const locationType = location.type?.toLowerCase() || '';
+        const canDisplay =
+          locationType === 'system' ||
+          locationType === 'planet' ||
+          locationType === 'moon' ||
+          location.has_map;
+
+        if (canDisplay) {
+          keys.add(location.slug);
+        }
+
+        collectSelectableKeys(location.children);
+      }
+    }
+
+    collectSelectableKeys(locations);
+    return keys;
+  }, [locations]);
+
   // Convert locations to Ant Design tree data format
   const treeData = useMemo(() => {
     function convertToTreeData(locs: Location[]): DataNode[] {
       return locs.flatMap(location => {
-        const isActive = location.slug === activeLocationSlug;
-
         // Create terminal nodes
         const terminalNodes: DataNode[] = location.terminals.map(terminal => ({
           key: `terminal-${location.slug}-${terminal.slug}`,
@@ -50,10 +75,14 @@ export function LocationTree({
             </Space>
           ),
           isLeaf: true,
+          selectable: false,
         }));
 
         // Create child location nodes
         const childNodes = convertToTreeData(location.children);
+
+        // Check if this location can be selected
+        const canSelect = selectableKeys.has(location.slug);
 
         return [{
           key: location.slug,
@@ -61,28 +90,16 @@ export function LocationTree({
             <Space>
               <span style={{ fontWeight: 500 }}>{location.name}</span>
               <Tag color="blue">{location.type}</Tag>
-              {location.has_map && (
-                <Button
-                  size="small"
-                  type={isActive ? 'primary' : 'default'}
-                  icon={<DesktopOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDisplayLocation(location.slug);
-                  }}
-                >
-                  Display
-                </Button>
-              )}
             </Space>
           ),
           children: [...terminalNodes, ...childNodes],
+          selectable: selectionEnabled && canSelect,
         }];
       });
     }
 
     return convertToTreeData(locations);
-  }, [locations, activeLocationSlug, activeTerminalSlug, onDisplayLocation, onShowTerminal]);
+  }, [locations, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys]);
 
   const expandedKeys = useMemo(() => Array.from(expandedNodes), [expandedNodes]);
 
@@ -108,11 +125,32 @@ export function LocationTree({
     }
   };
 
+  const selectedKeys = useMemo(() => {
+    return selectedLocationSlug ? [selectedLocationSlug] : [];
+  }, [selectedLocationSlug]);
+
+  const handleSelect = (keys: React.Key[]) => {
+    if (!selectionEnabled) return;
+
+    // If a key was selected, use it; otherwise clear selection
+    if (keys.length > 0) {
+      const key = String(keys[0]);
+      // Only select if it's a selectable location (not a terminal)
+      if (selectableKeys.has(key)) {
+        onSelectLocation(key);
+      }
+    } else {
+      onSelectLocation(null);
+    }
+  };
+
   return (
     <Tree
       treeData={treeData}
       expandedKeys={expandedKeys}
+      selectedKeys={selectedKeys}
       onExpand={handleExpand}
+      onSelect={handleSelect}
       showLine={{ showLeafIcon: false }}
       style={{ background: 'transparent' }}
     />

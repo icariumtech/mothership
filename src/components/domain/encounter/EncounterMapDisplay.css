@@ -1,0 +1,58 @@
+/**
+ * EncounterMapDisplay styles
+ * Full-screen 2D map display with retro terminal aesthetic
+ */
+
+.encounter-map-display {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 0;
+}
+
+.encounter-map-display__image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  /* Subtle glow effect */
+  filter: drop-shadow(0 0 20px rgba(74, 107, 107, 0.3));
+}
+
+/* No map available state */
+.encounter-map-display--no-map {
+  background: #0a0a0a;
+}
+
+.encounter-map-no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: var(--color-text-muted, #5a5a5a);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+.encounter-map-no-data__icon {
+  font-size: 48px;
+  color: var(--color-teal, #4a6b6b);
+  opacity: 0.5;
+}
+
+.encounter-map-no-data__text {
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.encounter-map-no-data__location {
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--color-teal, #4a6b6b);
+  opacity: 0.7;
+}

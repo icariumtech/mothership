@@ -217,7 +217,8 @@ class DataLoader:
             return terminals
 
         for terminal_dir in comms_dir.iterdir():
-            if terminal_dir.is_dir():
+            # Skip the central messages directory - it's not a terminal
+            if terminal_dir.is_dir() and terminal_dir.name != 'messages':
                 terminal_data = self.load_terminal(terminal_dir)
                 if terminal_data:
                     terminals.append(terminal_data)

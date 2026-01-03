@@ -1,3 +1,5 @@
+import { RoomVisibilityState } from './encounterMap';
+
 export interface Terminal {
   slug: string;
   name: string;
@@ -24,6 +26,13 @@ export interface ActiveView {
   overlay_terminal_slug: string;
   charon_mode: 'DISPLAY' | 'QUERY';
   charon_dialog_open: boolean;
+  // Location info (when in ENCOUNTER view)
+  location_type?: string;
+  location_name?: string;
+  // Encounter map fields
+  encounter_level: number;
+  encounter_deck_id: string;
+  encounter_room_visibility: RoomVisibilityState;
   updated_at: string;
 }
 

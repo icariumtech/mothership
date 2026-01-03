@@ -28,4 +28,10 @@ urlpatterns = [
     path('api/gm/charon/reject/', views.api_charon_reject, name='charon_reject'),
     path('api/gm/charon/clear/', views.api_charon_clear, name='charon_clear'),
     path('api/gm/charon/toggle-dialog/', views.api_charon_toggle_dialog, name='charon_toggle_dialog'),
+    # Encounter Map API endpoints
+    path('api/gm/encounter/switch-level/', views.api_encounter_switch_level, name='encounter_switch_level'),
+    path('api/gm/encounter/toggle-room/', views.api_encounter_toggle_room, name='encounter_toggle_room'),
+    path('api/gm/encounter/room-visibility/', views.api_encounter_room_visibility, name='encounter_room_visibility'),
+    path('api/encounter-map/<str:location_slug>/all-decks/', views.api_encounter_all_decks, name='encounter_all_decks'),
+    path('api/encounter-map/<str:location_slug>/', views.api_encounter_map_data, name='encounter_map_data'),
 ]

@@ -1,3 +1,4 @@
+deck_id: "deck_1"
 name: "USCSS Morrigan - Main Deck"
 location_name: "USCSS Morrigan"
 description: "Main deck layout showing bridge, engineering, and crew quarters"
@@ -116,6 +117,15 @@ connections:
     to: life_support
     door_type: emergency
     door_status: LOCKED
+
+# Inter-deck connection (to lower deck)
+inter_deck_connections:
+  - id: ladder_eng_maint
+    from_room: engineering
+    to_deck: "deck_2"
+    to_room: maintenance
+    type: ladder
+    status: OPEN
 
 terminals:
   - id: bridge_nav

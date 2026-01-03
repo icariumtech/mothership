@@ -7,6 +7,7 @@
  * - Planet/Moon: Orbit view (3D planet with moons/stations/surface)
  * - Station/Ship/Deck/Room: 2D encounter map image
  *
+ * Supports multi-deck maps with level indicator and GM-controlled visibility.
  * No info panels, no navigation - just clean view with camera controls.
  */
 
@@ -15,7 +16,9 @@ import { GalaxyMap } from '@components/domain/maps/GalaxyMap';
 import { SystemMap } from '@components/domain/maps/SystemMap';
 import { OrbitMap } from '@components/domain/maps/OrbitMap';
 import { EncounterMapDisplay } from './EncounterMapDisplay';
+import { LevelIndicator } from './LevelIndicator';
 import type { StarMapData } from '../../../types/starMap';
+import type { RoomVisibilityState } from '../../../types/encounterMap';
 import './EncounterView.css';
 
 // Location data from API
@@ -54,6 +57,14 @@ interface EncounterViewProps {
   locationType: string | null;
   /** Full location data from API */
   locationData: LocationData | null;
+  /** Current deck level (1-indexed) */
+  encounterLevel?: number;
+  /** Total number of decks (for multi-deck maps) */
+  totalDecks?: number;
+  /** Current deck name */
+  deckName?: string;
+  /** Room visibility state from GM */
+  roomVisibility?: RoomVisibilityState;
 }
 
 // Determine view mode based on location type
@@ -85,6 +96,10 @@ export function EncounterView({
   locationSlug,
   locationType,
   locationData,
+  encounterLevel = 1,
+  totalDecks = 1,
+  deckName,
+  roomVisibility,
 }: EncounterViewProps) {
   const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
 
@@ -159,7 +174,18 @@ export function EncounterView({
 
       {/* 2D Map display - shown for facilities (stations, ships, decks, rooms) */}
       {viewMode === 'map' && (
-        <EncounterMapDisplay locationData={locationData} />
+        <>
+          <EncounterMapDisplay
+            locationData={locationData}
+            roomVisibility={roomVisibility}
+          />
+          {/* Level indicator for multi-deck maps */}
+          <LevelIndicator
+            currentLevel={encounterLevel}
+            totalLevels={totalDecks}
+            deckName={deckName}
+          />
+        </>
       )}
     </div>
   );

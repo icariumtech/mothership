@@ -5,12 +5,19 @@
  * 1. Interactive SVG maps (new) - YAML with rooms, doors, terminals, POIs
  * 2. Legacy PNG images - Static map images
  *
+ * Also supports multi-deck maps with room visibility control.
  * Automatically routes to the correct renderer based on map data.
  */
 
 import './EncounterMapDisplay.css';
 import { EncounterMapRenderer } from './EncounterMapRenderer';
-import { EncounterMapData, isEncounterMap } from '../../../types/encounterMap';
+import {
+  EncounterMapData,
+  RoomVisibilityState,
+  isEncounterMap,
+  isMultiDeckMap,
+  MultiDeckMapData,
+} from '../../../types/encounterMap';
 
 interface LocationData {
   slug: string;
@@ -22,6 +29,12 @@ interface LocationData {
   map?: {
     image_path?: string;
     name?: string;
+    // Multi-deck map fields
+    is_multi_deck?: boolean;
+    manifest?: any;
+    current_deck?: any;
+    current_deck_id?: string;
+    room_visibility?: RoomVisibilityState;
     // Encounter map fields (when present, use SVG renderer)
     grid?: {
       width: number;
@@ -39,16 +52,31 @@ interface LocationData {
 
 interface EncounterMapDisplayProps {
   locationData: LocationData | null;
+  roomVisibility?: RoomVisibilityState;
 }
 
-export function EncounterMapDisplay({ locationData }: EncounterMapDisplayProps) {
+export function EncounterMapDisplay({ locationData, roomVisibility }: EncounterMapDisplayProps) {
   const mapData = locationData?.map;
+
+  // Check if this is a multi-deck map
+  if (mapData && isMultiDeckMap(mapData)) {
+    const multiDeckData = mapData as MultiDeckMapData;
+    // Use the current deck's map data with visibility from props or map data
+    const effectiveVisibility = roomVisibility || multiDeckData.room_visibility || {};
+    return (
+      <EncounterMapRenderer
+        mapData={multiDeckData.current_deck}
+        roomVisibility={effectiveVisibility}
+      />
+    );
+  }
 
   // Check if this is an interactive encounter map (has rooms defined)
   if (mapData && isEncounterMap(mapData)) {
     return (
       <EncounterMapRenderer
         mapData={mapData as EncounterMapData}
+        roomVisibility={roomVisibility}
       />
     );
   }

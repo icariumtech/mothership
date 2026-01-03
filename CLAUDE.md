@@ -557,6 +557,13 @@ All decorative elements use JavaScript `updateIndicatorBoxesPosition()` function
 ✓ **Processing Indicator**: Animated "Processing..." with cycling dots while waiting for AI response
 ✓ **Inline Query Input**: Query mode shows `> ` prompt inline with conversation flow
 ✓ **Mode Switching**: CHARON terminal supports DISPLAY mode (blinking cursor) and QUERY mode (user input)
+✓ **Multi-Deck Encounter Maps**: Support for manifest.yaml + deck_X.yaml structure with level navigation
+✓ **ENCOUNTER Tab in GM Console**: Dedicated tab with deck selector, map preview, and room visibility controls
+✓ **GM Map Preview**: Simplified SVG preview with pan/zoom, shows all rooms with visibility indication (hidden rooms dimmed, dashed borders, X indicator)
+✓ **Room Visibility Control**: GM can toggle individual room visibility, with bulk show all/hide all buttons
+✓ **Level Indicator**: Player terminal shows current deck level indicator (e.g., "DECK 1 / 3") for multi-deck maps
+✓ **Default Deck Selection**: Automatically selects first/default deck when entering ENCOUNTER view for new location
+✓ **Encounter View Persistence**: Terminal refresh maintains current ENCOUNTER location via immediate API fetch on mount
 
 ## Planned Features
 - [ ] Terminal conversation view renderer
@@ -578,12 +585,17 @@ Tracks which view the shared terminal is currently displaying.
 class ActiveView(models.Model):
     # Main display
     location_slug = CharField       # e.g., "research_base_alpha"
-    view_type = CharField           # STANDBY, BRIDGE, MESSAGES, COMM_TERMINAL, ENCOUNTER_MAP, SHIP_DASHBOARD
+    view_type = CharField           # STANDBY, BRIDGE, MESSAGES, COMM_TERMINAL, ENCOUNTER, SHIP_DASHBOARD
     view_slug = CharField           # e.g., "commanders_terminal"
 
     # Overlay (terminal on top of map)
     overlay_location_slug = CharField
     overlay_terminal_slug = CharField
+
+    # Encounter map state (for multi-deck maps)
+    encounter_level = IntegerField          # Current deck level (1-indexed)
+    encounter_deck_id = CharField           # Current deck ID (e.g., "deck_1")
+    encounter_room_visibility = JSONField   # {room_id: bool} - GM-controlled visibility
 
     # Metadata
     updated_at = DateTimeField

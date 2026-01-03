@@ -12,12 +12,14 @@ import {
   RoomData,
   ConnectionData,
   TooltipState,
+  RoomVisibilityState,
 } from '../../../types/encounterMap';
 import { RoomTooltip } from './RoomTooltip';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
   mapData: EncounterMapData;
+  roomVisibility?: RoomVisibilityState;
 }
 
 // Pan and zoom state
@@ -66,7 +68,7 @@ const POI_ICONS: Record<string, string> = {
   terminal: 'M-5,-4 L5,-4 L5,3 L-5,3 Z',
 };
 
-export function EncounterMapRenderer({ mapData }: EncounterMapRendererProps) {
+export function EncounterMapRenderer({ mapData, roomVisibility }: EncounterMapRendererProps) {
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
     x: 0,
@@ -103,14 +105,34 @@ export function EncounterMapRenderer({ mapData }: EncounterMapRendererProps) {
   const svgWidth = grid.width * unitSize;
   const svgHeight = grid.height * unitSize;
 
-  // Build room lookup map for connections
-  const roomMap = useMemo(() => {
+  // Check if a room is visible (default to true if no visibility state)
+  const isRoomVisible = useCallback((roomId: string): boolean => {
+    if (!roomVisibility) return true;
+    return roomVisibility[roomId] !== false;
+  }, [roomVisibility]);
+
+  // Filter rooms by visibility
+  const visibleRooms = useMemo(() => {
+    return mapData.rooms.filter(room => isRoomVisible(room.id));
+  }, [mapData.rooms, isRoomVisible]);
+
+  // Build room lookup map for ALL rooms (used for door positioning)
+  const allRoomMap = useMemo(() => {
     const map = new Map<string, RoomData>();
     for (const room of mapData.rooms) {
       map.set(room.id, room);
     }
     return map;
   }, [mapData.rooms]);
+
+  // Build room lookup map for visible rooms only (used for connection lines)
+  const roomMap = useMemo(() => {
+    const map = new Map<string, RoomData>();
+    for (const room of visibleRooms) {
+      map.set(room.id, room);
+    }
+    return map;
+  }, [visibleRooms]);
 
   // Get the best edge point for connecting two rooms (prefers cardinal directions)
   const getConnectionEdge = useCallback((room: RoomData, otherRoom: RoomData): { x: number; y: number; side: 'top' | 'bottom' | 'left' | 'right' } => {
@@ -542,8 +564,9 @@ export function EncounterMapRenderer({ mapData }: EncounterMapRendererProps) {
 
   // Render door symbols for a connection (rendered above rooms)
   const renderConnectionDoors = (conn: ConnectionData) => {
-    const fromRoom = roomMap.get(conn.from);
-    const toRoom = roomMap.get(conn.to);
+    // Use allRoomMap to get positions for ALL rooms (including hidden ones)
+    const fromRoom = allRoomMap.get(conn.from);
+    const toRoom = allRoomMap.get(conn.to);
 
     if (!fromRoom || !toRoom || !conn.door_type) return null;
 
@@ -555,15 +578,19 @@ export function EncounterMapRenderer({ mapData }: EncounterMapRendererProps) {
     const fromOrientation = (fromEdge.side === 'left' || fromEdge.side === 'right') ? 'vertical' : 'horizontal';
     const toOrientation = (toEdge.side === 'left' || toEdge.side === 'right') ? 'vertical' : 'horizontal';
 
+    // Only render doors on visible room edges
+    const fromVisible = isRoomVisible(conn.from);
+    const toVisible = isRoomVisible(conn.to);
+
     return (
       <g key={`doors-${conn.id}`}>
-        {renderDoorSymbol(
+        {fromVisible && renderDoorSymbol(
           fromEdge.x, fromEdge.y,
           conn.door_type, conn.door_status,
           style, fromOrientation,
           `${conn.id}-from`
         )}
-        {renderDoorSymbol(
+        {toVisible && renderDoorSymbol(
           toEdge.x, toEdge.y,
           conn.door_type, conn.door_status,
           style, toOrientation,
@@ -675,8 +702,8 @@ export function EncounterMapRenderer({ mapData }: EncounterMapRendererProps) {
     );
   };
 
-  // Get connections from map data (support both 'connections' and 'doors' format)
-  const connections: ConnectionData[] = useMemo(() => {
+  // Get all connections from map data (support both 'connections' and 'doors' format)
+  const allConnections: ConnectionData[] = useMemo(() => {
     // New format: explicit connections array
     if (mapData.connections) {
       return mapData.connections;
@@ -695,6 +722,32 @@ export function EncounterMapRenderer({ mapData }: EncounterMapRendererProps) {
     }
     return [];
   }, [mapData]);
+
+  // Connection lines only show when BOTH rooms are visible
+  const visibleConnectionLines: ConnectionData[] = useMemo(() => {
+    return allConnections.filter(conn =>
+      isRoomVisible(conn.from) && isRoomVisible(conn.to)
+    );
+  }, [allConnections, isRoomVisible]);
+
+  // Doors show when AT LEAST ONE room is visible
+  const visibleDoors: ConnectionData[] = useMemo(() => {
+    return allConnections.filter(conn =>
+      isRoomVisible(conn.from) || isRoomVisible(conn.to)
+    );
+  }, [allConnections, isRoomVisible]);
+
+  // Filter terminals to only show those in visible rooms
+  const visibleTerminals = useMemo(() => {
+    if (!mapData.terminals) return [];
+    return mapData.terminals.filter(terminal => isRoomVisible(terminal.room));
+  }, [mapData.terminals, isRoomVisible]);
+
+  // Filter POIs to only show those in visible rooms
+  const visiblePois = useMemo(() => {
+    if (!mapData.poi) return [];
+    return mapData.poi.filter(poi => isRoomVisible(poi.room));
+  }, [mapData.poi, isRoomVisible]);
 
   return (
     <div
@@ -721,29 +774,29 @@ export function EncounterMapRenderer({ mapData }: EncounterMapRendererProps) {
         {/* Background */}
         <rect x={0} y={0} width={svgWidth} height={svgHeight} fill={COLORS.bgPrimary} />
 
-        {/* Connection path lines (rendered first, below rooms) */}
+        {/* Connection path lines (rendered first, below rooms) - only when BOTH rooms visible */}
         <g className="encounter-map__connection-paths">
-          {connections.map(renderConnectionPath)}
+          {visibleConnectionLines.map(renderConnectionPath)}
         </g>
 
-        {/* Rooms */}
+        {/* Rooms (filtered by visibility) */}
         <g className="encounter-map__rooms">
-          {mapData.rooms.map(renderRoom)}
+          {visibleRooms.map(renderRoom)}
         </g>
 
-        {/* Doors (rendered above rooms) */}
+        {/* Doors (rendered above rooms) - shown when AT LEAST ONE room visible */}
         <g className="encounter-map__doors">
-          {connections.map(renderConnectionDoors)}
+          {visibleDoors.map(renderConnectionDoors)}
         </g>
 
-        {/* Terminals */}
+        {/* Terminals (filtered by room visibility) */}
         <g className="encounter-map__terminals">
-          {mapData.terminals?.map(renderTerminal)}
+          {visibleTerminals.map(renderTerminal)}
         </g>
 
-        {/* Points of Interest */}
+        {/* Points of Interest (filtered by room visibility) */}
         <g className="encounter-map__pois">
-          {mapData.poi?.map(renderPoi)}
+          {visiblePois.map(renderPoi)}
         </g>
       </svg>
 

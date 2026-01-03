@@ -1,0 +1,135 @@
+deck_id: "deck_2"
+name: "USCSS Morrigan - Lower Deck"
+location_name: "USCSS Morrigan"
+description: "Lower deck with storage, maintenance access, and secondary systems"
+
+grid:
+  width: 28
+  height: 18
+  unit_size: 40
+  show_grid: false
+
+rooms:
+  - id: maintenance
+    name: "MAINTENANCE"
+    x: 1
+    y: 7
+    width: 5
+    height: 4
+    description: "Ship maintenance and repair bay"
+    status: "OPERATIONAL"
+
+  - id: storage_a
+    name: "STORAGE A"
+    x: 11
+    y: 7
+    width: 4
+    height: 4
+    description: "General storage compartment"
+    status: "OPERATIONAL"
+
+  - id: storage_b
+    name: "STORAGE B"
+    x: 18
+    y: 7
+    width: 4
+    height: 4
+    description: "Secure storage compartment"
+    status: "OFFLINE"
+
+  - id: fuel_cells
+    name: "FUEL CELLS"
+    x: 1
+    y: 14
+    width: 5
+    height: 3
+    description: "Fuel cell storage and management"
+    status: "WARNING"
+
+  - id: waste_processing
+    name: "WASTE PROC"
+    x: 11
+    y: 14
+    width: 5
+    height: 3
+    description: "Waste processing and recycling"
+    status: "OPERATIONAL"
+
+connections:
+  - id: conn_maint_storage_a
+    from: maintenance
+    to: storage_a
+    door_type: standard
+    door_status: OPEN
+
+  - id: conn_storage_a_b
+    from: storage_a
+    to: storage_b
+    door_type: standard
+    door_status: LOCKED
+
+  - id: conn_maint_fuel
+    from: maintenance
+    to: fuel_cells
+    door_type: emergency
+    door_status: CLOSED
+
+  - id: conn_storage_waste
+    from: storage_a
+    to: waste_processing
+    door_type: standard
+    door_status: OPEN
+
+# Inter-deck connection (to main deck)
+inter_deck_connections:
+  - id: ladder_maint_eng
+    from_room: maintenance
+    to_deck: "deck_1"
+    to_room: engineering
+    type: ladder
+    status: OPEN
+
+terminals:
+  - id: maint_console
+    room: maintenance
+    position:
+      x: 3
+      y: 8.5
+    terminal_slug: "maintenance-console"
+    name: "MAINT CONSOLE"
+
+  - id: fuel_monitor
+    room: fuel_cells
+    position:
+      x: 3
+      y: 15
+    terminal_slug: "fuel-monitor"
+    name: "FUEL MONITOR"
+
+poi:
+  - id: hidden_cache
+    type: "item"
+    room: storage_b
+    position:
+      x: 20
+      y: 9
+    name: "HIDDEN CACHE"
+    icon: "crate"
+    description: "Concealed storage compartment"
+
+  - id: fuel_leak
+    type: "hazard"
+    room: fuel_cells
+    position:
+      x: 4
+      y: 16
+    name: "FUEL LEAK"
+    icon: "warning"
+    status: "WARNING"
+    description: "Minor fuel leak detected - flammable atmosphere"
+
+metadata:
+  author: "GM"
+  created: "2183-06-15"
+  version: 1
+  tags: ["ship", "exploration"]

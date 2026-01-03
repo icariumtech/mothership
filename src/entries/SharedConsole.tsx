@@ -49,6 +49,13 @@ interface ActiveView {
     parent_slug?: string;
     system_slug?: string;
   };
+  // Multi-deck encounter fields
+  encounter_level?: number;
+  encounter_deck_id?: string;
+  encounter_room_visibility?: { [roomId: string]: boolean };
+  // Multi-deck manifest info (added by API)
+  encounter_total_decks?: number;
+  encounter_deck_name?: string;
 }
 
 interface InitialData {
@@ -111,6 +118,21 @@ function SharedConsole() {
       }
     }
     fetchStarMapData();
+  }, []);
+
+  // Fetch full active view data on mount (initial data from template is incomplete)
+  useEffect(() => {
+    async function fetchActiveView() {
+      try {
+        const response = await fetch('/api/active-view/');
+        const data = await response.json();
+        setActiveView(data);
+        setCharonDialogOpen(data.charon_dialog_open);
+      } catch (error) {
+        console.error('Failed to fetch active view:', error);
+      }
+    }
+    fetchActiveView();
   }, []);
 
   // Poll for active view changes
@@ -659,6 +681,10 @@ function SharedConsole() {
           locationSlug={activeView?.location_slug || null}
           locationType={activeView?.location_type || null}
           locationData={activeView?.location_data || null}
+          encounterLevel={activeView?.encounter_level}
+          totalDecks={activeView?.encounter_total_decks}
+          deckName={activeView?.encounter_deck_name}
+          roomVisibility={activeView?.encounter_room_visibility}
         />
       )}
 

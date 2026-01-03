@@ -1,0 +1,20 @@
+# Multi-deck manifest for USCSS Morrigan
+# Defines all available decks and their map files
+
+name: "USCSS Morrigan"
+facility_type: "ship"
+total_decks: 2
+
+decks:
+  - id: "deck_1"
+    name: "Main Deck"
+    file: "deck_1.yaml"
+    level: 1
+    default: true
+    description: "Primary operations - bridge, crew quarters, medical, engineering"
+
+  - id: "deck_2"
+    name: "Lower Deck"
+    file: "deck_2.yaml"
+    level: 2
+    description: "Storage, maintenance, and secondary systems"

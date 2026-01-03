@@ -138,6 +138,9 @@ def get_active_view_json(request):
         'charon_mode': active_view.charon_mode,
         'charon_location_path': active_view.charon_location_path or '',
         'charon_dialog_open': active_view.charon_dialog_open,
+        'encounter_level': active_view.encounter_level,
+        'encounter_deck_id': active_view.encounter_deck_id or '',
+        'encounter_room_visibility': active_view.encounter_room_visibility or {},
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     }
 
@@ -160,6 +163,42 @@ def get_active_view_json(request):
                 # For planets, the body is at index 1
                 if len(location_path) >= 2:
                     response['location_data']['parent_slug'] = location_path[0]
+
+            # For multi-deck maps, load the current deck's map data
+            if location.get('directory'):
+                from pathlib import Path
+                location_dir = Path(location['directory'])
+                manifest = loader.load_encounter_manifest(location_dir)
+                if manifest:
+                    response['encounter_total_decks'] = manifest.get('total_decks', 1)
+                    # Get current deck ID (or use default)
+                    current_deck_id = active_view.encounter_deck_id
+                    if not current_deck_id:
+                        # Find default deck or use first deck
+                        default_deck = next(
+                            (d for d in manifest.get('decks', []) if d.get('default')),
+                            manifest['decks'][0] if manifest.get('decks') else None
+                        )
+                        if default_deck:
+                            current_deck_id = default_deck.get('id', '')
+
+                    # Load the specific deck's map data
+                    if current_deck_id:
+                        deck_data = loader.load_deck_map(location_dir, current_deck_id)
+                        if deck_data:
+                            # Include the full multi-deck map structure in location_data
+                            response['location_data']['map'] = {
+                                'is_multi_deck': True,
+                                'manifest': manifest,
+                                'current_deck': deck_data,
+                                'current_deck_id': current_deck_id,
+                            }
+
+                        # Find current deck name from manifest
+                        for deck in manifest.get('decks', []):
+                            if deck.get('id') == current_deck_id:
+                                response['encounter_deck_name'] = deck.get('name', '')
+                                break
 
     return JsonResponse(response)
 
@@ -353,6 +392,7 @@ def api_switch_view(request):
     POST: { view_type: string, location_slug?: string, view_slug?: string }
     """
     from terminal.models import ActiveView
+    from terminal.data_loader import DataLoader
     import json
 
     if request.method != 'POST':
@@ -364,12 +404,66 @@ def api_switch_view(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     active_view = ActiveView.get_current()
-    active_view.view_type = data.get('view_type', 'STANDBY')
-    active_view.location_slug = data.get('location_slug', '')
+    new_view_type = data.get('view_type', 'STANDBY')
+    new_location_slug = data.get('location_slug', '')
+
+    # Check if we're switching to a different ENCOUNTER location
+    is_new_encounter_location = (
+        new_view_type == 'ENCOUNTER' and
+        new_location_slug and
+        (active_view.location_slug != new_location_slug or active_view.view_type != 'ENCOUNTER')
+    )
+
+    active_view.view_type = new_view_type
+    active_view.location_slug = new_location_slug
     active_view.view_slug = data.get('view_slug', '')
     # Clear overlay when switching views
     active_view.overlay_location_slug = ''
     active_view.overlay_terminal_slug = ''
+
+    # When switching to a new ENCOUNTER location, initialize all rooms as hidden
+    if is_new_encounter_location:
+        loader = DataLoader()
+        location = loader.find_location_by_slug(new_location_slug)
+        if location and location.get('map'):
+            map_data = location['map']
+            # Collect all room IDs from all decks and set them to hidden
+            all_room_ids = []
+            if map_data.get('is_multi_deck'):
+                # Multi-deck: load all decks and get room IDs
+                manifest = map_data.get('manifest', {})
+                if location.get('directory'):
+                    from pathlib import Path
+                    location_dir = Path(location['directory'])
+                    for deck_info in manifest.get('decks', []):
+                        deck_data = loader.load_deck_map(location_dir, deck_info['id'])
+                        if deck_data and deck_data.get('rooms'):
+                            all_room_ids.extend(r['id'] for r in deck_data['rooms'])
+            else:
+                # Single deck: get room IDs directly
+                if map_data.get('rooms'):
+                    all_room_ids = [r['id'] for r in map_data['rooms']]
+
+            # Set all rooms to hidden (False)
+            active_view.encounter_room_visibility = {room_id: False for room_id in all_room_ids}
+
+            # Set default deck level and ID
+            if map_data.get('is_multi_deck'):
+                manifest = map_data.get('manifest', {})
+                decks = manifest.get('decks', [])
+                # Find the default deck, or use the first one
+                default_deck = next((d for d in decks if d.get('default')), decks[0] if decks else None)
+                if default_deck:
+                    active_view.encounter_level = default_deck.get('level', 1)
+                    active_view.encounter_deck_id = default_deck.get('id', '')
+                else:
+                    active_view.encounter_level = 1
+                    active_view.encounter_deck_id = ''
+            else:
+                # Single deck map
+                active_view.encounter_level = 1
+                active_view.encounter_deck_id = map_data.get('deck_id', '')
+
     active_view.updated_by = request.user
     active_view.save()
 
@@ -767,4 +861,233 @@ def api_charon_toggle_dialog(request):
     return JsonResponse({
         'success': True,
         'charon_dialog_open': active_view.charon_dialog_open
+    })
+
+
+# ==================== Encounter Map API Endpoints ====================
+
+@login_required
+def api_encounter_switch_level(request):
+    """
+    Switch the current encounter deck/level.
+    POST: { level: number, deck_id: string }
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    level = data.get('level', 1)
+    deck_id = data.get('deck_id', '')
+
+    active_view = ActiveView.get_current()
+    active_view.encounter_level = level
+    active_view.encounter_deck_id = deck_id
+    # Don't clear room visibility when switching levels - preserve visibility state
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'level': level,
+        'deck_id': deck_id
+    })
+
+
+@login_required
+def api_encounter_toggle_room(request):
+    """
+    Toggle room visibility for players.
+    POST: { room_id: string, visible?: boolean }
+    If visible is not specified, toggles the current state.
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    room_id = data.get('room_id')
+    if not room_id:
+        return JsonResponse({'error': 'room_id required'}, status=400)
+
+    active_view = ActiveView.get_current()
+    visibility = active_view.encounter_room_visibility or {}
+
+    # If visible is specified, use it; otherwise toggle
+    if 'visible' in data:
+        visibility[room_id] = bool(data['visible'])
+    else:
+        visibility[room_id] = not visibility.get(room_id, True)
+
+    active_view.encounter_room_visibility = visibility
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'room_id': room_id,
+        'visible': visibility[room_id],
+        'room_visibility': visibility
+    })
+
+
+@login_required
+def api_encounter_room_visibility(request):
+    """
+    Get or set room visibility for current level.
+    GET: Returns { room_visibility: { room_id: bool, ... } }
+    POST: { room_visibility: { room_id: bool, ... } }
+    """
+    from terminal.models import ActiveView
+
+    active_view = ActiveView.get_current()
+
+    if request.method == 'GET':
+        return JsonResponse({
+            'room_visibility': active_view.encounter_room_visibility or {}
+        })
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        visibility = data.get('room_visibility', {})
+        active_view.encounter_room_visibility = visibility
+        active_view.updated_by = request.user
+        active_view.save()
+
+        return JsonResponse({
+            'success': True,
+            'room_visibility': visibility
+        })
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+def api_encounter_map_data(request, location_slug):
+    """
+    Get encounter map data for a location including multi-deck support.
+    Public endpoint - returns manifest + current deck data + room visibility.
+    GET: /api/encounter-map/<location_slug>/
+    Optional query param: deck_id - specific deck to load
+    """
+    from terminal.data_loader import DataLoader
+    from terminal.models import ActiveView
+
+    loader = DataLoader()
+
+    # Find location by walking hierarchy
+    location = loader.find_location_by_slug(location_slug)
+    if not location:
+        return JsonResponse({'error': 'Location not found'}, status=404)
+
+    map_data = location.get('map')
+    if not map_data:
+        return JsonResponse({'error': 'No map data for location'}, status=404)
+
+    # Get active view for room visibility and current deck
+    active_view = ActiveView.get_current()
+
+    # Handle optional deck_id query param - fall back to active_view.encounter_deck_id
+    requested_deck_id = request.GET.get('deck_id') or active_view.encounter_deck_id
+
+    # If it's a multi-deck map and a specific deck is requested (or stored in active_view)
+    if map_data.get('is_multi_deck') and requested_deck_id:
+        # Get the full location path to load the specific deck
+        location_path = loader.get_location_path(location_slug)
+        if location_path:
+            location_dir = loader.systems_dir
+            for slug in location_path:
+                location_dir = location_dir / slug
+
+            deck_data = loader.load_deck_map(location_dir, requested_deck_id)
+            if deck_data:
+                map_data['current_deck'] = deck_data
+                map_data['current_deck_id'] = requested_deck_id
+
+    # Add room visibility state
+    map_data['room_visibility'] = active_view.encounter_room_visibility or {}
+    map_data['encounter_level'] = active_view.encounter_level
+    map_data['encounter_deck_id'] = active_view.encounter_deck_id
+
+    return JsonResponse(map_data)
+
+
+def api_encounter_all_decks(request, location_slug):
+    """
+    Get all decks' data for a multi-deck location.
+    Used by GM console to show rooms across all levels.
+    GET: /api/encounter-map/<location_slug>/all-decks/
+    """
+    from terminal.data_loader import DataLoader
+    from terminal.models import ActiveView
+
+    loader = DataLoader()
+
+    # Find location by walking hierarchy
+    location = loader.find_location_by_slug(location_slug)
+    if not location:
+        return JsonResponse({'error': 'Location not found'}, status=404)
+
+    map_data = location.get('map')
+    if not map_data:
+        return JsonResponse({'error': 'No map data for location'}, status=404)
+
+    # Get active view for room visibility
+    active_view = ActiveView.get_current()
+
+    # If not a multi-deck map, just return current deck data
+    if not map_data.get('is_multi_deck'):
+        return JsonResponse({
+            'is_multi_deck': False,
+            'decks': [{
+                'id': 'single',
+                'name': map_data.get('name', 'Map'),
+                'level': 1,
+                'rooms': map_data.get('rooms', []),
+            }],
+            'room_visibility': active_view.encounter_room_visibility or {},
+        })
+
+    # Load all decks from manifest
+    manifest = map_data.get('manifest', {})
+    decks_data = []
+
+    location_path = loader.get_location_path(location_slug)
+    if location_path:
+        location_dir = loader.systems_dir
+        for slug in location_path:
+            location_dir = location_dir / slug
+
+        for deck_info in manifest.get('decks', []):
+            deck_data = loader.load_deck_map(location_dir, deck_info['id'])
+            if deck_data:
+                decks_data.append({
+                    'id': deck_info['id'],
+                    'name': deck_info.get('name', deck_info['id']),
+                    'level': deck_info.get('level', 1),
+                    'rooms': deck_data.get('rooms', []),
+                })
+
+    # Sort decks by level
+    decks_data.sort(key=lambda d: d['level'])
+
+    return JsonResponse({
+        'is_multi_deck': True,
+        'manifest': manifest,
+        'decks': decks_data,
+        'room_visibility': active_view.encounter_room_visibility or {},
+        'current_deck_id': active_view.encounter_deck_id,
     })

@@ -70,6 +70,22 @@ class ActiveView(models.Model):
         help_text='Whether the CHARON dialog overlay is visible to players'
     )
 
+    # Multi-level encounter map fields
+    encounter_level = models.IntegerField(
+        default=1,
+        help_text='Current deck/level being displayed (1-indexed)'
+    )
+    encounter_deck_id = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='ID of current deck (e.g., "deck_1")'
+    )
+    encounter_room_visibility = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Map of room_id -> visible (bool) for GM-controlled visibility'
+    )
+
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider, theme, Layout, message, Tabs } from 'antd';
-import { RobotOutlined, NotificationOutlined } from '@ant-design/icons';
+import { RobotOutlined, NotificationOutlined, RadarChartOutlined } from '@ant-design/icons';
 import { Location, ActiveView, BroadcastMessage } from '@/types/gmConsole';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { useTreeState } from '@/hooks/useTreeState';
@@ -9,6 +9,7 @@ import { LocationTree } from '@/components/gm/LocationTree';
 import { BroadcastForm } from '@/components/gm/BroadcastForm';
 import { ViewControls } from '@/components/gm/ViewControls';
 import { CharonPanel } from '@/components/gm/CharonPanel';
+import { EncounterPanel } from '@/components/gm/EncounterPanel';
 import { charonApi } from '@/services/charonApi';
 
 const { Content, Sider } = Layout;
@@ -165,6 +166,16 @@ function GMConsole() {
     }
   }, [showStatus]);
 
+  // Callback for EncounterPanel to refresh active view after changes
+  const handleEncounterViewUpdate = useCallback(async () => {
+    try {
+      const viewData = await gmConsoleApi.getActiveView();
+      setActiveView(viewData);
+    } catch (err) {
+      console.error('Error refreshing active view:', err);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div style={{ padding: 20, textAlign: 'center', color: '#fff' }}>
@@ -231,6 +242,30 @@ function GMConsole() {
                       currentViewType={activeView?.view_type || 'STANDBY'}
                       charonDialogOpen={activeView?.charon_dialog_open || false}
                       onDialogToggle={handleToggleCharonDialog}
+                    />
+                  </div>
+                ),
+              },
+              {
+                key: 'encounter',
+                label: (
+                  <span>
+                    <RadarChartOutlined style={{ marginRight: 8 }} />
+                    ENCOUNTER
+                  </span>
+                ),
+                children: (
+                  <div style={{
+                    padding: 16,
+                    background: '#141414',
+                    border: '1px solid #303030',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    marginTop: -16
+                  }}>
+                    <EncounterPanel
+                      activeView={activeView}
+                      onViewUpdate={handleEncounterViewUpdate}
                     />
                   </div>
                 ),

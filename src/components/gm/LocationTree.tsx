@@ -7,6 +7,7 @@ import { Location } from '@/types/gmConsole';
 interface LocationTreeProps {
   locations: Location[];
   selectedLocationSlug: string | null;
+  activeTerminalLocationSlug: string | null;
   activeTerminalSlug: string | null;
   expandedNodes: Set<string>;
   onToggle: (slug: string) => void;
@@ -18,6 +19,7 @@ interface LocationTreeProps {
 export function LocationTree({
   locations,
   selectedLocationSlug,
+  activeTerminalLocationSlug,
   activeTerminalSlug,
   expandedNodes,
   onToggle,
@@ -46,28 +48,32 @@ export function LocationTree({
     function convertToTreeData(locs: Location[]): DataNode[] {
       return locs.flatMap(location => {
         // Create terminal nodes
-        const terminalNodes: DataNode[] = location.terminals.map(terminal => ({
-          key: `terminal-${location.slug}-${terminal.slug}`,
-          title: (
-            <Space>
-              <span>{terminal.name}</span>
-              {terminal.owner && <Tag color="default">{terminal.owner}</Tag>}
-              <Button
-                size="small"
-                type={terminal.slug === activeTerminalSlug ? 'primary' : 'default'}
-                icon={<MessageOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShowTerminal(location.slug, terminal.slug);
-                }}
-              >
-                Show
-              </Button>
-            </Space>
-          ),
-          isLeaf: true,
-          selectable: false,
-        }));
+        const terminalNodes: DataNode[] = location.terminals.map(terminal => {
+          const isActive = location.slug === activeTerminalLocationSlug &&
+                           terminal.slug === activeTerminalSlug;
+          return {
+            key: `terminal-${location.slug}-${terminal.slug}`,
+            title: (
+              <Space>
+                <span>{terminal.name}</span>
+                {terminal.owner && <Tag color="default">{terminal.owner}</Tag>}
+                <Button
+                  size="small"
+                  type={isActive ? 'primary' : 'default'}
+                  icon={<MessageOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowTerminal(location.slug, terminal.slug);
+                  }}
+                >
+                  Show
+                </Button>
+              </Space>
+            ),
+            isLeaf: true,
+            selectable: false,
+          };
+        });
 
         // Create child location nodes
         const childNodes = convertToTreeData(location.children);
@@ -90,7 +96,7 @@ export function LocationTree({
     }
 
     return convertToTreeData(locations);
-  }, [locations, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys]);
+  }, [locations, activeTerminalLocationSlug, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys]);
 
   const expandedKeys = useMemo(() => Array.from(expandedNodes), [expandedNodes]);
 

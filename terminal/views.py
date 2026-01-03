@@ -531,6 +531,28 @@ def api_show_terminal(request):
     })
 
 
+@csrf_exempt
+def api_hide_terminal(request):
+    """
+    Public API endpoint to hide the terminal overlay.
+    Called by players when they dismiss the terminal dialog.
+    POST: {}
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    active_view = ActiveView.get_current()
+    active_view.overlay_location_slug = ''
+    active_view.overlay_terminal_slug = ''
+    active_view.save()
+
+    return JsonResponse({
+        'success': True
+    })
+
+
 @login_required
 def api_broadcast(request):
     """
@@ -1124,4 +1146,59 @@ def api_encounter_all_decks(request, location_slug):
         'decks': decks_data,
         'room_visibility': active_view.encounter_room_visibility or {},
         'current_deck_id': active_view.encounter_deck_id,
+    })
+
+
+def api_terminal_data(request, location_slug, terminal_slug):
+    """
+    Get terminal data including messages for display.
+    GET: /api/terminal/<location_slug>/<terminal_slug>/
+    """
+    from terminal.data_loader import DataLoader
+
+    loader = DataLoader()
+
+    # Find location by walking hierarchy
+    location = loader.find_location_by_slug(location_slug)
+    if not location:
+        return JsonResponse({'error': 'Location not found'}, status=404)
+
+    # Find terminal in location
+    terminals = location.get('terminals', [])
+    terminal = next((t for t in terminals if t['slug'] == terminal_slug), None)
+    if not terminal:
+        return JsonResponse({'error': 'Terminal not found'}, status=404)
+
+    # Format messages for the response
+    def format_message(msg):
+        timestamp = msg.get('timestamp')
+        if hasattr(timestamp, 'isoformat'):
+            timestamp = timestamp.isoformat()
+        return {
+            'message_id': msg.get('message_id', msg.get('filename', '')),
+            'subject': msg.get('subject', ''),
+            'from': msg.get('from', ''),
+            'to': msg.get('to', ''),
+            'content': msg.get('content', ''),
+            'timestamp': timestamp,
+            'priority': msg.get('priority', 'NORMAL'),
+            'read': msg.get('read', True),
+            'folder': msg.get('folder', 'inbox'),
+            'contact': msg.get('contact', ''),
+            'conversation_id': msg.get('conversation_id', ''),
+            'in_reply_to': msg.get('in_reply_to', ''),
+        }
+
+    inbox = [format_message(m) for m in terminal.get('inbox', [])]
+    sent = [format_message(m) for m in terminal.get('sent', [])]
+
+    return JsonResponse({
+        'slug': terminal.get('slug'),
+        'owner': terminal.get('owner', ''),
+        'terminal_id': terminal.get('terminal_id', ''),
+        'access_level': terminal.get('access_level', 'PUBLIC'),
+        'description': terminal.get('description', ''),
+        'location_name': location.get('name', ''),
+        'inbox': inbox,
+        'sent': sent,
     })

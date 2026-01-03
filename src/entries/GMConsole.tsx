@@ -97,15 +97,28 @@ function GMConsole() {
 
   const handleShowTerminal = useCallback(async (locationSlug: string, terminalSlug: string) => {
     try {
-      await gmConsoleApi.showTerminal(locationSlug, terminalSlug);
-      const viewData = await gmConsoleApi.getActiveView();
-      setActiveView(viewData);
-      showStatus(`Showing terminal ${terminalSlug}`);
+      // Toggle: if clicking the same terminal that's already shown, hide it
+      const isAlreadyShown = activeView?.overlay_location_slug === locationSlug &&
+                             activeView?.overlay_terminal_slug === terminalSlug;
+
+      if (isAlreadyShown) {
+        // Hide the terminal by sending empty values
+        await gmConsoleApi.showTerminal('', '');
+        const viewData = await gmConsoleApi.getActiveView();
+        setActiveView(viewData);
+        showStatus('Terminal hidden');
+      } else {
+        // Show the new terminal (this automatically replaces any existing overlay)
+        await gmConsoleApi.showTerminal(locationSlug, terminalSlug);
+        const viewData = await gmConsoleApi.getActiveView();
+        setActiveView(viewData);
+        showStatus(`Showing terminal ${terminalSlug}`);
+      }
     } catch (err) {
       console.error('Error showing terminal:', err);
       showStatus('Failed to show terminal', 'error');
     }
-  }, [showStatus]);
+  }, [showStatus, activeView?.overlay_location_slug, activeView?.overlay_terminal_slug]);
 
   const handleStandby = useCallback(async () => {
     try {
@@ -200,6 +213,7 @@ function GMConsole() {
         <LocationTree
           locations={locations}
           selectedLocationSlug={activeView?.view_type === 'ENCOUNTER' ? (activeView?.location_slug || null) : null}
+          activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
           activeTerminalSlug={activeView?.overlay_terminal_slug || null}
           expandedNodes={expandedNodes}
           onToggle={toggleNode}

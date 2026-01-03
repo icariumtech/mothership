@@ -1,6 +1,7 @@
 @import '../../styles/variables.css';
 
 .panel-wrapper {
+  --chamfer-size: 12px;
   background-color: var(--color-bg-panel);
   position: relative;
   display: flex;
@@ -8,7 +9,7 @@
   height: 100%;  /* Fill parent container to enable content scrolling */
 
   /* Base clip-path (will be overridden by specific chamfer classes) */
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  clip-path: polygon(var(--chamfer-size) 0, 100% 0, 100% calc(100% - var(--chamfer-size)), calc(100% - var(--chamfer-size)) 100%, 0 100%, 0 var(--chamfer-size));
 
   /* Borders using box-shadow */
   box-shadow:
@@ -31,21 +32,73 @@
 /* All 4 corners */
 .panel-wrapper.chamfer-tl.chamfer-tr.chamfer-bl.chamfer-br {
   clip-path: polygon(
-    12px 0, calc(100% - 12px) 0,
-    100% 12px, 100% calc(100% - 12px),
-    calc(100% - 12px) 100%, 12px 100%,
-    0 calc(100% - 12px), 0 12px
+    var(--chamfer-size) 0, calc(100% - var(--chamfer-size)) 0,
+    100% var(--chamfer-size), 100% calc(100% - var(--chamfer-size)),
+    calc(100% - var(--chamfer-size)) 100%, var(--chamfer-size) 100%,
+    0 calc(100% - var(--chamfer-size)), 0 var(--chamfer-size)
   );
 }
 
 /* Top-left and bottom-right (default) */
 .panel-wrapper.chamfer-tl.chamfer-br:not(.chamfer-tr):not(.chamfer-bl) {
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  clip-path: polygon(var(--chamfer-size) 0, 100% 0, 100% calc(100% - var(--chamfer-size)), calc(100% - var(--chamfer-size)) 100%, 0 100%, 0 var(--chamfer-size));
 }
 
 /* Top-right and bottom-left */
 .panel-wrapper.chamfer-tr.chamfer-bl:not(.chamfer-tl):not(.chamfer-br) {
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  clip-path: polygon(0 0, calc(100% - var(--chamfer-size)) 0, 100% var(--chamfer-size), 100% 100%, var(--chamfer-size) 100%, 0 calc(100% - var(--chamfer-size)));
+}
+
+/* Top-right, bottom-left, and bottom-right (no top-left) */
+.panel-wrapper.chamfer-tr.chamfer-bl.chamfer-br:not(.chamfer-tl) {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--chamfer-size)) 0,
+    100% var(--chamfer-size),
+    100% calc(100% - var(--chamfer-size)),
+    calc(100% - var(--chamfer-size)) 100%,
+    var(--chamfer-size) 100%,
+    0 calc(100% - var(--chamfer-size))
+  );
+}
+
+/* Top-left, top-right, and bottom-right (no bottom-left) */
+.panel-wrapper.chamfer-tl.chamfer-tr.chamfer-br:not(.chamfer-bl) {
+  clip-path: polygon(
+    var(--chamfer-size) 0,
+    calc(100% - var(--chamfer-size)) 0,
+    100% var(--chamfer-size),
+    100% calc(100% - var(--chamfer-size)),
+    calc(100% - var(--chamfer-size)) 100%,
+    0 100%,
+    0 var(--chamfer-size)
+  );
+}
+
+/* Top-left, top-right, and bottom-left (no bottom-right) */
+.panel-wrapper.chamfer-tl.chamfer-tr.chamfer-bl:not(.chamfer-br) {
+  clip-path: polygon(
+    var(--chamfer-size) 0,
+    calc(100% - var(--chamfer-size)) 0,
+    100% var(--chamfer-size),
+    100% 100%,
+    var(--chamfer-size) 100%,
+    0 calc(100% - var(--chamfer-size)),
+    0 var(--chamfer-size)
+  );
+}
+
+/* Top-left, bottom-left, and bottom-right (no top-right) */
+.panel-wrapper.chamfer-tl.chamfer-bl.chamfer-br:not(.chamfer-tr) {
+  clip-path: polygon(
+    var(--chamfer-size) 0,
+    100% 0,
+    100% calc(100% - var(--chamfer-size)),
+    calc(100% - var(--chamfer-size)) 100%,
+    var(--chamfer-size) 100%,
+    0 calc(100% - var(--chamfer-size)),
+    0 var(--chamfer-size)
+  );
 }
 
 /* Diagonal corner lines - using extra elements for 4-corner support */
@@ -54,8 +107,8 @@
 .panel-wrapper .corner-bl,
 .panel-wrapper .corner-br {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: var(--chamfer-size);
+  height: var(--chamfer-size);
   pointer-events: none;
   z-index: 1;
 }
@@ -158,8 +211,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 12px;
-  height: 12px;
+  width: var(--chamfer-size);
+  height: var(--chamfer-size);
   background: linear-gradient(
     to bottom right,
     transparent calc(50% - 2px),
@@ -175,8 +228,8 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 12px;
-  height: 12px;
+  width: var(--chamfer-size);
+  height: var(--chamfer-size);
   background: linear-gradient(
     to bottom right,
     transparent calc(50% - 2px),

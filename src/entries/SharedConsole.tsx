@@ -9,8 +9,10 @@ import { GalaxyMap, GalaxyMapHandle } from '@components/domain/maps/GalaxyMap';
 import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
 import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
 import { CharonDialog } from '@components/domain/charon/CharonDialog';
+import { CommTerminalDialog } from '@components/domain/terminal/CommTerminalDialog';
 import { EncounterView } from '@components/domain/encounter/EncounterView';
 import { charonApi } from '@/services/charonApi';
+import { terminalApi } from '@/services/terminalApi';
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../types/orbitMap';
@@ -101,6 +103,11 @@ function SharedConsole() {
   // CHARON dialog state
   const [charonDialogOpen, setCharonDialogOpen] = useState(false);
 
+  // Comm terminal overlay state
+  const [terminalOverlayOpen, setTerminalOverlayOpen] = useState(false);
+  const [terminalOverlayLocation, setTerminalOverlayLocation] = useState('');
+  const [terminalOverlaySlug, setTerminalOverlaySlug] = useState('');
+
   // Refs for map components to call dive methods
   const galaxyMapRef = useRef<GalaxyMapHandle>(null);
   const systemMapRef = useRef<SystemMapHandle>(null);
@@ -173,9 +180,30 @@ function SharedConsole() {
             setSelectedOrbitElementType(null);
             setSelectedOrbitElementData(null);
           }
+
+          // Sync terminal overlay state
+          if (data.overlay_terminal_slug && data.overlay_location_slug) {
+            setTerminalOverlayLocation(data.overlay_location_slug);
+            setTerminalOverlaySlug(data.overlay_terminal_slug);
+            setTerminalOverlayOpen(true);
+          } else {
+            setTerminalOverlayOpen(false);
+          }
         } else if (data.charon_dialog_open !== charonDialogOpen) {
           // Sync dialog state even if updated_at didn't change
           setCharonDialogOpen(data.charon_dialog_open);
+        }
+
+        // Sync terminal overlay state even if updated_at didn't change
+        const overlayOpen = !!(data.overlay_terminal_slug && data.overlay_location_slug);
+        if (overlayOpen !== terminalOverlayOpen) {
+          if (overlayOpen) {
+            setTerminalOverlayLocation(data.overlay_location_slug);
+            setTerminalOverlaySlug(data.overlay_terminal_slug);
+            setTerminalOverlayOpen(true);
+          } else {
+            setTerminalOverlayOpen(false);
+          }
         }
       } catch (error) {
         console.error('Failed to poll active view:', error);
@@ -183,7 +211,7 @@ function SharedConsole() {
     }, 2000);
 
     return () => clearInterval(pollInterval);
-  }, [activeView?.updated_at, activeView?.view_type, charonDialogOpen]);
+  }, [activeView?.updated_at, activeView?.view_type, charonDialogOpen, terminalOverlayOpen]);
 
   const viewType = activeView?.view_type || 'STANDBY';
   const isStandby = viewType === 'STANDBY';
@@ -488,6 +516,18 @@ function SharedConsole() {
     }
   }, []);
 
+  // Terminal overlay handlers
+  // When players close the dialog, notify the GM view to unselect the terminal
+  const handleTerminalOverlayClose = useCallback(async () => {
+    setTerminalOverlayOpen(false); // Immediate feedback
+    try {
+      await terminalApi.hideTerminal();
+    } catch (error) {
+      console.error('Failed to hide terminal overlay:', error);
+      // Don't revert - let user close it locally even if API fails
+    }
+  }, []);
+
   // Build planet list for menu when in system view
   const systemPlanets = useMemo(() => {
     if (!systemMapData?.bodies) return [];
@@ -705,6 +745,14 @@ function SharedConsole() {
       <CharonDialog
         open={charonDialogOpen}
         onClose={handleCharonDialogClose}
+      />
+
+      {/* Comm Terminal Dialog - overlay for viewing terminal messages */}
+      <CommTerminalDialog
+        open={terminalOverlayOpen}
+        locationSlug={terminalOverlayLocation}
+        terminalSlug={terminalOverlaySlug}
+        onClose={handleTerminalOverlayClose}
       />
     </>
   );

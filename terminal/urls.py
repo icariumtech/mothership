@@ -34,4 +34,7 @@ urlpatterns = [
     path('api/gm/encounter/room-visibility/', views.api_encounter_room_visibility, name='encounter_room_visibility'),
     path('api/encounter-map/<str:location_slug>/all-decks/', views.api_encounter_all_decks, name='encounter_all_decks'),
     path('api/encounter-map/<str:location_slug>/', views.api_encounter_map_data, name='encounter_map_data'),
+    # Terminal API endpoints
+    path('api/terminal/<str:location_slug>/<str:terminal_slug>/', views.api_terminal_data, name='terminal_data'),
+    path('api/terminal/hide/', views.api_hide_terminal, name='api_hide_terminal'),
 ]

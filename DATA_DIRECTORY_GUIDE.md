@@ -944,6 +944,38 @@ Will have full report ready by end of week.
 | `in_reply_to` | No | Links to previous message in thread |
 | `read` | No | Whether message has been read |
 
+### 6.4 Message Duplication Between Terminals
+
+**Important:** When a message is sent between two terminals, you must create the message file in **both** terminals:
+
+1. **Sender's terminal**: Place in `sent/{recipient-slug}/`
+2. **Recipient's terminal**: Place in `inbox/{sender-slug}/`
+
+The message content should be identical, but you may set `read: true` in the sender's copy (they wrote it) and `read: false` in the recipient's copy (unread).
+
+**Example:** Captain Morrison sends a message to Chief Engineer Hayes
+
+```
+# Sender's copy (Morrison's terminal)
+bridge-terminal/
+└── sent/
+    └── engineering/
+        └── 001_status_request.md    # read: true
+
+# Recipient's copy (Hayes' terminal)
+engineering-terminal/
+└── inbox/
+    └── bridge/
+        └── 001_status_request.md    # read: false
+```
+
+**Why duplication is required:**
+- Each terminal independently loads its own `inbox/` and `sent/` directories
+- There's no central message database or cross-terminal lookup
+- This mirrors how real email systems work (sender keeps a copy in Sent)
+
+**Tip:** When creating message threads, keep the filenames consistent (e.g., `001_status_request.md`) and use `message_id` and `in_reply_to` to maintain threading across both terminals.
+
 **CHARON System Messages:**
 
 ```markdown
@@ -1309,6 +1341,7 @@ When adding new data, verify:
 - [ ] Location slugs are unique within their parent
 - [ ] Directory names match the `location_slug` values in parent files
 - [ ] Message IDs are unique across all terminals
+- [ ] **Messages between terminals exist in both sender's `sent/` and recipient's `inbox/`**
 - [ ] Room IDs are unique within each deck
 - [ ] Connection `from`/`to` reference valid room IDs
 - [ ] Inter-deck connections reference valid room IDs in target deck files

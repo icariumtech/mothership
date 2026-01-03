@@ -25,23 +25,14 @@ export function LocationTree({
   onShowTerminal,
   selectionEnabled
 }: LocationTreeProps) {
-  // Track which keys are selectable (displayable locations)
+  // Track which keys are selectable (all locations are now selectable)
   const selectableKeys = useMemo(() => {
     const keys = new Set<string>();
 
     function collectSelectableKeys(locs: Location[]) {
       for (const location of locs) {
-        const locationType = location.type?.toLowerCase() || '';
-        const canDisplay =
-          locationType === 'system' ||
-          locationType === 'planet' ||
-          locationType === 'moon' ||
-          location.has_map;
-
-        if (canDisplay) {
-          keys.add(location.slug);
-        }
-
+        // All locations are selectable - locations without maps will show a "no map" message
+        keys.add(location.slug);
         collectSelectableKeys(location.children);
       }
     }

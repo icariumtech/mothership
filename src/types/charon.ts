@@ -16,6 +16,8 @@ export interface CharonMessage {
 export interface CharonConversation {
   mode: CharonMode;
   charon_location_path: string;
+  /** The actual location path CHARON is using (derived from encounter or explicit setting) */
+  active_location_path: string;
   messages: CharonMessage[];
   updated_at: string;
 }

@@ -10,6 +10,34 @@ import json
 from django.conf import settings
 
 
+def get_charon_location_path(active_view) -> str:
+    """
+    Derive CHARON's location context from the active view.
+
+    Priority:
+    1. If in ENCOUNTER view with a location, derive path from location_slug
+    2. Fall back to explicitly set charon_location_path
+    3. Return None if no location context available
+
+    Returns:
+        Location path string like "sol/earth/uscss_morrigan" or None
+    """
+    from terminal.data_loader import DataLoader
+
+    # If in ENCOUNTER view, derive from encounter location
+    if active_view.view_type == 'ENCOUNTER' and active_view.location_slug:
+        loader = DataLoader()
+        path_slugs = loader.get_location_path(active_view.location_slug)
+        if path_slugs:
+            return '/'.join(path_slugs)
+
+    # Fall back to explicitly set CHARON location
+    if active_view.charon_location_path:
+        return active_view.charon_location_path
+
+    return None
+
+
 @login_required
 def terminal_view_react(request):
     """
@@ -551,9 +579,13 @@ def api_charon_conversation(request):
     active_view = ActiveView.get_current()
     conversation = CharonSessionManager.get_conversation()
 
+    # Get the derived location path (from encounter or explicit setting)
+    derived_location_path = get_charon_location_path(active_view)
+
     return JsonResponse({
         'mode': active_view.charon_mode,
         'charon_location_path': active_view.charon_location_path or '',
+        'active_location_path': derived_location_path or '',  # What CHARON is actually using
         'messages': conversation,
         'updated_at': active_view.updated_at.isoformat(),
     })
@@ -569,7 +601,6 @@ def api_charon_submit_query(request):
     """
     from terminal.models import ActiveView
     from terminal.charon_session import CharonSessionManager, CharonMessage
-    from terminal.charon_ai import CharonAI
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -593,8 +624,10 @@ def api_charon_submit_query(request):
     CharonSessionManager.add_message(query_msg)
 
     # Generate AI response with location-specific knowledge
-    location_path = active_view.charon_location_path or None
-    ai = CharonAI(location_path=location_path)
+    # Derive location from encounter view or fall back to explicit setting
+    location_path = get_charon_location_path(active_view)
+    from terminal.charon_ai import get_charon_ai
+    ai = get_charon_ai(location_path=location_path)
     conversation = CharonSessionManager.get_conversation()
     response = ai.generate_response(query, conversation)
 
@@ -700,7 +733,6 @@ def api_charon_generate(request):
     Returns a pending response for GM approval.
     """
     from terminal.charon_session import CharonSessionManager
-    from terminal.charon_ai import CharonAI
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -715,12 +747,14 @@ def api_charon_generate(request):
         return JsonResponse({'error': 'Prompt required'}, status=400)
 
     # Get active CHARON location for knowledge context
+    # Derive location from encounter view or fall back to explicit setting
     from terminal.models import ActiveView
     active_view = ActiveView.get_current()
-    location_path = active_view.charon_location_path or None
+    location_path = get_charon_location_path(active_view)
 
     # Generate AI response based on GM's prompt with location knowledge
-    ai = CharonAI(location_path=location_path)
+    from terminal.charon_ai import get_charon_ai
+    ai = get_charon_ai(location_path=location_path)
     conversation = CharonSessionManager.get_conversation()
 
     # Create a context message for the AI that includes the GM's prompt

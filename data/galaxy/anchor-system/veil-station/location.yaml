@@ -20,13 +20,13 @@ lore:
     - "Major Sections"
     - "Customs and Procedures"
     - "Berthing and Docking"
+    - "Notable NPCs"
   exclude_patterns:
     - "^GM Notes"
     - "^Secrets"
     - "^Session"
     - "^Adventure Hooks"
     - "^Campaign"
-    - "^Notable NPCs"
 
 # CHARON instance configuration
 charon:

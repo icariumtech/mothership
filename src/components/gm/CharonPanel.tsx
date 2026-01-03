@@ -34,7 +34,8 @@ interface CharonPanelProps {
 
 export function CharonPanel({ currentViewType, charonDialogOpen = false, onDialogToggle }: CharonPanelProps) {
   const [mode, setMode] = useState<CharonMode>('DISPLAY');
-  const [locationPath, setLocationPath] = useState('');
+  const [locationPath, setLocationPath] = useState('');  // Explicit override
+  const [activeLocationPath, setActiveLocationPath] = useState('');  // What CHARON is actually using
   const [locationInput, setLocationInput] = useState('');
   const [messageContent, setMessageContent] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
@@ -62,7 +63,8 @@ export function CharonPanel({ currentViewType, charonDialogOpen = false, onDialo
         setMode(convData.mode);
         setConversation(convData.messages);
         setPendingResponses(pendingData.pending);
-        // Sync location path from server
+        // Sync location paths from server
+        setActiveLocationPath(convData.active_location_path || '');
         if (convData.charon_location_path !== locationPath) {
           setLocationPath(convData.charon_location_path);
           setLocationInput(convData.charon_location_path);
@@ -249,10 +251,42 @@ export function CharonPanel({ currentViewType, charonDialogOpen = false, onDialo
         </Button>
       </div>
 
-        {/* Location Selector */}
+        {/* Location Context */}
         <div style={{ marginBottom: 16 }}>
           <Text style={{ display: 'block', marginBottom: 4 }}>
-            <EnvironmentOutlined /> CHARON Instance:
+            <EnvironmentOutlined /> CHARON Context:
+          </Text>
+          {/* Show active location (derived from encounter or explicit) */}
+          {activeLocationPath ? (
+            <div style={{
+              background: '#0f1515',
+              border: '1px solid #4a6b6b',
+              padding: '6px 10px',
+              marginBottom: 8,
+              fontSize: 11,
+            }}>
+              <Text style={{ color: '#5a7a7a' }}>
+                {activeLocationPath}
+              </Text>
+              {activeLocationPath !== locationPath && !locationPath && (
+                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 2 }}>
+                  (from current encounter)
+                </Text>
+              )}
+              {locationPath && (
+                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 2 }}>
+                  (explicit override)
+                </Text>
+              )}
+            </div>
+          ) : (
+            <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 8 }}>
+              No location context (use encounter view or set below)
+            </Text>
+          )}
+          {/* Override location input */}
+          <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 4 }}>
+            Override location:
           </Text>
           <Space.Compact style={{ width: '100%' }}>
             <Input
@@ -272,11 +306,6 @@ export function CharonPanel({ currentViewType, charonDialogOpen = false, onDialo
               SET
             </Button>
           </Space.Compact>
-          {locationPath && (
-            <Text type="secondary" style={{ fontSize: 10 }}>
-              Active: {locationPath}
-            </Text>
-          )}
         </div>
 
         {/* GM Message Input */}

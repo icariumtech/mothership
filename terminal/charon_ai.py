@@ -11,6 +11,41 @@ from django.conf import settings
 from .charon_knowledge import CharonKnowledgeLoader
 
 
+# Module-level cache for CharonAI instances by location path
+_charon_cache: Dict[str, 'CharonAI'] = {}
+
+
+def get_charon_ai(location_path: str = None) -> 'CharonAI':
+    """
+    Get a cached CharonAI instance for the given location.
+
+    Caches the instance to avoid reloading config and knowledge context
+    on every API call. Invalidates cache when location changes.
+
+    Note: The system prompt still gets sent with every Claude API call
+    (that's how the API works), but this avoids repeated file I/O.
+    """
+    global _charon_cache
+
+    cache_key = location_path or '__no_location__'
+
+    # Check if we have a cached instance for this location
+    if cache_key in _charon_cache:
+        return _charon_cache[cache_key]
+
+    # Create new instance and cache it
+    instance = CharonAI(location_path=location_path)
+    _charon_cache[cache_key] = instance
+
+    return instance
+
+
+def clear_charon_cache():
+    """Clear all cached CharonAI instances."""
+    global _charon_cache
+    _charon_cache.clear()
+
+
 class CharonAI:
     """Manages Claude API integration for CHARON responses."""
 
@@ -52,8 +87,7 @@ class CharonAI:
         try:
             loader = CharonKnowledgeLoader(self.location_path)
             return loader.build_context_string()
-        except Exception as e:
-            print(f"Warning: Failed to load CHARON knowledge: {e}")
+        except Exception:
             return ""
 
     def _init_client(self) -> None:

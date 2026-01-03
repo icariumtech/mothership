@@ -225,7 +225,13 @@ class DataLoader:
         return terminals
 
     def load_terminal(self, terminal_dir: Path) -> Dict[str, Any]:
-        """Load a single terminal with all its messages (inbox and sent)."""
+        """Load a single terminal with all its messages (inbox and sent).
+
+        Supports two message storage modes:
+        1. Central message store: All messages in comms/messages/ directory,
+           filtered by terminal owner (inbox = to matches, sent = from matches)
+        2. Legacy mode: Messages in terminal's inbox/ and sent/ subdirectories
+        """
         terminal_file = terminal_dir / "terminal.yaml"
 
         if terminal_file.exists():
@@ -235,12 +241,21 @@ class DataLoader:
             terminal_data = {"owner": terminal_dir.name}
 
         terminal_data['slug'] = terminal_dir.name
+        owner = terminal_data.get('owner', '')
 
-        # Load inbox messages
-        terminal_data['inbox'] = self.load_message_folder(terminal_dir / "inbox")
+        # Check for central message store (comms/messages/ directory)
+        comms_dir = terminal_dir.parent  # This is the comms/ directory
+        central_messages_dir = comms_dir / "messages"
 
-        # Load sent messages
-        terminal_data['sent'] = self.load_message_folder(terminal_dir / "sent")
+        if central_messages_dir.exists() and central_messages_dir.is_dir():
+            # Use central message store
+            all_messages = self.load_central_messages(central_messages_dir)
+            terminal_data['inbox'] = self.filter_messages_for_recipient(all_messages, owner)
+            terminal_data['sent'] = self.filter_messages_for_sender(all_messages, owner)
+        else:
+            # Fall back to legacy inbox/sent folders
+            terminal_data['inbox'] = self.load_message_folder(terminal_dir / "inbox")
+            terminal_data['sent'] = self.load_message_folder(terminal_dir / "sent")
 
         # Combine all messages for backwards compatibility
         terminal_data['messages'] = terminal_data['inbox'] + terminal_data['sent']
@@ -249,6 +264,58 @@ class DataLoader:
         terminal_data['messages'].sort(key=lambda m: m.get('timestamp', ''))
 
         return terminal_data
+
+    def load_central_messages(self, messages_dir: Path) -> List[Dict[str, Any]]:
+        """Load all messages from a central messages directory."""
+        messages = []
+
+        if not messages_dir.exists():
+            return messages
+
+        # Load all .md files directly in the messages directory
+        for message_file in sorted(messages_dir.glob("*.md")):
+            message_data = self.parse_message_file(message_file)
+            if message_data:
+                messages.append(message_data)
+
+        # Sort messages by timestamp
+        messages.sort(key=lambda m: m.get('timestamp', ''))
+
+        return messages
+
+    def filter_messages_for_recipient(self, messages: List[Dict[str, Any]], owner: str) -> List[Dict[str, Any]]:
+        """Filter messages where the owner is the recipient (inbox)."""
+        inbox = []
+        owner_lower = owner.lower()
+
+        for msg in messages:
+            to_field = msg.get('to', '')
+            # Check if owner name appears in the 'to' field (case-insensitive)
+            if owner_lower in to_field.lower():
+                msg_copy = msg.copy()
+                msg_copy['folder'] = 'inbox'
+                msg_copy['contact'] = msg.get('from', 'Unknown')
+                inbox.append(msg_copy)
+
+        inbox.sort(key=lambda m: m.get('timestamp', ''))
+        return inbox
+
+    def filter_messages_for_sender(self, messages: List[Dict[str, Any]], owner: str) -> List[Dict[str, Any]]:
+        """Filter messages where the owner is the sender (sent)."""
+        sent = []
+        owner_lower = owner.lower()
+
+        for msg in messages:
+            from_field = msg.get('from', '')
+            # Check if owner name appears in the 'from' field (case-insensitive)
+            if owner_lower in from_field.lower():
+                msg_copy = msg.copy()
+                msg_copy['folder'] = 'sent'
+                msg_copy['contact'] = msg.get('to', 'Unknown')
+                sent.append(msg_copy)
+
+        sent.sort(key=lambda m: m.get('timestamp', ''))
+        return sent
 
     def load_message_folder(self, folder_dir: Path) -> List[Dict[str, Any]]:
         """Load all messages from a folder (inbox or sent), organized by contact."""

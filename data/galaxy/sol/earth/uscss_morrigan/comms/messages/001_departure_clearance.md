@@ -5,7 +5,6 @@ subject: "Departure Clearance"
 from: "Station Control"
 to: "Captain Morrison"
 message_id: "msg_station_001"
-read: false
 ---
 
 USCSS MORRIGAN, you are cleared for departure.

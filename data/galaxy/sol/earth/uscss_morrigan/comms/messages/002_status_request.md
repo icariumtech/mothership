@@ -5,7 +5,6 @@ subject: "Engineering Status Check"
 from: "Captain Morrison"
 to: "Chief Engineer Hayes"
 message_id: "msg_bridge_eng_001"
-read: true
 ---
 
 Hayes,

@@ -872,20 +872,33 @@ metadata:
 
 ## 6. Terminals and Messages
 
-### 6.1 Directory Structure
+### 6.1 Directory Structure (Central Message Store)
+
+The recommended approach uses a **central message store** where all messages are stored in one `messages/` directory. Messages are automatically routed to the correct terminal's inbox/sent based on the `from` and `to` fields.
 
 ```
 {facility}/comms/
-└── {terminal-slug}/
-    ├── terminal.yaml          # Terminal configuration
-    ├── inbox/                 # Received messages
-    │   └── {sender-slug}/     # Grouped by sender
-    │       ├── 001_first_message.md
-    │       └── 002_reply.md
-    └── sent/                  # Sent messages
-        └── {recipient-slug}/  # Grouped by recipient
-            └── 001_response.md
+├── messages/                  # Central message store (RECOMMENDED)
+│   ├── 001_departure.md       # All messages in one place
+│   ├── 002_status_request.md
+│   └── 003_status_reply.md
+├── {terminal-slug}/
+│   └── terminal.yaml          # Terminal configuration (owner field is key)
+└── {another-terminal}/
+    └── terminal.yaml
 ```
+
+**How it works:**
+- Messages are stored once in `comms/messages/`
+- Each message has `from` and `to` fields identifying sender/recipient
+- When loading a terminal, the system filters messages by the terminal's `owner`:
+  - **Inbox**: Messages where `to` matches the owner
+  - **Sent**: Messages where `from` matches the owner
+
+**Benefits:**
+- No message duplication needed
+- Single source of truth for each message
+- Easier to maintain message consistency
 
 ### 6.2 Terminal Configuration (`terminal.yaml`)
 
@@ -944,37 +957,25 @@ Will have full report ready by end of week.
 | `in_reply_to` | No | Links to previous message in thread |
 | `read` | No | Whether message has been read |
 
-### 6.4 Message Duplication Between Terminals
+### 6.4 Legacy Directory Structure (Backwards Compatible)
 
-**Important:** When a message is sent between two terminals, you must create the message file in **both** terminals:
-
-1. **Sender's terminal**: Place in `sent/{recipient-slug}/`
-2. **Recipient's terminal**: Place in `inbox/{sender-slug}/`
-
-The message content should be identical, but you may set `read: true` in the sender's copy (they wrote it) and `read: false` in the recipient's copy (unread).
-
-**Example:** Captain Morrison sends a message to Chief Engineer Hayes
+The system also supports a legacy format where each terminal has its own `inbox/` and `sent/` directories. This is still supported for backwards compatibility but requires message duplication.
 
 ```
-# Sender's copy (Morrison's terminal)
-bridge-terminal/
-└── sent/
-    └── engineering/
-        └── 001_status_request.md    # read: true
-
-# Recipient's copy (Hayes' terminal)
-engineering-terminal/
-└── inbox/
-    └── bridge/
-        └── 001_status_request.md    # read: false
+{facility}/comms/
+└── {terminal-slug}/
+    ├── terminal.yaml
+    ├── inbox/                 # Received messages
+    │   └── {sender-slug}/     # Grouped by sender
+    │       └── 001_message.md
+    └── sent/                  # Sent messages
+        └── {recipient-slug}/  # Grouped by recipient
+            └── 001_message.md
 ```
 
-**Why duplication is required:**
-- Each terminal independently loads its own `inbox/` and `sent/` directories
-- There's no central message database or cross-terminal lookup
-- This mirrors how real email systems work (sender keeps a copy in Sent)
+**Note:** If a `messages/` directory exists at the `comms/` level, the central message store is used. Otherwise, the system falls back to the legacy `inbox/sent` structure.
 
-**Tip:** When creating message threads, keep the filenames consistent (e.g., `001_status_request.md`) and use `message_id` and `in_reply_to` to maintain threading across both terminals.
+**When using legacy format:** You must create message files in both the sender's `sent/` and recipient's `inbox/` directories.
 
 **CHARON System Messages:**
 
@@ -1156,7 +1157,8 @@ This section provides a complete, minimal working example you can copy to create
 ```bash
 # Create the full directory structure
 mkdir -p data/galaxy/example-system/example-planet/example-station/map
-mkdir -p data/galaxy/example-system/example-planet/example-station/comms/station-terminal/inbox/charon
+mkdir -p data/galaxy/example-system/example-planet/example-station/comms/messages
+mkdir -p data/galaxy/example-system/example-planet/example-station/comms/station-terminal
 ```
 
 ### File 1: System Location
@@ -1302,8 +1304,8 @@ access_level: "RESTRICTED"
 description: "Main station terminal"
 ```
 
-### File 8: Sample Message
-`data/galaxy/example-system/example-planet/example-station/comms/station-terminal/inbox/charon/001_welcome.md`
+### File 8: Sample Message (Central Message Store)
+`data/galaxy/example-system/example-planet/example-station/comms/messages/001_welcome.md`
 ```markdown
 ---
 timestamp: "2183-07-01 08:00:00"
@@ -1321,6 +1323,8 @@ AWAITING FURTHER INSTRUCTIONS
 
 END TRANSMISSION
 ```
+
+**Note:** Messages are stored in the central `comms/messages/` directory. The system automatically routes messages to the correct terminal's inbox/sent based on the `from` and `to` fields matching the terminal's `owner`.
 
 ### Testing Your Data
 
@@ -1341,7 +1345,7 @@ When adding new data, verify:
 - [ ] Location slugs are unique within their parent
 - [ ] Directory names match the `location_slug` values in parent files
 - [ ] Message IDs are unique across all terminals
-- [ ] **Messages between terminals exist in both sender's `sent/` and recipient's `inbox/`**
+- [ ] **Messages use central store (`comms/messages/`) OR legacy format with duplication**
 - [ ] Room IDs are unique within each deck
 - [ ] Connection `from`/`to` reference valid room IDs
 - [ ] Inter-deck connections reference valid room IDs in target deck files

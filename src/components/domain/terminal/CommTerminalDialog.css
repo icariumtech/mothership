@@ -158,7 +158,6 @@
 
 .message-item.selected {
   background: rgba(139, 115, 85, 0.15);
-  border-left: 3px solid var(--color-amber, #8b7355);
 }
 
 .message-item.unread {

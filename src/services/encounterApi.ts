@@ -2,6 +2,8 @@ import { api } from './api';
 import {
   MapDataResponse,
   RoomVisibilityState,
+  DoorStatusState,
+  DoorStatus,
   RoomData,
   EncounterManifest,
 } from '@/types/encounterMap';
@@ -37,6 +39,13 @@ interface ToggleRoomResponse {
 
 interface RoomVisibilityResponse {
   room_visibility: RoomVisibilityState;
+}
+
+interface SetDoorStatusResponse {
+  success: boolean;
+  connection_id: string;
+  door_status: DoorStatus;
+  all_door_status: DoorStatusState;
 }
 
 /**
@@ -114,6 +123,17 @@ async function hideAllRooms(roomIds: string[]): Promise<RoomVisibilityState> {
   return setRoomVisibility(visibility);
 }
 
+/**
+ * Set door status for a connection (GM only)
+ */
+async function setDoorStatus(connectionId: string, doorStatus: DoorStatus): Promise<SetDoorStatusResponse> {
+  const response = await api.post<SetDoorStatusResponse>('/gm/encounter/set-door-status/', {
+    connection_id: connectionId,
+    door_status: doorStatus
+  });
+  return response.data;
+}
+
 export const encounterApi = {
   getMapData,
   getAllDecks,
@@ -122,7 +142,8 @@ export const encounterApi = {
   getRoomVisibility,
   setRoomVisibility,
   showAllRooms,
-  hideAllRooms
+  hideAllRooms,
+  setDoorStatus
 };
 
 export type { DeckWithRooms, AllDecksResponse };

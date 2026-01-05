@@ -14,6 +14,7 @@ import { EncounterMapRenderer } from './EncounterMapRenderer';
 import {
   EncounterMapData,
   RoomVisibilityState,
+  DoorStatusState,
   isEncounterMap,
   isMultiDeckMap,
   MultiDeckMapData,
@@ -53,9 +54,10 @@ interface LocationData {
 interface EncounterMapDisplayProps {
   locationData: LocationData | null;
   roomVisibility?: RoomVisibilityState;
+  doorStatus?: DoorStatusState;
 }
 
-export function EncounterMapDisplay({ locationData, roomVisibility }: EncounterMapDisplayProps) {
+export function EncounterMapDisplay({ locationData, roomVisibility, doorStatus }: EncounterMapDisplayProps) {
   const mapData = locationData?.map;
 
   // Check if this is a multi-deck map
@@ -67,6 +69,7 @@ export function EncounterMapDisplay({ locationData, roomVisibility }: EncounterM
       <EncounterMapRenderer
         mapData={multiDeckData.current_deck}
         roomVisibility={effectiveVisibility}
+        doorStatus={doorStatus}
       />
     );
   }
@@ -77,6 +80,7 @@ export function EncounterMapDisplay({ locationData, roomVisibility }: EncounterM
       <EncounterMapRenderer
         mapData={mapData as EncounterMapData}
         roomVisibility={roomVisibility}
+        doorStatus={doorStatus}
       />
     );
   }

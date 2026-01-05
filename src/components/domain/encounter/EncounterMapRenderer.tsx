@@ -13,6 +13,8 @@ import {
   ConnectionData,
   TooltipState,
   RoomVisibilityState,
+  DoorStatusState,
+  DoorStatus,
 } from '../../../types/encounterMap';
 import { RoomTooltip } from './RoomTooltip';
 import './EncounterMapRenderer.css';
@@ -20,6 +22,7 @@ import './EncounterMapRenderer.css';
 interface EncounterMapRendererProps {
   mapData: EncounterMapData;
   roomVisibility?: RoomVisibilityState;
+  doorStatus?: DoorStatusState;
 }
 
 // Pan and zoom state
@@ -68,7 +71,7 @@ const POI_ICONS: Record<string, string> = {
   terminal: 'M-5,-4 L5,-4 L5,3 L-5,3 Z',
 };
 
-export function EncounterMapRenderer({ mapData, roomVisibility }: EncounterMapRendererProps) {
+export function EncounterMapRenderer({ mapData, roomVisibility, doorStatus }: EncounterMapRendererProps) {
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
     x: 0,
@@ -110,6 +113,14 @@ export function EncounterMapRenderer({ mapData, roomVisibility }: EncounterMapRe
     if (!roomVisibility) return true;
     return roomVisibility[roomId] !== false;
   }, [roomVisibility]);
+
+  // Get effective door status (runtime override > YAML default)
+  const getEffectiveDoorStatus = useCallback((conn: ConnectionData): DoorStatus => {
+    if (doorStatus && doorStatus[conn.id]) {
+      return doorStatus[conn.id];
+    }
+    return conn.door_status || 'CLOSED';
+  }, [doorStatus]);
 
   // Filter rooms by visibility
   const visibleRooms = useMemo(() => {
@@ -471,62 +482,221 @@ export function EncounterMapRenderer({ mapData, roomVisibility }: EncounterMapRe
     // Larger door sizes for better visibility
     const doorWidth = orientation === 'horizontal' ? 20 : 12;
     const doorHeight = orientation === 'horizontal' ? 12 : 20;
+    const isOpen = doorStatus === 'OPEN';
+    const isDamaged = doorStatus === 'DAMAGED';
+    const isLocked = doorStatus === 'LOCKED';
+    const isSealed = doorStatus === 'SEALED';
+
+    // Build class name with door type and status
+    const statusClass = doorStatus ? `encounter-map__door--${doorStatus.toLowerCase()}` : '';
+
+    // Calculate split offset for open doors (slides apart along the wall)
+    // For horizontal doors: slide left/right by half the door width + gap
+    // For vertical doors: slide up/down by half the door height + gap
+    const splitOffset = orientation === 'horizontal' ? doorWidth * 0.55 : doorHeight * 0.55;
+
+    // Calculate the transform for open state
+    const openTransformLeft = orientation === 'horizontal'
+      ? `translateX(-${splitOffset}px)`
+      : `translateY(-${splitOffset}px)`;
+    const openTransformRight = orientation === 'horizontal'
+      ? `translateX(${splitOffset}px)`
+      : `translateY(${splitOffset}px)`;
+
+    // Door colors based on status
+    const doorFill = isDamaged ? COLORS.hazard : style.doorFill;
+    const doorStroke = isLocked ? COLORS.amber : isSealed ? COLORS.hazard : COLORS.borderMain;
+    const doorStrokeWidth = isLocked ? 2 : isSealed ? 2.5 : 1.5;
 
     return (
-      <g key={key} className={`encounter-map__door encounter-map__door--${doorType}`}>
+      <g key={key} className={`encounter-map__door encounter-map__door--${doorType} ${statusClass}`}>
+        {/* Opaque background to cover path lines behind door */}
+        <rect
+          x={x - doorWidth / 2 + 1}
+          y={y - doorHeight / 2 + 1}
+          width={doorWidth - 2}
+          height={doorHeight - 2}
+          fill={COLORS.bgPrimary}
+          stroke="none"
+        />
+        {/* Door frame/gap indicator - always present, visible when open */}
         <rect
           x={x - doorWidth / 2}
           y={y - doorHeight / 2}
           width={doorWidth}
           height={doorHeight}
-          fill={style.doorFill}
-          stroke={COLORS.borderMain}
-          strokeWidth={1.5}
-          className={doorStatus ? `encounter-map__door--${doorStatus.toLowerCase()}` : ''}
+          fill={COLORS.bgPrimary}
+          stroke={COLORS.borderSubtle}
+          strokeWidth={1}
+          strokeDasharray="2 2"
+          className="encounter-map__door-frame"
+          style={{ opacity: isOpen ? 1 : 0 }}
         />
-        {/* Airlock double rectangle */}
-        {doorType === 'airlock' && (
-          <rect
-            x={x - doorWidth / 2 + 2}
-            y={y - doorHeight / 2 + 2}
-            width={doorWidth - 4}
-            height={doorHeight - 4}
-            fill="none"
-            stroke={COLORS.bgPrimary}
-            strokeWidth={1}
-          />
+
+        {/* First door half - always rendered, slides when open */}
+        <rect
+          x={x - doorWidth / 2}
+          y={y - doorHeight / 2}
+          width={orientation === 'horizontal' ? doorWidth / 2 : doorWidth}
+          height={orientation === 'horizontal' ? doorHeight : doorHeight / 2}
+          fill={doorFill}
+          stroke={doorStroke}
+          strokeWidth={doorStrokeWidth}
+          className="encounter-map__door-half encounter-map__door-half--left"
+          style={{
+            transform: isOpen ? openTransformLeft : 'translate(0, 0)',
+          }}
+        />
+
+        {/* Second door half - always rendered, slides when open */}
+        <rect
+          x={orientation === 'horizontal' ? x : x - doorWidth / 2}
+          y={orientation === 'horizontal' ? y - doorHeight / 2 : y}
+          width={orientation === 'horizontal' ? doorWidth / 2 : doorWidth}
+          height={orientation === 'horizontal' ? doorHeight : doorHeight / 2}
+          fill={doorFill}
+          stroke={doorStroke}
+          strokeWidth={doorStrokeWidth}
+          className="encounter-map__door-half encounter-map__door-half--right"
+          style={{
+            transform: isOpen ? openTransformRight : 'translate(0, 0)',
+          }}
+        />
+
+        {/* DAMAGED: Crack lines overlay */}
+        {isDamaged && !isOpen && (
+          <g className="encounter-map__door-damage">
+            {/* Main diagonal crack */}
+            <path
+              d={orientation === 'horizontal'
+                ? `M${x - doorWidth / 2 + 2},${y - doorHeight / 2 + 2}
+                   L${x - 2},${y}
+                   L${x + doorWidth / 2 - 2},${y + doorHeight / 2 - 2}`
+                : `M${x - doorWidth / 2 + 2},${y - doorHeight / 2 + 2}
+                   L${x},${y - 2}
+                   L${x + doorWidth / 2 - 2},${y + doorHeight / 2 - 2}`
+              }
+              fill="none"
+              stroke={COLORS.bgPrimary}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+            {/* Secondary crack */}
+            <path
+              d={orientation === 'horizontal'
+                ? `M${x + 3},${y - doorHeight / 2 + 1} L${x + 1},${y - 2}`
+                : `M${x + doorWidth / 2 - 1},${y - 3} L${x + 2},${y - 1}`
+              }
+              fill="none"
+              stroke={COLORS.bgPrimary}
+              strokeWidth={1.5}
+              strokeLinecap="round"
+            />
+            {/* Sparking effect dots */}
+            <circle
+              cx={x - 2}
+              cy={y}
+              r={1.5}
+              fill={COLORS.amber}
+              className="encounter-map__door-spark"
+            />
+          </g>
         )}
-        {/* Blast door X */}
-        {doorType === 'blast_door' && (
-          <>
+
+        {/* LOCKED: Lock indicator (keyhole) */}
+        {isLocked && !isOpen && (
+          <g className="encounter-map__door-lock">
+            {/* Background to cover door seam */}
+            <rect
+              x={orientation === 'horizontal' ? x - 4 : x - 5}
+              y={y - 5}
+              width={orientation === 'horizontal' ? 8 : 10}
+              height={orientation === 'horizontal' ? 10 : 12}
+              fill={doorFill}
+              stroke="none"
+            />
+            <circle
+              cx={x}
+              cy={y - 2}
+              r={2.5}
+              fill={COLORS.bgPrimary}
+              stroke={COLORS.amber}
+              strokeWidth={1}
+            />
+            <rect
+              x={x - 1.5}
+              y={y}
+              width={3}
+              height={4}
+              fill={COLORS.bgPrimary}
+              stroke={COLORS.amber}
+              strokeWidth={1}
+            />
+          </g>
+        )}
+
+        {/* SEALED: Heavy duty indicator (double border + hazard stripes) */}
+        {isSealed && !isOpen && (
+          <g className="encounter-map__door-seal">
+            {/* Inner border */}
+            <rect
+              x={x - doorWidth / 2 + 3}
+              y={y - doorHeight / 2 + 3}
+              width={doorWidth - 6}
+              height={doorHeight - 6}
+              fill="none"
+              stroke={COLORS.hazard}
+              strokeWidth={1}
+            />
+            {/* Hazard stripe */}
             <line
               x1={x - doorWidth / 2 + 2}
-              y1={y - doorHeight / 2 + 2}
+              y1={y}
               x2={x + doorWidth / 2 - 2}
-              y2={y + doorHeight / 2 - 2}
+              y2={y}
               stroke={COLORS.bgPrimary}
-              strokeWidth={1}
+              strokeWidth={2}
             />
-            <line
-              x1={x + doorWidth / 2 - 2}
-              y1={y - doorHeight / 2 + 2}
-              x2={x - doorWidth / 2 + 2}
-              y2={y + doorHeight / 2 - 2}
-              stroke={COLORS.bgPrimary}
-              strokeWidth={1}
-            />
-          </>
+          </g>
         )}
-        {/* Emergency door stripe */}
-        {doorType === 'emergency' && (
-          <line
-            x1={x - doorWidth / 2 + 2}
-            y1={y}
-            x2={x + doorWidth / 2 - 2}
-            y2={y}
-            stroke={COLORS.bgPrimary}
-            strokeWidth={2}
-          />
+
+        {/* Door type indicators (only for non-open doors) */}
+        {!isOpen && (
+          <>
+            {/* Airlock double rectangle */}
+            {doorType === 'airlock' && !isLocked && !isSealed && (
+              <rect
+                x={x - doorWidth / 2 + 2}
+                y={y - doorHeight / 2 + 2}
+                width={doorWidth - 4}
+                height={doorHeight - 4}
+                fill="none"
+                stroke={COLORS.bgPrimary}
+                strokeWidth={1}
+              />
+            )}
+            {/* Blast door X */}
+            {doorType === 'blast_door' && !isLocked && !isSealed && !isDamaged && (
+              <>
+                <line
+                  x1={x - doorWidth / 2 + 2}
+                  y1={y - doorHeight / 2 + 2}
+                  x2={x + doorWidth / 2 - 2}
+                  y2={y + doorHeight / 2 - 2}
+                  stroke={COLORS.bgPrimary}
+                  strokeWidth={1}
+                />
+                <line
+                  x1={x + doorWidth / 2 - 2}
+                  y1={y - doorHeight / 2 + 2}
+                  x2={x - doorWidth / 2 + 2}
+                  y2={y + doorHeight / 2 - 2}
+                  stroke={COLORS.bgPrimary}
+                  strokeWidth={1}
+                />
+              </>
+            )}
+          </>
         )}
       </g>
     );
@@ -582,17 +752,20 @@ export function EncounterMapRenderer({ mapData, roomVisibility }: EncounterMapRe
     const fromVisible = isRoomVisible(conn.from);
     const toVisible = isRoomVisible(conn.to);
 
+    // Get effective status (runtime override > YAML default)
+    const effectiveStatus = getEffectiveDoorStatus(conn);
+
     return (
       <g key={`doors-${conn.id}`}>
         {fromVisible && renderDoorSymbol(
           fromEdge.x, fromEdge.y,
-          conn.door_type, conn.door_status,
+          conn.door_type, effectiveStatus,
           style, fromOrientation,
           `${conn.id}-from`
         )}
         {toVisible && renderDoorSymbol(
           toEdge.x, toEdge.y,
-          conn.door_type, conn.door_status,
+          conn.door_type, effectiveStatus,
           style, toOrientation,
           `${conn.id}-to`
         )}
@@ -840,7 +1013,6 @@ export function EncounterMapRenderer({ mapData, roomVisibility }: EncounterMapRe
           <div className="encounter-map__legend-item">
             <svg width="24" height="16" viewBox="0 0 24 16">
               <rect x="2" y="2" width="20" height="12" fill={COLORS.hazard} stroke={COLORS.borderMain} strokeWidth="1.5" />
-              <line x1="5" y1="8" x2="19" y2="8" stroke={COLORS.bgPrimary} strokeWidth="2" />
             </svg>
             <span>Emergency</span>
           </div>

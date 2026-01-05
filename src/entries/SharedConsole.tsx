@@ -16,6 +16,7 @@ import { terminalApi } from '@/services/terminalApi';
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../types/orbitMap';
+import type { DoorStatusState } from '../types/encounterMap';
 
 // Transition state type
 type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
@@ -55,6 +56,7 @@ interface ActiveView {
   encounter_level?: number;
   encounter_deck_id?: string;
   encounter_room_visibility?: { [roomId: string]: boolean };
+  encounter_door_status?: DoorStatusState;
   // Multi-deck manifest info (added by API)
   encounter_total_decks?: number;
   encounter_deck_name?: string;
@@ -725,6 +727,7 @@ function SharedConsole() {
           totalDecks={activeView?.encounter_total_decks}
           deckName={activeView?.encounter_deck_name}
           roomVisibility={activeView?.encounter_room_visibility}
+          doorStatus={activeView?.encounter_door_status}
         />
       )}
 

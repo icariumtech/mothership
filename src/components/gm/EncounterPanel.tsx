@@ -19,6 +19,8 @@ import type { ActiveView } from '@/types/gmConsole';
 import type {
   EncounterManifest,
   RoomVisibilityState,
+  DoorStatusState,
+  DoorStatus,
   DeckInfo,
   RoomData,
   EncounterMapData,
@@ -43,6 +45,7 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
   const [manifest, setManifest] = useState<EncounterManifest | null>(null);
   const [allDecks, setAllDecks] = useState<DeckWithRooms[]>([]);
   const [roomVisibility, setRoomVisibility] = useState<RoomVisibilityState>({});
+  const [doorStatus, setDoorStatus] = useState<DoorStatusState>({});
   const [currentDeckMapData, setCurrentDeckMapData] = useState<EncounterMapData | null>(null);
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -142,6 +145,13 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
     }
   }, [activeView?.encounter_room_visibility]);
 
+  // Sync door status from activeView
+  useEffect(() => {
+    if (activeView?.encounter_door_status) {
+      setDoorStatus(activeView.encounter_door_status);
+    }
+  }, [activeView?.encounter_door_status]);
+
   const handleDeckSelect = useCallback(async (deck: DeckInfo) => {
     if (deck.id === currentDeckId) return;
 
@@ -163,6 +173,17 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
     } catch (err) {
       console.error('Error toggling room:', err);
       messageApi.error('Failed to toggle room visibility');
+    }
+  }, [onViewUpdate, messageApi]);
+
+  const handleDoorStatusChange = useCallback(async (connectionId: string, status: DoorStatus) => {
+    try {
+      const result = await encounterApi.setDoorStatus(connectionId, status);
+      setDoorStatus(result.all_door_status);
+      onViewUpdate();
+    } catch (err) {
+      console.error('Error setting door status:', err);
+      messageApi.error('Failed to set door status');
     }
   }, [onViewUpdate, messageApi]);
 
@@ -313,6 +334,8 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
           <MapPreview
             mapData={currentDeckMapData}
             roomVisibility={roomVisibility}
+            doorStatus={doorStatus}
+            onDoorStatusChange={handleDoorStatusChange}
             showAllRooms={true}
           />
         ) : (

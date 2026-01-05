@@ -11,7 +11,10 @@ import type {
   RoomData,
   ConnectionData,
   RoomVisibilityState,
+  DoorStatusState,
+  DoorStatus,
 } from '@/types/encounterMap';
+import { DoorStatusPopup } from './DoorStatusPopup';
 
 // Pan and zoom state
 interface ViewState {
@@ -20,9 +23,21 @@ interface ViewState {
   zoom: number;
 }
 
+// Selected door state for popup
+interface SelectedDoor {
+  connectionId: string;
+  x: number;
+  y: number;
+  currentStatus: DoorStatus;
+}
+
 interface MapPreviewProps {
   mapData: EncounterMapData;
   roomVisibility: RoomVisibilityState;
+  /** Door status overrides from GM */
+  doorStatus?: DoorStatusState;
+  /** Callback when GM changes door status */
+  onDoorStatusChange?: (connectionId: string, status: DoorStatus) => void;
   /** Fixed height in pixels. If not set, uses aspectRatio. */
   height?: number;
   /** Aspect ratio (width/height). E.g., 1 = square, 16/9 = widescreen. Defaults to map's natural ratio. */
@@ -53,7 +68,15 @@ const CONNECTION_STYLES: Record<string, { stroke: string; doorFill: string }> = 
   open: { stroke: COLORS.pathLine, doorFill: COLORS.teal },
 };
 
-export function MapPreview({ mapData, roomVisibility, height, aspectRatio, showAllRooms = true }: MapPreviewProps) {
+export function MapPreview({
+  mapData,
+  roomVisibility,
+  doorStatus,
+  onDoorStatusChange,
+  height,
+  aspectRatio,
+  showAllRooms = true,
+}: MapPreviewProps) {
   const grid = mapData.grid;
   const unitSize = grid.unit_size || 40;
   const svgWidth = grid.width * unitSize;
@@ -65,6 +88,9 @@ export function MapPreview({ mapData, roomVisibility, height, aspectRatio, showA
     panY: 0,
     zoom: 1,
   });
+
+  // Selected door for popup
+  const [selectedDoor, setSelectedDoor] = useState<SelectedDoor | null>(null);
 
   // Refs for drag tracking
   const containerRef = useRef<HTMLDivElement>(null);
@@ -267,7 +293,78 @@ export function MapPreview({ mapData, roomVisibility, height, aspectRatio, showA
     );
   };
 
-  // Render door symbol (simplified)
+  // Get effective door status (runtime override > YAML default)
+  const getEffectiveDoorStatus = useCallback((conn: ConnectionData): DoorStatus => {
+    if (doorStatus && doorStatus[conn.id]) {
+      return doorStatus[conn.id];
+    }
+    return conn.door_status || 'CLOSED';
+  }, [doorStatus]);
+
+  // Get door visual styling based on status
+  const getDoorStatusStyle = useCallback((status: DoorStatus) => {
+    switch (status) {
+      case 'OPEN':
+        return { opacity: 0.5, stroke: COLORS.borderMain, strokeWidth: 1, strokeDasharray: 'none' };
+      case 'LOCKED':
+        return { opacity: 1, stroke: COLORS.amber, strokeWidth: 2, strokeDasharray: 'none' };
+      case 'SEALED':
+        return { opacity: 1, stroke: COLORS.hazard, strokeWidth: 2.5, strokeDasharray: 'none' };
+      case 'DAMAGED':
+        return { opacity: 0.4, stroke: COLORS.hazard, strokeWidth: 1, strokeDasharray: '3 2' };
+      default: // CLOSED
+        return { opacity: 1, stroke: COLORS.borderMain, strokeWidth: 1, strokeDasharray: 'none' };
+    }
+  }, []);
+
+  // Handle door click - open popup
+  const handleDoorClick = useCallback((
+    e: React.MouseEvent,
+    conn: ConnectionData,
+    edgeX: number,
+    edgeY: number
+  ) => {
+    e.stopPropagation();
+
+    // Convert SVG coordinates to container coordinates
+    const container = containerRef.current;
+    if (!container) return;
+
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+
+    // Get SVG viewBox dimensions
+    const viewBox = svg.viewBox.baseVal;
+    const svgRect = svg.getBoundingClientRect();
+
+    // Calculate position accounting for pan and zoom
+    const scaleX = svgRect.width / viewBox.width;
+    const scaleY = svgRect.height / viewBox.height;
+    const scale = Math.min(scaleX, scaleY);
+
+    const offsetX = (svgRect.width - viewBox.width * scale) / 2;
+    const offsetY = (svgRect.height - viewBox.height * scale) / 2;
+
+    const popupX = offsetX + edgeX * scale * viewState.zoom + viewState.panX;
+    const popupY = offsetY + edgeY * scale * viewState.zoom + viewState.panY;
+
+    setSelectedDoor({
+      connectionId: conn.id,
+      x: popupX,
+      y: popupY,
+      currentStatus: getEffectiveDoorStatus(conn),
+    });
+  }, [viewState, getEffectiveDoorStatus]);
+
+  // Handle status selection from popup
+  const handleStatusSelect = useCallback((status: DoorStatus) => {
+    if (selectedDoor && onDoorStatusChange) {
+      onDoorStatusChange(selectedDoor.connectionId, status);
+    }
+    setSelectedDoor(null);
+  }, [selectedDoor, onDoorStatusChange]);
+
+  // Render door symbol (clickable with status styling)
   const renderDoor = (conn: ConnectionData) => {
     const fromRoom = allRoomMap.get(conn.from);
     const toRoom = allRoomMap.get(conn.to);
@@ -276,6 +373,8 @@ export function MapPreview({ mapData, roomVisibility, height, aspectRatio, showA
     const fromVisible = isRoomVisible(conn.from);
     const toVisible = isRoomVisible(conn.to);
     const style = CONNECTION_STYLES[conn.door_type || 'standard'] || CONNECTION_STYLES.standard;
+    const effectiveStatus = getEffectiveDoorStatus(conn);
+    const statusStyle = getDoorStatusStyle(effectiveStatus);
     const elements = [];
 
     if (fromVisible) {
@@ -289,8 +388,12 @@ export function MapPreview({ mapData, roomVisibility, height, aspectRatio, showA
           width={isHorizontal ? 12 : 8}
           height={isHorizontal ? 8 : 12}
           fill={style.doorFill}
-          stroke={COLORS.borderMain}
-          strokeWidth={1}
+          stroke={statusStyle.stroke}
+          strokeWidth={statusStyle.strokeWidth}
+          strokeDasharray={statusStyle.strokeDasharray}
+          opacity={statusStyle.opacity}
+          style={{ cursor: onDoorStatusChange ? 'pointer' : 'default' }}
+          onClick={(e) => onDoorStatusChange && handleDoorClick(e, conn, fromEdge.x, fromEdge.y)}
         />
       );
     }
@@ -306,8 +409,12 @@ export function MapPreview({ mapData, roomVisibility, height, aspectRatio, showA
           width={isHorizontal ? 12 : 8}
           height={isHorizontal ? 8 : 12}
           fill={style.doorFill}
-          stroke={COLORS.borderMain}
-          strokeWidth={1}
+          stroke={statusStyle.stroke}
+          strokeWidth={statusStyle.strokeWidth}
+          strokeDasharray={statusStyle.strokeDasharray}
+          opacity={statusStyle.opacity}
+          style={{ cursor: onDoorStatusChange ? 'pointer' : 'default' }}
+          onClick={(e) => onDoorStatusChange && handleDoorClick(e, conn, toEdge.x, toEdge.y)}
         />
       );
     }
@@ -476,6 +583,17 @@ export function MapPreview({ mapData, roomVisibility, height, aspectRatio, showA
       >
         {mapData.name || mapData.deck_id || 'Map Preview'}
       </div>
+
+      {/* Door status popup */}
+      {selectedDoor && (
+        <DoorStatusPopup
+          x={selectedDoor.x}
+          y={selectedDoor.y}
+          currentStatus={selectedDoor.currentStatus}
+          onSelect={handleStatusSelect}
+          onClose={() => setSelectedDoor(null)}
+        />
+      )}
     </div>
   );
 }

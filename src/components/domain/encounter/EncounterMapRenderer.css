@@ -137,26 +137,107 @@
   filter: brightness(1.3);
 }
 
-/* Door status */
-.encounter-map__door--open rect {
-  opacity: 0.5;
+/* Door body and frame transitions */
+.encounter-map__door rect {
+  transition: opacity 0.4s ease,
+              stroke 0.3s ease,
+              stroke-width 0.3s ease,
+              fill 0.3s ease,
+              stroke-dasharray 0.3s ease;
 }
 
-.encounter-map__door--locked rect {
+/* Door halves - animated sliding along the wall */
+.encounter-map__door-half {
+  transition: transform 1s cubic-bezier(0.25, 0.8, 0.25, 1),
+              fill 0.3s ease,
+              stroke 0.3s ease,
+              stroke-width 0.3s ease;
+}
+
+/* Door frame (visible gap when open) */
+.encounter-map__door-frame {
+  transition: opacity 0.4s ease;
+}
+
+/* CLOSED: Door halves together */
+.encounter-map__door--closed .encounter-map__door-half {
+  opacity: 1;
+}
+
+/* OPEN: Door halves slide apart */
+.encounter-map__door--open .encounter-map__door-half {
+  opacity: 1;
+}
+
+/* LOCKED: Amber border with lock icon */
+.encounter-map__door--locked .encounter-map__door-half {
   stroke: #8b7355;
-  stroke-width: 1;
-}
-
-.encounter-map__door--sealed rect {
-  stroke: #8b5555;
   stroke-width: 2;
 }
 
-.encounter-map__door--damaged rect {
-  opacity: 0.4;
+.encounter-map__door-lock {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* SEALED: Heavy red border with hazard indicator */
+.encounter-map__door--sealed .encounter-map__door-half {
   stroke: #8b5555;
-  stroke-width: 1;
-  stroke-dasharray: 2 2;
+  stroke-width: 2.5;
+}
+
+.encounter-map__door-seal {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* DAMAGED: Red fill with crack effects and sparking */
+.encounter-map__door--damaged .encounter-map__door-half {
+  fill: #8b5555;
+  stroke: #5a3a3a;
+  stroke-width: 1.5;
+}
+
+.encounter-map__door-damage {
+  opacity: 1;
+}
+
+/* Sparking animation for damaged doors */
+.encounter-map__door-spark {
+  animation: spark-flicker 0.8s ease-in-out infinite;
+}
+
+@keyframes spark-flicker {
+  0%, 100% {
+    opacity: 1;
+    r: 1.5;
+  }
+  25% {
+    opacity: 0.3;
+    r: 1;
+  }
+  50% {
+    opacity: 1;
+    r: 2;
+  }
+  75% {
+    opacity: 0.5;
+    r: 1.2;
+  }
+}
+
+/* Damaged door subtle pulse */
+.encounter-map__door--damaged .encounter-map__door-half {
+  animation: damage-pulse 2s ease-in-out infinite;
+}
+
+@keyframes damage-pulse {
+  0%, 100% {
+    fill: #8b5555;
+  }
+  50% {
+    fill: #7a4545;
+  }
 }
 
 /* Terminals */

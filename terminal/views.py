@@ -169,6 +169,7 @@ def get_active_view_json(request):
         'encounter_level': active_view.encounter_level,
         'encounter_deck_id': active_view.encounter_deck_id or '',
         'encounter_room_visibility': active_view.encounter_room_visibility or {},
+        'encounter_door_status': active_view.encounter_door_status or {},
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     }
 
@@ -1030,6 +1031,52 @@ def api_encounter_room_visibility(request):
         })
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@login_required
+def api_encounter_set_door_status(request):
+    """
+    Set door status for a connection (door).
+    POST: { connection_id: string, door_status: string }
+    Valid statuses: OPEN, CLOSED, LOCKED, SEALED, DAMAGED
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    connection_id = data.get('connection_id')
+    door_status = data.get('door_status')
+
+    if not connection_id or not door_status:
+        return JsonResponse({'error': 'connection_id and door_status required'}, status=400)
+
+    # Validate door status
+    valid_statuses = ['OPEN', 'CLOSED', 'LOCKED', 'SEALED', 'DAMAGED']
+    if door_status not in valid_statuses:
+        return JsonResponse({
+            'error': f'Invalid door_status. Must be one of: {", ".join(valid_statuses)}'
+        }, status=400)
+
+    active_view = ActiveView.get_current()
+    door_states = active_view.encounter_door_status or {}
+    door_states[connection_id] = door_status
+
+    active_view.encounter_door_status = door_states
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'connection_id': connection_id,
+        'door_status': door_status,
+        'all_door_status': door_states
+    })
 
 
 def api_encounter_map_data(request, location_slug):

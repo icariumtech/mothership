@@ -85,6 +85,11 @@ class ActiveView(models.Model):
         blank=True,
         help_text='Map of room_id -> visible (bool) for GM-controlled visibility'
     )
+    encounter_door_status = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Map of connection_id -> door_status string (runtime override)'
+    )
 
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)

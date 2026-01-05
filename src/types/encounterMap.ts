@@ -137,6 +137,11 @@ export interface RoomVisibilityState {
   [roomId: string]: boolean;
 }
 
+// Door status state (GM-controlled runtime overrides)
+export interface DoorStatusState {
+  [connectionId: string]: DoorStatus;
+}
+
 // Complete encounter map data structure
 export interface EncounterMapData {
   name: string;

@@ -18,7 +18,7 @@ import { OrbitMap } from '@components/domain/maps/OrbitMap';
 import { EncounterMapDisplay } from './EncounterMapDisplay';
 import { LevelIndicator } from './LevelIndicator';
 import type { StarMapData } from '../../../types/starMap';
-import type { RoomVisibilityState } from '../../../types/encounterMap';
+import type { RoomVisibilityState, DoorStatusState } from '../../../types/encounterMap';
 import './EncounterView.css';
 
 // Location data from API
@@ -65,6 +65,8 @@ interface EncounterViewProps {
   deckName?: string;
   /** Room visibility state from GM */
   roomVisibility?: RoomVisibilityState;
+  /** Door status state from GM */
+  doorStatus?: DoorStatusState;
 }
 
 // Determine view mode based on location type
@@ -100,6 +102,7 @@ export function EncounterView({
   totalDecks = 1,
   deckName,
   roomVisibility,
+  doorStatus,
 }: EncounterViewProps) {
   const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
 
@@ -178,6 +181,7 @@ export function EncounterView({
           <EncounterMapDisplay
             locationData={locationData}
             roomVisibility={roomVisibility}
+            doorStatus={doorStatus}
           />
           {/* Level indicator for multi-deck maps */}
           <LevelIndicator

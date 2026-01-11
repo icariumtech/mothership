@@ -33,12 +33,7 @@
             },
             starSystems: {{ star_systems_json|safe|default:'[]' }},
             campaignTitle: "THE OUTER VEIL CAMPAIGN",
-            crew: [
-                "Dr. Elena Vasquez - Science Officer",
-                "Marcus \"Wrench\" Chen - Engineer",
-                "Lt. Sarah Kim - Security",
-                "Alex Novak - Pilot"
-            ],
+            crew: {{ crew_json|safe|default:'[]' }},
             notes: [
                 "Investigating anomalous readings",
                 "Specimen requires containment",

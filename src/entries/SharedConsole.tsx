@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import '../styles/global.css';
 import { TerminalHeader } from '@components/layout/TerminalHeader';
 import { StandbyView } from '@components/domain/dashboard/StandbyView';
-import { CampaignDashboard, StarSystem, OrbitElement } from '@components/domain/dashboard/CampaignDashboard';
+import { CampaignDashboard, StarSystem, OrbitElement, CrewMember } from '@components/domain/dashboard/CampaignDashboard';
 import { InfoPanel, buildSystemInfoHTML, buildPlanetInfoHTML, buildMoonInfoHTML, buildStationInfoHTML, buildSurfaceMarkerInfoHTML } from '@components/domain/dashboard/InfoPanel';
 import { GalaxyMap, GalaxyMapHandle } from '@components/domain/maps/GalaxyMap';
 import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
@@ -65,7 +65,7 @@ interface ActiveView {
 interface InitialData {
   activeView: ActiveView;
   starSystems?: StarSystem[];
-  crew?: string[];
+  crew?: CrewMember[];
   notes?: string[];
   campaignTitle?: string;
 }
@@ -228,12 +228,7 @@ function SharedConsole() {
     }));
 
   // Get data from initial Django context (fallback)
-  const crew = window.INITIAL_DATA?.crew || [
-    'Dr. Elena Vasquez - Science Officer',
-    'Marcus "Wrench" Chen - Engineer',
-    'Lt. Sarah Kim - Security',
-    'Alex Novak - Pilot'
-  ];
+  const crew = window.INITIAL_DATA?.crew || [];
   const notes = window.INITIAL_DATA?.notes || [
     'Investigating anomalous readings',
     'Specimen requires containment',

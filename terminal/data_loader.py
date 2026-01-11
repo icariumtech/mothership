@@ -455,6 +455,18 @@ class DataLoader:
 
         return star_map_data
 
+    def load_crew(self) -> List[Dict[str, Any]]:
+        """Load campaign crew roster from data/campaign/crew.yaml."""
+        crew_file = self.data_dir / "campaign" / "crew.yaml"
+
+        if not crew_file.exists():
+            return []
+
+        with open(crew_file, 'r') as f:
+            crew_data = yaml.safe_load(f)
+
+        return crew_data.get('crew', []) if crew_data else []
+
     def load_system_map(self, system_slug: str) -> Dict[str, Any]:
         """Load solar system visualization for a star system."""
         system_map_file = self.systems_dir / system_slug / "system_map.yaml"

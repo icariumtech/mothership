@@ -65,6 +65,7 @@ def display_view_react(request):
     Test endpoint for React migration.
     """
     from terminal.models import ActiveView
+    from terminal.data_loader import DataLoader
 
     # Get current active view from GM console
     active_view = ActiveView.get_current()
@@ -95,9 +96,15 @@ def display_view_react(request):
     except (FileNotFoundError, Exception):
         pass
 
+    # Load crew data from campaign directory
+    loader = DataLoader()
+    crew_data = loader.load_crew()
+    crew_json = json.dumps(crew_data)
+
     return render(request, 'terminal/shared_console_react.html', {
         'active_view': active_view,
         'star_systems_json': star_systems_json,
+        'crew_json': crew_json,
     })
 
 

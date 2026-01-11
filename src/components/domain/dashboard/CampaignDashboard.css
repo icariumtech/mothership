@@ -381,3 +381,443 @@
 .orbit-element-row {
   margin: 3px 0;
 }
+
+/* ========== CREW PANEL STYLES ========== */
+
+.crew-panel-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.crew-panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  padding: 8px;
+  margin: 2px;
+  background-color: #171717;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    #1a1a1a 2px,
+    #1a1a1a 3px
+  );
+}
+
+/* Crew List Subpanel */
+.crew-list-subpanel {
+  flex-shrink: 0;
+  max-height: 40%;
+  overflow-y: auto;
+  padding: 4px;
+  background-color: rgba(15, 21, 21, 0.5);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.crew-list-subpanel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.crew-list-subpanel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crew-list-subpanel::-webkit-scrollbar-thumb {
+  background: #0f1515;
+  border: 1px solid #4a6b6b;
+}
+
+/* Crew Member Row */
+.crew-member-row {
+  display: flex;
+  align-items: stretch;
+  margin: 4px 0;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.crew-member-row:first-child {
+  margin-top: 0;
+}
+
+.crew-member-row:hover {
+  border-color: var(--color-border-main);
+  background-color: rgba(74, 107, 107, 0.1);
+}
+
+.crew-member-row.selected {
+  border-color: var(--color-amber);
+  background-color: rgba(139, 115, 85, 0.15);
+}
+
+.crew-member-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 8px;
+}
+
+.crew-member-checkbox {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--color-border-main);
+  background-color: transparent;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.crew-member-checkbox.checked {
+  background-color: var(--color-amber);
+  border-color: var(--color-amber);
+}
+
+.crew-member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.crew-member-name {
+  color: var(--color-text-primary);
+  font-size: 11px;
+  letter-spacing: 1px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crew-member-role {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.crew-member-status-indicators {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.crew-indicator {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.crew-indicator.health-indicator {
+  color: var(--color-teal);
+}
+
+.crew-indicator.health-indicator.damaged {
+  color: var(--color-amber);
+}
+
+.crew-indicator.stress-indicator {
+  color: var(--color-amber);
+}
+
+.crew-indicator.stress-indicator.warning {
+  color: #a87355;
+}
+
+.crew-indicator.stress-indicator.critical {
+  color: #8b4a4a;
+  animation: stress-pulse 1s ease-in-out infinite;
+}
+
+@keyframes stress-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Crew Details Subpanel */
+.crew-details-subpanel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  background-color: rgba(15, 21, 21, 0.5);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.crew-details-subpanel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.crew-details-subpanel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crew-details-subpanel::-webkit-scrollbar-thumb {
+  background: #0f1515;
+  border: 1px solid #4a6b6b;
+}
+
+/* Crew Details Content */
+.crew-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crew-details-header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.crew-portrait-container {
+  flex-shrink: 0;
+}
+
+.crew-portrait {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid var(--color-border-main);
+  filter: grayscale(50%) sepia(20%);
+}
+
+.crew-portrait-placeholder {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--color-border-main);
+  background-color: var(--color-bg-panel-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crew-portrait-placeholder span {
+  color: var(--color-teal);
+  font-size: 20px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+.crew-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.crew-details-name {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+.crew-details-class {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.crew-details-status {
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.crew-details-status.status-active {
+  color: var(--color-teal);
+  border: 1px solid var(--color-teal);
+}
+
+.crew-details-status.status-injured {
+  color: var(--color-amber);
+  border: 1px solid var(--color-amber);
+}
+
+.crew-details-status.status-critical {
+  color: #8b4a4a;
+  border: 1px solid #8b4a4a;
+}
+
+/* Section Labels */
+.crew-section-label {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: 6px;
+}
+
+/* Stats Grid */
+.crew-stats-section,
+.crew-saves-section {
+  margin-bottom: 4px;
+}
+
+.crew-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.crew-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.stat-label {
+  color: var(--color-text-muted);
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  color: var(--color-teal);
+  font-size: 14px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+/* Saves Grid */
+.crew-saves-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.crew-save {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.save-label {
+  color: var(--color-text-muted);
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+.save-value {
+  color: var(--color-amber);
+  font-size: 12px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+/* Condition Bars */
+.crew-condition-section {
+  margin-bottom: 4px;
+}
+
+.crew-condition-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.condition-label {
+  color: var(--color-text-muted);
+  font-size: 8px;
+  letter-spacing: 1px;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.condition-bar-container {
+  flex: 1;
+  height: 8px;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.condition-bar {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.condition-bar.health-bar {
+  background-color: var(--color-teal);
+}
+
+.condition-bar.stress-bar {
+  background-color: var(--color-amber);
+}
+
+.condition-bar.stress-bar.warning {
+  background-color: #a87355;
+}
+
+.condition-bar.stress-bar.critical {
+  background-color: #8b4a4a;
+}
+
+.condition-value {
+  color: var(--color-text-primary);
+  font-size: 10px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  width: 35px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.condition-stats-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.condition-stat {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.condition-stat .condition-label {
+  width: auto;
+}
+
+.condition-stat .condition-value {
+  width: auto;
+}
+
+.condition-stat .condition-value.wounded {
+  color: #8b4a4a;
+}
+
+/* Description */
+.crew-description-section {
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.crew-description {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+  font-style: italic;
+}

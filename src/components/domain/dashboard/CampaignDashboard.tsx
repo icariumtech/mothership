@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import './CampaignDashboard.css';
 
 interface DashboardPanelProps {
@@ -40,9 +40,47 @@ export interface OrbitElement {
   hasFacilities?: boolean;
 }
 
+// Crew member stats following Mothership RPG format
+export interface CrewMemberStats {
+  strength: number;
+  speed: number;
+  intellect: number;
+  combat: number;
+}
+
+export interface CrewMemberSaves {
+  sanity: number;
+  fear: number;
+  body: number;
+}
+
+export interface CrewMemberHealth {
+  current: number;
+  max: number;
+}
+
+export interface CrewMember {
+  id: string;
+  name: string;
+  callsign?: string;
+  role: string;
+  class: string;
+  portrait?: string;
+  stats: CrewMemberStats;
+  saves: CrewMemberSaves;
+  stress: number;
+  health: CrewMemberHealth;
+  wounds: number;
+  armor: number;
+  background: string;
+  motivation: string;
+  status: string;
+  description: string;
+}
+
 interface CampaignDashboardProps {
   campaignTitle?: string;
-  crew?: string[];
+  crew?: CrewMember[];
   notes?: string[];
   starSystems?: StarSystem[];
   statusItems?: string[];
@@ -87,6 +125,181 @@ export function CampaignDashboard({
   onOrbitElementSelect,
   onBackToSystem,
 }: CampaignDashboardProps) {
+  // State for selected crew member
+  const [selectedCrewId, setSelectedCrewId] = useState<string | null>(null);
+
+  // Get the selected crew member data
+  const selectedCrewMember = crew.find(m => m.id === selectedCrewId);
+
+  // Handle crew member selection
+  const handleCrewSelect = (crewId: string) => {
+    setSelectedCrewId(selectedCrewId === crewId ? null : crewId);
+  };
+
+  // Render crew list (similar to star system list)
+  const renderCrewList = () => (
+    <>
+      {crew.length > 0 ? (
+        crew.map((member) => (
+          <div
+            key={member.id}
+            className={`crew-member-row ${selectedCrewId === member.id ? 'selected' : ''}`}
+            onClick={() => handleCrewSelect(member.id)}
+          >
+            <div className="crew-member-content">
+              <div className={`crew-member-checkbox ${selectedCrewId === member.id ? 'checked' : ''}`} />
+              <div className="crew-member-info">
+                <div className="crew-member-name">
+                  {member.callsign ? `"${member.callsign}"` : member.name.split(' ')[0]}
+                </div>
+                <div className="crew-member-role">{member.role}</div>
+              </div>
+              <div className="crew-member-status-indicators">
+                {/* Health indicator */}
+                <span
+                  className={`crew-indicator health-indicator ${member.health.current < member.health.max ? 'damaged' : ''}`}
+                  title={`Health: ${member.health.current}/${member.health.max}`}
+                >
+                  {member.health.current < member.health.max ? '◐' : '●'}
+                </span>
+                {/* Stress indicator */}
+                {member.stress > 0 && (
+                  <span
+                    className={`crew-indicator stress-indicator ${member.stress >= 5 ? 'critical' : member.stress >= 3 ? 'warning' : ''}`}
+                    title={`Stress: ${member.stress}`}
+                  >
+                    ◆
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <p>&gt; No crew assigned</p>
+      )}
+    </>
+  );
+
+  // Render crew member details panel
+  const renderCrewDetails = () => {
+    if (!selectedCrewMember) return null;
+
+    const m = selectedCrewMember;
+    const displayName = m.callsign ? `${m.name} "${m.callsign}"` : m.name;
+
+    return (
+      <div className="crew-details">
+        {/* Portrait and name header */}
+        <div className="crew-details-header">
+          <div className="crew-portrait-container">
+            {m.portrait ? (
+              <img src={m.portrait} alt={m.name} className="crew-portrait" />
+            ) : (
+              <div className="crew-portrait-placeholder">
+                <span>{m.name.charAt(0)}</span>
+              </div>
+            )}
+          </div>
+          <div className="crew-header-info">
+            <div className="crew-details-name">{displayName}</div>
+            <div className="crew-details-class">{m.class} / {m.role}</div>
+            <div className={`crew-details-status status-${m.status.toLowerCase()}`}>
+              {m.status}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats grid */}
+        <div className="crew-stats-section">
+          <div className="crew-section-label">ATTRIBUTES</div>
+          <div className="crew-stats-grid">
+            <div className="crew-stat">
+              <span className="stat-label">STR</span>
+              <span className="stat-value">{m.stats.strength}</span>
+            </div>
+            <div className="crew-stat">
+              <span className="stat-label">SPD</span>
+              <span className="stat-value">{m.stats.speed}</span>
+            </div>
+            <div className="crew-stat">
+              <span className="stat-label">INT</span>
+              <span className="stat-value">{m.stats.intellect}</span>
+            </div>
+            <div className="crew-stat">
+              <span className="stat-label">CMB</span>
+              <span className="stat-value">{m.stats.combat}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Saves */}
+        <div className="crew-saves-section">
+          <div className="crew-section-label">SAVES</div>
+          <div className="crew-saves-grid">
+            <div className="crew-save">
+              <span className="save-label">SAN</span>
+              <span className="save-value">{m.saves.sanity}%</span>
+            </div>
+            <div className="crew-save">
+              <span className="save-label">FEAR</span>
+              <span className="save-value">{m.saves.fear}%</span>
+            </div>
+            <div className="crew-save">
+              <span className="save-label">BODY</span>
+              <span className="save-value">{m.saves.body}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Condition bars */}
+        <div className="crew-condition-section">
+          <div className="crew-section-label">CONDITION</div>
+          <div className="crew-condition-bars">
+            {/* Health bar */}
+            <div className="condition-row">
+              <span className="condition-label">HEALTH</span>
+              <div className="condition-bar-container">
+                <div
+                  className="condition-bar health-bar"
+                  style={{ width: `${(m.health.current / m.health.max) * 100}%` }}
+                />
+              </div>
+              <span className="condition-value">{m.health.current}/{m.health.max}</span>
+            </div>
+            {/* Stress bar */}
+            <div className="condition-row">
+              <span className="condition-label">STRESS</span>
+              <div className="condition-bar-container">
+                <div
+                  className={`condition-bar stress-bar ${m.stress >= 5 ? 'critical' : m.stress >= 3 ? 'warning' : ''}`}
+                  style={{ width: `${(m.stress / 10) * 100}%` }}
+                />
+              </div>
+              <span className="condition-value">{m.stress}/10</span>
+            </div>
+            {/* Armor/Wounds */}
+            <div className="condition-stats-row">
+              <div className="condition-stat">
+                <span className="condition-label">ARMOR</span>
+                <span className="condition-value">{m.armor}</span>
+              </div>
+              <div className="condition-stat">
+                <span className="condition-label">WOUNDS</span>
+                <span className={`condition-value ${m.wounds > 0 ? 'wounded' : ''}`}>{m.wounds}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="crew-description-section">
+          <div className="crew-description">{m.description}</div>
+        </div>
+      </div>
+    );
+  };
+
   // Render star systems list for galaxy view
   const renderGalaxyList = () => (
     <>
@@ -309,14 +522,24 @@ export function CampaignDashboard({
 
       {/* Left Column */}
       <div className="dashboard-left">
-        {/* CREW Panel */}
-        <DashboardPanel title="CREW" className="chamfer-tr-bl corner-line-tr-bl">
-          {crew.length > 0 ? (
-            crew.map((member, i) => <p key={i}>&gt; {member}</p>)
-          ) : (
-            <p>&gt; No crew assigned</p>
-          )}
-        </DashboardPanel>
+        {/* CREW Panel - shows list and details subpanels */}
+        <div className="crew-panel-container panel-base border-all chamfer-tr-bl corner-line-tr-bl">
+          <div className="dashboard-panel-header">
+            <h3>CREW</h3>
+          </div>
+          <div className="crew-panel-content">
+            {/* Crew list subpanel */}
+            <div className="crew-list-subpanel">
+              {renderCrewList()}
+            </div>
+            {/* Crew details subpanel - only shows when crew member selected */}
+            {selectedCrewMember && (
+              <div className="crew-details-subpanel">
+                {renderCrewDetails()}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* NOTES Panel */}
         <DashboardPanel title="NOTES" className="chamfer-tr-bl corner-line-tr-bl">

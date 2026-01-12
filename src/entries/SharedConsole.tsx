@@ -84,6 +84,33 @@ function SharedConsole() {
   const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
   const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
 
+  // Performance mode state - reduces visual effects for low-powered devices
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [performanceMode, _setPerformanceMode] = useState<boolean>(() => {
+    // Check URL parameter first, then localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPerf = urlParams.get('perf');
+    if (urlPerf === '1' || urlPerf === 'true') {
+      localStorage.setItem('performanceMode', 'true');
+      return true;
+    }
+    if (urlPerf === '0' || urlPerf === 'false') {
+      localStorage.setItem('performanceMode', 'false');
+      return false;
+    }
+    // Fall back to localStorage
+    return localStorage.getItem('performanceMode') === 'true';
+  });
+
+  // Apply performance mode class to body
+  useEffect(() => {
+    if (performanceMode) {
+      document.body.classList.add('performance-mode');
+    } else {
+      document.body.classList.remove('performance-mode');
+    }
+  }, [performanceMode]);
+
   // Map view state
   const [mapViewMode, setMapViewMode] = useState<MapViewMode>('galaxy');
   const [currentSystemSlug, setCurrentSystemSlug] = useState<string | null>(null);

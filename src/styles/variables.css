@@ -24,4 +24,35 @@
   /* State colors */
   --color-active: #8b7355;
   --color-inactive: #3a4a4a;
+
+  /* Performance mode - default values (effects enabled) */
+  --scanline-opacity: 1;
+  --animation-duration: 1;
+}
+
+/* Performance mode - disables heavy visual effects for low-powered devices */
+body.performance-mode {
+  --scanline-opacity: 0;
+  --animation-duration: 0;
+}
+
+/* Hide scanline overlay in performance mode */
+body.performance-mode .scanline-overlay {
+  display: none !important;
+}
+
+/* Disable all CSS animations in performance mode */
+body.performance-mode *,
+body.performance-mode *::before,
+body.performance-mode *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+}
+
+/* Simplify background gradients in performance mode */
+body.performance-mode .panel-content,
+body.performance-mode .crew-panel-content,
+body.performance-mode .info-panel-content {
+  background-image: none !important;
 }

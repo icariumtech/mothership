@@ -1,0 +1,129 @@
+# Campaign Crew Roster
+# Mothership RPG character data for player crew
+
+crew:
+  - id: "elena_vasquez"
+    name: "Dr. Elena Vasquez"
+    role: "Science Officer"
+    class: "Scientist"
+    portrait: "/static/portraits/vasquez.png"
+
+    # Mothership Stats (2-10 scale, 5 average)
+    stats:
+      strength: 5
+      speed: 6
+      intellect: 9
+      combat: 4
+
+    # Saves (percentage)
+    saves:
+      sanity: 45
+      fear: 35
+      body: 30
+
+    # Condition
+    stress: 2
+    health:
+      current: 8
+      max: 8
+    wounds: 0
+    armor: 0
+
+    # Character Info
+    background: "Research Scientist"
+    motivation: "Discover the unknown"
+
+    # Status
+    status: "ACTIVE"
+    description: "Brilliant biologist specializing in xenobiology. Joined the crew after her research facility on Europa was decommissioned."
+
+  - id: "marcus_chen"
+    name: "Marcus Chen"
+    callsign: "Wrench"
+    role: "Engineer"
+    class: "Teamster"
+    portrait: "/static/portraits/chen.png"
+
+    stats:
+      strength: 8
+      speed: 5
+      intellect: 7
+      combat: 5
+
+    saves:
+      sanity: 40
+      fear: 40
+      body: 45
+
+    stress: 1
+    health:
+      current: 12
+      max: 12
+    wounds: 0
+    armor: 1
+
+    background: "Ship Mechanic"
+    motivation: "Keep the ship flying"
+
+    status: "ACTIVE"
+    description: "Veteran mechanic with 15 years experience on commercial haulers. Can fix anything with duct tape and determination."
+
+  - id: "sarah_kim"
+    name: "Lt. Sarah Kim"
+    role: "Security Chief"
+    class: "Marine"
+    portrait: "/static/portraits/kim.png"
+
+    stats:
+      strength: 7
+      speed: 7
+      intellect: 5
+      combat: 9
+
+    saves:
+      sanity: 35
+      fear: 50
+      body: 50
+
+    stress: 3
+    health:
+      current: 10
+      max: 14
+    wounds: 1
+    armor: 3
+
+    background: "Colonial Marine"
+    motivation: "Protect the crew"
+
+    status: "ACTIVE"
+    description: "Former Colonial Marine, two combat tours. Left military service under unclear circumstances. Fiercely loyal to those she trusts."
+
+  - id: "alex_novak"
+    name: "Alex Novak"
+    role: "Pilot"
+    class: "Teamster"
+    portrait: "/static/portraits/novak.png"
+
+    stats:
+      strength: 5
+      speed: 8
+      intellect: 6
+      combat: 5
+
+    saves:
+      sanity: 50
+      fear: 30
+      body: 35
+
+    stress: 0
+    health:
+      current: 10
+      max: 10
+    wounds: 0
+    armor: 0
+
+    background: "Commercial Pilot"
+    motivation: "See what's out there"
+
+    status: "ACTIVE"
+    description: "Hotshot pilot with nerves of steel. Has a reputation for getting ships out of impossible situations."

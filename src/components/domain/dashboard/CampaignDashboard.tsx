@@ -1,25 +1,6 @@
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
+import { DashboardPanel } from '@components/ui/DashboardPanel';
 import './CampaignDashboard.css';
-
-interface DashboardPanelProps {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}
-
-// Reusable panel component for dashboard
-function DashboardPanel({ title, children, className = '' }: DashboardPanelProps) {
-  return (
-    <div className={`panel-base border-all ${className}`}>
-      <div className="dashboard-panel-header">
-        <h3>{title}</h3>
-      </div>
-      <div className="dashboard-panel-content">
-        {children}
-      </div>
-    </div>
-  );
-}
 
 export interface StarSystem {
   name: string;
@@ -516,17 +497,24 @@ export function CampaignDashboard({
   return (
     <div className="campaign-dashboard">
       {/* Top Panel - Campaign Title */}
-      <div className="dashboard-top panel-base chamfer-bl-br border-all corner-line-bl-br">
+      <DashboardPanel
+        chamferCorners={['bl', 'br']}
+        className="dashboard-top-panel"
+        scrollable={false}
+        padding="0"
+      >
         <div className="dashboard-top-content">{campaignTitle}</div>
-      </div>
+      </DashboardPanel>
 
       {/* Left Column */}
       <div className="dashboard-left">
         {/* CREW Panel - shows list and details subpanels */}
-        <div className="crew-panel-container panel-base border-all chamfer-tr-bl corner-line-tr-bl">
-          <div className="dashboard-panel-header">
-            <h3>CREW</h3>
-          </div>
+        <DashboardPanel
+          title="CREW"
+          chamferCorners={['tr', 'bl']}
+          className="crew-panel-wrapper"
+          padding="0"
+        >
           <div className="crew-panel-content">
             {/* Crew list subpanel */}
             <div className="crew-list-subpanel">
@@ -539,10 +527,10 @@ export function CampaignDashboard({
               </div>
             )}
           </div>
-        </div>
+        </DashboardPanel>
 
         {/* NOTES Panel */}
-        <DashboardPanel title="NOTES" className="chamfer-tr-bl corner-line-tr-bl">
+        <DashboardPanel title="NOTES" chamferCorners={['tr', 'bl']}>
           {notes.length > 0 ? (
             notes.map((note, i) => <p key={i}>&gt; {note}</p>)
           ) : (
@@ -554,14 +542,14 @@ export function CampaignDashboard({
       {/* Right Column */}
       <div className="dashboard-right">
         {/* STAR MAP Panel - shows different content based on view mode */}
-        <DashboardPanel title="STAR MAP" className="chamfer-tl-br corner-line-tl-br">
+        <DashboardPanel title="STAR MAP" chamferCorners={['tl', 'br']}>
           {mapViewMode === 'galaxy' && renderGalaxyList()}
           {mapViewMode === 'system' && renderPlanetList()}
           {mapViewMode === 'orbit' && renderOrbitList()}
         </DashboardPanel>
 
         {/* STATUS Panel */}
-        <DashboardPanel title="STATUS" className="chamfer-tl-br corner-line-tl-br">
+        <DashboardPanel title="STATUS" chamferCorners={['tl', 'br']}>
           {statusItems.length > 0 ? (
             statusItems.map((item, i) => <p key={i}>&gt; {item}</p>)
           ) : (

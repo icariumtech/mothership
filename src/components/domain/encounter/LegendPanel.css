@@ -1,0 +1,52 @@
+/**
+ * LegendPanel styles
+ * Uses CompactPanel component - only positioning and content-specific styles here
+ */
+
+/* Wrapper for positioning */
+.legend-panel-wrapper {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  min-width: 140px;
+}
+
+/* Section styling */
+.legend-section {
+  margin-bottom: 10px;
+}
+
+.legend-section:last-child {
+  margin-bottom: 0;
+}
+
+.legend-section-header {
+  color: #5a7a7a;
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+/* Legend items */
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-item svg {
+  flex-shrink: 0;
+}
+
+.legend-item span {
+  color: #7a7a7a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}

@@ -392,6 +392,87 @@ Add extra padding (12px) to the h3 element on sides with chamfered top corners:
 - Top-right chamfered: `padding-right: 22px` (10px base + 12px)
 - Both top corners: Both left and right padding
 
+### React Panel Components
+
+**Usage**: For React/TypeScript code, use the standardized Panel component system instead of HTML/CSS patterns.
+
+**Component Hierarchy**:
+- `Panel` - Base component with full customization
+- `DashboardPanel` - Pre-configured for dashboard layouts
+- `CompactPanel` - Dense layout for GM console
+- `InfoPanel` - Floating info panels with typewriter effect
+
+**Basic Usage**:
+```tsx
+import { DashboardPanel } from '@components/ui/DashboardPanel';
+
+<DashboardPanel title="CREW ROSTER" chamferCorners={['tr', 'bl']}>
+  <p>Crew list content</p>
+</DashboardPanel>
+```
+
+**Available Props**:
+- `title` - Panel title (required for most variants)
+- `chamferCorners` - Array of corners to chamfer: `['tl', 'tr', 'bl', 'br']`
+- `variant` - Visual style: `'default' | 'dashboard' | 'info' | 'compact'`
+- `isActive` - Active state (brighter borders)
+- `headerActions` - React element for header buttons/controls
+- `footer` - React element for footer content
+- `scrollable` - Enable/disable scrolling (default: true)
+- `padding` - Custom content padding
+- `minHeight` / `maxHeight` - Size constraints
+- `onHeaderClick` - Callback for collapsible panels
+
+**Common Patterns**:
+
+Dashboard Panel:
+```tsx
+<DashboardPanel title="NOTES" chamferCorners={['tr', 'bl']}>
+  {notes.map(note => <p key={note.id}>&gt; {note}</p>)}
+</DashboardPanel>
+```
+
+Panel with Actions:
+```tsx
+<DashboardPanel
+  title="CREW"
+  chamferCorners={['tr', 'bl']}
+  headerActions={<button>Add</button>}
+>
+  <CrewList />
+</DashboardPanel>
+```
+
+Compact Panel:
+```tsx
+<CompactPanel title="LOCATIONS" chamferCorners={['tl', 'br']}>
+  <LocationTree />
+</CompactPanel>
+```
+
+Collapsible Panel:
+```tsx
+import { usePanelCollapse } from '@hooks/usePanelState';
+
+function CollapsiblePanel() {
+  const { isCollapsed, toggle } = usePanelCollapse(false);
+
+  return (
+    <Panel
+      title="COLLAPSIBLE"
+      onHeaderClick={toggle}
+      headerActions={<span>{isCollapsed ? '▶' : '▼'}</span>}
+    >
+      {!isCollapsed && <div>Content</div>}
+    </Panel>
+  );
+}
+```
+
+**Documentation**: See [src/components/ui/README.md](src/components/ui/README.md) for complete API documentation and examples.
+
+**Migration Guide**: See [docs/PANEL_MIGRATION_GUIDE.md](docs/PANEL_MIGRATION_GUIDE.md) for migrating from old panel patterns.
+
 ## Scrollbar Styling
 
 ### Floating Scrollbar (Panel Content)

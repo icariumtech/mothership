@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTypewriter } from '@hooks/useTypewriter';
+import { Panel } from '@components/ui/Panel';
 import './InfoPanel.css';
 
 interface InfoPanelProps {
@@ -18,6 +19,7 @@ interface InfoPanelProps {
 /**
  * Reusable floating info panel with typewriter effect.
  * Can be used for system info, planet info, station info, etc.
+ * Now uses the base Panel component internally for consistency.
  */
 export function InfoPanel({
   title,
@@ -64,20 +66,23 @@ export function InfoPanel({
 
   return (
     <>
-      {/* Main info panel */}
+      {/* Main info panel - uses base Panel component with info variant */}
       <div
         ref={panelRef}
-        className={`info-panel ${visible ? 'visible' : ''}`}
+        className={`info-panel-wrapper ${visible ? 'visible' : ''}`}
       >
-        <div className="info-panel-header">
-          <h3>{title}</h3>
-        </div>
-        <div className="info-panel-content">
+        <Panel
+          title={title}
+          variant="info"
+          chamferCorners={['tl', 'br']}
+          chamferSize={{ tl: 12, br: 48 }}
+          scrollable={true}
+        >
           <div
             className="info-panel-body"
             dangerouslySetInnerHTML={{ __html: displayedContent }}
           />
-        </div>
+        </Panel>
       </div>
 
       {/* Triangle decoration - positioned as sibling to avoid clip-path clipping */}

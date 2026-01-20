@@ -17,6 +17,7 @@ import {
   DoorStatus,
 } from '../../../types/encounterMap';
 import { RoomTooltip } from './RoomTooltip';
+import { LegendPanel } from './LegendPanel';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
@@ -985,67 +986,7 @@ export function EncounterMapRenderer({ mapData, roomVisibility, doorStatus }: En
       )}
 
       {/* Legend */}
-      <div className="encounter-map__legend">
-        <div className="encounter-map__legend-title">LEGEND</div>
-        <div className="encounter-map__legend-section">
-          <div className="encounter-map__legend-header">DOORS</div>
-          <div className="encounter-map__legend-item">
-            <svg width="24" height="16" viewBox="0 0 24 16">
-              <rect x="2" y="2" width="20" height="12" fill={COLORS.teal} stroke={COLORS.borderMain} strokeWidth="1.5" />
-            </svg>
-            <span>Standard</span>
-          </div>
-          <div className="encounter-map__legend-item">
-            <svg width="24" height="16" viewBox="0 0 24 16">
-              <rect x="2" y="2" width="20" height="12" fill={COLORS.amber} stroke={COLORS.borderMain} strokeWidth="1.5" />
-              <rect x="5" y="5" width="14" height="6" fill="none" stroke={COLORS.bgPrimary} strokeWidth="1" />
-            </svg>
-            <span>Airlock</span>
-          </div>
-          <div className="encounter-map__legend-item">
-            <svg width="24" height="16" viewBox="0 0 24 16">
-              <rect x="2" y="2" width="20" height="12" fill={COLORS.tealBright} stroke={COLORS.borderMain} strokeWidth="1.5" />
-              <line x1="5" y1="4" x2="19" y2="12" stroke={COLORS.bgPrimary} strokeWidth="1.5" />
-              <line x1="19" y1="4" x2="5" y2="12" stroke={COLORS.bgPrimary} strokeWidth="1.5" />
-            </svg>
-            <span>Blast Door</span>
-          </div>
-          <div className="encounter-map__legend-item">
-            <svg width="24" height="16" viewBox="0 0 24 16">
-              <rect x="2" y="2" width="20" height="12" fill={COLORS.hazard} stroke={COLORS.borderMain} strokeWidth="1.5" />
-            </svg>
-            <span>Emergency</span>
-          </div>
-        </div>
-        <div className="encounter-map__legend-section">
-          <div className="encounter-map__legend-header">POINTS OF INTEREST</div>
-          <div className="encounter-map__legend-item">
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <path d="M10,2 L15,10 L5,10 Z" fill={COLORS.amber} stroke={COLORS.bgPrimary} strokeWidth="1" />
-            </svg>
-            <span>Objective</span>
-          </div>
-          <div className="encounter-map__legend-item">
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <rect x="6" y="3" width="8" height="8" fill={COLORS.teal} stroke={COLORS.bgPrimary} strokeWidth="1" />
-            </svg>
-            <span>Item</span>
-          </div>
-          <div className="encounter-map__legend-item">
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <path d="M10,2 L16,10 L4,10 Z" fill={COLORS.hazard} stroke={COLORS.bgPrimary} strokeWidth="1" />
-            </svg>
-            <span>Hazard</span>
-          </div>
-          <div className="encounter-map__legend-item">
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <rect x="4" y="2" width="12" height="10" rx="1" fill={COLORS.amber} stroke={COLORS.bgPrimary} strokeWidth="1" />
-              <rect x="6" y="4" width="8" height="6" fill={COLORS.bgPrimary} />
-            </svg>
-            <span>Terminal</span>
-          </div>
-        </div>
-      </div>
+      <LegendPanel />
 
       <RoomTooltip
         visible={tooltip.visible}

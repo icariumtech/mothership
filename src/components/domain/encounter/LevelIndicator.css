@@ -1,69 +1,20 @@
 /**
  * LevelIndicator styles
- * V2-1 retro terminal aesthetic (teal border, amber numbers)
+ * Uses CompactPanel component - only positioning and content-specific styles here
  */
 
-.level-indicator {
+/* Wrapper for positioning */
+.level-indicator-wrapper {
   position: fixed;
   top: 70px; /* Below header bar with some spacing */
   right: 20px;
   z-index: 100;
-
-  /* Panel styling */
-  background: rgba(15, 21, 21, 0.95);
-  border: 1px solid #4a6b6b;
-  padding: 12px 16px;
   min-width: 100px;
+}
 
-  /* Text styling */
-  font-family: 'Cascadia Code', 'Courier New', monospace;
+/* Content area styling */
+.level-indicator-wrapper .panel-content {
   text-align: center;
-
-  /* Chamfered corners (top-left and bottom-right) */
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-
-  /* Subtle glow */
-  box-shadow: 0 0 10px rgba(74, 107, 107, 0.2);
-}
-
-/* Diagonal corner lines */
-.level-indicator::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 8px;
-  height: 8px;
-  background: linear-gradient(
-    to bottom right,
-    transparent calc(50% - 1px),
-    #4a6b6b calc(50% - 1px),
-    #4a6b6b calc(50% + 1px),
-    transparent calc(50% + 1px)
-  );
-}
-
-.level-indicator::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 8px;
-  height: 8px;
-  background: linear-gradient(
-    to bottom right,
-    transparent calc(50% - 1px),
-    #4a6b6b calc(50% - 1px),
-    #4a6b6b calc(50% + 1px),
-    transparent calc(50% + 1px)
-  );
-}
-
-.level-indicator__label {
-  color: #5a7a7a;
-  font-size: 10px;
-  letter-spacing: 2px;
-  margin-bottom: 4px;
 }
 
 .level-indicator__numbers {

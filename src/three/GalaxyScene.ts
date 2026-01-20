@@ -360,6 +360,19 @@ export class GalaxyScene {
   }
 
   /**
+   * Resize renderer to match container dimensions
+   * Called when container visibility changes (e.g., after display: none is removed)
+   */
+  public resize(): void {
+    const parent = this.renderer.domElement.parentElement;
+    if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
+      this.camera.aspect = parent.clientWidth / parent.clientHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(parent.clientWidth, parent.clientHeight);
+    }
+  }
+
+  /**
    * Dispose of all resources
    */
   public dispose(): void {

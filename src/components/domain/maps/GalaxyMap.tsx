@@ -100,6 +100,16 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(({
     }
   }, [selectedSystem]);
 
+  // Trigger resize when hidden changes to visible (fixes blank galaxy after returning from system view)
+  useEffect(() => {
+    if (!hidden && sceneRef.current) {
+      // Small delay to ensure display: none is removed and container has dimensions
+      requestAnimationFrame(() => {
+        sceneRef.current?.resize();
+      });
+    }
+  }, [hidden]);
+
   if (!visible) return null;
 
   const containerClass = `galaxy-map-container${transitionState !== 'idle' ? ` ${transitionState}` : ''}${hidden ? ' hidden' : ''}`;

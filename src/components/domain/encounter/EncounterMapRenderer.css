@@ -25,11 +25,34 @@
   transition: transform 0.05s ease-out;
 }
 
-/* Reset view button */
-.encounter-map__reset-btn {
+/* Overlay container - CSS Grid for positioning panels */
+.encounter-map__overlays {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "top-left    .      top-right"
+    ".           .      ."
+    "bottom-left .      bottom-right";
+  padding: 20px;
+  pointer-events: none; /* Allow clicks to pass through to map */
+}
+
+/* Re-enable pointer events on overlay children */
+.encounter-map__overlays > * {
+  pointer-events: auto;
+}
+
+/* Reset view button - top left */
+.encounter-map__reset-btn {
+  grid-area: top-left;
+  align-self: start;
+  justify-self: start;
   background: rgba(15, 21, 21, 0.95);
   border: 1px solid #4a6b6b;
   color: #8b7355;
@@ -45,6 +68,20 @@
   background: rgba(26, 37, 37, 0.95);
   border-color: #5a7a7a;
   color: #9a8065;
+}
+
+/* Level indicator - top right */
+.encounter-map__level-indicator {
+  grid-area: top-right;
+  align-self: start;
+  justify-self: end;
+}
+
+/* Legend - bottom right */
+.encounter-map__legend {
+  grid-area: bottom-right;
+  align-self: end;
+  justify-self: end;
 }
 
 /* Grid lines */

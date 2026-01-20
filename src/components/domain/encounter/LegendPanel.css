@@ -1,15 +1,8 @@
 /**
  * LegendPanel styles
- * Uses CompactPanel component - only positioning and content-specific styles here
+ * Uses CompactPanel component - only content-specific styles here
+ * Positioning handled by parent grid (EncounterMapRenderer)
  */
-
-/* Wrapper for positioning */
-.legend-panel-wrapper {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  min-width: 140px;
-}
 
 /* Section styling */
 .legend-section {

@@ -55,9 +55,22 @@ interface EncounterMapDisplayProps {
   locationData: LocationData | null;
   roomVisibility?: RoomVisibilityState;
   doorStatus?: DoorStatusState;
+  /** Current deck level (1-indexed) for multi-deck maps */
+  currentLevel?: number;
+  /** Total number of decks */
+  totalLevels?: number;
+  /** Current deck name */
+  deckName?: string;
 }
 
-export function EncounterMapDisplay({ locationData, roomVisibility, doorStatus }: EncounterMapDisplayProps) {
+export function EncounterMapDisplay({
+  locationData,
+  roomVisibility,
+  doorStatus,
+  currentLevel = 1,
+  totalLevels = 1,
+  deckName,
+}: EncounterMapDisplayProps) {
   const mapData = locationData?.map;
 
   // Check if this is a multi-deck map
@@ -70,6 +83,9 @@ export function EncounterMapDisplay({ locationData, roomVisibility, doorStatus }
         mapData={multiDeckData.current_deck}
         roomVisibility={effectiveVisibility}
         doorStatus={doorStatus}
+        currentLevel={currentLevel}
+        totalLevels={totalLevels}
+        deckName={deckName}
       />
     );
   }
@@ -81,6 +97,9 @@ export function EncounterMapDisplay({ locationData, roomVisibility, doorStatus }
         mapData={mapData as EncounterMapData}
         roomVisibility={roomVisibility}
         doorStatus={doorStatus}
+        currentLevel={currentLevel}
+        totalLevels={totalLevels}
+        deckName={deckName}
       />
     );
   }

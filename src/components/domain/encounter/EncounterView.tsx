@@ -16,7 +16,6 @@ import { GalaxyMap } from '@components/domain/maps/GalaxyMap';
 import { SystemMap } from '@components/domain/maps/SystemMap';
 import { OrbitMap } from '@components/domain/maps/OrbitMap';
 import { EncounterMapDisplay } from './EncounterMapDisplay';
-import { LevelIndicator } from './LevelIndicator';
 import type { StarMapData } from '../../../types/starMap';
 import type { RoomVisibilityState, DoorStatusState } from '../../../types/encounterMap';
 import './EncounterView.css';
@@ -176,20 +175,16 @@ export function EncounterView({
       )}
 
       {/* 2D Map display - shown for facilities (stations, ships, decks, rooms) */}
+      {/* Level indicator is now rendered inside EncounterMapRenderer via CSS Grid */}
       {viewMode === 'map' && (
-        <>
-          <EncounterMapDisplay
-            locationData={locationData}
-            roomVisibility={roomVisibility}
-            doorStatus={doorStatus}
-          />
-          {/* Level indicator for multi-deck maps */}
-          <LevelIndicator
-            currentLevel={encounterLevel}
-            totalLevels={totalDecks}
-            deckName={deckName}
-          />
-        </>
+        <EncounterMapDisplay
+          locationData={locationData}
+          roomVisibility={roomVisibility}
+          doorStatus={doorStatus}
+          currentLevel={encounterLevel}
+          totalLevels={totalDecks}
+          deckName={deckName}
+        />
       )}
     </div>
   );

@@ -1,16 +1,8 @@
 /**
  * LevelIndicator styles
- * Uses CompactPanel component - only positioning and content-specific styles here
+ * Uses CompactPanel component - only content-specific styles here
+ * Positioning handled by parent grid (EncounterMapRenderer)
  */
-
-/* Wrapper for positioning */
-.level-indicator-wrapper {
-  position: fixed;
-  top: 70px; /* Below header bar with some spacing */
-  right: 20px;
-  z-index: 100;
-  min-width: 100px;
-}
 
 /* Content area styling */
 .level-indicator-wrapper .panel-content {

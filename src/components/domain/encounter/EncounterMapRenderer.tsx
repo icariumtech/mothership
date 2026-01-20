@@ -18,12 +18,19 @@ import {
 } from '../../../types/encounterMap';
 import { RoomTooltip } from './RoomTooltip';
 import { LegendPanel } from './LegendPanel';
+import { LevelIndicator } from './LevelIndicator';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
   mapData: EncounterMapData;
   roomVisibility?: RoomVisibilityState;
   doorStatus?: DoorStatusState;
+  /** Current deck level (1-indexed) for multi-deck maps */
+  currentLevel?: number;
+  /** Total number of decks */
+  totalLevels?: number;
+  /** Current deck name */
+  deckName?: string;
 }
 
 // Pan and zoom state
@@ -72,7 +79,14 @@ const POI_ICONS: Record<string, string> = {
   terminal: 'M-5,-4 L5,-4 L5,3 L-5,3 Z',
 };
 
-export function EncounterMapRenderer({ mapData, roomVisibility, doorStatus }: EncounterMapRendererProps) {
+export function EncounterMapRenderer({
+  mapData,
+  roomVisibility,
+  doorStatus,
+  currentLevel = 1,
+  totalLevels = 1,
+  deckName,
+}: EncounterMapRendererProps) {
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
     x: 0,
@@ -936,6 +950,7 @@ export function EncounterMapRenderer({ mapData, roomVisibility, doorStatus }: En
       onTouchEnd={handleTouchEnd}
       style={{ cursor: 'grab', touchAction: 'none' }}
     >
+      {/* SVG Map - fills the grid */}
       <svg
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         className="encounter-map-renderer__svg"
@@ -974,19 +989,33 @@ export function EncounterMapRenderer({ mapData, roomVisibility, doorStatus }: En
         </g>
       </svg>
 
-      {/* Reset view button (shows when zoomed or panned) */}
-      {(viewState.zoom !== 1 || viewState.panX !== 0 || viewState.panY !== 0) && (
-        <button
-          className="encounter-map__reset-btn"
-          onClick={handleResetView}
-          title="Reset view"
-        >
-          RESET VIEW
-        </button>
-      )}
+      {/* Overlay panels - positioned by CSS Grid */}
+      <div className="encounter-map__overlays">
+        {/* Reset view button - top left */}
+        {(viewState.zoom !== 1 || viewState.panX !== 0 || viewState.panY !== 0) && (
+          <button
+            className="encounter-map__reset-btn"
+            onClick={handleResetView}
+            title="Reset view"
+          >
+            RESET VIEW
+          </button>
+        )}
 
-      {/* Legend */}
-      <LegendPanel />
+        {/* Level indicator - top right */}
+        <div className="encounter-map__level-indicator">
+          <LevelIndicator
+            currentLevel={currentLevel}
+            totalLevels={totalLevels}
+            deckName={deckName}
+          />
+        </div>
+
+        {/* Legend - bottom right */}
+        <div className="encounter-map__legend">
+          <LegendPanel />
+        </div>
+      </div>
 
       <RoomTooltip
         visible={tooltip.visible}

@@ -6,7 +6,7 @@ crew:
     name: "Dr. Elena Vasquez"
     role: "Science Officer"
     class: "Scientist"
-    portrait: "/static/portraits/vasquez.png"
+    portrait: "/data/campaign/NPCs/images/lucia_vance.png"
 
     # Mothership Stats (2-10 scale, 5 average)
     stats:
@@ -42,7 +42,7 @@ crew:
     callsign: "Wrench"
     role: "Engineer"
     class: "Teamster"
-    portrait: "/static/portraits/chen.png"
+    portrait: "/data/campaign/NPCs/images/ewan_mcgregor.png"
 
     stats:
       strength: 8

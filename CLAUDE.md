@@ -2,13 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# Documentation Map
+
+For detailed information on specific topics, refer to these guides:
+
+- **Read: README.md** - Project overview, quick start, and feature list
+- **Read: GETTING_STARTED.md** - First-time setup and basic usage instructions
+- **Read: NETWORK_ACCESS.md** - Configuring network access for players
+- **Read: QUICK_REFERENCE.md** - Quick reference for network URLs and common commands
+- **Read: DATA_DIRECTORY_GUIDE.md** - Complete guide to data directory structure, file formats, and YAML schemas
+- **Read: src/components/ui/README.md** - React Panel component API, usage patterns, and migration examples
+
 # Overview
 
-**mothership** is a game master tool for running Mothership RPG campaigns. This Python-based web application serves as an interactive command center that enhances the tabletop RPG experience with digital tools and atmospheric computer-like messaging.
+**mothership** is a game master tool for running Mothership RPG campaigns. This full-stack web application serves as an interactive command center that enhances the tabletop RPG experience with digital tools and atmospheric computer-like messaging.
 
 **Repository**: https://github.com/icariumtech/mothership
 **License**: MIT (2025 icariumtech)
-**Primary Language**: Python
+**Primary Languages**: Python (Django backend), TypeScript (React frontend)
 **Game System**: Mothership RPG (sci-fi horror TTRPG)
 
 ## Project Purpose
@@ -32,13 +43,16 @@ You are an expert full stack web developer.  You should indentify ways to write 
 charon/
 ├── .claude/                     # Claude Code configuration
 ├── data/                        # Campaign data (file-based)
+│   ├── campaign/                # Campaign YAML files (crew, missions, notes)
 │   └── galaxy/
 │       ├── star_map.yaml        # 3D star map visualization
 │       └── # Galaxy hierarchy (NESTED STRUCTURE)
 │           └── {system_slug}/   # Solar System (e.g., sol, kepler-442)
 │               ├── location.yaml    # Star metadata (type: "system")
+│               ├── system_map.yaml  # System 3D visualization
 │               └── {body_slug}/     # Planet/Moon (e.g., earth, mars)
 │                   ├── location.yaml    # Planet metadata (type: "planet")
+│                   ├── orbit_map.yaml   # Orbit 3D visualization
 │                   └── {facility_slug}/ # Station/Base/Ship
 │                       ├── location.yaml    # Facility metadata (type: "station"/"base"/"ship")
 │                       ├── map/             # Facility overview map (singular!)
@@ -58,22 +72,46 @@ charon/
 │                           └── {room_slug}/     # Room/Section
 │                               ├── location.yaml    # Room metadata (type: "room")
 │                               └── comms/           # Room-level terminals
+├── src/                        # React TypeScript frontend
+│   ├── entries/                # Entry points (React roots)
+│   │   ├── GMConsole.tsx       # GM control panel entry
+│   │   ├── SharedConsole.tsx   # Shared display entry
+│   │   └── PlayerConsole.tsx   # Player messages entry
+│   ├── components/             # React components
+│   │   ├── domain/             # Domain-specific components
+│   │   │   ├── dashboard/      # Campaign dashboard views
+│   │   │   ├── maps/           # 3D map components (Galaxy, System, Orbit)
+│   │   │   ├── encounter/      # Encounter map renderer
+│   │   │   ├── charon/         # CHARON AI terminal
+│   │   │   └── terminal/       # Terminal message views
+│   │   ├── gm/                 # GM Console components
+│   │   ├── layout/             # Layout components (header, panels)
+│   │   └── ui/                 # Reusable UI components
+│   ├── services/               # API client services
+│   ├── hooks/                  # Custom React hooks
+│   ├── types/                  # TypeScript type definitions
+│   └── styles/                 # Global CSS styles
+├── scripts/                    # Utility scripts
+│   ├── convert_to_amber_gradient.py   # Planet texture converter
+│   ├── convert_planet_texture.py      # Alternative texture converter
+│   └── batch_convert_textures.sh      # Batch texture processing
 ├── mothership_gm/              # Django project settings
 ├── terminal/                   # Main Django app
 │   ├── models.py              # Message, ActiveView
-│   ├── views.py               # Terminal displays, API endpoints
+│   ├── views.py               # API endpoints and template views
 │   ├── data_loader.py         # File-based data loading (galaxy-aware)
 │   ├── management/commands/   # Django commands
-│   └── templates/             # HTML templates
+│   └── templates/             # HTML template wrappers
 │       └── terminal/
-│           ├── gm_console.html      # GM control panel
-│           ├── tree_location.html   # Recursive tree view item
-│           ├── shared_console.html  # Shared display (auto-switches views)
-│           └── player_console.html  # Player message inbox (login required)
+│           ├── gm_console_react.html      # GM console React wrapper
+│           ├── shared_console_react.html  # Shared display React wrapper
+│           └── player_console_react.html  # Player console React wrapper
 ├── db.sqlite3                 # Development database
 ├── manage.py                  # Django management
 ├── requirements.txt           # Python dependencies
-└── generate_deck_layout.py    # Script to generate map images
+├── package.json               # Node.js dependencies
+├── tsconfig.json              # TypeScript configuration
+└── vite.config.ts             # Vite build configuration
 ```
 
 ### Galaxy Hierarchy Example
@@ -81,11 +119,13 @@ charon/
 **Sol System → Earth → Research Base Alpha → Main Deck → Commander's Office**
 
 ```
-data/galaxy/locations/
+data/galaxy/
 └── sol/                        # Solar System
     ├── location.yaml           # Star metadata
+    ├── system_map.yaml         # System 3D visualization
     └── earth/                  # Planet
         ├── location.yaml       # Planet metadata
+        ├── orbit_map.yaml      # Orbit 3D visualization
         ├── research_base_alpha/    # Surface Base
         │   ├── location.yaml
         │   ├── map/exterior.yaml+png
@@ -103,14 +143,29 @@ data/galaxy/locations/
 ```
 
 ## Technical Stack
+
+### Backend
 - **Web Framework**: Django 5.2.7
 - **Database**: SQLite (stores ActiveView state and broadcast Messages only)
 - **Data Storage**: File-based (YAML + Markdown)
-- **Dependencies**: PyYAML for data parsing, Pillow for image generation
-- **Frontend**: HTML/CSS with muted multi-color styling, JavaScript for real-time updates
+- **Data Parsing**: PyYAML for YAML parsing, Pillow for image generation
 - **Package Management**: pip + requirements.txt
 - **Development**: Python virtual environments (`.venv/`, `env/`, `venv/`)
+
+### Frontend
+- **Framework**: React 19 with TypeScript
+- **Build Tool**: Vite 5.4
+- **UI Library**: Ant Design 6.1 (layout, forms, tabs, icons)
+- **3D Graphics**: Three.js 0.182 (vanilla Three.js with imperative scene management)
+- **Animation**: GSAP 3.14 for smooth transitions
+- **HTTP Client**: Axios 1.13 for API communication
+- **Package Management**: npm + package.json
+- **Type Checking**: TypeScript 5.9
+
+### Development Tools
 - **IDE Support**: VS Code, Cursor IDE, and PyCharm
+- **Linting**: Ruff (Python), TypeScript compiler (frontend)
+- **Testing**: pytest (backend), no frontend tests yet
 
 ## Multi-View Terminal System
 
@@ -121,8 +176,9 @@ The application supports multiple view types that can be displayed on a shared t
 2. **Bridge** (`BRIDGE`) - Ship bridge view with galaxy map, system navigation, and status panels
 3. **Broadcast Messages** (`MESSAGES`) - Traditional broadcast message system
 4. **Communication Terminals** (`COMM_TERMINAL`) - NPC terminal message logs with inbox/sent
-5. **Encounter Maps** (`ENCOUNTER_MAP`) - Tactical maps for combat scenarios
+5. **Encounter Maps** (`ENCOUNTER`) - Tactical maps for combat scenarios
 6. **Ship Dashboard** (`SHIP_DASHBOARD`) - Ship status and systems display
+7. **CHARON Terminal** (`CHARON_TERMINAL`) - Interactive AI terminal interface
 
 **Key Design Decisions:**
 - **File-based data storage**: Campaign data stored as markdown files with YAML frontmatter
@@ -137,15 +193,16 @@ The application supports multiple view types that can be displayed on a shared t
 ## Data Loading System
 
 **DataLoader** (`terminal/data_loader.py`):
-- Parses galaxy hierarchy from `data/galaxy/locations/`
+- Parses galaxy hierarchy from `data/galaxy/`
 - Recursively loads Systems → Bodies (planets) → Facilities (stations/bases/ships) → Decks → Rooms
 - Each level can have maps, terminals, and child locations
+- Loads star map, system map, and orbit map YAML files
 - Loads terminal messages with YAML frontmatter
 - Groups messages by conversation
 - Builds conversation threads
 - Helper methods to find locations by slug or path in hierarchy
-- Loads star map data and links to location hierarchy
-- No database sync needed
+- Loads campaign data (crew, missions, notes) from `data/campaign/`
+- No database sync needed - all data loaded on-demand from files
 
 **Message Format** (Markdown with YAML):
 ```yaml
@@ -219,182 +276,19 @@ Class: `terminal-header`
 
 ## Panel Design Patterns
 
-### Standard Panel Template
+### HTML/CSS Panels (Legacy)
 
-**Usage**: Default layout pattern for all new panels
+For HTML templates, panels use chamfered corners (12px), teal borders, and scanline backgrounds. Key features:
+- Angular panels with `clip-path` polygons for chamfered corners
+- Diagonal corner lines using `::before` and `::after` pseudo-elements
+- Fixed header with scrollable content area
+- Floating scrollbar with teal borders
 
-**Reference Implementation**: Locations panel in [gm_console.html](terminal/templates/terminal/gm_console.html:56-185)
+**Read: terminal/templates/terminal/gm_console_react.html** for reference implementations of HTML/CSS panel patterns.
 
-**HTML Structure**:
-```html
-<div class="panel-wrapper">
-    <div class="panel-header">
-        <h3>PANEL TITLE</h3>
-    </div>
-    <div class="panel-content">
-        <!-- Panel content here -->
-    </div>
-</div>
-```
+### React Panel Components (Recommended)
 
-**CSS Pattern**:
-```css
-/* Outer Wrapper */
-.panel-wrapper {
-    background-color: var(--color-bg-panel);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-
-    /* Chamfered corners (top-left and bottom-right) */
-    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-
-    /* Borders using box-shadow (prevents clipping) */
-    box-shadow:
-        inset 0 2px 0 0 var(--color-border-main),
-        inset -2px 0 0 0 var(--color-border-main),
-        inset 0 -2px 0 0 var(--color-border-main),
-        inset 2px 0 0 0 var(--color-border-main);
-}
-
-/* Diagonal corner lines */
-.panel-wrapper::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 12px;
-    height: 12px;
-    background: linear-gradient(
-        to bottom right,
-        transparent calc(50% - 2px),
-        var(--color-border-main) calc(50% - 2px),
-        var(--color-border-main) calc(50% + 2px),
-        transparent calc(50% + 2px)
-    );
-}
-
-.panel-wrapper::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 12px;
-    height: 12px;
-    background: linear-gradient(
-        to bottom right,
-        transparent calc(50% - 2px),
-        var(--color-border-main) calc(50% - 2px),
-        var(--color-border-main) calc(50% + 2px),
-        transparent calc(50% + 2px)
-    );
-}
-
-/* Fixed Header */
-.panel-header {
-    padding: 12px 2px 0 2px;
-    flex-shrink: 0;
-}
-
-.panel-header h3 {
-    color: var(--color-teal);
-    font-size: 13px;
-    letter-spacing: 2px;
-    margin: 0;
-    padding: 0 10px 5px 10px;
-    border-bottom: 1px solid var(--color-border-subtle);
-}
-
-/* Scrollable Content Area */
-.panel-content {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 12px;
-    margin: 2px 5px 2px 2px;  /* 3px gap on right for scrollbar */
-    background-color: #171717;
-    background-image: repeating-linear-gradient(
-        to bottom,
-        transparent,
-        transparent 2px,
-        #1a1a1a 2px,
-        #1a1a1a 3px
-    );
-    color: var(--color-text-primary);
-    font-size: 12px;
-    line-height: 1.6;
-}
-```
-
-### Custom Chamfered Panels
-
-**Usage**: "Create a panel with [corners] chamfered and title '[TITLE]'"
-
-**Corner Options**: `top-left`, `top-right`, `bottom-left`, `bottom-right`
-
-**Diagonal Line Direction Reference**:
-
-| Corner Position | Gradient Direction |
-|----------------|-------------------|
-| `top-left`     | `to bottom right` |
-| `top-right`    | `to bottom left`  |
-| `bottom-left`  | `to bottom left`  |
-| `bottom-right` | `to bottom right` |
-
-**Clip-Path Patterns** (12px chamfer size):
-
-**Top-left corner only**:
-```css
-clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
-```
-
-**Top-right corner only**:
-```css
-clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
-```
-
-**Bottom-left corner only**:
-```css
-clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-```
-
-**Bottom-right corner only**:
-```css
-clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
-```
-
-**Top-left and bottom-right (default)**:
-```css
-clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-```
-
-**Top-right and bottom-left**:
-```css
-clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-```
-
-**All four corners**:
-```css
-clip-path: polygon(
-    12px 0, calc(100% - 12px) 0,
-    100% 12px, 100% calc(100% - 12px),
-    calc(100% - 12px) 100%, 12px 100%,
-    0 calc(100% - 12px), 0 12px
-);
-```
-*Note: For 4 corners, you'll need additional HTML elements for top-right and bottom-left diagonal lines (see campaign dashboard center panel example in [shared_console.html](terminal/templates/terminal/shared_console.html:574-578)).*
-
-**Header Border Adjustments** (to avoid diagonal corners):
-
-Add extra padding (12px) to the h3 element on sides with chamfered top corners:
-
-- Top-left chamfered: `padding-left: 22px` (10px base + 12px)
-- Top-right chamfered: `padding-right: 22px` (10px base + 12px)
-- Both top corners: Both left and right padding
-
-### React Panel Components
-
-**Usage**: For React/TypeScript code, use the standardized Panel component system instead of HTML/CSS patterns.
+For React/TypeScript code, use the standardized Panel component system:
 
 **Component Hierarchy**:
 - `Panel` - Base component with full customization
@@ -402,7 +296,7 @@ Add extra padding (12px) to the h3 element on sides with chamfered top corners:
 - `CompactPanel` - Dense layout for GM console
 - `InfoPanel` - Floating info panels with typewriter effect
 
-**Basic Usage**:
+**Quick Example**:
 ```tsx
 import { DashboardPanel } from '@components/ui/DashboardPanel';
 
@@ -411,67 +305,7 @@ import { DashboardPanel } from '@components/ui/DashboardPanel';
 </DashboardPanel>
 ```
 
-**Available Props**:
-- `title` - Panel title (required for most variants)
-- `chamferCorners` - Array of corners to chamfer: `['tl', 'tr', 'bl', 'br']`
-- `variant` - Visual style: `'default' | 'dashboard' | 'info' | 'compact'`
-- `isActive` - Active state (brighter borders)
-- `headerActions` - React element for header buttons/controls
-- `footer` - React element for footer content
-- `scrollable` - Enable/disable scrolling (default: true)
-- `padding` - Custom content padding
-- `minHeight` / `maxHeight` - Size constraints
-- `onHeaderClick` - Callback for collapsible panels
-
-**Common Patterns**:
-
-Dashboard Panel:
-```tsx
-<DashboardPanel title="NOTES" chamferCorners={['tr', 'bl']}>
-  {notes.map(note => <p key={note.id}>&gt; {note}</p>)}
-</DashboardPanel>
-```
-
-Panel with Actions:
-```tsx
-<DashboardPanel
-  title="CREW"
-  chamferCorners={['tr', 'bl']}
-  headerActions={<button>Add</button>}
->
-  <CrewList />
-</DashboardPanel>
-```
-
-Compact Panel:
-```tsx
-<CompactPanel title="LOCATIONS" chamferCorners={['tl', 'br']}>
-  <LocationTree />
-</CompactPanel>
-```
-
-Collapsible Panel:
-```tsx
-import { usePanelCollapse } from '@hooks/usePanelState';
-
-function CollapsiblePanel() {
-  const { isCollapsed, toggle } = usePanelCollapse(false);
-
-  return (
-    <Panel
-      title="COLLAPSIBLE"
-      onHeaderClick={toggle}
-      headerActions={<span>{isCollapsed ? '▶' : '▼'}</span>}
-    >
-      {!isCollapsed && <div>Content</div>}
-    </Panel>
-  );
-}
-```
-
-**Documentation**: See [src/components/ui/README.md](src/components/ui/README.md) for complete API documentation and examples.
-
-**Migration Guide**: See [docs/PANEL_MIGRATION_GUIDE.md](docs/PANEL_MIGRATION_GUIDE.md) for migrating from old panel patterns.
+**Read: src/components/ui/README.md** for complete Panel component API documentation, props, variants, usage examples, and migration guidance.
 
 ## Scrollbar Styling
 
@@ -666,17 +500,23 @@ Tracks which view the shared terminal is currently displaying.
 class ActiveView(models.Model):
     # Main display
     location_slug = CharField       # e.g., "research_base_alpha"
-    view_type = CharField           # STANDBY, BRIDGE, MESSAGES, COMM_TERMINAL, ENCOUNTER, SHIP_DASHBOARD
+    view_type = CharField           # STANDBY, BRIDGE, MESSAGES, COMM_TERMINAL, ENCOUNTER, SHIP_DASHBOARD, CHARON_TERMINAL
     view_slug = CharField           # e.g., "commanders_terminal"
 
     # Overlay (terminal on top of map)
     overlay_location_slug = CharField
     overlay_terminal_slug = CharField
 
+    # CHARON Terminal specific fields
+    charon_mode = CharField                 # DISPLAY, QUERY
+    charon_location_path = CharField        # Path to active CHARON instance (e.g., "tau-ceti/tau-ceti-f/verdant-base")
+    charon_dialog_open = BooleanField       # Whether the CHARON dialog overlay is visible to players
+
     # Encounter map state (for multi-deck maps)
     encounter_level = IntegerField          # Current deck level (1-indexed)
     encounter_deck_id = CharField           # Current deck ID (e.g., "deck_1")
     encounter_room_visibility = JSONField   # {room_id: bool} - GM-controlled visibility
+    encounter_door_status = JSONField       # {connection_id: door_status} - Runtime door status override
 
     # Metadata
     updated_at = DateTimeField
@@ -699,448 +539,22 @@ class Message(models.Model):
 
 ## File-Based Data Models
 
-Campaign data is stored as files, not in the database.
-
-### Location (YAML File)
-
-Locations form a hierarchical galaxy structure. Each level has different metadata based on type.
-
-**Solar System** - `data/galaxy/locations/{system_slug}/location.yaml`
-```yaml
-name: "Sol System"
-type: "system"
-star_type: "G-type main-sequence (G2V)"
-galactic_coordinates: [0, 0, 0]
-status: "INHABITED"
-description: "Humanity's home star system"
-```
-
-**Planet/Moon** - `data/galaxy/locations/{system_slug}/{body_slug}/location.yaml`
-```yaml
-name: "Earth"
-type: "planet"  # or "moon"
-parent_system: "sol"
-orbital_position: 3
-mass: "5.972 × 10^24 kg"
-gravity: "1.0 G"
-atmosphere: "Nitrogen-Oxygen (breathable)"
-status: "INHABITED"
-population: "8.2 billion"
-```
-
-**Facility** - `data/galaxy/locations/{system}/{body}/{facility_slug}/location.yaml`
-```yaml
-name: "Research Base Alpha"
-type: "base"  # or "station" or "ship"
-parent_body: "earth"
-coordinates: "39.47.36 N / 116.23.40 W"
-status: "OPERATIONAL"
-crew_capacity: 50
-description: "Remote research facility"
-```
-
-**Deck/Level** - `data/galaxy/locations/{...}/{deck_slug}/location.yaml`
-```yaml
-name: "Main Deck"
-type: "deck"
-level: 1
-description: "Primary operations level"
-```
-
-**Room/Section** - `data/galaxy/locations/{...}/{room_slug}/location.yaml`
-```yaml
-name: "Commander's Office"
-type: "room"
-description: "Command center"
-```
-
-**Location Types**: `system`, `planet`, `moon`, `station`, `base`, `ship`, `deck`, `level`, `room`, `section`
-
-### Star Map (YAML File)
-`data/galaxy/star_map.yaml`
-
-Defines the 3D visualization of the galaxy with systems, stations, and routes.
-
-```yaml
-camera:
-  position: [0, 0, 100]
-  lookAt: [0, 0, 0]
-  fov: 75
-
-systems:
-  - name: "Sol"
-    position: [0, 0, 0]
-    color: 0xFFFFAA
-    size: 2.5
-    type: "star"
-    label: true
-    location_slug: "sol"  # Links to location hierarchy
-
-routes:
-  - from: "Sol"
-    to: "Alpha Centauri"
-    from_slug: "sol"
-    to_slug: "alpha-centauri"
-    color: 0x5a7a9a
-    route_type: "trade_route"
-
-nebulae:
-  - name: "Azure Expanse"
-    position: [-50, 35, -25]
-    color: 0x5a7a9a
-    size: 30
-    particle_count: 600
-    opacity: 0.05
-    type: "reflection"
-```
-
-**Nebula Types and Behaviors:**
-
-Nebulae add atmospheric depth to the galaxy map with type-specific visual characteristics:
-
-- **`emission`** - Ionized gas nebulae (typically red/maroon/amber colors)
-  - Particle distribution: Concentrated toward center (denser core)
-  - Animation: Gentle pulsing (15% opacity variation, slow)
-  - Use case: Star-forming regions, ionized hydrogen clouds
-
-- **`reflection`** - Nebulae reflecting starlight (typically blue/teal colors)
-  - Particle distribution: Uniform throughout volume
-  - Animation: Very subtle shimmer (8% opacity variation)
-  - Use case: Dust clouds illuminated by nearby stars
-
-- **`planetary`** - Ring nebulae from dying stars (any color)
-  - Particle distribution: Ring/torus shape (hollow center, flattened disk)
-  - Animation: Slow rotation around center axis
-  - Use case: Planetary nebulae, supernova remnants
-
-- **`dark`** - Obscuring dust clouds (very dark colors)
-  - Particle distribution: Standard spherical
-  - Material: Uses NormalBlending (doesn't glow)
-  - Animation: None (static)
-  - Use case: Dust clouds, molecular clouds
-
-**Nebula Color Guidelines:**
-Use muted colors that match the terminal UI palette (teal #5a7a9a, amber #8b7355, muted purples/reds). Opacity should typically be 0.04-0.08 for subtle atmospheric effect.
-
-### Orbit Map (YAML File)
-`data/galaxy/{system_slug}/{planet_slug}/orbit_map.yaml`
-
-Defines the 3D visualization of a planet's orbital environment with moons, stations, and surface locations.
-
-```yaml
-planet:
-  name: "Tau Ceti f"
-  type: "planet"
-  size: 17.5              # Planet radius
-  rotation_speed: 0.0022  # Rotation animation speed
-  axial_tilt: 0           # Degrees of axial tilt
-  texture: "/textures/terrestrial/Terrestrial-EQUIRECTANGULAR-1-2048x1024.png"
-
-camera:
-  position: [0, 35, 58]   # Camera starting position
-  lookAt: [0, 0, 0]       # Camera target
-  fov: 60                 # Field of view
-  zoom_limits: [25, 175]  # Min/max zoom distance
-
-moons:
-  - name: "Verdant"
-    location_slug: "verdant"
-    orbital_radius: 50
-    orbital_period: 220     # Animation period in frames
-    orbital_angle: 45       # Starting angle in orbit
-    inclination: 4.2        # Orbital plane tilt (degrees)
-    size: 2.5
-    color: 0x7A6B5D
-    texture: "/textures/rock/Rock-EQUIRECTANGULAR-1-2048x1024.png"
-    clickable: false
-    has_facilities: false
-    info:
-      description: "Small tidally-locked moon"
-
-orbital_stations:
-  - name: "Verdant Orbital"
-    location_slug: "verdant-orbital"
-    orbital_radius: 32
-    orbital_period: 90
-    orbital_angle: 135
-    inclination: 0
-    size: 1.5
-    icon_type: "station"
-    info:
-      description: "Supply depot and transit hub"
-      population: "~3,500"
-      type: "Commercial/Supply"
-
-surface_markers:
-  - name: "Verdant Base"
-    location_slug: "verdant-base"
-    latitude: -8.3          # Degrees (-90 to 90)
-    longitude: 72.5         # Degrees (-180 to 180)
-    marker_type: "city"     # city, research, spaceport
-    info:
-      description: "Main settlement"
-      population: "~15,000"
-```
-
-**Key Features:**
-- **Planet Textures**: Equirectangular PNG images mapped to spherical geometry
-- **Lat/Lon Grid**: Optional latitude/longitude grid overlay for reference
-- **Moon Orbits**: Animated orbital paths with configurable inclination
-- **Surface Markers**: 3D positioned based on lat/lon with visibility culling (far side hidden)
-- **Orbital Stations**: Sprite-based objects on orbital paths
-- **Menu Integration**: All elements shown in star map panel when viewing orbit map
-- **Interactive Selection**: Click menu items to select moons, stations, or surface markers
-- **Details Panel**: Shows element-specific information with typewriter animation
-- **Race Condition Prevention**: Sequence tracking ensures correct panel content during rapid selections
-
-**Interactive Features:**
-When viewing an orbit map, users can:
-1. **Select Elements** - Click any moon, station, or surface marker in the menu
-2. **View Details** - Details panel updates with element-specific information:
-   - **Moons**: Type, description, population, orbital radius, facilities
-   - **Stations**: Type, description, population, status, orbital radius
-   - **Surface Markers**: Type, description, population, coordinates, traffic
-3. **Deselect** - Click selected item again to restore planet overview
-4. **Visual Feedback** - Checkbox indicators and targeting reticle show selection state
-
-**Camera Controls:**
-- **Mouse drag** - Rotate camera around selected element (or planet center if nothing selected)
-- **Scroll wheel** - Zoom in/out (MIN: 20, MAX: 150 units)
-- **Touch: single-finger drag** - Rotate camera (same as mouse drag)
-- **Touch: two-finger pinch** - Zoom in/out
-
-**Camera Behavior with Selections:**
-- **Moons/Stations**: Camera animates to element, then tracks it as it orbits
-- **Surface Markers**: Camera zooms to marker, planet rotation pauses for free exploration
-- **Deselect**: Camera animates back to default planet overview
-- **User rotation**: Stops automatic tracking, user takes full control
-
-**Implementation Details:**
-- `selectOrbitMapElement(elementType, elementName)` - Handles selection with typewriter effect
-- `unselectOrbitMapElement()` - Restores full planet info from system map data
-- `buildMoonInfoHTML()`, `buildStationInfoHTML()`, `buildSurfaceMarkerInfoHTML()` - Element-specific renderers
-- Sequence tracking prevents race conditions during typewriter animations
-
-### Terminal (YAML File)
-`data/galaxy/locations/{path...}/comms/{terminal_slug}/terminal.yaml`
-
-Terminals can exist at any level (facility, deck, room).
-
-```yaml
-owner: "Commander Drake"
-terminal_id: "CMD-001"
-access_level: "CLASSIFIED"  # PUBLIC, RESTRICTED, CLASSIFIED
-description: "Command center main terminal"
-```
-
-### Terminal Messages (Markdown Files)
-`data/galaxy/locations/{path...}/comms/{terminal_slug}/inbox|sent/{contact_slug}/{filename}.md`
-
-Messages use markdown with YAML frontmatter:
-```markdown
----
-timestamp: "2183-06-15 03:52:00"
-priority: "CRITICAL"
-subject: "Containment Failure"
-from: "Dr. Sarah Chen"
-to: "Commander Drake"
-message_id: "msg_chen_003"
-conversation_id: "conv_lab_incident_001"
-in_reply_to: "msg_drake_002"
-read: false
----
-
-Message content in markdown...
-```
-
-**Key Fields:**
-- `message_id`: Unique identifier for this message
-- `conversation_id`: Groups related messages into threads
-- `in_reply_to`: Links to previous message in conversation
-- `from`/`to`: Sender and recipient
-- `folder` (auto-added): `inbox` or `sent`
-- `contact` (auto-added): Directory name (who the message is from/to)
-
-### Encounter Maps
-`data/galaxy/locations/{path...}/map/{map_slug}.yaml` (singular `map/` directory!)
-
-Maps can exist at system, facility, or deck levels. Two formats are supported:
-
-#### Interactive Encounter Maps (Recommended)
-
-Node-graph style maps where rooms are separate boxes connected by path lines with doors. React renders interactive SVG with pan/zoom support.
-
-```yaml
-name: "USCSS Morrigan - Main Deck"
-location_name: "USCSS Morrigan"
-description: "Main deck layout showing bridge, engineering, and crew quarters"
-
-grid:
-  width: 28              # Grid units (total map width)
-  height: 18             # Grid units (total map height)
-  unit_size: 40          # Pixels per grid unit
-  show_grid: false       # Optional background grid
-
-# Rooms are separate rectangular boxes (not touching)
-rooms:
-  - id: bridge
-    name: "BRIDGE"
-    x: 1                  # Grid position (top-left corner)
-    y: 1
-    width: 5              # Grid units
-    height: 3
-    description: "Primary flight control and navigation center"
-    status: "OPERATIONAL"  # OPERATIONAL, WARNING, HAZARD, OFFLINE
-
-  - id: engineering
-    name: "ENGINEERING"
-    x: 1
-    y: 7
-    width: 5
-    height: 4
-    description: "Main reactor and engine systems"
-    status: "WARNING"
-
-  - id: cargo_bay
-    name: "CARGO BAY"
-    x: 11
-    y: 7
-    width: 6
-    height: 4
-    description: "Primary cargo storage area"
-    status: "HAZARD"
-
-# Connections define path lines between rooms with doors at both ends
-connections:
-  - id: conn_bridge_eng
-    from: bridge           # Room ID
-    to: engineering        # Room ID
-    door_type: blast_door  # standard, airlock, blast_door, emergency
-    door_status: CLOSED    # OPEN, CLOSED, LOCKED, SEALED, DAMAGED
-
-  - id: conn_eng_cargo
-    from: engineering
-    to: cargo_bay
-    door_type: standard
-    door_status: OPEN
-
-  - id: conn_cargo_airlock
-    from: cargo_bay
-    to: airlock_bay
-    door_type: airlock
-    door_status: SEALED
-
-# Terminals inside rooms (amber monitor icons)
-terminals:
-  - id: bridge_nav
-    room: bridge
-    position:
-      x: 2.5              # Grid position (can use decimals)
-      y: 2
-    terminal_slug: "nav-console"
-    name: "NAV CONSOLE"
-
-  - id: eng_reactor
-    room: engineering
-    position:
-      x: 3
-      y: 8.5
-    terminal_slug: "reactor-control"
-    name: "REACTOR CONTROL"
-
-# Points of Interest
-poi:
-  - id: escape_pod_1
-    type: "objective"      # objective, item, hazard, npc, player
-    room: airlock_bay
-    position:
-      x: 23
-      y: 8
-    name: "ESCAPE POD A"
-    icon: "pod"            # pod, warning, crate, or type name
-    status: "READY"
-    description: "Emergency escape pod (4 person capacity)"
-
-  - id: breach_site
-    type: "hazard"
-    room: cargo_bay
-    position:
-      x: 15
-      y: 10
-    name: "HULL BREACH"
-    icon: "warning"
-    status: "CRITICAL"
-    description: "Structural damage - depressurization risk"
-
-metadata:
-  author: "GM"
-  created: "2183-06-15"
-  version: 2
-  tags: ["ship", "exploration", "combat"]
-```
-
-**Node-Graph Map Features:**
-- **Rooms**: Separate rectangular boxes with labels, status colors, hover tooltips, click selection
-- **Connections**: Orthogonal path lines between rooms with 45-degree angle turns
-- **Doors**: Rendered at BOTH ends of each connection line, inline with room walls
-- **Terminals**: Amber monitor icons inside rooms, hoverable for name display
-- **POIs**: Geometric icons by type (triangle=objective, square=item, warning triangle=hazard)
-- **Pan/Zoom**: Mouse wheel to zoom (0.5x-3x), drag background to pan, pinch on touch devices
-- **Reset View**: Button appears when panned/zoomed to return to default view
-- **Legend**: Fixed panel showing door types and POI icons
-- **Status Effects**: Hazard rooms pulse red, warning rooms have amber border
-
-**Connection Path Routing:**
-- Paths automatically route between room edges using orthogonal lines
-- Turns use 45-degree angles for visual appeal
-- Door icons appear at both ends of each connection (at room walls)
-- Door orientation (vertical/horizontal) determined by which room edge the path exits
-
-**Door Types (with visual indicators):**
-| Type | Fill Color | Indicator | Use Case |
-|------|------------|-----------|----------|
-| `standard` | Teal | Plain rectangle | Normal interior doors |
-| `airlock` | Amber | Double rectangle | Pressure-sealed doors, EVA access |
-| `blast_door` | Bright teal | X pattern | Heavy security doors, containment |
-| `emergency` | Red | Horizontal stripe | Emergency access, usually locked |
-
-**POI Types:**
-| Type | Icon | Use Case |
-|------|------|----------|
-| `objective` | Triangle | Mission goals, escape pods |
-| `item` | Square | Loot, supplies, equipment |
-| `hazard` | Warning triangle | Dangers, radiation, breaches |
-| `npc` | Circle | NPCs, crew members |
-| `player` | Diamond | Player positions |
-
-**Implementation Files:**
-- `src/components/domain/encounter/EncounterMapRenderer.tsx` - Main SVG renderer with pan/zoom
-- `src/components/domain/encounter/EncounterMapRenderer.css` - Styles for rooms, doors, legend
-- `src/components/domain/encounter/EncounterMapDisplay.tsx` - Router for interactive vs legacy maps
-- `src/types/encounterMap.ts` - TypeScript interfaces for map data
-
-#### Legacy Image Maps
-
-Static PNG images with minimal YAML metadata (still supported):
-
-```yaml
-name: "Main Facility"
-location_name: "Research Base Alpha - Main Level"
-description: "Main deck layout"
-grid_size_x: 20
-grid_size_y: 15
-```
-
-**Map Images:**
-- Place image with same name as YAML file in same directory
-- Supported formats: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`
-- Example: `deck_layout.yaml` + `deck_layout.png`
-- Images are served via `/data/galaxy/locations/.../map/image.png` in development
-
-**Auto-Detection:**
-The system automatically detects the map format:
-- If YAML has `rooms` and `grid` keys → Interactive SVG renderer
-- If YAML has `image_path` or corresponding image file → Legacy image display
+Campaign data is stored as files in the `data/` directory, not in the database. The system uses a hierarchical galaxy structure with YAML configuration files and Markdown messages.
+
+**Key Data Types:**
+- **Locations**: Nested directory hierarchy (Systems → Planets → Facilities → Decks → Rooms)
+- **Maps**: Star maps, system maps, orbit maps, and encounter maps in YAML format
+- **Terminals**: Communication terminals with inbox/sent message folders
+- **Messages**: Markdown files with YAML frontmatter for threaded conversations
+- **Campaign Data**: Crew, missions, and notes in YAML files
+
+**Read: DATA_DIRECTORY_GUIDE.md** for complete documentation on:
+- Directory naming conventions and structure
+- Location discovery mechanism
+- YAML file formats and schemas
+- Message threading system
+- Map configuration (galaxy, system, orbit, encounter maps)
+- Terminal and communication setup
 
 ## Data Access Pattern
 
@@ -1203,7 +617,7 @@ When implementing character/campaign tracking:
 - Triangle icons (▶/▼) to expand/collapse locations
 - Eye icon (👁) DISPLAY button on each location
   - Toggles on/off to show location map on terminal
-  - Updates `ActiveView.view_type = 'ENCOUNTER_MAP'`
+  - Updates `ActiveView.view_type = 'ENCOUNTER'`
   - Only one location can be displayed at a time
 - Play icon (▶) SHOW button on each terminal
   - Momentary flash animation
@@ -1250,10 +664,17 @@ Returns current active view state:
 ```json
 {
   "location_slug": "uscss_morrigan",
-  "view_type": "ENCOUNTER_MAP",
+  "view_type": "ENCOUNTER",
   "view_slug": "deck_layout",
   "overlay_location_slug": "",
   "overlay_terminal_slug": "",
+  "charon_mode": "DISPLAY",
+  "charon_location_path": "",
+  "charon_dialog_open": false,
+  "encounter_level": 1,
+  "encounter_deck_id": "deck_1",
+  "encounter_room_visibility": {},
+  "encounter_door_status": {},
   "updated_at": "2025-11-09 06:20:31"
 }
 ```
@@ -1313,20 +734,59 @@ Returns broadcast messages since ID:
 - Use `.env` files for environment-specific configuration (never commit these)
 
 ## Package Management
+
+### Backend (Python)
 - Primary package manager: pip with requirements.txt
 - Keep dependencies minimal and well-documented
 - Pin dependency versions for reproducible builds
+- Use virtual environments (`.venv/`) for isolation
 
-## JavaScript/Frontend Development
-- Use ES6 modules (`<script type="module">`) for code organization
-- **Module Scope Issue**: ES6 modules have isolated scopes - functions in one module cannot call functions in another module directly
-- **Solution**: Make functions globally accessible by assigning to `window` object: `window.functionName = functionName;`
-- **Example**: System map module and orbit map module are separate - navigation functions must be exposed via `window`
-- Use Three.js for 3D visualizations (galaxy map, system map, orbit map)
-- Use GSAP for smooth animations and transitions
-- Minimize global namespace pollution - only expose functions that need cross-module communication
-- Use `async/await` for API calls and texture loading
-- Handle module loading order - ensure dependencies are loaded before use
+### Frontend (JavaScript/TypeScript)
+- Package manager: npm with package.json
+- Build tool: Vite for fast development and optimized production builds
+- TypeScript compilation: tsc for type checking, Vite for bundling
+- Key commands:
+  - `npm run dev` - Start Vite development server with hot reload
+  - `npm run build` - Production build (TypeScript → JavaScript, bundled assets)
+  - `npm run typecheck` - Run TypeScript type checking without building
+- Vite configuration in `vite.config.ts` with React plugin and path aliases
+- Static assets served from Django in development, from `/static/` in production
+
+## React/TypeScript Frontend Development
+
+### Architecture
+- **Component Organization**: Domain-driven structure (domain/gm/layout/ui)
+- **Type Safety**: Full TypeScript coverage with strict mode enabled
+- **State Management**: React hooks (useState, useEffect, useCallback, useRef)
+- **Custom Hooks**: Shared logic in `src/hooks/` (useTreeState, usePanelState, etc.)
+- **API Services**: Centralized API clients in `src/services/` (axios-based)
+- **Type Definitions**: Shared types in `src/types/` (starMap, systemMap, orbitMap, etc.)
+
+### Best Practices
+- Use functional components with TypeScript interfaces for props
+- Prefer `useCallback` and `useMemo` for performance-critical operations
+- Use `useRef` for Three.js scene management and DOM element references
+- Import paths use `@/` alias for `src/` directory (configured in tsconfig.json)
+- Three.js integrations use **vanilla Three.js** with imperative scene management in dedicated scene classes (GalaxyScene, SystemScene, OrbitScene)
+- React components wrap Three.js scenes and handle lifecycle (init/dispose via useEffect, expose methods via useImperativeHandle)
+- GSAP animations for smooth camera movements and transitions
+- Ant Design components for consistent UI patterns (Layout, Tabs, Forms, Icons)
+- `async/await` for all API calls with proper error handling
+- TypeScript strict mode ensures type safety across the application
+
+### Module Communication
+- **React Components**: Props and callbacks for parent-child communication
+- **Global State**: Lifted state in parent components, passed down via props
+- **API Polling**: useEffect intervals for real-time updates (e.g., active view polling)
+- **Event Handlers**: onClick, onChange callbacks with TypeScript type safety
+- **Refs for Three.js**: useRef for scene, camera, controls access across render cycles
+
+### Three.js Integration Pattern
+- **Scene Classes**: Three.js scenes are implemented as standalone TypeScript classes in `src/three/` (e.g., GalaxyScene.ts, SystemScene.ts, OrbitScene.ts)
+- **React Wrappers**: React components in `src/components/domain/maps/` wrap Three.js scenes and manage lifecycle
+- **Imperative Management**: Scenes are created/disposed via useEffect, methods exposed via useImperativeHandle
+- **No React Three Fiber**: The codebase uses vanilla Three.js with direct WebGLRenderer, Scene, Camera, and Object3D management
+- **Global Functions**: Some legacy code exposes functions via `window` object for cross-module communication (gradually migrating to React patterns)
 
 ## Testing
 - Maintain test coverage with pytest
@@ -1401,35 +861,9 @@ The application needs a simple but effective authentication system with two user
 - Session tokens should persist across game sessions
 - Optional: GM can generate one-time invite links for players
 
-## Map Image Generation
+## Texture and Image Processing Scripts
 
-### `generate_deck_layout.py`
-Python script using Pillow to create retro sci-fi themed deck layouts:
-
-**Visual Style:**
-- Black background (#000000)
-- Dark green grid overlay (#004400) - 20px grid
-- Bright green lines and text (#00ff00)
-- Very dark green room fills (#002200)
-- Monospaced DejaVu Sans Mono font
-- CRT scanline effect (every 4px)
-
-**Usage:**
-```bash
-source .venv/bin/activate
-python generate_deck_layout.py
-```
-
-**Output:**
-- Creates PNG image in `data/locations/{location}/map/`
-- 1200x800 resolution by default
-- Includes room labels, connection corridors, and technical info
-- Can be customized for different ship/station layouts
-
-**Example Rooms:**
-- Bridge, Engineering, Crew Quarters
-- Cargo Bay, Medical, Life Support
-- Connection corridors and hatches
+All utility scripts are located in the `scripts/` directory. See individual script documentation below for usage details.
 
 ## Planet Texture Conversion
 

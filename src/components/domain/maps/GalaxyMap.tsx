@@ -1,26 +1,28 @@
 /**
- * GalaxyMap - React wrapper for GalaxyScene Three.js visualization
+ * GalaxyMap - React Three Fiber wrapper for galaxy visualization
  *
  * Handles:
- * - Lifecycle management (init/dispose)
- * - Data loading from API
+ * - R3F Canvas setup
+ * - Data loading integration
  * - System selection state sync
  * - Callbacks to parent
  * - Transition animations
+ *
+ * This is a drop-in replacement for the old imperative Three.js version.
  */
 
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import { GalaxyScene } from '../../../three/GalaxyScene';
-import type { StarMapData } from '../../../types/starMap';
+import { useRef, useImperativeHandle, forwardRef, Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { GalaxyScene, LoadingScene } from './r3f';
+import type { GalaxySceneHandle } from './r3f';
+import type { StarMapData } from '@/types/starMap';
 import './GalaxyMap.css';
 
 interface GalaxyMapProps {
   /** Star map data (if already fetched by parent) */
   data?: StarMapData | null;
-  /** Currently selected system name */
+  /** Currently selected system name (selection via menu only) */
   selectedSystem?: string | null;
-  /** Callback when user clicks a system */
-  onSystemSelect?: (systemName: string) => void;
   /** Whether the map is visible */
   visible?: boolean;
   /** Transition state: 'idle' | 'transitioning-out' | 'transitioning-in' */
@@ -37,97 +39,77 @@ export interface GalaxyMapHandle {
   positionCameraOnSystem: (systemName: string) => void;
 }
 
-export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(({
-  data,
-  selectedSystem,
-  onSystemSelect,
-  visible = true,
-  transitionState = 'idle',
-  hidden = false,
-  paused = false,
-}, ref) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<GalaxyScene | null>(null);
-
-  // Expose methods to parent
-  useImperativeHandle(ref, () => ({
-    diveToSystem: (systemName: string) => {
-      if (sceneRef.current) {
-        return sceneRef.current.diveToSystem(systemName);
-      }
-      return Promise.resolve();
+export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
+  (
+    {
+      data,
+      selectedSystem,
+      visible = true,
+      transitionState = 'idle',
+      hidden = false,
+      paused = false,
     },
-    selectSystemAndWait: (systemName: string) => {
-      if (sceneRef.current) {
-        return sceneRef.current.selectSystemAndWait(systemName);
-      }
-      return Promise.resolve();
-    },
-    positionCameraOnSystem: (systemName: string) => {
-      if (sceneRef.current) {
-        sceneRef.current.positionCameraOnSystem(systemName);
-      }
-    }
-  }), []);
+    ref
+  ) => {
+    const sceneRef = useRef<GalaxySceneHandle>(null);
 
-  // Initialize scene
-  useEffect(() => {
-    if (!containerRef.current || !visible) return;
+    // Expose methods to parent - same interface as before
+    useImperativeHandle(
+      ref,
+      () => ({
+        diveToSystem: (systemName: string) => {
+          if (sceneRef.current) {
+            return sceneRef.current.diveToSystem(systemName);
+          }
+          return Promise.resolve();
+        },
+        selectSystemAndWait: (systemName: string) => {
+          if (sceneRef.current) {
+            return sceneRef.current.selectSystemAndWait(systemName);
+          }
+          return Promise.resolve();
+        },
+        positionCameraOnSystem: (systemName: string) => {
+          if (sceneRef.current) {
+            sceneRef.current.positionCameraOnSystem(systemName);
+          }
+        },
+      }),
+      []
+    );
 
-    // Create scene
-    sceneRef.current = new GalaxyScene(containerRef.current);
+    if (!visible) return null;
 
-    // Set up callbacks
-    if (onSystemSelect) {
-      sceneRef.current.onSystemClick = onSystemSelect;
-    }
+    const containerClass = `galaxy-map-container${
+      transitionState !== 'idle' ? ` ${transitionState}` : ''
+    }${hidden ? ' hidden' : ''}`;
 
-    // Cleanup on unmount
-    return () => {
-      sceneRef.current?.dispose();
-      sceneRef.current = null;
-    };
-  }, [visible]); // Only re-init if visibility changes
-
-  // Load data when it changes
-  useEffect(() => {
-    if (sceneRef.current && data) {
-      sceneRef.current.loadData(data);
-    }
-  }, [data]);
-
-  // Sync selected system
-  useEffect(() => {
-    if (sceneRef.current) {
-      sceneRef.current.selectSystem(selectedSystem || null);
-    }
-  }, [selectedSystem]);
-
-  // Trigger resize when hidden changes to visible (fixes blank galaxy after returning from system view)
-  useEffect(() => {
-    if (!hidden && sceneRef.current) {
-      // Small delay to ensure display: none is removed and container has dimensions
-      requestAnimationFrame(() => {
-        sceneRef.current?.resize();
-      });
-    }
-  }, [hidden]);
-
-  // Sync paused state to scene
-  useEffect(() => {
-    if (sceneRef.current) {
-      sceneRef.current.setPaused(paused);
-    }
-  }, [paused]);
-
-  if (!visible) return null;
-
-  const containerClass = `galaxy-map-container${transitionState !== 'idle' ? ` ${transitionState}` : ''}${hidden ? ' hidden' : ''}`;
-
-  return (
-    <div
-      ref={containerRef}
-      className={containerClass}
-    />
-  );
-});
+    return (
+      <div className={containerClass}>
+        <Canvas
+          camera={{
+            position: [0, 0, 100],
+            fov: 75,
+            near: 0.1,
+            far: 1000,
+          }}
+          gl={{
+            antialias: true,
+            powerPreference: 'high-performance',
+          }}
+          style={{ background: '#000000' }}
+          frameloop={paused ? 'demand' : 'always'}
+        >
+          <Suspense fallback={<LoadingScene />}>
+            <GalaxyScene
+              ref={sceneRef}
+              data={data}
+              selectedSystem={selectedSystem}
+              paused={paused}
+            />
+          </Suspense>
+        </Canvas>
+      </div>
+    );
+  }
+);

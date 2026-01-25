@@ -659,7 +659,6 @@ function SharedConsole() {
                   ref={galaxyMapRef}
                   data={starMapData}
                   selectedSystem={selectedSystem}
-                  onSystemSelect={handleSystemSelect}
                   transitionState={galaxyTransition}
                   hidden={(mapViewMode === 'system' || mapViewMode === 'orbit') || activeTab !== 'map'}
                   paused={activeTab !== 'map'}

@@ -20,6 +20,10 @@ interface OrbitMapProps {
   onOrbitMapLoaded?: (data: OrbitMapData | null) => void;
   /** Transition state */
   transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
+  /** Whether to hide the canvas (keeps scene mounted but invisible) */
+  hidden?: boolean;
+  /** Whether to pause rendering updates */
+  paused?: boolean;
 }
 
 export interface OrbitMapHandle {
@@ -36,6 +40,8 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(({
   onBackToSystem,
   onOrbitMapLoaded,
   transitionState = 'idle',
+  hidden = false,
+  paused = false,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<OrbitScene | null>(null);
@@ -120,6 +126,13 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(({
     }
   }, [selectedElement, selectedElementType]);
 
+  // Sync paused state to scene
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.setPaused(paused);
+    }
+  }, [paused]);
+
   const canvasClass = transitionState !== 'idle' ? transitionState : undefined;
 
   return (
@@ -134,6 +147,7 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(({
         width: '100vw',
         height: '100vh',
         zIndex: 0,
+        display: hidden ? 'none' : 'block',
       }}
     />
   );

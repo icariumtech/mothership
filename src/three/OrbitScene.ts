@@ -61,6 +61,7 @@ export class OrbitScene {
   private isActive = false;
   private animationPaused = false;
   private pausedAt: number | null = null;
+  private paused = false;
 
   // Animation
   private animationFrameId: number | null = null;
@@ -969,8 +970,21 @@ export class OrbitScene {
     }
   }
 
+  /**
+   * Pause/resume rendering updates
+   */
+  setPaused(paused: boolean): void {
+    this.paused = paused;
+  }
+
   private animate = (): void => {
     if (!this.isActive) return;
+
+    // Skip rendering if paused
+    if (this.paused) {
+      this.animationFrameId = requestAnimationFrame(this.animate);
+      return;
+    }
 
     this.animationFrameId = requestAnimationFrame(this.animate);
 

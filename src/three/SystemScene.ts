@@ -84,6 +84,7 @@ export class SystemScene {
   private selectedPlanet: BodyData | null = null;
   private isActive = false;
   private speedMultiplier = 10;
+  private paused = false;
 
   // Animation
   private animationFrameId: number | null = null;
@@ -506,6 +507,9 @@ export class SystemScene {
 
   private animate = (): void => {
     this.animationFrameId = requestAnimationFrame(this.animate);
+
+    // Skip rendering if paused
+    if (this.paused) return;
 
     if (!this.isActive) return;
 
@@ -1455,6 +1459,13 @@ export class SystemScene {
 
   isSystemActive(): boolean {
     return this.isActive;
+  }
+
+  /**
+   * Pause/resume rendering updates
+   */
+  setPaused(paused: boolean): void {
+    this.paused = paused;
   }
 
   // ==================== CLEANUP ====================

@@ -3,11 +3,11 @@
 /* Info Panel Wrapper - maintains positioning and animation */
 .info-panel-wrapper {
   position: absolute;
-  right: calc(300px + 30px + 30px); /* right panel width + gap + margin */
-  top: 82px; /* 52px header + 30px gap */
+  right: 30px; /* Right side of screen */
+  top: 30px; /* 30px margin from top of content area */
   width: 350px;
   height: auto;
-  max-height: calc(100vh - 82px - 30px);
+  max-height: calc(100vh - 52px - 30px - 30px); /* viewport - header - top margin - bottom margin */
   opacity: 0;
   transform: translateX(20px);
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -63,7 +63,7 @@
 /* Triangle decoration */
 .info-panel-triangle {
   position: absolute;
-  right: calc(300px + 30px + 30px); /* Aligned with panel right edge */
+  right: 30px; /* Aligned with panel right edge */
   width: 35px;
   height: 35px;
   background-color: #6b4a4a;

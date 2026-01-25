@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef } from 'react';
 import { useTypewriter } from '@hooks/useTypewriter';
 import { Panel } from '@components/ui/Panel';
 import './InfoPanel.css';
@@ -21,39 +21,52 @@ interface InfoPanelProps {
  * Can be used for system info, planet info, station info, etc.
  * Now uses the base Panel component internally for consistency.
  */
-export function InfoPanel({
+export const InfoPanel = forwardRef<HTMLDivElement, InfoPanelProps>(({
   title,
   content,
   visible,
   showDecorators = true,
   typewriterSpeed = 15,
-}: InfoPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+}, ref) => {
+  const internalPanelRef = useRef<HTMLDivElement>(null);
   const [triangleTop, setTriangleTop] = useState(0);
 
   // Typewriter effect - cursor is now inline in the content
-  const { displayedContent } = useTypewriter(
+  const { displayedContent, isTyping } = useTypewriter(
     visible ? content : '',
     { speed: typewriterSpeed, showCursor: true }
   );
 
+  // Expose isTyping state to parent via data attribute for checking
+  useEffect(() => {
+    const panelRef = (ref as React.RefObject<HTMLDivElement>)?.current || internalPanelRef.current;
+    if (panelRef) {
+      panelRef.dataset.isTyping = String(isTyping);
+    }
+  }, [isTyping, ref]);
+
   // Update triangle position when panel resizes or visibility changes
   useEffect(() => {
     function updatePosition() {
-      if (!panelRef.current || !visible || !showDecorators) return;
+      const panelElement = (ref as React.RefObject<HTMLDivElement>)?.current || internalPanelRef.current;
+      if (!panelElement || !visible || !showDecorators) return;
 
-      const panelRect = panelRef.current.getBoundingClientRect();
-      // Triangle positioned below panel bottom
-      const triangleHeight = 35;
-      setTriangleTop(panelRect.bottom + 5 - triangleHeight - 5);
+      // Find the actual panel wrapper inside
+      const panelWrapper = panelElement.querySelector('.panel-wrapper');
+      if (panelWrapper) {
+        const panelRect = panelWrapper.getBoundingClientRect();
+        // Position triangle just below panel with 5px gap
+        setTriangleTop(panelRect.height - 5);
+      }
     }
 
     updatePosition();
 
     // Set up ResizeObserver
     const resizeObserver = new ResizeObserver(updatePosition);
-    if (panelRef.current) {
-      resizeObserver.observe(panelRef.current);
+    const panelElement = (ref as React.RefObject<HTMLDivElement>)?.current || internalPanelRef.current;
+    if (panelElement) {
+      resizeObserver.observe(panelElement);
     }
 
     window.addEventListener('resize', updatePosition);
@@ -62,13 +75,21 @@ export function InfoPanel({
       resizeObserver.disconnect();
       window.removeEventListener('resize', updatePosition);
     };
-  }, [visible, showDecorators]);
+  }, [visible, showDecorators, ref]);
 
   return (
     <>
       {/* Main info panel - uses base Panel component with info variant */}
       <div
-        ref={panelRef}
+        ref={(node) => {
+          // Assign to both internal ref and forwarded ref
+          internalPanelRef.current = node;
+          if (typeof ref === 'function') {
+            ref(node);
+          } else if (ref) {
+            (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          }
+        }}
         className={`info-panel-wrapper ${visible ? 'visible' : ''}`}
       >
         <Panel
@@ -94,7 +115,9 @@ export function InfoPanel({
       )}
     </>
   );
-}
+});
+
+InfoPanel.displayName = 'InfoPanel';
 
 // ============================================
 // Helper functions to build content HTML

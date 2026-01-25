@@ -27,6 +27,8 @@ interface GalaxyMapProps {
   transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Whether to hide the container (keeps scene mounted but invisible) */
   hidden?: boolean;
+  /** Whether to pause rendering updates */
+  paused?: boolean;
 }
 
 export interface GalaxyMapHandle {
@@ -42,6 +44,7 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(({
   visible = true,
   transitionState = 'idle',
   hidden = false,
+  paused = false,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<GalaxyScene | null>(null);
@@ -109,6 +112,13 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(({
       });
     }
   }, [hidden]);
+
+  // Sync paused state to scene
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.setPaused(paused);
+    }
+  }, [paused]);
 
   if (!visible) return null;
 

@@ -27,6 +27,8 @@ interface SystemMapProps {
   transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Whether to hide the canvas (keeps scene mounted but invisible) */
   hidden?: boolean;
+  /** Whether to pause rendering updates */
+  paused?: boolean;
 }
 
 export interface SystemMapHandle {
@@ -46,7 +48,8 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(({
   onBackToGalaxy,
   onSystemLoaded,
   transitionState = 'idle',
-  hidden = false
+  hidden = false,
+  paused = false
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<SystemScene | null>(null);
@@ -178,6 +181,13 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(({
       scene.unselectPlanet();
     }
   }, [selectedPlanet]);
+
+  // Sync paused state to scene
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.setPaused(paused);
+    }
+  }, [paused]);
 
   // Handle programmatic planet selection
   const handleSelectPlanet = useCallback((planetName: string) => {

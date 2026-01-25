@@ -32,6 +32,7 @@ export class GalaxyScene {
   private animationFrameId: number | null = null;
   private renderAnimationId: number | null = null;
   private frameCount = 0;
+  private paused = false;
 
   // Auto-rotation state
   private autoRotate = false;
@@ -263,6 +264,13 @@ export class GalaxyScene {
    */
   public setAutoRotate(enabled: boolean): void {
     this.autoRotate = enabled;
+  }
+
+  /**
+   * Pause/resume rendering updates
+   */
+  public setPaused(paused: boolean): void {
+    this.paused = paused;
   }
 
   /**
@@ -750,6 +758,9 @@ export class GalaxyScene {
 
   private animate = (): void => {
     this.renderAnimationId = requestAnimationFrame(this.animate);
+
+    // Skip rendering if paused
+    if (this.paused) return;
 
     this.frameCount++;
 

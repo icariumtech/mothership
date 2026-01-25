@@ -1,0 +1,160 @@
+@import '../../../styles/variables.css';
+
+/* Star Map Panel Wrapper - positioned on left side */
+.star-map-panel-wrapper {
+  position: absolute;
+  left: 30px;
+  top: 30px; /* 30px margin from top of content area */
+  width: 280px;
+  height: auto;
+  max-height: calc(100vh - 52px - 30px - 30px); /* viewport - header - top margin - bottom margin */
+  z-index: 50;
+}
+
+/* Ensure the panel inside respects max-height */
+.star-map-panel-wrapper .panel-wrapper {
+  max-height: calc(100vh - 52px - 30px - 30px);
+}
+
+/* Star system row styling */
+.star-system-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background-color: rgba(15, 21, 21, 0.4);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.star-system-row:hover {
+  background-color: rgba(74, 107, 107, 0.2);
+  border-color: var(--color-teal);
+}
+
+.star-system-row.selected {
+  background-color: rgba(74, 107, 107, 0.3);
+  border-color: var(--color-teal);
+}
+
+.star-system-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Checkbox/selection indicator */
+.star-system-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--color-teal);
+  background-color: rgba(15, 21, 21, 0.6);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.star-system-checkbox.checked {
+  background-color: var(--color-teal);
+  box-shadow: 0 0 6px var(--color-teal);
+}
+
+.star-system-name {
+  color: var(--color-text-primary);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Planet facility indicators */
+.planet-indicators {
+  display: flex;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.planet-indicator {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.planet-indicator.surface {
+  color: var(--color-amber);
+}
+
+.planet-indicator.orbital {
+  color: var(--color-teal);
+}
+
+/* System map button */
+.system-map-btn-container {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(74, 107, 107, 0.2);
+  border: 1px solid var(--color-teal);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.system-map-btn-container:hover {
+  background-color: rgba(139, 115, 85, 0.3);
+  border-color: var(--color-amber);
+}
+
+.system-map-btn-icon {
+  color: var(--color-teal);
+  font-size: 10px;
+  transition: color 0.2s ease;
+}
+
+.system-map-btn-container:hover .system-map-btn-icon {
+  color: var(--color-amber);
+}
+
+/* Back buttons */
+.back-to-galaxy-btn,
+.back-to-system-btn {
+  cursor: pointer;
+}
+
+.back-to-galaxy-btn:hover,
+.back-to-system-btn:hover {
+  background-color: rgba(139, 115, 85, 0.2);
+  border-color: var(--color-amber);
+}
+
+/* Orbit view section headers */
+.orbit-section-header {
+  color: var(--color-teal);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  padding-left: 4px;
+  opacity: 0.8;
+}
+
+/* Orbit element rows */
+.orbit-element-row {
+  cursor: pointer;
+}
+
+.orbit-element-row:hover {
+  background-color: rgba(74, 107, 107, 0.15);
+  border-color: var(--color-teal);
+}
+
+.orbit-element-row.selected {
+  background-color: rgba(139, 115, 85, 0.2);
+  border-color: var(--color-amber);
+}

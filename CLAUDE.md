@@ -11,6 +11,7 @@ For detailed information on specific topics, refer to these guides:
 - **Read: NETWORK_ACCESS.md** - Configuring network access for players
 - **Read: QUICK_REFERENCE.md** - Quick reference for network URLs and common commands
 - **Read: DATA_DIRECTORY_GUIDE.md** - Complete guide to data directory structure, file formats, and YAML schemas
+- **Read: ARCHITECTURE_CHANGES.md** - Recent architecture changes, component refactoring, and migration notes
 - **Read: src/components/ui/README.md** - React Panel component API, usage patterns, and migration examples
 - **Read: STYLE_GUIDE.md** - UI design system, color palette, panel patterns, and visual specifications
 
@@ -98,13 +99,19 @@ charon/
 │   ├── entries/                 # Entry points (GMConsole, SharedConsole, PlayerConsole)
 │   ├── components/
 │   │   ├── domain/              # Dashboard, maps, encounter, charon, terminal
+│   │   │   ├── dashboard/       # Dashboard components (BridgeView, panels, sections)
+│   │   │   ├── maps/            # 3D map components (GalaxyMap, SystemMap, OrbitMap)
+│   │   │   ├── encounter/       # Encounter view components
+│   │   │   ├── charon/          # CHARON AI dialog
+│   │   │   └── terminal/        # Communication terminal components
 │   │   ├── gm/                  # GM Console components
 │   │   ├── layout/              # Layout components
-│   │   └── ui/                  # Reusable UI components
+│   │   └── ui/                  # Reusable UI components (Panel, DashboardPanel, etc.)
 │   ├── services/                # API client services
 │   ├── hooks/                   # Custom React hooks
 │   ├── types/                   # TypeScript type definitions
-│   └── styles/                  # Global CSS styles
+│   ├── styles/                  # Global CSS styles
+│   └── three/                   # Three.js scene classes (GalaxyScene, SystemScene, OrbitScene)
 ├── scripts/                     # Utility scripts
 ├── mothership_gm/               # Django project settings
 ├── terminal/                    # Main Django app
@@ -135,6 +142,64 @@ The application supports multiple view types displayed on a shared terminal:
 - On-demand loading from disk (no DB sync required)
 - ActiveView singleton tracks current display state
 - Auto-refresh terminal polls every 2 seconds
+
+## Bridge View Architecture
+
+The `BRIDGE` view is a tabbed interface providing access to ship systems and campaign information.
+
+### Tab System
+
+The Bridge View uses a tab navigation system with 5 tabs:
+- **MAP**: Interactive 3D galaxy/system/orbit maps with navigation
+- **CREW**: Player character roster and stats (planned)
+- **CONTACTS**: NPC and faction information (planned)
+- **NOTES**: Campaign notes and session logs (planned)
+- **STATUS**: Ship status and mission objectives (planned)
+
+Tab state persists in `sessionStorage` and restores on page reload.
+
+### Component Structure
+
+**Main Components:**
+- `BridgeView.tsx` - Main container component that manages tab state and renders active tab content
+- `TabBar.tsx` - Bottom navigation bar for switching between tabs
+- `StarMapPanel.tsx` - Left sidebar panel showing star system lists (Galaxy/System/Orbit hierarchy)
+- `InfoPanel.tsx` - Right sidebar panel with typewriter effect for displaying location details
+
+**Section Components** (`src/components/domain/dashboard/sections/`):
+- `MapSection.tsx` - 3D map views (currently rendered inline in SharedConsole)
+- `CrewSection.tsx` - Crew roster display (placeholder)
+- `ContactsSection.tsx` - Contact database (placeholder)
+- `NotesSection.tsx` - Campaign notes (placeholder)
+- `StatusSection.tsx` - Mission status (placeholder)
+
+### Map Navigation System
+
+Three-tiered navigation hierarchy for exploring the galaxy:
+
+1. **Galaxy View** - Shows list of star systems with 3D visualization
+   - Select a system to highlight it in 3D space
+   - Click "▶" button or use dive action to zoom into system view
+
+2. **System View** - Shows planets and bodies within a star system
+   - Displays planet indicators (▼ surface facilities, ◆ orbital stations)
+   - Click "BACK TO GALAXY" to return to galaxy view
+   - Click "▶" button on planets with orbit maps to dive to orbit view
+
+3. **Orbit View** - Shows moons, stations, and surface facilities around a planet
+   - Lists moons (with facility indicators), orbital stations, and surface markers
+   - Click "BACK TO SYSTEM" to return to system view
+
+**State Management:**
+- `mapViewMode`: Current view level ('galaxy' | 'system' | 'orbit')
+- `selectedSystem`: Currently selected star system
+- `selectedPlanet`: Currently selected planet/body
+- `selectedOrbitElement`: Currently selected moon/station/facility
+
+**Transition Animations:**
+- GSAP-powered camera movements for smooth transitions
+- Fade in/out transitions between map levels
+- Tab switching uses CSS transitions with disabled state during animation
 
 ## Data Models
 
@@ -234,6 +299,39 @@ star_map = loader.load_star_map()
 - **Chamfer size**: 12px on angular corners
 - **Font**: Cascadia Code (monospace)
 
+## Reusable Components
+
+### Panel Components (`src/components/ui/`)
+
+**Base Panel Component:**
+- `Panel.tsx` - Base panel with configurable borders, padding, and chamfering
+- `DashboardPanel.tsx` - Pre-configured panel for dashboard use with title header
+- `CompactPanel.tsx` - Minimal panel variant for dense layouts
+
+See [src/components/ui/README.md](src/components/ui/README.md) for detailed API documentation.
+
+### Dashboard Components (`src/components/domain/dashboard/`)
+
+**InfoPanel:**
+- Floating info panel with typewriter effect
+- Displays location details (systems, planets, moons, stations)
+- Supports forwardRef for parent access to typing state
+- Uses `useTypewriter` hook for character-by-character reveal
+- Helper functions: `buildSystemInfoHTML()`, `buildPlanetInfoHTML()`, etc.
+
+**StarMapPanel:**
+- Left sidebar panel showing hierarchical location lists
+- Three modes: galaxy (systems), system (planets), orbit (moons/stations/facilities)
+- Navigation buttons: "BACK TO GALAXY", "BACK TO SYSTEM"
+- Dive buttons (▶) for drilling down into sub-levels
+- Facility indicators (▼ surface, ◆ orbital) on planet rows
+
+**TabBar:**
+- Bottom navigation bar with 5 tabs (MAP, CREW, CONTACTS, NOTES, STATUS)
+- Uses base Panel component with full chamfering
+- Supports disabled state during transitions
+- Active tab highlighted with amber color
+
 # Development Practices
 
 ## Mothership RPG Guidelines
@@ -257,23 +355,48 @@ star_map = loader.load_star_map()
 
 ### Architecture
 - **Component Organization**: Domain-driven structure (domain/gm/layout/ui)
+  - `domain/dashboard/` - Bridge view components and sections
+  - `domain/maps/` - 3D map wrapper components
+  - `domain/encounter/` - Encounter map components
+  - `domain/charon/` - CHARON AI dialog
+  - `domain/terminal/` - Communication terminals
 - **State Management**: React hooks (useState, useEffect, useCallback, useRef)
-- **Custom Hooks**: Shared logic in `src/hooks/`
+- **Custom Hooks**: Shared logic in `src/hooks/` (e.g., useTypewriter for text effects)
 - **API Services**: Centralized axios-based clients in `src/services/`
-- **Type Definitions**: Shared types in `src/types/`
+- **Type Definitions**: Shared types in `src/types/` (starMap, systemMap, orbitMap, encounterMap)
+
+### Component Patterns
+
+**Container/Presentation Pattern:**
+- `SharedConsole.tsx` - Main container managing state and API calls
+- `BridgeView.tsx` - Presentation component receiving props and callbacks
+- Section components receive data via props, emit events via callbacks
+
+**Ref Forwarding:**
+- Map components expose imperative handles via `useImperativeHandle`
+- InfoPanel uses `forwardRef` to expose DOM ref and typing state
+- Refs used for calling methods like `diveToSystem()`, `zoomOut()`, etc.
+
+**Session Persistence:**
+- Tab state saved to `sessionStorage` for persistence across refreshes
+- GM Console tree expansion state saved to `localStorage`
 
 ### Three.js Integration
 - **Scene Classes**: Standalone TypeScript classes in `src/three/` (GalaxyScene, SystemScene, OrbitScene)
 - **React Wrappers**: Components in `src/components/domain/maps/` wrap scenes and manage lifecycle
 - **Imperative Management**: Scenes created/disposed via useEffect, methods exposed via useImperativeHandle
+- **Imperative API**: Map components expose methods like `diveToSystem()`, `positionCameraOnPlanet()`, `zoomOut()`
 - **No React Three Fiber**: Uses vanilla Three.js with direct WebGLRenderer, Scene, Camera management
 - **GSAP animations** for smooth camera movements and transitions
 
 ### Best Practices
-- Use `@/` alias for `src/` directory imports
+- Use `@/` alias for `src/` directory imports (e.g., `@components/ui/Panel`)
 - Prefer `useCallback` and `useMemo` for performance-critical operations
 - Use `useRef` for Three.js scene management and DOM references
 - `async/await` for all API calls with proper error handling
+- Extract reusable UI components to `src/components/ui/`
+- Keep domain-specific logic in domain components
+- Use TypeScript types from `src/types/` for API data structures
 
 # Configuration & Tools
 

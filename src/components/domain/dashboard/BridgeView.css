@@ -1,0 +1,39 @@
+@import '../../../styles/variables.css';
+
+/* Main Layout - Single content area, tab bar floats above */
+.bridge-view {
+  position: fixed;
+  top: 52px; /* Below header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: transparent;
+  overflow: hidden;
+}
+
+/* Content Area - takes all available space */
+.bridge-content-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+/* Tab Bar Panel positioned absolutely, floating above content */
+.bridge-view .tab-bar-panel {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  height: auto;
+  max-width: 90vw;
+}
+
+/* Override panel wrapper default sizing */
+.bridge-view .tab-bar-panel .panel-wrapper {
+  height: auto !important;
+  width: auto !important;
+}

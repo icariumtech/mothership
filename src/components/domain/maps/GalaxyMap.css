@@ -16,11 +16,14 @@
 }
 
 .galaxy-map-container.hidden {
-  display: none;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .galaxy-map-container.transitioning-in {
-  animation: mapFadeZoomIn 1.2s ease-out forwards;
+  visibility: visible; /* Explicitly set visible when transitioning in from hidden state */
+  opacity: 0; /* Start at 0 to prevent flash before animation kicks in */
+  animation: galaxyMapFadeIn 1.2s ease-out forwards;
 }
 
 .galaxy-map-container canvas {
@@ -29,14 +32,12 @@
   height: 100%;
 }
 
-/* Shared map transition animations */
-@keyframes mapFadeZoomIn {
+/* Galaxy map fade animation (no scale to avoid canvas sizing issues) */
+@keyframes galaxyMapFadeIn {
   0% {
     opacity: 0;
-    transform: scale(1.5);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
   }
 }

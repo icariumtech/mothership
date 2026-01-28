@@ -16,6 +16,10 @@ export * from './galaxy';
 export { GalaxyScene } from './GalaxyScene';
 export type { GalaxySceneProps, GalaxySceneHandle } from './GalaxyScene';
 
+// System scene components (Phase 3)
+export * from './system';
+export { SystemScene } from './SystemScene';
+export type { SystemSceneProps, SystemSceneHandle } from './SystemScene';
+
 // Scene components will be added in subsequent phases:
-// - Phase 3: System scene components
 // - Phase 4: Orbit scene components

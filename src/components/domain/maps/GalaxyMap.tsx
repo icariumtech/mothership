@@ -11,8 +11,9 @@
  * This is a drop-in replacement for the old imperative Three.js version.
  */
 
-import { useRef, useImperativeHandle, forwardRef, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useRef, useImperativeHandle, forwardRef, Suspense, useCallback } from 'react';
+import { Canvas, type RootState } from '@react-three/fiber';
+import type { PerspectiveCamera } from 'three';
 import { GalaxyScene, LoadingScene } from './r3f';
 import type { GalaxySceneHandle } from './r3f';
 import type { StarMapData } from '@/types/starMap';
@@ -78,6 +79,20 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
       []
     );
 
+    // Handle Canvas creation - ensure camera is properly set up
+    const handleCreated = useCallback((state: RootState) => {
+      const { camera, size } = state;
+
+      // Ensure camera looks at origin
+      camera.lookAt(0, 0, 0);
+
+      // Update projection matrix with correct aspect
+      if ((camera as PerspectiveCamera).isPerspectiveCamera) {
+        (camera as PerspectiveCamera).aspect = size.width / size.height;
+        (camera as PerspectiveCamera).updateProjectionMatrix();
+      }
+    }, []);
+
     if (!visible) return null;
 
     const containerClass = `galaxy-map-container${
@@ -99,6 +114,7 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
           }}
           style={{ background: '#000000' }}
           frameloop={paused ? 'demand' : 'always'}
+          onCreated={handleCreated}
         >
           <Suspense fallback={<LoadingScene />}>
             <GalaxyScene

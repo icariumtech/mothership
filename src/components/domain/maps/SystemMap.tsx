@@ -1,13 +1,31 @@
 /**
- * SystemMap Component
+ * SystemMap - React Three Fiber wrapper for system visualization
  *
- * React wrapper for the Three.js system map visualization.
- * Displays a solar system with star, planets, and orbits.
+ * Handles:
+ * - R3F Canvas setup
+ * - Data loading from API
+ * - Planet selection state sync
+ * - Callbacks to parent
+ * - Transition animations
+ *
+ * This is a drop-in replacement for the old imperative Three.js version.
  */
 
-import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { SystemScene } from '../../../three/SystemScene';
-import type { BodyData, SystemMapData } from '../../../types/systemMap';
+import {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+  Suspense,
+  useMemo,
+} from 'react';
+import { Canvas, type RootState } from '@react-three/fiber';
+import type { PerspectiveCamera } from 'three';
+import { SystemScene, LoadingScene } from './r3f';
+import type { SystemSceneHandle } from './r3f';
+import type { BodyData, SystemMapData } from '@/types/systemMap';
 import './SystemMap.css';
 
 interface SystemMapProps {
@@ -40,201 +58,210 @@ export interface SystemMapHandle {
   zoomIn: () => void;
 }
 
-export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(({
-  systemSlug,
-  selectedPlanet,
-  onPlanetSelect,
-  onOrbitMapNavigate,
-  onBackToGalaxy,
-  onSystemLoaded,
-  transitionState = 'idle',
-  hidden = false,
-  paused = false
-}, ref) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sceneRef = useRef<SystemScene | null>(null);
-  const loadedSystemRef = useRef<string | null>(null);
-  // Track selectedPlanet in a ref so we can access it in the system load callback
-  // without adding it as a dependency (which would cause unnecessary reloads)
-  const selectedPlanetRef = useRef<string | null>(selectedPlanet);
-
-  // Expose dive methods to parent
-  useImperativeHandle(ref, () => ({
-    diveToPlanet: (planetName: string) => {
-      if (sceneRef.current) {
-        return sceneRef.current.diveToPlanet(planetName);
-      }
-      return Promise.resolve();
-    },
-    zoomOutFromPlanet: (planetName: string) => {
-      if (sceneRef.current) {
-        return sceneRef.current.zoomOutFromPlanet(planetName);
-      }
-      return Promise.resolve();
-    },
-    selectPlanetAndWait: (planetName: string) => {
-      const scene = sceneRef.current;
-      if (!scene) return Promise.resolve();
-
-      const currentSystem = scene.getCurrentSystem();
-      const planetData = currentSystem?.bodies?.find(b => b.name === planetName);
-      if (planetData) {
-        return scene.selectPlanetAndWait(planetData);
-      }
-      return Promise.resolve();
-    },
-    positionCameraOnPlanet: (planetName: string) => {
-      if (sceneRef.current) {
-        sceneRef.current.positionCameraOnPlanet(planetName);
-      }
-    },
-    zoomOut: () => {
-      if (sceneRef.current) {
-        return sceneRef.current.zoomOut();
-      }
-      return Promise.resolve();
-    },
-    zoomIn: () => {
-      if (sceneRef.current) {
-        sceneRef.current.zoomIn();
-      }
-    }
-  }), []);
-
-  // Keep ref in sync with prop
-  useEffect(() => {
-    selectedPlanetRef.current = selectedPlanet;
-  }, [selectedPlanet]);
-
-  // Initialize scene
-  useEffect(() => {
-    if (!canvasRef.current) return;
-
-    // Create scene with callbacks
-    const scene = new SystemScene(canvasRef.current, {
+export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
+  (
+    {
+      systemSlug,
+      selectedPlanet,
       onPlanetSelect,
-      onOrbitMapNavigate,
-      onBackToGalaxy,
-      onPlanetClick: (planetName, planetData) => {
-        console.log('Planet clicked:', planetName);
-        onPlanetSelect?.(planetData);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onOrbitMapNavigate: _onOrbitMapNavigate,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onBackToGalaxy: _onBackToGalaxy,
+      onSystemLoaded,
+      transitionState = 'idle',
+      hidden = false,
+      paused = false,
+    },
+    ref
+  ) => {
+    const sceneRef = useRef<SystemSceneHandle>(null);
+    const [systemData, setSystemData] = useState<SystemMapData | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const loadedSystemRef = useRef<string | null>(null);
+
+    // Track selectedPlanet in a ref for access in callbacks
+    const selectedPlanetRef = useRef<string | null>(selectedPlanet);
+    useEffect(() => {
+      selectedPlanetRef.current = selectedPlanet;
+    }, [selectedPlanet]);
+
+    // Load system data when systemSlug changes
+    useEffect(() => {
+      if (!systemSlug) {
+        setSystemData(null);
+        loadedSystemRef.current = null;
+        onSystemLoaded?.(null);
+        return;
       }
-    });
 
-    sceneRef.current = scene;
+      if (systemSlug === loadedSystemRef.current) {
+        return;
+      }
 
-    // Cleanup on unmount
-    return () => {
-      scene.dispose();
-      sceneRef.current = null;
-    };
-  }, []); // Empty deps - only create scene once
-
-  // Load system when systemSlug changes
-  useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene) return;
-
-    if (systemSlug && systemSlug !== loadedSystemRef.current) {
-      console.log('Loading system:', systemSlug);
-      scene.loadSystem(systemSlug).then(data => {
-        loadedSystemRef.current = systemSlug;
-        scene.show();
-        onSystemLoaded?.(data);
-
-        // Sync any pending planet selection after system is loaded and shown
-        // This handles the case when returning from orbit view with a planet already selected
-        const pendingSelection = selectedPlanetRef.current;
-        if (pendingSelection && data?.bodies) {
-          const planetData = data.bodies.find(b => b.name === pendingSelection);
-          if (planetData) {
-            console.log('Syncing pending planet selection:', pendingSelection);
-            scene.selectPlanet(planetData);
+      const loadSystem = async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch(`/api/system-map/${systemSlug}/`);
+          if (!response.ok) {
+            throw new Error(`Failed to load system map: ${response.statusText}`);
           }
+          const data: SystemMapData = await response.json();
+          setSystemData(data);
+          loadedSystemRef.current = systemSlug;
+          onSystemLoaded?.(data);
+        } catch (error) {
+          console.error('Error loading system map:', error);
+          setSystemData(null);
+          onSystemLoaded?.(null);
+        } finally {
+          setIsLoading(false);
         }
-      });
-    } else if (!systemSlug) {
-      scene.hide();
-      scene.clearSystem();
-      loadedSystemRef.current = null;
-    }
-  }, [systemSlug, onSystemLoaded]);
+      };
 
-  // Handle planet selection from parent
-  useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene || !scene.isSystemActive()) return;
+      loadSystem();
+    }, [systemSlug, onSystemLoaded]);
 
-    const currentSystem = scene.getCurrentSystem();
-    if (!currentSystem?.bodies) return;
+    // Find the currently selected planet data
+    const selectedPlanetData = systemData?.bodies?.find(
+      (b) => b.name === selectedPlanet
+    ) ?? null;
 
-    const currentlySelected = scene.getSelectedPlanet();
-
-    if (selectedPlanet && currentlySelected?.name !== selectedPlanet) {
-      // Select the planet
-      const planetData = currentSystem.bodies.find(b => b.name === selectedPlanet);
-      if (planetData) {
-        scene.selectPlanet(planetData);
-      }
-    } else if (!selectedPlanet && currentlySelected) {
-      // Deselect
-      scene.unselectPlanet();
-    }
-  }, [selectedPlanet]);
-
-  // Sync paused state to scene
-  useEffect(() => {
-    if (sceneRef.current) {
-      sceneRef.current.setPaused(paused);
-    }
-  }, [paused]);
-
-  // Handle programmatic planet selection
-  const handleSelectPlanet = useCallback((planetName: string) => {
-    const scene = sceneRef.current;
-    if (!scene || !scene.isSystemActive()) return;
-
-    const currentSystem = scene.getCurrentSystem();
-    if (!currentSystem?.bodies) return;
-
-    const planetData = currentSystem.bodies.find(b => b.name === planetName);
-    if (planetData) {
-      if (scene.getSelectedPlanet()?.name === planetName) {
-        scene.unselectPlanet();
-        onPlanetSelect?.(null);
-      } else {
-        scene.selectPlanet(planetData);
+    // Handle planet selection from scene
+    const handlePlanetSelect = useCallback(
+      (planetData: BodyData | null) => {
         onPlanetSelect?.(planetData);
-      }
-    }
-  }, [onPlanetSelect]);
+      },
+      [onPlanetSelect]
+    );
 
-  // Expose methods via ref
-  useEffect(() => {
-    // Expose to window for menu panel integration
-    (window as any).systemMapSelectPlanet = handleSelectPlanet;
+    // Expose methods to parent
+    useImperativeHandle(
+      ref,
+      () => ({
+        diveToPlanet: (planetName: string) => {
+          if (sceneRef.current) {
+            return sceneRef.current.diveToPlanet(planetName);
+          }
+          return Promise.resolve();
+        },
+        zoomOutFromPlanet: (planetName: string) => {
+          if (sceneRef.current) {
+            return sceneRef.current.zoomOutFromPlanet(planetName);
+          }
+          return Promise.resolve();
+        },
+        selectPlanetAndWait: (planetName: string) => {
+          if (sceneRef.current) {
+            return sceneRef.current.selectPlanetAndWait(planetName);
+          }
+          return Promise.resolve();
+        },
+        positionCameraOnPlanet: (planetName: string) => {
+          if (sceneRef.current) {
+            sceneRef.current.positionCameraOnPlanet(planetName);
+          }
+        },
+        zoomOut: () => {
+          if (sceneRef.current) {
+            return sceneRef.current.zoomOut();
+          }
+          return Promise.resolve();
+        },
+        zoomIn: () => {
+          if (sceneRef.current) {
+            sceneRef.current.zoomIn();
+          }
+        },
+      }),
+      []
+    );
 
-    return () => {
-      delete (window as any).systemMapSelectPlanet;
+    // Don't render if no systemSlug
+    if (!systemSlug) return null;
+
+    const containerClass = `system-map-container${
+      transitionState !== 'idle' ? ` ${transitionState}` : ''
+    }${hidden ? ' hidden' : ''}`;
+
+    // Get default camera config from system data
+    // Start with camera at a distant position for zoom-in animation
+    const cameraConfig = systemData?.camera ?? {
+      position: [0, 0, 180] as [number, number, number],
+      lookAt: [0, 0, 0] as [number, number, number],
+      fov: 75,
     };
-  }, [handleSelectPlanet]);
 
-  const canvasClass = transitionState !== 'idle' ? transitionState : undefined;
+    // Calculate distant start position for initial camera (same logic as zoomIn)
+    // This prevents the camera from being at the final position before zoomIn kicks in
+    const initialCameraPosition = useMemo(() => {
+      const targetPos = cameraConfig.position;
+      const targetLookAt = cameraConfig.lookAt;
 
-  return (
-    <canvas
-      ref={canvasRef}
-      id="systemmap-canvas"
-      className={canvasClass}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 0,
-        display: systemSlug && !hidden ? 'block' : 'none'
-      }}
-    />
-  );
-});
+      // Calculate direction from lookAt to camera position
+      const dx = targetPos[0] - targetLookAt[0];
+      const dy = targetPos[1] - targetLookAt[1];
+      const dz = targetPos[2] - targetLookAt[2];
+      const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (length === 0) return [0, 0, 500] as [number, number, number];
+
+      // Normalize and scale to 300 units from lookAt
+      const scale = 300 / length;
+      return [
+        targetLookAt[0] + dx * scale,
+        targetLookAt[1] + dy * scale,
+        targetLookAt[2] + dz * scale,
+      ] as [number, number, number];
+    }, [cameraConfig.position, cameraConfig.lookAt]);
+
+    // Handle Canvas creation - set up camera lookAt (Canvas prop doesn't support it)
+    const handleCreated = useCallback((state: RootState) => {
+      const { camera, size } = state;
+
+      // Apply lookAt - R3F Canvas camera prop doesn't support lookAt directly
+      camera.lookAt(cameraConfig.lookAt[0], cameraConfig.lookAt[1], cameraConfig.lookAt[2]);
+
+      // Update projection matrix with correct aspect
+      if ((camera as PerspectiveCamera).isPerspectiveCamera) {
+        (camera as PerspectiveCamera).aspect = size.width / size.height;
+        (camera as PerspectiveCamera).updateProjectionMatrix();
+      }
+    }, [cameraConfig.lookAt]);
+
+    return (
+      <div className={containerClass}>
+        <Canvas
+          camera={{
+            position: initialCameraPosition,
+            fov: cameraConfig.fov ?? 75,
+            near: 0.1,
+            far: 1000,
+          }}
+          gl={{
+            antialias: true,
+            powerPreference: 'high-performance',
+          }}
+          style={{ background: '#000000' }}
+          frameloop={paused ? 'demand' : 'always'}
+          onCreated={handleCreated}
+        >
+          <Suspense fallback={<LoadingScene />}>
+            {systemData && !isLoading ? (
+              <SystemScene
+                ref={sceneRef}
+                data={systemData}
+                systemSlug={systemSlug}
+                selectedPlanet={selectedPlanetData}
+                paused={paused}
+                onPlanetSelect={handlePlanetSelect}
+              />
+            ) : (
+              <LoadingScene />
+            )}
+          </Suspense>
+        </Canvas>
+      </div>
+    );
+  }
+);

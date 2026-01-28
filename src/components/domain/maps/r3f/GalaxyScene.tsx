@@ -25,7 +25,6 @@ import { SelectionReticle } from './shared';
 import {
   useSceneStore,
   useStarMapData,
-  useSelectedSystem,
   useTransitionState,
   useIsPaused,
 } from './hooks/useSceneStore';
@@ -66,13 +65,13 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
 
     // Get data from store or props
     const storeData = useStarMapData();
-    const storeSelectedSystem = useSelectedSystem();
     const transitionState = useTransitionState();
     const storePaused = useIsPaused();
 
     // Use props if provided, otherwise fall back to store
+    // For selection, always use props - don't fall back to store since parent manages selection state
     const data = dataProp ?? storeData;
-    const selectedSystem = selectedSystemProp ?? storeSelectedSystem;
+    const selectedSystem = selectedSystemProp;
     const paused = pausedProp || storePaused;
 
     // Store actions

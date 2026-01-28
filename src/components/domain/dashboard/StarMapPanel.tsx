@@ -123,18 +123,18 @@ export function StarMapPanel({
               <div className={`star-system-checkbox ${selectedPlanet?.name === planet.name ? 'checked' : ''}`} />
               <div className="star-system-name">{planet.name}</div>
               {/* Facility indicators */}
-              {(planet.surface_facility_count || planet.orbital_station_count) && (
+              {((planet.surface_facility_count ?? 0) > 0 || (planet.orbital_station_count ?? 0) > 0) && (
                 <div className="planet-indicators">
-                  {planet.surface_facility_count ? (
+                  {(planet.surface_facility_count ?? 0) > 0 && (
                     <span className="planet-indicator surface" title={`${planet.surface_facility_count} surface facilities`}>
                       ▼
                     </span>
-                  ) : null}
-                  {planet.orbital_station_count ? (
+                  )}
+                  {(planet.orbital_station_count ?? 0) > 0 && (
                     <span className="planet-indicator orbital" title={`${planet.orbital_station_count} orbital stations`}>
                       ◆
                     </span>
-                  ) : null}
+                  )}
                 </div>
               )}
             </div>

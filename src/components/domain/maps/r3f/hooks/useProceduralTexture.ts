@@ -12,9 +12,10 @@ import {
   createReticleTexture,
   createNebulaTexture,
   createGlowTexture,
+  createPlanetTexture,
 } from '../shared/textureUtils';
 
-export type TextureType = 'star' | 'reticle' | 'nebula' | 'glow';
+export type TextureType = 'star' | 'reticle' | 'nebula' | 'glow' | 'planet';
 
 interface TextureConfig {
   type: TextureType;
@@ -36,7 +37,7 @@ export function useProceduralTexture(
   type: TextureType,
   size?: number
 ): THREE.CanvasTexture {
-  const textureRef = useRef<THREE.CanvasTexture | null>(null);
+  const previousTextureRef = useRef<THREE.CanvasTexture | null>(null);
 
   const texture = useMemo(() => {
     switch (type) {
@@ -48,20 +49,25 @@ export function useProceduralTexture(
         return createNebulaTexture(size ?? 64);
       case 'glow':
         return createGlowTexture(size ?? 128);
+      case 'planet':
+        return createPlanetTexture(size ?? 64);
       default:
         return createStarTexture(size ?? 128);
     }
   }, [type, size]);
 
-  // Store reference for cleanup
-  textureRef.current = texture;
-
-  // Cleanup on unmount
+  // Cleanup previous texture when type/size changes, and cleanup on unmount
   useEffect(() => {
+    // Dispose previous texture if it exists and is different
+    if (previousTextureRef.current && previousTextureRef.current !== texture) {
+      previousTextureRef.current.dispose();
+    }
+    previousTextureRef.current = texture;
+
     return () => {
-      textureRef.current?.dispose();
+      texture.dispose();
     };
-  }, []);
+  }, [texture]);
 
   return texture;
 }
@@ -101,6 +107,9 @@ export function useProceduralTextures(
           break;
         case 'glow':
           texture = createGlowTexture(config.size ?? 128);
+          break;
+        case 'planet':
+          texture = createPlanetTexture(config.size ?? 64);
           break;
         default:
           texture = createStarTexture(config.size ?? 128);

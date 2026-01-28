@@ -237,6 +237,37 @@ export function sphericalToCartesian(
 }
 
 /**
+ * Create a planet circle texture with solid black fill and teal outline
+ * Used for planet sprites in system view
+ */
+export function createPlanetTexture(size = 64): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const center = size / 2;
+  const radius = size * 0.44; // 28/64 = 0.4375 ≈ 0.44
+  const borderWidth = size * 0.0625; // 4/64
+
+  // Draw solid black circle background
+  ctx.fillStyle = '#000000';
+  ctx.beginPath();
+  ctx.arc(center, center, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw teal circle outline
+  ctx.strokeStyle = '#5a7a7a';
+  ctx.lineWidth = borderWidth;
+  ctx.beginPath();
+  ctx.arc(center, center, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
  * Calculate orbital position at a given time
  * Used for animating planets, moons, and stations
  *

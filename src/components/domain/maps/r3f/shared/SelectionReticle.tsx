@@ -12,10 +12,12 @@ import * as THREE from 'three';
 import { useProceduralTexture } from '../hooks/useProceduralTexture';
 
 interface SelectionReticleProps {
-  /** Position to display the reticle */
+  /** Static position to display the reticle (used if getPosition not provided) */
   position: [number, number, number];
   /** Whether the reticle is visible */
   visible: boolean;
+  /** Dynamic position getter - called each frame for tracking moving objects */
+  getPosition?: () => [number, number, number] | null;
   /** Scale of the reticle (default: 20) */
   scale?: number;
   /** Rotation speed in radians per second (default: 0.5) */
@@ -36,6 +38,7 @@ const AnimatedSprite = animated('sprite');
 export function SelectionReticle({
   position,
   visible,
+  getPosition,
   scale = 20,
   rotationSpeed = 0.5,
   pulseAmplitude = 0.1,
@@ -56,9 +59,19 @@ export function SelectionReticle({
     config: { tension: 200, friction: 20 },
   });
 
-  // Animate rotation and pulse on each frame
+  // Animate rotation, pulse, and position tracking on each frame
   useFrame((_, delta) => {
-    if (!spriteRef.current || !visible) return;
+    if (!spriteRef.current) return;
+
+    // Update position from dynamic getter if provided
+    if (getPosition && visible) {
+      const dynamicPos = getPosition();
+      if (dynamicPos) {
+        spriteRef.current.position.set(dynamicPos[0], dynamicPos[1], dynamicPos[2]);
+      }
+    }
+
+    if (!visible) return;
 
     // Rotate the sprite
     spriteRef.current.material.rotation += rotationSpeed * delta;

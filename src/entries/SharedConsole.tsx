@@ -371,35 +371,12 @@ function SharedConsole() {
     return false;
   }, [mapViewMode, selectedSystem]);
 
-  // Helper to wait for info panel typing to complete
-  const waitForTypingComplete = useCallback(async () => {
-    if (!infoPanelRef.current) return;
-
-    // Poll until typing is complete
-    return new Promise<void>((resolve) => {
-      const checkTyping = () => {
-        const isTyping = infoPanelRef.current?.dataset.isTyping === 'true';
-        if (!isTyping) {
-          resolve();
-        } else {
-          requestAnimationFrame(checkTyping);
-        }
-      };
-      checkTyping();
-    });
-  }, []);
-
   const handleSystemSelect = useCallback((systemName: string) => {
     setSelectedSystem(prev => prev === systemName ? null : systemName);
   }, []);
 
   const handleBackToGalaxy = useCallback(() => {
-    console.log('Returning to galaxy view');
-
-    // Position galaxy camera on selected system immediately (before any state changes)
-    if (selectedSystem) {
-      galaxyMapRef.current?.positionCameraOnSystem(selectedSystem);
-    }
+    console.log('Returning to galaxy view, selected system:', selectedSystem);
 
     // Start zoom out animation (don't await - runs in parallel with fade)
     systemMapRef.current?.zoomOut();
@@ -410,15 +387,25 @@ function SharedConsole() {
     // After fade out completes (1s), switch to galaxy view
     setTimeout(() => {
       setMapViewMode('galaxy');
-      setCurrentSystemSlug(null);
-      setSystemMapData(null);
       setSelectedPlanet(null);
       setGalaxyTransition('transitioning-in');
 
-      // Reset transitions after fade-in animation completes
+      // Position galaxy camera on selected system after state updates
+      // Use requestAnimationFrame to ensure it happens after React render
+      requestAnimationFrame(() => {
+        if (selectedSystem) {
+          galaxyMapRef.current?.positionCameraOnSystem(selectedSystem);
+        }
+      });
+
+      // Reset transitions and clear system data AFTER fade-in animation completes
+      // This ensures SystemMap stays mounted (but hidden) during the full transition
       setTimeout(() => {
         setSystemTransition('idle');
         setGalaxyTransition('idle');
+        // Clear system data after transitions complete to avoid abrupt DOM removal
+        setCurrentSystemSlug(null);
+        setSystemMapData(null);
       }, 1200);
     }, 1000); // Wait for fade-out to complete
   }, [selectedSystem]);
@@ -491,15 +478,13 @@ function SharedConsole() {
       return;
     }
 
-    // If system is not already selected, select it first and wait for animation
+    // If system is not already selected, select it and wait for camera animation
     if (selectedSystem !== systemName) {
-      console.log('System not selected, selecting first:', systemName);
-      // Update state immediately so info panel can render during animation
+      console.log('System not selected, selecting and animating:', systemName);
       setSelectedSystem(systemName);
-      // Wait for selection animation to complete (triggered by useEffect in GalaxyMap)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      // Wait for info panel typing to complete
-      await waitForTypingComplete();
+      // The useEffect in GalaxyScene will trigger moveToSystem animation (2000ms)
+      // Wait for that animation to complete before diving
+      await new Promise(resolve => setTimeout(resolve, 2100));
     }
 
     // Start fade out animation and zoom in
@@ -526,15 +511,12 @@ function SharedConsole() {
     const planet = systemMapData?.bodies?.find(b => b.location_slug === planetSlug);
     if (!planet) return;
 
-    // If planet is not already selected, select it first and wait for animation
+    // If planet is not already selected, select it and position camera instantly
     if (selectedPlanet?.location_slug !== planetSlug) {
-      console.log('Planet not selected, selecting first:', planet.name);
-      // Update state immediately so info panel can render during animation
+      console.log('Planet not selected, selecting and positioning:', planet.name);
       setSelectedPlanet(planet);
-      // Wait for selection animation to complete (triggered by useEffect in SystemMap)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // Wait for info panel typing to complete
-      await waitForTypingComplete();
+      // Position camera on planet instantly (no animation wait needed)
+      systemMapRef.current?.positionCameraOnPlanet(planet.name);
     }
 
     // Start fade out animation

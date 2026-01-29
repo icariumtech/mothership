@@ -21,5 +21,7 @@ export * from './system';
 export { SystemScene } from './SystemScene';
 export type { SystemSceneProps, SystemSceneHandle } from './SystemScene';
 
-// Scene components will be added in subsequent phases:
-// - Phase 4: Orbit scene components
+// Orbit scene components (Phase 4)
+export * from './orbit';
+export { OrbitScene } from './OrbitScene';
+export type { OrbitSceneProps, OrbitSceneHandle } from './OrbitScene';

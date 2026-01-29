@@ -7,3 +7,4 @@ export * from './useProceduralTexture';
 export * from './useGalaxyCamera';
 export * from './useStarSelection';
 export * from './useSystemCamera';
+export * from './useOrbitCamera';

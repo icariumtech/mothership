@@ -421,31 +421,38 @@ function SharedConsole() {
   }, []);
 
 
-  const handleBackToSystem = useCallback(async () => {
-    console.log('Returning to system view');
+  const handleBackToSystem = useCallback(() => {
+    console.log('Returning to system view, selected planet:', selectedPlanet?.name);
 
-    // Start zoom out animation and fade out
+    // Start zoom out animation (don't await - runs in parallel with fade)
+    orbitMapRef.current?.zoomOut();
+
+    // Start fade out of orbit view
     setOrbitTransition('transitioning-out');
-    await orbitMapRef.current?.zoomOut();
 
-    // Position camera on selected planet immediately (SystemMap stays mounted during orbit view)
-    if (selectedPlanet?.name) {
-      systemMapRef.current?.positionCameraOnPlanet(selectedPlanet.name);
-    }
-
-    // Clear orbit state and switch to system view
-    setCurrentBodySlug(null);
-    setSelectedOrbitElement(null);
-    setSelectedOrbitElementType(null);
-    setSelectedOrbitElementData(null);
-    setMapViewMode('system');
-    setSystemTransition('transitioning-in');
-
-    // Reset transitions after animation completes
+    // After fade out completes (1s), switch to system view
     setTimeout(() => {
-      setOrbitTransition('idle');
-      setSystemTransition('idle');
-    }, 1200);
+      // Clear orbit state
+      setSelectedOrbitElement(null);
+      setSelectedOrbitElementType(null);
+      setSelectedOrbitElementData(null);
+      setMapViewMode('system');
+      setSystemTransition('transitioning-in');
+
+      // Position system camera on selected planet after state updates
+      requestAnimationFrame(() => {
+        if (selectedPlanet?.name) {
+          systemMapRef.current?.positionCameraOnPlanet(selectedPlanet.name);
+        }
+      });
+
+      // Reset transitions and clear orbit data AFTER fade-in animation completes
+      setTimeout(() => {
+        setOrbitTransition('idle');
+        setSystemTransition('idle');
+        setCurrentBodySlug(null);
+      }, 1200);
+    }, 1000); // Wait for fade-out to complete
   }, [selectedPlanet]);
 
   const handleOrbitMapLoaded = useCallback((data: OrbitMapData | null) => {
@@ -511,12 +518,12 @@ function SharedConsole() {
     const planet = systemMapData?.bodies?.find(b => b.location_slug === planetSlug);
     if (!planet) return;
 
-    // If planet is not already selected, select it and position camera instantly
+    // If planet is not already selected, select it and wait for camera animation
     if (selectedPlanet?.location_slug !== planetSlug) {
-      console.log('Planet not selected, selecting and positioning:', planet.name);
+      console.log('Planet not selected, selecting and animating:', planet.name);
       setSelectedPlanet(planet);
-      // Position camera on planet instantly (no animation wait needed)
-      systemMapRef.current?.positionCameraOnPlanet(planet.name);
+      // Wait for the camera animation to complete before diving
+      await systemMapRef.current?.selectPlanetAndWait(planet.name);
     }
 
     // Start fade out animation

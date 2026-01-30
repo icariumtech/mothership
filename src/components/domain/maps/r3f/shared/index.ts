@@ -5,6 +5,7 @@
 // Components
 export { SelectionReticle, useReticleFollower } from './SelectionReticle';
 export { LoadingScene, LoadingDots } from './LoadingScene';
+export { TypewriterController } from './TypewriterController';
 
 // Texture utilities
 export {

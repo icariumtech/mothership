@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, forwardRef } from 'react';
-import { useTypewriter } from '@hooks/useTypewriter';
+import { useEffect, useRef, useState, forwardRef, useMemo } from 'react';
 import { Panel } from '@components/ui/Panel';
+import { useTypewriterState } from '@/stores/sceneStore';
+import { computeTypewriterContent } from '@/utils/typewriterUtils';
 import './InfoPanel.css';
 
 interface InfoPanelProps {
@@ -12,32 +13,60 @@ interface InfoPanelProps {
   visible: boolean;
   /** Show decorative elements below panel */
   showDecorators?: boolean;
-  /** Typewriter speed in ms per character */
+  /** @deprecated Typewriter speed - no longer used (RAF-driven now) */
   typewriterSpeed?: number;
 }
 
 /**
  * Reusable floating info panel with typewriter effect.
  * Can be used for system info, planet info, station info, etc.
- * Now uses the base Panel component internally for consistency.
+ * Now uses RAF-driven typewriter via Zustand store for smooth animations.
  */
 export const InfoPanel = forwardRef<HTMLDivElement, InfoPanelProps>(({
   title,
   content,
   visible,
   showDecorators = true,
-  typewriterSpeed = 15,
+  typewriterSpeed, // Retained for API compatibility (not used - RAF-driven now)
 }, ref) => {
+  // Avoid unused variable warning
+  void typewriterSpeed;
   const internalPanelRef = useRef<HTMLDivElement>(null);
   const [triangleTop, setTriangleTop] = useState(0);
 
-  // Typewriter effect - cursor is now inline in the content
-  const { displayedContent, isTyping } = useTypewriter(
-    visible ? content : '',
-    { speed: typewriterSpeed, showCursor: true }
-  );
+  // Subscribe to Zustand typewriter state (RAF-driven)
+  const typewriterState = useTypewriterState();
 
-  // Expose isTyping state to parent via data attribute for checking
+  // Compute displayed content based on Zustand progress
+  const displayedContent = useMemo(() => {
+    if (!visible || !content) {
+      return '';
+    }
+
+    // Use Zustand typewriter state if active and text matches
+    if (typewriterState.active && typewriterState.text === content) {
+      return computeTypewriterContent({
+        content: typewriterState.text,
+        progress: typewriterState.progress,
+        showCursor: true,
+        cursorChar: '_',
+      });
+    }
+
+    // If typewriter is not active but we have content, show it fully
+    // This handles the case where content changes but typewriter hasn't started yet
+    if (typewriterState.text === content && typewriterState.progress === 1) {
+      return content;
+    }
+
+    // Content doesn't match typewriter state - show without animation
+    // This can happen during rapid transitions
+    return content;
+  }, [visible, content, typewriterState]);
+
+  const isTyping = typewriterState.active && typewriterState.text === content;
+
+  // Expose isTyping state to parent via data attribute for backward compatibility
   useEffect(() => {
     const panelRef = (ref as React.RefObject<HTMLDivElement>)?.current || internalPanelRef.current;
     if (panelRef) {

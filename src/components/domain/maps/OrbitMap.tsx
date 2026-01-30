@@ -24,6 +24,7 @@ import {
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
 import { OrbitScene, LoadingScene } from './r3f';
+import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { OrbitSceneHandle } from './r3f';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '@/types/orbitMap';
 import './OrbitMap.css';
@@ -228,6 +229,9 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
           frameloop={paused ? 'demand' : 'always'}
           onCreated={handleCreated}
         >
+          {/* RAF-driven typewriter controller */}
+          <TypewriterController speed={15} />
+
           <Suspense fallback={<LoadingScene />}>
             {orbitData && !isLoading ? (
               <OrbitScene

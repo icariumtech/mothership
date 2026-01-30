@@ -24,6 +24,7 @@ import {
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
 import { SystemScene, LoadingScene } from './r3f';
+import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { SystemSceneHandle } from './r3f';
 import type { BodyData, SystemMapData } from '@/types/systemMap';
 import './SystemMap.css';
@@ -246,6 +247,9 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
           frameloop={paused ? 'demand' : 'always'}
           onCreated={handleCreated}
         >
+          {/* RAF-driven typewriter controller */}
+          <TypewriterController speed={15} />
+
           <Suspense fallback={<LoadingScene />}>
             {systemData && !isLoading ? (
               <SystemScene

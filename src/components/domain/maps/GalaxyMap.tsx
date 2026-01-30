@@ -15,6 +15,7 @@ import { useRef, useImperativeHandle, forwardRef, Suspense, useCallback } from '
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
 import { GalaxyScene, LoadingScene } from './r3f';
+import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { GalaxySceneHandle } from './r3f';
 import type { StarMapData } from '@/types/starMap';
 import './GalaxyMap.css';
@@ -116,6 +117,9 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
           frameloop={paused ? 'demand' : 'always'}
           onCreated={handleCreated}
         >
+          {/* RAF-driven typewriter controller */}
+          <TypewriterController speed={15} />
+
           <Suspense fallback={<LoadingScene />}>
             <GalaxyScene
               ref={sceneRef}

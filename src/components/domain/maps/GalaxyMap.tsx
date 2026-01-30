@@ -14,7 +14,7 @@
 import { useRef, useImperativeHandle, forwardRef, Suspense, useCallback } from 'react';
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
-import { GalaxyScene, LoadingScene } from './r3f';
+import { GalaxyScene, LoadingScene, PostProcessing } from './r3f';
 import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { GalaxySceneHandle } from './r3f';
 import type { StarMapData } from '@/types/starMap';
@@ -128,6 +128,15 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
               paused={paused}
             />
           </Suspense>
+
+          {/* Post-processing effects (disabled by default for performance)
+              To enable bloom effect, set enabled={true} and configure bloom:
+              <PostProcessing
+                enabled={true}
+                bloom={{ intensity: 0.5, luminanceThreshold: 0.9 }}
+              />
+          */}
+          <PostProcessing enabled={false} />
         </Canvas>
       </div>
     );

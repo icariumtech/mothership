@@ -6,6 +6,8 @@
 export { SelectionReticle, useReticleFollower } from './SelectionReticle';
 export { LoadingScene, LoadingDots } from './LoadingScene';
 export { TypewriterController } from './TypewriterController';
+export { PostProcessing } from './PostProcessing';
+export type { PostProcessingProps } from './PostProcessing';
 
 // Texture utilities
 export {

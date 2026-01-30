@@ -49,8 +49,10 @@ You are an expert full stack web developer. You should identify ways to write co
 - **Framework**: React 19 with TypeScript
 - **Build Tool**: Vite 5.4
 - **UI Library**: Ant Design 6.1 (layout, forms, tabs, icons)
-- **3D Graphics**: Three.js 0.182 (vanilla Three.js with imperative scene management)
-- **Animation**: GSAP 3.14 for smooth transitions
+- **3D Graphics**: React Three Fiber 9.0 (@react-three/fiber) + Three.js 0.182
+- **3D Helpers**: @react-three/drei 9.122 (OrbitControls, Suspense helpers, etc.)
+- **3D Effects**: @react-three/postprocessing (bloom, post-processing foundation)
+- **Animation**: R3F useFrame hook (unified RAF loop) + GSAP 3.14 (camera transitions)
 - **HTTP Client**: Axios 1.13 for API communication
 
 ## Development Tools
@@ -100,7 +102,16 @@ charon/
 │   ├── components/
 │   │   ├── domain/              # Dashboard, maps, encounter, charon, terminal
 │   │   │   ├── dashboard/       # Dashboard components (BridgeView, panels, sections)
-│   │   │   ├── maps/            # 3D map components (GalaxyMap, SystemMap, OrbitMap)
+│   │   │   ├── maps/            # 3D map components (React Three Fiber)
+│   │   │   │   ├── r3f/         # R3F scene components (GalaxyScene, SystemScene, OrbitScene)
+│   │   │   │   │   ├── galaxy/  # Galaxy scene components (stars, nebulae, routes)
+│   │   │   │   │   ├── system/  # System scene components (planets, orbits, star)
+│   │   │   │   │   ├── orbit/   # Orbit scene components (moons, stations, planet)
+│   │   │   │   │   ├── shared/  # Shared R3F components (reticle, loading, etc.)
+│   │   │   │   │   └── hooks/   # Custom R3F hooks (textures, animations)
+│   │   │   │   ├── GalaxyMap.tsx  # Galaxy Canvas wrapper
+│   │   │   │   ├── SystemMap.tsx  # System Canvas wrapper
+│   │   │   │   └── OrbitMap.tsx   # Orbit Canvas wrapper
 │   │   │   ├── encounter/       # Encounter view components
 │   │   │   ├── charon/          # CHARON AI dialog
 │   │   │   └── terminal/        # Communication terminal components
@@ -110,8 +121,7 @@ charon/
 │   ├── services/                # API client services
 │   ├── hooks/                   # Custom React hooks
 │   ├── types/                   # TypeScript type definitions
-│   ├── styles/                  # Global CSS styles
-│   └── three/                   # Three.js scene classes (GalaxyScene, SystemScene, OrbitScene)
+│   └── styles/                  # Global CSS styles
 ├── scripts/                     # Utility scripts
 ├── mothership_gm/               # Django project settings
 ├── terminal/                    # Main Django app
@@ -197,9 +207,11 @@ Three-tiered navigation hierarchy for exploring the galaxy:
 - `selectedOrbitElement`: Currently selected moon/station/facility
 
 **Transition Animations:**
-- GSAP-powered camera movements for smooth transitions
-- Fade in/out transitions between map levels
+- R3F useFrame-powered animations with unified RAF loop
+- GSAP for camera transitions (easing and timing)
+- Fade in/out transitions between map levels using react-spring
 - Tab switching uses CSS transitions with disabled state during animation
+- All animations coordinated through single requestAnimationFrame loop (eliminates stuttering)
 
 ## Data Models
 
@@ -381,22 +393,167 @@ See [src/components/ui/README.md](src/components/ui/README.md) for detailed API 
 - Tab state saved to `sessionStorage` for persistence across refreshes
 - GM Console tree expansion state saved to `localStorage`
 
-### Three.js Integration
-- **Scene Classes**: Standalone TypeScript classes in `src/three/` (GalaxyScene, SystemScene, OrbitScene)
-- **React Wrappers**: Components in `src/components/domain/maps/` wrap scenes and manage lifecycle
-- **Imperative Management**: Scenes created/disposed via useEffect, methods exposed via useImperativeHandle
-- **Imperative API**: Map components expose methods like `diveToSystem()`, `positionCameraOnPlanet()`, `zoomOut()`
-- **No React Three Fiber**: Uses vanilla Three.js with direct WebGLRenderer, Scene, Camera management
-- **GSAP animations** for smooth camera movements and transitions
+### React Three Fiber Integration
+
+**Declarative 3D Architecture:**
+The application uses React Three Fiber (R3F) for all 3D visualizations, replacing the previous imperative Three.js classes with declarative React components.
+
+**Key Benefits:**
+- **Unified Animation Loop**: Single RAF loop eliminates stuttering (replaces 4 competing animation systems)
+- **Automatic Memory Management**: R3F handles disposal of geometries, materials, and textures
+- **Declarative API**: Props flow down, events flow up (React-friendly patterns)
+- **Code Reduction**: ~40-50% less code than imperative Three.js (2,100 vs 4,500 lines)
+- **Better Performance**: Render-on-demand, automatic frustum culling, shared WebGL context
+
+**Component Structure:**
+```tsx
+// Canvas wrapper (GalaxyMap.tsx, SystemMap.tsx, OrbitMap.tsx)
+<Canvas
+  camera={{ position: [0, 0, 100], fov: 75 }}
+  gl={{ antialias: true, powerPreference: 'high-performance' }}
+  frameloop={paused ? 'demand' : 'always'}
+>
+  <Suspense fallback={<LoadingScene />}>
+    <GalaxyScene data={starMapData} selectedSystem={selectedSystem} />
+  </Suspense>
+  <PostProcessing enabled={false} /> {/* Foundation for bloom effects */}
+</Canvas>
+```
+
+**R3F Patterns:**
+- **useFrame Hook**: Synchronized animations (replaces manual RAF loops)
+- **React.Suspense**: Async texture/data loading with fallback
+- **@react-three/drei**: Helper components (OrbitControls, Stars, Html, useTexture)
+- **Imperative Handles**: Map components expose methods via useImperativeHandle for parent coordination
+
+**Animation Coordination:**
+- **3D Animations**: useFrame hook for orbital motion, rotations, particles
+- **Camera Transitions**: GSAP for smooth easing (integrated with useFrame)
+- **Typewriter Effect**: RAF-driven TypewriterController synchronized with scene animations
+- **Post-Processing**: Optional bloom, chromatic aberration (disabled by default)
+
+**File Organization:**
+- `src/components/domain/maps/r3f/` - R3F scene components
+  - `GalaxyScene.tsx`, `SystemScene.tsx`, `OrbitScene.tsx` - Main scene components
+  - `galaxy/`, `system/`, `orbit/` - Scene-specific child components
+  - `shared/` - Reusable components (SelectionReticle, LoadingScene, PostProcessing)
+  - `hooks/` - Custom hooks (useProceduralTexture, useOrbitalMotion)
 
 ### Best Practices
 - Use `@/` alias for `src/` directory imports (e.g., `@components/ui/Panel`)
 - Prefer `useCallback` and `useMemo` for performance-critical operations
-- Use `useRef` for Three.js scene management and DOM references
+- Use `useRef` for Three.js object references and DOM references
 - `async/await` for all API calls with proper error handling
 - Extract reusable UI components to `src/components/ui/`
 - Keep domain-specific logic in domain components
 - Use TypeScript types from `src/types/` for API data structures
+
+### Working with React Three Fiber
+
+**Adding New 3D Elements:**
+
+1. **Create a Component** (declarative JSX):
+```tsx
+// src/components/domain/maps/r3f/galaxy/Star.tsx
+export function Star({ position, size, color, onClick }: StarProps) {
+  return (
+    <sprite position={position} scale={[size, size, 1]} onClick={onClick}>
+      <spriteMaterial
+        map={starTexture}
+        color={color}
+        transparent
+        opacity={0.9}
+      />
+    </sprite>
+  );
+}
+```
+
+2. **Use in Scene**:
+```tsx
+// In GalaxyScene.tsx
+{systems.map(system => (
+  <Star
+    key={system.name}
+    position={system.position}
+    size={system.size}
+    onClick={() => handleSystemClick(system)}
+  />
+))}
+```
+
+**Animations with useFrame:**
+
+```tsx
+function RotatingPlanet({ rotationSpeed }: Props) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state, delta) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += rotationSpeed * delta;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[1, 32, 32]} />
+      <meshStandardMaterial />
+    </mesh>
+  );
+}
+```
+
+**Camera Transitions:**
+
+```tsx
+function CameraController({ target }: Props) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (target) {
+      gsap.to(camera.position, {
+        x: target.x,
+        y: target.y,
+        z: target.z,
+        duration: 2,
+        ease: 'power2.inOut',
+      });
+    }
+  }, [target, camera]);
+
+  return null;
+}
+```
+
+**Texture Loading:**
+
+```tsx
+import { useProceduralTexture } from '../hooks/useProceduralTexture';
+
+function CustomElement() {
+  const texture = useProceduralTexture(
+    (ctx, canvas) => {
+      // Draw on canvas
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    },
+    [128, 128] // width, height
+  );
+
+  return (
+    <sprite>
+      <spriteMaterial map={texture} />
+    </sprite>
+  );
+}
+```
+
+**Performance Tips:**
+- Use `frameloop='demand'` when scene is static (paused prop)
+- Keep high `luminanceThreshold` (0.9+) for post-processing
+- Use `useMemo` for procedural textures
+- Implement LOD (level of detail) for distant objects when needed
+- Check memory with Chrome DevTools during extended sessions
 
 # Configuration & Tools
 

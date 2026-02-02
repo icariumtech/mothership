@@ -15,6 +15,36 @@ For detailed information on specific topics, refer to these guides:
 - **Read: src/components/ui/README.md** - React Panel component API, usage patterns, and migration examples
 - **Read: STYLE_GUIDE.md** - UI design system, color palette, panel patterns, and visual specifications
 
+## Architecture Codemaps (Load Dynamically When Needed)
+
+**IMPORTANT**: The following codemaps provide deep architectural context. Load them dynamically based on your task:
+
+- **Read: codemaps/architecture.md** when working on:
+  - System architecture changes
+  - Data flow patterns
+  - Multi-view terminal system
+  - Overall tech stack decisions
+
+- **Read: codemaps/backend.md** when working on:
+  - Django models, views, or API endpoints
+  - DataLoader and file-based data loading
+  - URL routing or backend architecture
+  - CHARON AI system
+
+- **Read: codemaps/frontend.md** when working on:
+  - React components, hooks, or state management
+  - React Three Fiber scenes or 3D visualizations
+  - Frontend routing or entry points
+  - TypeScript types or interfaces
+
+- **Read: codemaps/data.md** when working on:
+  - Data directory structure or YAML schemas
+  - Location hierarchy or file formats
+  - Database models or data migration
+  - Campaign data structure
+
+**Usage Pattern**: Don't read all codemaps upfront. Only load the specific codemap relevant to your current task to maintain efficient token usage.
+
 # Overview
 
 **mothership** is a game master tool for running Mothership RPG campaigns. This full-stack web application serves as an interactive command center that enhances the tabletop RPG experience with digital tools and atmospheric computer-like messaging.
@@ -79,7 +109,13 @@ python manage.py runserver  # Start Django server
 
 # Architecture
 
-## Directory Structure
+**For detailed architecture information, read the appropriate codemap:**
+- **codemaps/architecture.md** - System architecture, data flow, tech stack
+- **codemaps/backend.md** - Django structure, models, API endpoints
+- **codemaps/frontend.md** - React components, R3F scenes, state management
+- **codemaps/data.md** - Data directory structure, YAML schemas, file formats
+
+## Directory Structure (High-Level Overview)
 ```
 charon/
 ├── data/                        # Campaign data (file-based)
@@ -394,6 +430,8 @@ See [src/components/ui/README.md](src/components/ui/README.md) for detailed API 
 - GM Console tree expansion state saved to `localStorage`
 
 ### React Three Fiber Integration
+
+> **For comprehensive R3F architecture details, read: codemaps/frontend.md** (React Three Fiber section)
 
 **Declarative 3D Architecture:**
 The application uses React Three Fiber (R3F) for all 3D visualizations, replacing the previous imperative Three.js classes with declarative React components.

@@ -1,8 +1,5 @@
 /**
  * Galaxy View R3F Components
- *
- * Components for rendering the galaxy-level map view with stars,
- * routes, nebulae, and interactive controls.
  */
 
 export { BackgroundStars } from './BackgroundStars';

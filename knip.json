@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/entries/TestPanel.tsx",
+    "src/entries/SharedConsole.tsx",
+    "src/entries/GMConsole.tsx",
+    "src/entries/PlayerConsole.tsx",
+    "vite.config.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}"
+  ],
+  "ignore": [
+    "node_modules/**",
+    "terminal/static/**",
+    "dist/**"
+  ],
+  "ignoreDependencies": [
+    "depcheck",
+    "knip",
+    "ts-prune"
+  ]
+}

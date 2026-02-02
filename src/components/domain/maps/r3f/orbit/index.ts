@@ -1,8 +1,5 @@
 /**
  * Orbit Scene Components
- *
- * R3F components for rendering orbit view (planet with moons,
- * orbital stations, surface markers, and coordinate grid).
  */
 
 export { Sun } from './Sun';

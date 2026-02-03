@@ -179,7 +179,7 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
           camera.updateProjectionMatrix();
         }
 
-        // Use zoomIn to animate from distant position to default view
+        // Animate from initial position to default view
         zoomIn();
 
         cameraInitializedRef.current = bodySlug;

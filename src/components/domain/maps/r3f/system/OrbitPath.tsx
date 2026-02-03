@@ -19,9 +19,11 @@ interface OrbitPathProps {
   body: BodyData;
   /** Orbit display settings */
   settings?: OrbitSettings;
+  /** Scene opacity for fade-in effect (0-1) */
+  opacity?: number;
 }
 
-export function OrbitPath({ body, settings }: OrbitPathProps) {
+export function OrbitPath({ body, settings, opacity: sceneOpacity = 1 }: OrbitPathProps) {
   const color = settings?.color ?? DEFAULT_COLOR;
   const opacity = settings?.opacity ?? DEFAULT_OPACITY;
   const inclinationRad = (body.inclination ?? 0) * (Math.PI / 180);
@@ -46,9 +48,9 @@ export function OrbitPath({ body, settings }: OrbitPathProps) {
     return new THREE.LineBasicMaterial({
       color: new THREE.Color(color),
       transparent: true,
-      opacity: opacity,
+      opacity: opacity * sceneOpacity,
     });
-  }, [color, opacity]);
+  }, [color, opacity, sceneOpacity]);
 
   // Create the line object
   const line = useMemo(() => {

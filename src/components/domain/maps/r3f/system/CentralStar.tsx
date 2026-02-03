@@ -22,9 +22,11 @@ const GLOW_OPACITY = 0.3;
 interface CentralStarProps {
   /** Star configuration data */
   star: StarData;
+  /** Scene opacity for fade-in effect (0-1) */
+  opacity?: number;
 }
 
-export function CentralStar({ star }: CentralStarProps) {
+export function CentralStar({ star, opacity = 1 }: CentralStarProps) {
   const size = star.size ?? DEFAULT_SIZE;
   const color = useMemo(() => new THREE.Color(star.color ?? 0xffffaa), [star.color]);
   const lightColor = useMemo(
@@ -39,7 +41,7 @@ export function CentralStar({ star }: CentralStarProps) {
       {/* Main star sphere */}
       <mesh position={[0, 0, 0]}>
         <sphereGeometry args={[size, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
-        <meshBasicMaterial color={color} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} />
       </mesh>
 
       {/* Corona glow sphere */}
@@ -48,7 +50,7 @@ export function CentralStar({ star }: CentralStarProps) {
         <meshBasicMaterial
           color={color}
           transparent
-          opacity={GLOW_OPACITY}
+          opacity={GLOW_OPACITY * opacity}
         />
       </mesh>
 
@@ -56,7 +58,7 @@ export function CentralStar({ star }: CentralStarProps) {
       <pointLight
         position={[0, 0, 0]}
         color={lightColor}
-        intensity={coronaIntensity}
+        intensity={coronaIntensity * opacity}
         distance={LIGHT_DISTANCE}
       />
     </group>

@@ -165,34 +165,32 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
     }${hidden ? ' hidden' : ''}`;
 
     // Get default camera config from orbit data
-    // Start with camera at a distant position for zoom-in animation
+    // Use a safe default position on +X side (away from sun) to avoid showing sun during initial load
     const cameraConfig = orbitData?.camera ?? {
-      position: [0, 30, 50] as [number, number, number],
+      position: [15, 7.5, 7.5] as [number, number, number], // On +X side, away from sun at -X
       lookAt: [0, 0, 0] as [number, number, number],
       fov: 60,
     };
 
-    // Calculate distant start position for initial camera
+    // When transitioning in, start camera at a close position on the opposite side from sun
+    // Calculate position similar to where diveToPlanet would leave the camera
     const initialCameraPosition = useMemo(() => {
-      const targetPos = cameraConfig.position;
-      const targetLookAt = cameraConfig.lookAt;
+      if (transitionState === 'transitioning-in') {
+        // Position camera on the +X side (opposite from sun which is typically at -X)
+        // This ensures the sun is behind the camera, not in view
+        const lookAt = cameraConfig.lookAt;
+        const zoomFactor = 15; // Close zoom for smooth transition
 
-      // Calculate direction from lookAt to camera position
-      const dx = targetPos[0] - targetLookAt[0];
-      const dy = targetPos[1] - targetLookAt[1];
-      const dz = targetPos[2] - targetLookAt[2];
-      const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return [
+          lookAt[0] + zoomFactor,  // On +X side (away from sun at -X)
+          lookAt[1] + zoomFactor * 0.5,  // Slightly elevated
+          lookAt[2] + zoomFactor * 0.5,  // Slightly offset in Z
+        ] as [number, number, number];
+      }
 
-      if (length === 0) return [0, 150, 250] as [number, number, number];
-
-      // Normalize and scale to distant position
-      const scale = 250 / length;
-      return [
-        targetLookAt[0] + dx * scale,
-        targetLookAt[1] + dy * scale + 100,
-        targetLookAt[2] + dz * scale,
-      ] as [number, number, number];
-    }, [cameraConfig.position, cameraConfig.lookAt]);
+      // Default position for non-transition loads (also close to avoid sun)
+      return cameraConfig.position;
+    }, [transitionState, cameraConfig.position, cameraConfig.lookAt]);
 
     // Handle Canvas creation
     const handleCreated = useCallback(

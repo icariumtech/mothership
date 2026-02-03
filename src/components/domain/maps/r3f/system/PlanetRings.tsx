@@ -21,14 +21,14 @@ interface PlanetRingsProps {
   planetSize: number;
   /** Custom ring color */
   color?: number;
-  /** Custom ring opacity */
+  /** Scene opacity for fade-in effect (0-1) */
   opacity?: number;
 }
 
 export function PlanetRings({
   planetSize,
   color = RING_COLOR,
-  opacity = RING_OPACITY,
+  opacity: sceneOpacity = 1,
 }: PlanetRingsProps) {
   // Ring radius is based on planet's visual radius
   const ringRadius = (planetSize / 2) * RING_SIZE_RATIO;
@@ -60,7 +60,7 @@ export function PlanetRings({
       <meshBasicMaterial
         color={threeColor}
         transparent
-        opacity={opacity}
+        opacity={RING_OPACITY * sceneOpacity}
       />
     </mesh>
   );

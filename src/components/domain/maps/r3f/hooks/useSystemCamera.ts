@@ -68,6 +68,8 @@ interface UseSystemCameraReturn {
   getCameraOffset: () => THREE.Vector3 | null;
   /** Set camera offset (used after control interactions) */
   setCameraOffset: (offset: THREE.Vector3) => void;
+  /** Get current scene opacity (0-1) for fade-in effect */
+  getSceneOpacity: () => number;
 }
 
 export function useSystemCamera({
@@ -96,6 +98,8 @@ export function useSystemCamera({
     resolve: (() => void) | null;
     trackTarget: boolean; // Whether to track moving target
     targetGetter?: () => THREE.Vector3; // Dynamic target getter
+    fadeIn: boolean; // Whether to fade in scene during animation
+    opacity: number; // Current scene opacity (0-1) for fade-in
   }>({
     active: false,
     startTime: 0,
@@ -107,6 +111,8 @@ export function useSystemCamera({
     easing: easeInOutQuad,
     resolve: null,
     trackTarget: false,
+    fadeIn: false,
+    opacity: 0, // Start at 0 for initial fade-in
   });
 
   // Process animation each frame
@@ -143,8 +149,21 @@ export function useSystemCamera({
       [tgt.x, tgt.y, tgt.z]
     );
 
+    // Update opacity for fade-in effect
+    if (anim.fadeIn) {
+      anim.opacity = eased; // Use same easing as camera movement
+      if (Math.random() < 0.02) { // Log occasionally to avoid spam
+        console.log('[useSystemCamera] Fade-in progress:', eased.toFixed(3), 'opacity:', anim.opacity.toFixed(3));
+      }
+    }
+
     if (progress >= 1) {
       anim.active = false;
+      if (anim.fadeIn) {
+        anim.opacity = 1; // Ensure final opacity is exactly 1
+        anim.fadeIn = false;
+        console.log('[useSystemCamera] Fade-in complete, final opacity:', anim.opacity);
+      }
       if (anim.resolve) {
         anim.resolve();
         anim.resolve = null;
@@ -318,16 +337,27 @@ export function useSystemCamera({
 
       cameraOffsetRef.current = null;
 
-      const endPosition = planetPos.clone().add(new THREE.Vector3(0, 1, 3));
+      // Calculate zoom distance based on planet's orbital radius (closer planets = closer zoom)
+      const trackedPlanet = trackedPlanetRef.current;
+      const zoomFactor = trackedPlanet ? Math.max(trackedPlanet.orbital_radius * 0.05, 3) : 5;
 
+      // End position: close to the planet from 45-degree angle
+      const endPosition = planetPos.clone().add(new THREE.Vector3(
+        zoomFactor * CAMERA_ANGLE_45_DEG,
+        zoomFactor * CAMERA_ANGLE_45_DEG,
+        zoomFactor * CAMERA_ANGLE_45_DEG
+      ));
+
+      // Use constant 2-second duration - speed automatically adjusts based on distance
       await startAnimation(
         endPosition,
         planetPos,
-        800,
+        2000,
         easeInCubic,
         {
           trackTarget: true,
           targetGetter: () => getPlanetPosition(planetName) ?? planetPos,
+          startTarget: planetPos, // Start from current planet position to avoid snapping to sun
         }
       );
     },
@@ -360,10 +390,11 @@ export function useSystemCamera({
 
       const endPosition = planetPos.clone().add(endOffset);
 
+      // Use constant 2-second duration - speed automatically adjusts based on distance
       await startAnimation(
         endPosition,
         planetPos,
-        800,
+        2000,
         easeOutCubic,
         {
           trackTarget: true,
@@ -411,6 +442,8 @@ export function useSystemCamera({
   const zoomIn = useCallback((): void => {
     if (!defaultCamera) return;
 
+    console.log('[useSystemCamera] zoomIn called, setting opacity to 0');
+
     // Cancel any ongoing animation
     if (animationRef.current.active && animationRef.current.resolve) {
       animationRef.current.resolve();
@@ -428,6 +461,11 @@ export function useSystemCamera({
 
     camera.position.copy(startPosition);
     camera.lookAt(targetLookAt);
+
+    // Enable fade-in during zoom animation
+    animationRef.current.fadeIn = true;
+    animationRef.current.opacity = 0;
+    console.log('[useSystemCamera] Starting fade-in animation, opacity:', animationRef.current.opacity);
 
     startAnimation(targetPos, targetLookAt, 1000, easeOutCubic);
   }, [defaultCamera, camera, startAnimation]);
@@ -492,6 +530,11 @@ export function useSystemCamera({
     }
   }, [getPlanetPosition]);
 
+  // Get current scene opacity for fade-in effect
+  const getSceneOpacity = useCallback((): number => {
+    return animationRef.current.opacity;
+  }, []);
+
   return {
     moveToPlanet,
     positionOnPlanet,
@@ -504,5 +547,6 @@ export function useSystemCamera({
     setTrackedPlanet,
     getCameraOffset,
     setCameraOffset,
+    getSceneOpacity,
   };
 }

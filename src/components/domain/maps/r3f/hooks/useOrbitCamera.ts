@@ -283,7 +283,8 @@ export function useOrbitCamera({
       );
       const lookAtTarget = new THREE.Vector3(0, 0, 0);
 
-      await startAnimation(endPosition, lookAtTarget, ANIMATION_DURATION, easeInCubic);
+      // Use constant 2-second duration - speed automatically adjusts based on distance
+      await startAnimation(endPosition, lookAtTarget, 2000, easeInCubic);
     },
     [startAnimation]
   );
@@ -295,22 +296,15 @@ export function useOrbitCamera({
 
       cameraOffsetRef.current = null;
 
-      // Start from distant position
-      const startPosition = new THREE.Vector3(
-        ZOOM_OUT_POSITION.x,
-        ZOOM_OUT_POSITION.y,
-        ZOOM_OUT_POSITION.z
-      );
+      // Use current camera position as start (wherever diveToPlanet left it)
+      // Don't snap to a hardcoded position - this caused the "snap to sun" issue
       const targetPos = new THREE.Vector3(...defaultCamera.position);
       const targetLookAt = new THREE.Vector3(...defaultCamera.lookAt);
 
-      // Set camera to start position
-      camera.position.copy(startPosition);
-      camera.lookAt(targetLookAt);
-
-      await startAnimation(targetPos, targetLookAt, ANIMATION_DURATION, easeOutCubic);
+      // Use constant 2-second duration - speed automatically adjusts based on distance
+      await startAnimation(targetPos, targetLookAt, 2000, easeOutCubic);
     },
-    [defaultCamera, camera, startAnimation]
+    [defaultCamera, startAnimation]
   );
 
   // Update camera tracking for orbiting elements

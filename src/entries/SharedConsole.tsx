@@ -533,15 +533,48 @@ function SharedConsole() {
       console.error('Error pre-fetching system data:', error);
     }
 
-    // Phase 1: Select system and wait for camera animation + typewriter
+    // Phase 1: Select system and wait for camera animation + typewriter to complete
     if (selectedSystem !== systemName) {
       console.log('[Transition] Selecting system:', systemName);
+
+      // Select the system - this triggers all the UI updates (reticle, info panel, camera)
       setSelectedSystem(systemName);
-      // Wait for camera animation to complete (returns Promise)
-      await galaxyMapRef.current?.selectSystemAndWait(systemName);
-      // Typewriter will start automatically via useEffect when infoPanelContent changes
-      // Wait a bit for typewriter to start (it's RAF-driven now, very fast)
-      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Wait one frame for React to re-render and show reticle/info panel
+      await new Promise(resolve => requestAnimationFrame(() => resolve(undefined)));
+
+      // The GalaxyScene useEffect will automatically start camera animation (2000ms duration)
+      // Wait for camera animation to complete
+      console.log('[Transition] Waiting for camera animation (2000ms)');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Wait for typewriter to complete (poll Zustand store state)
+      console.log('[Transition] Waiting for typewriter to complete');
+      const maxWaitTime = 3000; // 3 second timeout
+      const startTime = Date.now();
+
+      await new Promise<void>((resolve) => {
+        const checkTypewriter = () => {
+          const state = useSceneStore.getState();
+          const elapsed = Date.now() - startTime;
+
+          // Complete if typewriter is done OR timeout reached
+          if (!state.typewriter.active || elapsed >= maxWaitTime) {
+            if (elapsed >= maxWaitTime) {
+              console.warn('[Transition] Typewriter timeout - proceeding anyway');
+            } else {
+              console.log('[Transition] Typewriter complete');
+            }
+            resolve();
+          } else {
+            // Check again on next frame
+            requestAnimationFrame(checkTypewriter);
+          }
+        };
+
+        // Start checking after brief delay to let typewriter initialize
+        setTimeout(() => requestAnimationFrame(checkTypewriter), 100);
+      });
     }
 
     // Phase 2: Start dive animation
@@ -590,14 +623,19 @@ function SharedConsole() {
       console.error('Error pre-fetching orbit data:', error);
     }
 
-    // Phase 1: Select planet and wait for camera animation + typewriter
+    // Phase 1: Position camera on planet (instant, no animation to avoid showing default view)
     if (selectedPlanet?.location_slug !== planetSlug) {
-      console.log('[Transition] Selecting planet:', planet.name);
+      console.log('[Transition] Instantly positioning camera on planet:', planet.name);
+
+      // Instantly position camera on planet (also handles selection internally)
+      // This skips the animated camera movement that would show the default solar system view
+      systemMapRef.current?.positionCameraOnPlanet(planet.name);
+
+      // Sync selection state to SharedConsole (positionCameraOnPlanet already selected in store)
       setSelectedPlanet(planet);
-      // Wait for camera animation to complete
-      await systemMapRef.current?.selectPlanetAndWait(planet.name);
-      // Brief delay for typewriter to start
-      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Brief pause to let UI updates complete
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
 
     // Phase 2: Start dive animation
@@ -613,8 +651,8 @@ function SharedConsole() {
       setOrbitTransition('transitioning-in');
     });
 
-    // Phase 4: Wait for fade-in transition to complete
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    // Phase 4: Wait for zoom-in animation to complete (2000ms + buffer)
+    await new Promise(resolve => setTimeout(resolve, 2200));
 
     // Phase 5: Reset transition states
     setSystemTransition('idle');

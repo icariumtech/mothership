@@ -28,6 +28,8 @@ interface PlanetProps {
   isSelected?: boolean;
   /** Callback when planet is clicked */
   onClick?: (body: BodyData) => void;
+  /** Scene opacity for fade-in effect (0-1) */
+  opacity?: number;
 }
 
 export function Planet({
@@ -37,6 +39,7 @@ export function Planet({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isSelected: _isSelected = false,
   onClick,
+  opacity = 1,
 }: PlanetProps) {
   const spriteRef = useRef<THREE.Sprite>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -90,6 +93,7 @@ export function Planet({
         <spriteMaterial
           map={planetTexture}
           transparent
+          opacity={opacity}
           depthWrite
           depthTest
         />
@@ -97,7 +101,7 @@ export function Planet({
 
       {/* Planet rings (if applicable) */}
       {body.has_rings && (
-        <PlanetRings planetSize={size} />
+        <PlanetRings planetSize={size} opacity={opacity} />
       )}
     </group>
   );

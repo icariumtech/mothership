@@ -110,6 +110,20 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     const waitingForInitRef = useRef<string | null>(null);
     const waitFramesRef = useRef(0);
 
+    // Track scene opacity for fade-in effect using ref (avoids React state batching delays)
+    // Start at 0 so scene is invisible until zoomIn animation begins
+    const sceneOpacityRef = useRef(0);
+
+    // Scene root ref for direct material updates (bypasses React prop system)
+    const sceneRootRef = useRef<THREE.Group>(null);
+
+    // Reset opacity to 0 when switching to a new system (before zoomIn animation)
+    useEffect(() => {
+      if (systemSlug && cameraInitializedRef.current !== systemSlug) {
+        sceneOpacityRef.current = 0;
+      }
+    }, [systemSlug]);
+
     // Initialize camera position and lookAt after a few frames to let layout settle
     // Using useFrame ensures this happens within R3F's render cycle
     useFrame(() => {
@@ -124,8 +138,8 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
         }
         waitFramesRef.current++;
 
-        // Wait 10 frames for layout to settle before initializing
-        if (waitFramesRef.current < 10) return;
+        // Wait 2 frames for layout to settle before initializing
+        if (waitFramesRef.current < 2) return;
       }
 
       // Only initialize once per system (avoid resetting during transitions)
@@ -222,23 +236,70 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       setTrackedPlanet,
       // getCameraOffset is available but not currently used
       setCameraOffset,
+      getSceneOpacity,
     } = useSystemCamera({
       getPlanetPosition,
       defaultCamera: data?.camera,
     });
 
-    // Update planet positions each frame
+    // Update planet positions and scene opacity each frame
     useFrame(() => {
-      if (!data?.bodies || paused) return;
+      if (!data?.bodies) return;
 
-      data.bodies.forEach((body) => {
-        const pos = calculatePlanetPosition(body);
-        planetPositionsRef.current.set(body.name, pos);
-      });
+      if (!paused) {
+        data.bodies.forEach((body) => {
+          const pos = calculatePlanetPosition(body);
+          planetPositionsRef.current.set(body.name, pos);
+        });
 
-      // Update camera tracking
-      updateTracking();
+        // Update camera tracking
+        updateTracking();
+      }
+
+      // Update scene opacity for fade-in effect (even when paused)
+      const currentOpacity = getSceneOpacity();
+      if (currentOpacity !== sceneOpacityRef.current) {
+        sceneOpacityRef.current = currentOpacity;
+      }
     });
+
+    // Direct material opacity updates (bypasses React prop system for 60fps updates)
+    useFrame(() => {
+      if (!sceneRootRef.current) return;
+
+      const opacity = sceneOpacityRef.current;
+
+      // Traverse all scene objects and directly update material opacity
+      sceneRootRef.current.traverse((object: THREE.Object3D) => {
+        if ('material' in object && object.material) {
+          const material = object.material as THREE.Material;
+
+          // Only update transparent materials that have opacity property
+          if (material.transparent && 'opacity' in material) {
+            // Store base opacity on first encounter (before any fade modifications)
+            if (!('_baseOpacity' in material)) {
+              (material as any)._baseOpacity = (material as any).opacity || 1;
+            }
+
+            // Apply scene fade: current opacity = base opacity * scene fade
+            const baseOpacity = (material as any)._baseOpacity;
+            (material as any).opacity = baseOpacity * opacity;
+
+            // Mark material as needing update
+            material.needsUpdate = true;
+          }
+        }
+
+        // Handle point lights (for star corona)
+        if (object instanceof THREE.PointLight) {
+          if (!('_baseIntensity' in object)) {
+            (object as any)._baseIntensity = object.intensity;
+          }
+          object.intensity = (object as any)._baseIntensity * opacity;
+        }
+      });
+    });
+
 
     // Sync data to store if provided via props
     useEffect(() => {
@@ -319,14 +380,31 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
           // returnToDefault handles clearing tracking state and animating
           returnToDefault();
         } else {
-          // New selection - animate to it
-          setTrackedPlanet(newSelection);
-          moveToPlanet(newSelection);
+          // New selection - check if camera is already positioned correctly
+          const planetPos = getPlanetPosition(newSelection.name);
+          if (planetPos) {
+            const distance = camera.position.distanceTo(planetPos);
+
+            // If camera is already close to the planet (within 50 units), skip animation
+            // This prevents unwanted animation when using positionCameraOnPlanet
+            if (distance > 50) {
+              // Camera is far - animate to planet
+              setTrackedPlanet(newSelection);
+              moveToPlanet(newSelection);
+            } else {
+              // Camera is already close - just set up tracking without animation
+              setTrackedPlanet(newSelection);
+            }
+          } else {
+            // Fallback - animate if we can't determine position
+            setTrackedPlanet(newSelection);
+            moveToPlanet(newSelection);
+          }
         }
       }
 
       prevSelectedPlanetRef.current = newSelection;
-    }, [selectedPlanetProp, setTrackedPlanet, moveToPlanet, returnToDefault]);
+    }, [selectedPlanetProp, setTrackedPlanet, moveToPlanet, returnToDefault, getPlanetPosition, camera]);
 
     // Control target - orbits around selected planet or origin
     // Static target used as fallback when no planet is selected
@@ -405,35 +483,38 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
         {/* Ambient light for scene */}
         <ambientLight color={0x222244} intensity={0.2} />
 
-        {/* Background starfield (reuse from galaxy view) */}
-        <BackgroundStars animated={!paused} />
+        {/* Scene root group for direct material updates */}
+        <group ref={sceneRootRef}>
+          {/* Background starfield (reuse from galaxy view) */}
+          <BackgroundStars animated={!paused} />
 
-        {/* Central star */}
-        <CentralStar star={data.star} />
+          {/* Central star */}
+          <CentralStar star={data.star} />
 
-        {/* Orbital paths */}
-        {data.bodies &&
-          (!data.orbits || data.orbits.show !== false) &&
-          data.bodies.map((body) => (
-            <OrbitPath
-              key={`orbit-${body.name}`}
-              body={body}
-              settings={data.orbits}
-            />
-          ))}
+          {/* Orbital paths */}
+          {data.bodies &&
+            (!data.orbits || data.orbits.show !== false) &&
+            data.bodies.map((body) => (
+              <OrbitPath
+                key={`orbit-${body.name}`}
+                body={body}
+                settings={data.orbits}
+              />
+            ))}
 
-        {/* Planets */}
-        {data.bodies &&
-          data.bodies.map((body) => (
-            <Planet
-              key={`planet-${body.name}`}
-              body={body}
-              speedMultiplier={speedMultiplier}
-              startTime={startTimeRef.current}
-              isSelected={selectedPlanet?.name === body.name}
-              onClick={handlePlanetClick}
-            />
-          ))}
+          {/* Planets */}
+          {data.bodies &&
+            data.bodies.map((body) => (
+              <Planet
+                key={`planet-${body.name}`}
+                body={body}
+                speedMultiplier={speedMultiplier}
+                startTime={startTimeRef.current}
+                isSelected={selectedPlanet?.name === body.name}
+                onClick={handlePlanetClick}
+              />
+            ))}
+        </group>
 
         {/* Selection reticle */}
         <SelectionReticle

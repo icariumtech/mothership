@@ -20,6 +20,8 @@ interface BackgroundStarsProps {
   maxRadius?: number;
   /** Whether to animate star twinkling */
   animated?: boolean;
+  /** Scene opacity for fade-in effect (0-1) */
+  opacity?: number;
 }
 
 interface StarInstance {
@@ -35,6 +37,7 @@ export function BackgroundStars({
   minRadius = 150,
   maxRadius = 450,
   animated = true,
+  opacity = 1,
 }: BackgroundStarsProps) {
   const groupRef = useRef<THREE.Group>(null);
   const spritesRef = useRef<THREE.Sprite[]>([]);
@@ -94,7 +97,7 @@ export function BackgroundStars({
       const pulseAmount = 0.15;
       const pulse = Math.sin(time * pulseSpeed + instance.pulseOffset) * pulseAmount;
       (sprite.material as THREE.SpriteMaterial).opacity =
-        instance.baseOpacity * (1.0 + pulse);
+        instance.baseOpacity * (1.0 + pulse) * opacity;
     });
   });
 
@@ -118,7 +121,7 @@ export function BackgroundStars({
             map={starTexture}
             color={0xffffff}
             transparent
-            opacity={instance.baseOpacity}
+            opacity={instance.baseOpacity * opacity}
             blending={THREE.AdditiveBlending}
             rotation={instance.rotation}
           />

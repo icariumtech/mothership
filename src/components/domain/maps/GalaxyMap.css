@@ -7,12 +7,12 @@
   height: 100%;
   z-index: 0;
   opacity: 1;
-  transition: opacity 1s ease-out;
 }
 
 .galaxy-map-container.transitioning-out {
-  opacity: 0;
+  opacity: 1; /* Start at 1 */
   pointer-events: none;
+  animation: galaxyMapFadeOut 0.5s ease-out forwards; /* Match FADE_OUT_TIME */
 }
 
 .galaxy-map-container.hidden {
@@ -32,12 +32,21 @@
   height: 100%;
 }
 
-/* Galaxy map fade animation (no scale to avoid canvas sizing issues) */
+/* Galaxy map fade animations (no scale to avoid canvas sizing issues) */
 @keyframes galaxyMapFadeIn {
   0% {
     opacity: 0;
   }
   100% {
     opacity: 1;
+  }
+}
+
+@keyframes galaxyMapFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }

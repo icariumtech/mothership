@@ -21,6 +21,7 @@ import {
   useImperativeHandle,
   forwardRef,
   useEffect,
+  useLayoutEffect,
   useRef,
   useCallback,
   useState,
@@ -62,11 +63,15 @@ export interface OrbitSceneProps {
   } | null;
   /** Whether rendering is paused */
   paused?: boolean;
+  /** Transition state for coordinating fade effects */
+  transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Callback when an element is selected */
   onElementSelect?: (
     elementType: 'moon' | 'station' | 'surface' | null,
     elementData: MoonData | StationData | SurfaceMarkerData | null
   ) => void;
+  /** Callback when scene is fully constructed and ready */
+  onReady?: () => void;
 }
 
 export interface OrbitSceneHandle {
@@ -75,10 +80,6 @@ export interface OrbitSceneHandle {
     elementName: string,
     elementType: 'moon' | 'station' | 'surface'
   ) => Promise<void>;
-  /** Animate camera zooming out (for transition back to system view) */
-  zoomOut: () => Promise<void>;
-  /** Animate camera zooming in (for transition from system view) */
-  zoomIn: () => Promise<void>;
   /** Get element positions map */
   getElementPositions: () => Map<string, THREE.Vector3>;
 }
@@ -91,7 +92,9 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
       bodySlug,
       selectedElement: selectedElementProp,
       paused: pausedProp = false,
+      transitionState = 'idle',
       onElementSelect,
+      onReady,
     },
     ref
   ) {
@@ -116,6 +119,20 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
     const cameraInitializedRef = useRef<string | null>(null);
     const waitingForInitRef = useRef<string | null>(null);
     const waitFramesRef = useRef(0);
+    const readyCalledRef = useRef<string | null>(null);
+
+    // Track if a fade animation is currently running to prevent duplicates
+    const fadeAnimationRunningRef = useRef(false);
+
+    // Track the last processed transition to prevent duplicate handling
+    const lastProcessedTransitionRef = useRef<string>('idle');
+
+    // Track scene opacity for fade-in effect using ref (avoids React state batching delays)
+    // Start at 0 so scene is invisible until zoomIn animation begins
+    const sceneOpacityRef = useRef(0);
+
+    // Scene root ref for direct material updates (bypasses React prop system)
+    const sceneRootRef = useRef<THREE.Group>(null);
 
     // Animation start time
     const startTimeRef = useRef(Date.now());
@@ -142,16 +159,104 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
     const {
       moveToElement,
       returnToDefault,
-      zoomOut,
-      zoomIn,
       updateTracking,
       setTrackedElement,
       setCameraOffset,
       isAnimating: _isAnimating,
+      getSceneOpacity,
+      setSceneOpacity,
     } = useOrbitCamera({
       getElementPosition,
       defaultCamera: data?.camera,
     });
+
+    // Reset opacity to 0 when switching to a new body (before zoomIn animation)
+    // CRITICAL: Use useLayoutEffect to run synchronously BEFORE paint, preventing flash
+    useLayoutEffect(() => {
+      if (bodySlug && cameraInitializedRef.current !== bodySlug) {
+        sceneOpacityRef.current = 0;
+        setSceneOpacity(0);
+
+        // CRITICAL: Position camera far out immediately to prevent flash during frame wait
+        // Use data.camera if available, otherwise use default fallback position
+        const targetPos = data?.camera?.position
+          ? new THREE.Vector3(...data.camera.position)
+          : new THREE.Vector3(0, 50, 100);
+        const targetLookAt = data?.camera?.lookAt
+          ? new THREE.Vector3(...data.camera.lookAt)
+          : new THREE.Vector3(0, 0, 0);
+
+        const direction = targetPos.clone().sub(targetLookAt).normalize();
+        const startPosition = targetLookAt.clone().add(direction.multiplyScalar(300));
+        camera.position.copy(startPosition);
+        camera.lookAt(targetLookAt);
+      }
+    }, [bodySlug, setSceneOpacity, data?.camera, camera]);
+
+    // Fade out scene materials when transitioning out
+    useEffect(() => {
+      // Skip if we've already processed this transition state
+      if (transitionState === lastProcessedTransitionRef.current) {
+        return;
+      }
+
+      if (transitionState === 'transitioning-out') {
+        if (fadeAnimationRunningRef.current) {
+          console.log('[OrbitScene] Skipping fade-out - animation already running');
+          return;
+        }
+        console.log('[OrbitScene] Starting fade-out animation');
+        lastProcessedTransitionRef.current = transitionState;
+        fadeAnimationRunningRef.current = true;
+        const fadeStart = performance.now();
+        const fadeDuration = 500; // Match FADE_OUT_TIME
+        const fadeOut = () => {
+          const elapsed = performance.now() - fadeStart;
+          const progress = Math.min(elapsed / fadeDuration, 1);
+          const newOpacity = 1 - progress; // Fade 1→0
+
+          setSceneOpacity(newOpacity);
+          sceneOpacityRef.current = newOpacity;
+
+          if (progress < 1) {
+            requestAnimationFrame(fadeOut);
+          } else {
+            console.log('[OrbitScene] Fade-out complete');
+            fadeAnimationRunningRef.current = false;
+          }
+        };
+        requestAnimationFrame(fadeOut);
+      } else if (transitionState === 'transitioning-in') {
+        // Fade in when returning to this scene (e.g., back from system)
+        if (fadeAnimationRunningRef.current) {
+          console.log('[OrbitScene] Skipping fade-in - animation already running');
+          return;
+        }
+        console.log('[OrbitScene] Starting fade-in animation (transition)');
+        lastProcessedTransitionRef.current = transitionState;
+        fadeAnimationRunningRef.current = true;
+        const fadeStart = performance.now();
+        const fadeDuration = 1200; // Match FADE_TIME
+        const fadeIn = () => {
+          const elapsed = performance.now() - fadeStart;
+          const progress = Math.min(elapsed / fadeDuration, 1);
+          const newOpacity = progress; // Fade 0→1
+
+          setSceneOpacity(newOpacity);
+          sceneOpacityRef.current = newOpacity;
+
+          if (progress < 1) {
+            requestAnimationFrame(fadeIn);
+          } else {
+            console.log('[OrbitScene] Fade-in complete');
+            fadeAnimationRunningRef.current = false;
+          }
+        };
+        requestAnimationFrame(fadeIn);
+      } else if (transitionState === 'idle') {
+        lastProcessedTransitionRef.current = 'idle';
+      }
+    }, [transitionState, setSceneOpacity]);
 
     // Initialize camera position after a few frames to let layout settle
     useFrame(() => {
@@ -165,8 +270,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
         }
         waitFramesRef.current++;
 
-        // Wait 10 frames for layout to settle
-        if (waitFramesRef.current < 10) return;
+        // Wait 2 frames for layout to settle (reduced from 10 since camera is pre-positioned)
+        if (waitFramesRef.current < 2) return;
       }
 
       // Only initialize once per body
@@ -179,10 +284,52 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
           camera.updateProjectionMatrix();
         }
 
-        // Animate from initial position to default view
-        zoomIn();
+        // Position camera at default view immediately (no animation)
+        const targetPosition = new THREE.Vector3(...data.camera.position);
+        const targetLookAt = new THREE.Vector3(...data.camera.lookAt);
+        camera.position.copy(targetPosition);
+        camera.lookAt(targetLookAt);
 
+        // Mark as initialized
         cameraInitializedRef.current = bodySlug;
+
+        // Call onReady callback FIRST, while still at opacity 0
+        // This signals to parent that scene is ready to fade in
+        // The parent will wait for this, then the CSS animation will fade in
+        if (onReady && readyCalledRef.current !== bodySlug) {
+          readyCalledRef.current = bodySlug;
+          // Use RAF to ensure rendering has happened
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              onReady();
+              // Only start fade-in if NOT already transitioning
+              // If transitionState is 'transitioning-in', the useEffect will handle it
+              if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
+                console.log('[OrbitScene] Starting fade-in animation (initialization)');
+                fadeAnimationRunningRef.current = true;
+                // Gradually fade in scene opacity to match CSS animation
+                // Start a gradual fade from 0 to 1 over 1200ms
+                const fadeStart = performance.now();
+                const fadeDuration = 1200; // Match CSS animation duration
+                const fadeIn = () => {
+                  const elapsed = performance.now() - fadeStart;
+                  const progress = Math.min(elapsed / fadeDuration, 1);
+                  const newOpacity = progress; // Linear fade 0→1
+
+                  setSceneOpacity(newOpacity);
+                  sceneOpacityRef.current = newOpacity;
+
+                  if (progress < 1) {
+                    requestAnimationFrame(fadeIn);
+                  } else {
+                    fadeAnimationRunningRef.current = false;
+                  }
+                };
+                requestAnimationFrame(fadeIn);
+              }
+            });
+          });
+        }
       }
     });
 
@@ -393,6 +540,52 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
       elementPositionsRef.current.set(`surface:${name}`, position.clone());
     }, []);
 
+    // Update scene opacity for fade-in effect each frame
+    useFrame(() => {
+      // Update scene opacity for fade-in effect (even when paused)
+      const currentOpacity = getSceneOpacity();
+      if (currentOpacity !== sceneOpacityRef.current) {
+        sceneOpacityRef.current = currentOpacity;
+      }
+    });
+
+    // Direct material opacity updates (bypasses React prop system for 60fps updates)
+    useFrame(() => {
+      if (!sceneRootRef.current) return;
+
+      const opacity = sceneOpacityRef.current;
+
+      // Traverse all scene objects and directly update material opacity
+      sceneRootRef.current.traverse((object: THREE.Object3D) => {
+        if ('material' in object && object.material) {
+          const material = object.material as THREE.Material;
+
+          // Only update transparent materials that have opacity property
+          if (material.transparent && 'opacity' in material) {
+            // Store base opacity on first encounter (before any fade modifications)
+            if (!('_baseOpacity' in material)) {
+              (material as any)._baseOpacity = (material as any).opacity || 1;
+            }
+
+            // Apply scene fade: current opacity = base opacity * scene fade
+            const baseOpacity = (material as any)._baseOpacity;
+            (material as any).opacity = baseOpacity * opacity;
+
+            // Mark material as needing update
+            material.needsUpdate = true;
+          }
+        }
+
+        // Handle point lights (for sun)
+        if (object instanceof THREE.PointLight) {
+          if (!('_baseIntensity' in object)) {
+            (object as any)._baseIntensity = object.intensity;
+          }
+          object.intensity = (object as any)._baseIntensity * opacity;
+        }
+      });
+    });
+
     // Update camera tracking each frame
     useFrame(() => {
       if (paused) return;
@@ -452,12 +645,6 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
             await moveToElement(elementName, elementType);
           }
         },
-        zoomOut: async () => {
-          await zoomOut();
-        },
-        zoomIn: async () => {
-          await zoomIn();
-        },
         getElementPositions: () => elementPositionsRef.current,
       }),
       [
@@ -465,10 +652,15 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
         selectOrbitElement,
         setTrackedElement,
         moveToElement,
-        zoomOut,
-        zoomIn,
       ]
     );
+
+    // Clear reticle position ref on unmount to prevent stale position when re-mounting
+    useEffect(() => {
+      return () => {
+        lastReticlePositionRef.current = [0, 0, 0];
+      };
+    }, []);
 
     // Don't render if no data
     if (!data) {
@@ -483,100 +675,104 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
         {/* Ambient light for scene */}
         <ambientLight color={0x778899} intensity={2.25} />
 
-        {/* Background starfield */}
-        <BackgroundStars animated={!paused} />
+        {/* Scene content with fade-in effect */}
+        <group ref={sceneRootRef}>
+          {/* Background starfield */}
+          <BackgroundStars animated={!paused} />
 
-        {/* Sun with directional lighting */}
-        <Sun
-          declination={data.planet.sun_declination}
-          lightIntensity={4.0}
-          castShadow
-        />
-
-        {/* Central planet */}
-        <CentralPlanet
-          planet={data.planet}
-          animationPaused={animationPaused}
-          rotationRef={rotationRef}
-        />
-
-        {/* Lat/Lon grid overlay */}
-        <LatLonGrid
-          planetSize={planetSize}
-          axialTilt={axialTilt}
-          rotationRef={rotationRef}
-          animationPaused={animationPaused}
-          showAxisLine
-        />
-
-        {/* Orbital paths for moons */}
-        {data.moons?.map((moon) => (
-          <OrbitElementPath
-            key={`orbit-moon-${moon.name}`}
-            radius={moon.orbital_radius}
-            inclination={moon.inclination}
+          {/* Sun with directional lighting */}
+          <Sun
+            declination={data.planet.sun_declination}
+            lightIntensity={4.0}
+            castShadow
           />
-        ))}
 
-        {/* Orbital paths for stations */}
-        {data.orbital_stations?.map((station) => (
-          <OrbitElementPath
-            key={`orbit-station-${station.name}`}
-            radius={station.orbital_radius}
-            inclination={station.inclination}
-          />
-        ))}
-
-        {/* Moons */}
-        {data.moons?.map((moon) => (
-          <Moon
-            key={`moon-${moon.name}`}
-            moon={moon}
-            startTime={startTimeRef.current}
-            isSelected={selectedElement?.name === moon.name}
-            onClick={handleMoonClick}
+          {/* Central planet */}
+          <CentralPlanet
+            planet={data.planet}
             animationPaused={animationPaused}
-            onPositionUpdate={updateMoonPosition(moon.name)}
+            rotationRef={rotationRef}
           />
-        ))}
 
-        {/* Orbital stations */}
-        {data.orbital_stations?.map((station) => (
-          <OrbitalStation
-            key={`station-${station.name}`}
-            station={station}
-            startTime={startTimeRef.current}
-            isSelected={selectedElement?.name === station.name}
-            onClick={handleStationClick}
-            animationPaused={animationPaused}
-            onPositionUpdate={updateStationPosition(station.name)}
-          />
-        ))}
-
-        {/* Surface markers */}
-        {data.surface_markers?.map((marker) => (
-          <SurfaceMarker
-            key={`marker-${marker.name}`}
-            marker={marker}
-            planetRadius={planetSize}
+          {/* Lat/Lon grid overlay */}
+          <LatLonGrid
+            planetSize={planetSize}
             axialTilt={axialTilt}
             rotationRef={rotationRef}
-            isSelected={selectedElement?.name === marker.name}
-            onClick={handleSurfaceMarkerClick}
             animationPaused={animationPaused}
-            onPositionUpdate={updateMarkerPosition(marker.name)}
+            showAxisLine
           />
-        ))}
 
-        {/* Selection reticle */}
+          {/* Orbital paths for moons */}
+          {data.moons?.map((moon) => (
+            <OrbitElementPath
+              key={`orbit-moon-${moon.name}`}
+              radius={moon.orbital_radius}
+              inclination={moon.inclination}
+            />
+          ))}
+
+          {/* Orbital paths for stations */}
+          {data.orbital_stations?.map((station) => (
+            <OrbitElementPath
+              key={`orbit-station-${station.name}`}
+              radius={station.orbital_radius}
+              inclination={station.inclination}
+            />
+          ))}
+
+          {/* Moons */}
+          {data.moons?.map((moon) => (
+            <Moon
+              key={`moon-${moon.name}`}
+              moon={moon}
+              startTime={startTimeRef.current}
+              isSelected={selectedElement?.name === moon.name}
+              onClick={handleMoonClick}
+              animationPaused={animationPaused}
+              onPositionUpdate={updateMoonPosition(moon.name)}
+            />
+          ))}
+
+          {/* Orbital stations */}
+          {data.orbital_stations?.map((station) => (
+            <OrbitalStation
+              key={`station-${station.name}`}
+              station={station}
+              startTime={startTimeRef.current}
+              isSelected={selectedElement?.name === station.name}
+              onClick={handleStationClick}
+              animationPaused={animationPaused}
+              onPositionUpdate={updateStationPosition(station.name)}
+            />
+          ))}
+
+          {/* Surface markers */}
+          {data.surface_markers?.map((marker) => (
+            <SurfaceMarker
+              key={`marker-${marker.name}`}
+              marker={marker}
+              planetRadius={planetSize}
+              axialTilt={axialTilt}
+              rotationRef={rotationRef}
+              isSelected={selectedElement?.name === marker.name}
+              onClick={handleSurfaceMarkerClick}
+              animationPaused={animationPaused}
+              onPositionUpdate={updateMarkerPosition(marker.name)}
+            />
+          ))}
+        </group>
+
+        {/* Selection reticle (outside group - not affected by opacity) */}
+        {/* Hide reticle until scene has faded in to prevent showing before objects are visible */}
         <SelectionReticle
           position={reticlePosition}
-          visible={!!(selectedElement?.name && selectedElement?.type)}
+          visible={!!(selectedElement?.name && selectedElement?.type && sceneOpacityRef.current > 0.8)}
           scale={reticleScale}
           getPosition={getReticlePosition}
         />
 
-        {/* Camera controls */}
+        {/* Camera controls (outside group - not affected by opacity) */}
         <OrbitControls
           enabled={!paused}
           target={controlTarget}

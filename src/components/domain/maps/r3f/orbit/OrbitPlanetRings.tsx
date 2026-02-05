@@ -32,16 +32,24 @@ function TexturedRings({ rings }: { rings: RingData }) {
     ringTexture.needsUpdate = true;
   }, [ringTexture]);
 
+  // Create material with _baseOpacity set immediately
+  const material = useMemo(() => {
+    const mat = new THREE.MeshBasicMaterial({
+      map: ringTexture,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    // Set base opacity immediately for scene fade system
+    (mat as any)._baseOpacity = rings.opacity ?? DEFAULT_OPACITY;
+    return mat;
+  }, [ringTexture, rings.opacity]);
+
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]}>
       <ringGeometry args={[rings.inner_radius, rings.outer_radius, RING_SEGMENTS]} />
-      <meshBasicMaterial
-        map={ringTexture}
-        side={THREE.DoubleSide}
-        transparent
-        opacity={rings.opacity ?? DEFAULT_OPACITY}
-        depthWrite={false}
-      />
+      <primitive object={material} attach="material" />
     </mesh>
   );
 }
@@ -53,16 +61,24 @@ function SolidRings({ rings }: { rings: RingData }) {
     [rings.color]
   );
 
+  // Create material with _baseOpacity set immediately
+  const material = useMemo(() => {
+    const mat = new THREE.MeshBasicMaterial({
+      color: color,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    // Set base opacity immediately for scene fade system
+    (mat as any)._baseOpacity = rings.opacity ?? DEFAULT_OPACITY;
+    return mat;
+  }, [color, rings.opacity]);
+
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]}>
       <ringGeometry args={[rings.inner_radius, rings.outer_radius, RING_SEGMENTS]} />
-      <meshBasicMaterial
-        color={color}
-        side={THREE.DoubleSide}
-        transparent
-        opacity={rings.opacity ?? DEFAULT_OPACITY}
-        depthWrite={false}
-      />
+      <primitive object={material} attach="material" />
     </mesh>
   );
 }

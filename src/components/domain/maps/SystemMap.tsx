@@ -42,6 +42,8 @@ interface SystemMapProps {
   onBackToGalaxy?: () => void;
   /** Callback when system data is loaded */
   onSystemLoaded?: (data: SystemMapData | null) => void;
+  /** Callback when scene is fully constructed and ready */
+  onReady?: () => void;
   /** Transition state */
   transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Whether to hide the canvas (keeps scene mounted but invisible) */
@@ -51,12 +53,8 @@ interface SystemMapProps {
 }
 
 export interface SystemMapHandle {
-  diveToPlanet: (planetName: string) => Promise<void>;
-  zoomOutFromPlanet: (planetName: string) => Promise<void>;
   selectPlanetAndWait: (planetName: string) => Promise<void>;
   positionCameraOnPlanet: (planetName: string) => void;
-  zoomOut: () => Promise<void>;
-  zoomIn: () => void;
 }
 
 export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
@@ -70,6 +68,7 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       onBackToGalaxy: _onBackToGalaxy,
       onSystemLoaded,
+      onReady,
       transitionState = 'idle',
       hidden = false,
       paused = false,
@@ -140,18 +139,6 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
     useImperativeHandle(
       ref,
       () => ({
-        diveToPlanet: (planetName: string) => {
-          if (sceneRef.current) {
-            return sceneRef.current.diveToPlanet(planetName);
-          }
-          return Promise.resolve();
-        },
-        zoomOutFromPlanet: (planetName: string) => {
-          if (sceneRef.current) {
-            return sceneRef.current.zoomOutFromPlanet(planetName);
-          }
-          return Promise.resolve();
-        },
         selectPlanetAndWait: (planetName: string) => {
           if (sceneRef.current) {
             return sceneRef.current.selectPlanetAndWait(planetName);
@@ -161,17 +148,6 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
         positionCameraOnPlanet: (planetName: string) => {
           if (sceneRef.current) {
             sceneRef.current.positionCameraOnPlanet(planetName);
-          }
-        },
-        zoomOut: () => {
-          if (sceneRef.current) {
-            return sceneRef.current.zoomOut();
-          }
-          return Promise.resolve();
-        },
-        zoomIn: () => {
-          if (sceneRef.current) {
-            sceneRef.current.zoomIn();
           }
         },
       }),
@@ -258,7 +234,9 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
                 systemSlug={systemSlug}
                 selectedPlanet={selectedPlanetData}
                 paused={paused}
+                transitionState={transitionState}
                 onPlanetSelect={handlePlanetSelect}
+                onReady={onReady}
               />
             ) : (
               <LoadingScene />

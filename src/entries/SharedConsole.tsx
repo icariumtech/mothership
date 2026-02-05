@@ -19,6 +19,7 @@ import { charonApi } from '@/services/charonApi';
 import { terminalApi } from '@/services/terminalApi';
 import { useTransitionGuard } from '@hooks/useDebounce';
 import { useSceneStore } from '@/stores/sceneStore';
+import { TRANSITION_TIMING, waitForTypewriter } from '@/utils/transitionCoordinator';
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { MoonData, StationData, SurfaceMarkerData, OrbitMapData } from '../types/orbitMap';
@@ -155,6 +156,22 @@ function SharedConsole() {
     }
   }, [activeTab]);
 
+  // State cleanup effects - clear child view states when parent view changes
+  useEffect(() => {
+    if (mapViewMode === 'galaxy') {
+      // When in galaxy view, clear all child view states (system and orbit)
+      setSelectedPlanet(null);
+      setSelectedOrbitElement(null);
+      setSelectedOrbitElementType(null);
+      setSelectedOrbitElementData(null);
+    } else if (mapViewMode === 'system') {
+      // When in system view, clear only orbit view states
+      setSelectedOrbitElement(null);
+      setSelectedOrbitElementType(null);
+      setSelectedOrbitElementData(null);
+    }
+  }, [mapViewMode]);
+
   // CHARON dialog state
   const [charonDialogOpen, setCharonDialogOpen] = useState(false);
 
@@ -169,9 +186,40 @@ function SharedConsole() {
   const orbitMapRef = useRef<OrbitMapHandle>(null);
   const infoPanelRef = useRef<HTMLDivElement>(null);
 
-  // Zustand store actions for typewriter coordination
+  // Transition lock to prevent concurrent transitions
+  const transitionLockRef = useRef<boolean>(false);
+
+  // Track when scenes are ready (callback-based)
+  const sceneReadyResolveRef = useRef<(() => void) | null>(null);
+
+  // Zustand store actions for typewriter coordination and scene pause
   const startTypewriter = useSceneStore((state) => state.startTypewriter);
   const completeTypewriter = useSceneStore((state) => state.completeTypewriter);
+  const setPaused = useSceneStore((state) => state.setPaused);
+
+  // Scene ready callback
+  const handleSceneReady = useCallback(() => {
+    console.log('[Transition] Scene ready callback fired');
+    if (sceneReadyResolveRef.current) {
+      sceneReadyResolveRef.current();
+      sceneReadyResolveRef.current = null;
+    }
+  }, []);
+
+  // Wait for scene to be ready
+  const waitForSceneReady = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      sceneReadyResolveRef.current = resolve;
+      // Fallback timeout in case onReady is never called
+      setTimeout(() => {
+        if (sceneReadyResolveRef.current) {
+          console.warn('[Transition] Scene ready timeout - proceeding anyway');
+          sceneReadyResolveRef.current();
+          sceneReadyResolveRef.current = null;
+        }
+      }, 2000); // 2 second timeout
+    });
+  }, []);
 
   // Fetch star map data on mount
   useEffect(() => {
@@ -394,42 +442,59 @@ function SharedConsole() {
   }, []);
 
   const handleBackToGalaxyInternal = useCallback(async () => {
-    console.log('[Transition] Returning to galaxy view, selected system:', selectedSystem);
-
-    // Phase 1: Start zoom out animation
-    const zoomPromise = systemMapRef.current?.zoomOut();
-    setSystemTransition('transitioning-out');
-
-    // Wait for zoom out to complete
-    if (zoomPromise) {
-      await zoomPromise;
-    } else {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Check transition lock
+    if (transitionLockRef.current) {
+      console.warn('[Transition] Transition already in progress, ignoring');
+      return;
     }
+    transitionLockRef.current = true;
 
-    // Phase 2: Switch to galaxy view with React.startTransition
-    console.log('[Transition] Switching to galaxy view');
-    startTransition(() => {
-      setMapViewMode('galaxy');
-      setSelectedPlanet(null);
-      setGalaxyTransition('transitioning-in');
-    });
+    try {
+      console.log('[Transition] Returning to galaxy view, selected system:', selectedSystem);
 
-    // Position camera on selected system
-    requestAnimationFrame(() => {
+      // Phase 0: If a planet is selected, deselect it first and wait for animation
+      if (selectedPlanet) {
+        console.log('[Transition] Deselecting planet before going back to galaxy');
+        setSelectedPlanet(null);
+        // Wait for deselect camera animation (return to default view)
+        await new Promise(resolve => setTimeout(resolve, 1500)); // 1500ms for returnToDefault animation
+      }
+
+      // Phase 1: Fade out current view
+      console.log('[Transition] Fading out system view');
+      setSystemTransition('transitioning-out');
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_OUT_TIME));
+
+      // Phase 2: Switch to galaxy view with React.startTransition
+      console.log('[Transition] Switching to galaxy view');
+      startTransition(() => {
+        setMapViewMode('galaxy');
+        setSelectedPlanet(null);
+        setGalaxyTransition('transitioning-in');
+      });
+
+      // Phase 3: Wait for React to render galaxy view
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.VIEW_RENDER_DELAY));
+
+      // Phase 4: Position camera on selected system
+      console.log('[Transition] Positioning camera on selected system');
       if (selectedSystem) {
         galaxyMapRef.current?.positionCameraOnSystem(selectedSystem);
       }
-    });
 
-    // Phase 3: Wait for fade-in and reset
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    setSystemTransition('idle');
-    setGalaxyTransition('idle');
-    setCurrentSystemSlug(null);
-    setSystemMapData(null);
-    console.log('[Transition] Return to galaxy complete');
-  }, [selectedSystem]);
+      // Phase 5: Wait for fade-in
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_TIME));
+
+      // Phase 6: Reset states and cleanup
+      setSystemTransition('idle');
+      setGalaxyTransition('idle');
+      setCurrentSystemSlug(null);
+      setSystemMapData(null);
+      console.log('[Transition] Return to galaxy complete');
+    } finally {
+      transitionLockRef.current = false;
+    }
+  }, [selectedSystem, selectedPlanet]);
 
   // Debounced version with transition guard
   const [handleBackToGalaxy] = useTransitionGuard(handleBackToGalaxyInternal, 300);
@@ -446,43 +511,62 @@ function SharedConsole() {
 
 
   const handleBackToSystemInternal = useCallback(async () => {
-    console.log('[Transition] Returning to system view, selected planet:', selectedPlanet?.name);
-
-    // Phase 1: Start zoom out animation
-    const zoomPromise = orbitMapRef.current?.zoomOut();
-    setOrbitTransition('transitioning-out');
-
-    // Wait for zoom out to complete
-    if (zoomPromise) {
-      await zoomPromise;
-    } else {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Check transition lock
+    if (transitionLockRef.current) {
+      console.warn('[Transition] Transition already in progress, ignoring');
+      return;
     }
+    transitionLockRef.current = true;
 
-    // Phase 2: Switch to system view with React.startTransition
-    console.log('[Transition] Switching to system view');
-    startTransition(() => {
-      setSelectedOrbitElement(null);
-      setSelectedOrbitElementType(null);
-      setSelectedOrbitElementData(null);
-      setMapViewMode('system');
-      setSystemTransition('transitioning-in');
-    });
+    try {
+      console.log('[Transition] Returning to system view, selected planet:', selectedPlanet?.name);
 
-    // Position camera on selected planet
-    requestAnimationFrame(() => {
+      // Phase 0: If an orbit element is selected, deselect it first and wait for animation
+      if (selectedOrbitElement) {
+        console.log('[Transition] Deselecting orbit element before going back to system');
+        setSelectedOrbitElement(null);
+        setSelectedOrbitElementType(null);
+        setSelectedOrbitElementData(null);
+        // Wait for deselect camera animation (return to default view)
+        await new Promise(resolve => setTimeout(resolve, 800)); // 800ms for returnToDefault animation
+      }
+
+      // Phase 1: Fade out current view
+      console.log('[Transition] Fading out orbit view');
+      setOrbitTransition('transitioning-out');
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_OUT_TIME));
+
+      // Phase 2: Switch to system view with React.startTransition
+      console.log('[Transition] Switching to system view');
+      startTransition(() => {
+        setSelectedOrbitElement(null);
+        setSelectedOrbitElementType(null);
+        setSelectedOrbitElementData(null);
+        setMapViewMode('system');
+        setSystemTransition('transitioning-in');
+      });
+
+      // Phase 3: Wait for React to render system view
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.VIEW_RENDER_DELAY));
+
+      // Phase 4: Position camera on selected planet
+      console.log('[Transition] Positioning camera on selected planet');
       if (selectedPlanet?.name) {
         systemMapRef.current?.positionCameraOnPlanet(selectedPlanet.name);
       }
-    });
 
-    // Phase 3: Wait for fade-in and reset
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    setOrbitTransition('idle');
-    setSystemTransition('idle');
-    setCurrentBodySlug(null);
-    console.log('[Transition] Return to system complete');
-  }, [selectedPlanet]);
+      // Phase 5: Wait for fade-in
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_TIME));
+
+      // Phase 6: Reset states and cleanup
+      setOrbitTransition('idle');
+      setSystemTransition('idle');
+      setCurrentBodySlug(null);
+      console.log('[Transition] Return to system complete');
+    } finally {
+      transitionLockRef.current = false;
+    }
+  }, [selectedPlanet, selectedOrbitElement]);
 
   // Debounced version with transition guard
   const [handleBackToSystem] = useTransitionGuard(handleBackToSystemInternal, 300);
@@ -508,95 +592,85 @@ function SharedConsole() {
 
   // Navigate from galaxy to system view - with transition guard and RAF coordination
   const handleDiveToSystemInternal = useCallback(async (systemName: string) => {
-    console.log('[Transition] Diving to system:', systemName);
-
-    // Find the system slug from the star map data
-    const system = starMapData?.systems.find(s => s.name === systemName);
-    if (!system?.location_slug) {
-      console.warn('No location_slug for system:', systemName);
+    // Check transition lock
+    if (transitionLockRef.current) {
+      console.warn('[Transition] Transition already in progress, ignoring');
       return;
     }
+    transitionLockRef.current = true;
 
-    // Extract location_slug (guaranteed to exist after check above)
-    const systemSlug = system.location_slug;
-
-    // Phase 0: Pre-fetch system data to eliminate loading delay
-    console.log('[Transition] Pre-fetching system data:', systemSlug);
-    let systemData: SystemMapData | null = null;
     try {
-      const response = await fetch(`/api/system-map/${systemSlug}/`);
-      if (response.ok) {
-        systemData = await response.json();
-        setSystemMapData(systemData);
+      console.log('[Transition] Diving to system:', systemName);
+
+      // Find the system slug from the star map data
+      const system = starMapData?.systems.find(s => s.name === systemName);
+      if (!system?.location_slug) {
+        console.warn('No location_slug for system:', systemName);
+        return;
       }
-    } catch (error) {
-      console.error('Error pre-fetching system data:', error);
-    }
 
-    // Phase 1: Select system and wait for camera animation + typewriter to complete
-    if (selectedSystem !== systemName) {
-      console.log('[Transition] Selecting system:', systemName);
+      // Extract location_slug (guaranteed to exist after check above)
+      const systemSlug = system.location_slug;
 
-      // Select the system - this triggers all the UI updates (reticle, info panel, camera)
-      setSelectedSystem(systemName);
+      // Phase 0: Pre-fetch system data to eliminate loading delay
+      console.log('[Transition] Pre-fetching system data:', systemSlug);
+      let systemData: SystemMapData | null = null;
+      try {
+        const response = await fetch(`/api/system-map/${systemSlug}/`);
+        if (response.ok) {
+          systemData = await response.json();
+          setSystemMapData(systemData);
+        }
+      } catch (error) {
+        console.error('Error pre-fetching system data:', error);
+      }
 
-      // Wait one frame for React to re-render and show reticle/info panel
-      await new Promise(resolve => requestAnimationFrame(() => resolve(undefined)));
+      // Phase 1: Select system and wait for camera animation + typewriter to complete
+      if (selectedSystem !== systemName) {
+        console.log('[Transition] Selecting system:', systemName);
 
-      // The GalaxyScene useEffect will automatically start camera animation (2000ms duration)
-      // Wait for camera animation to complete
-      console.log('[Transition] Waiting for camera animation (2000ms)');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+        // Select the system - this triggers all the UI updates (reticle, info panel, camera)
+        setSelectedSystem(systemName);
 
-      // Wait for typewriter to complete (poll Zustand store state)
-      console.log('[Transition] Waiting for typewriter to complete');
-      const maxWaitTime = 3000; // 3 second timeout
-      const startTime = Date.now();
+        // Wait one frame for React to re-render and show reticle/info panel
+        await new Promise(resolve => requestAnimationFrame(() => resolve(undefined)));
 
-      await new Promise<void>((resolve) => {
-        const checkTypewriter = () => {
-          const state = useSceneStore.getState();
-          const elapsed = Date.now() - startTime;
+        // The GalaxyScene useEffect will automatically start camera animation
+        console.log('[Transition] Waiting for camera animation');
+        await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.CAMERA_MOVE_TIME));
 
-          // Complete if typewriter is done OR timeout reached
-          if (!state.typewriter.active || elapsed >= maxWaitTime) {
-            if (elapsed >= maxWaitTime) {
-              console.warn('[Transition] Typewriter timeout - proceeding anyway');
-            } else {
-              console.log('[Transition] Typewriter complete');
-            }
-            resolve();
-          } else {
-            // Check again on next frame
-            requestAnimationFrame(checkTypewriter);
-          }
-        };
+        // Wait for typewriter to complete using utility function
+        console.log('[Transition] Waiting for typewriter to complete');
+        await waitForTypewriter(TRANSITION_TIMING.TYPEWRITER_MAX_WAIT);
+      }
 
-        // Start checking after brief delay to let typewriter initialize
-        setTimeout(() => requestAnimationFrame(checkTypewriter), 100);
+      // Phase 2: Fade out galaxy view
+      console.log('[Transition] Fading out galaxy view');
+      setGalaxyTransition('transitioning-out');
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_OUT_TIME));
+
+      // Phase 3: Switch view mode with React.startTransition (data already loaded)
+      console.log('[Transition] Switching to system view');
+      startTransition(() => {
+        setMapViewMode('system');
+        setCurrentSystemSlug(systemSlug);
+        setSystemTransition('transitioning-in');
       });
+
+      // Phase 4: Wait for scene to be ready
+      console.log('[Transition] Waiting for system scene to be ready');
+      await waitForSceneReady();
+
+      // Phase 5: Fade in new view
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_TIME));
+
+      // Phase 6: Reset transition states
+      setGalaxyTransition('idle');
+      setSystemTransition('idle');
+      console.log('[Transition] Dive to system complete');
+    } finally {
+      transitionLockRef.current = false;
     }
-
-    // Phase 2: Start dive animation
-    console.log('[Transition] Starting dive animation');
-    setGalaxyTransition('transitioning-out');
-    await galaxyMapRef.current?.diveToSystem(systemName);
-
-    // Phase 3: Switch view mode with React.startTransition (data already loaded)
-    console.log('[Transition] Switching to system view');
-    startTransition(() => {
-      setMapViewMode('system');
-      setCurrentSystemSlug(systemSlug);
-      setSystemTransition('transitioning-in');
-    });
-
-    // Phase 4: Wait for fade-in transition to complete
-    await new Promise(resolve => setTimeout(resolve, 1200));
-
-    // Phase 5: Reset transition states
-    setGalaxyTransition('idle');
-    setSystemTransition('idle');
-    console.log('[Transition] Dive to system complete');
   }, [starMapData, selectedSystem]);
 
   // Debounced version with transition guard (300ms minimum between calls)
@@ -604,60 +678,85 @@ function SharedConsole() {
 
   // Navigate from system to orbit view - with transition guard and RAF coordination
   const handleOrbitMapNavigateInternal = useCallback(async (systemSlug: string, planetSlug: string) => {
-    console.log('[Transition] Navigating to orbit view:', systemSlug, planetSlug);
+    // Check transition lock
+    if (transitionLockRef.current) {
+      console.warn('[Transition] Transition already in progress, ignoring');
+      return;
+    }
+    transitionLockRef.current = true;
 
-    // Find the planet data
-    const planet = systemMapData?.bodies?.find(b => b.location_slug === planetSlug);
-    if (!planet) return;
-
-    // Phase 0: Pre-fetch orbit data to eliminate loading delay
-    console.log('[Transition] Pre-fetching orbit data:', systemSlug, planetSlug);
-    let orbitData: OrbitMapData | null = null;
     try {
-      const response = await fetch(`/api/orbit-map/${systemSlug}/${planetSlug}/`);
-      if (response.ok) {
-        orbitData = await response.json();
-        setOrbitMapData(orbitData);
+      console.log('[Transition] Navigating to orbit view:', systemSlug, planetSlug);
+
+      // Find the planet data
+      const planet = systemMapData?.bodies?.find(b => b.location_slug === planetSlug);
+      if (!planet) return;
+
+      // Phase 0: Pre-fetch orbit data to eliminate loading delay
+      console.log('[Transition] Pre-fetching orbit data:', systemSlug, planetSlug);
+      let orbitData: OrbitMapData | null = null;
+      try {
+        const response = await fetch(`/api/orbit-map/${systemSlug}/${planetSlug}/`);
+        if (response.ok) {
+          orbitData = await response.json();
+          setOrbitMapData(orbitData);
+        }
+      } catch (error) {
+        console.error('Error pre-fetching orbit data:', error);
       }
-    } catch (error) {
-      console.error('Error pre-fetching orbit data:', error);
+
+      // Phase 1: Select planet and wait for camera animation + typewriter to complete
+      if (selectedPlanet?.location_slug !== planetSlug) {
+        console.log('[Transition] Selecting planet:', planet.name);
+
+        // Select the planet - triggers camera animation, reticle, and info panel
+        setSelectedPlanet(planet);
+
+        // Wait one frame for React to re-render
+        await new Promise(resolve => requestAnimationFrame(() => resolve(undefined)));
+
+        // Wait for camera animation to complete
+        console.log('[Transition] Waiting for camera animation');
+        await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.CAMERA_MOVE_TIME));
+
+        // Wait for typewriter to complete
+        console.log('[Transition] Waiting for typewriter to complete');
+        await waitForTypewriter(TRANSITION_TIMING.TYPEWRITER_MAX_WAIT);
+      }
+
+      // Phase 2: Pause planet orbits to prevent camera tracking issues
+      console.log('[Transition] Pausing planet orbits');
+      setPaused(true);
+
+      // Phase 3: Fade out system view
+      console.log('[Transition] Fading out system view');
+      setSystemTransition('transitioning-out');
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_OUT_TIME));
+
+      // Phase 4: Switch view mode with React.startTransition (data already loaded)
+      console.log('[Transition] Switching to orbit view');
+      startTransition(() => {
+        setMapViewMode('orbit');
+        setCurrentBodySlug(planetSlug);
+        setOrbitTransition('transitioning-in');
+      });
+
+      // Phase 5: Wait for scene to be ready
+      console.log('[Transition] Waiting for orbit scene to be ready');
+      await waitForSceneReady();
+
+      // Phase 6: Fade in new view
+      await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_TIME));
+
+      // Phase 7: Reset transition states
+      setSystemTransition('idle');
+      setOrbitTransition('idle');
+      console.log('[Transition] Navigate to orbit complete');
+    } finally {
+      // Always unpause animations and release transition lock
+      setPaused(false);
+      transitionLockRef.current = false;
     }
-
-    // Phase 1: Position camera on planet (instant, no animation to avoid showing default view)
-    if (selectedPlanet?.location_slug !== planetSlug) {
-      console.log('[Transition] Instantly positioning camera on planet:', planet.name);
-
-      // Instantly position camera on planet (also handles selection internally)
-      // This skips the animated camera movement that would show the default solar system view
-      systemMapRef.current?.positionCameraOnPlanet(planet.name);
-
-      // Sync selection state to SharedConsole (positionCameraOnPlanet already selected in store)
-      setSelectedPlanet(planet);
-
-      // Brief pause to let UI updates complete
-      await new Promise(resolve => setTimeout(resolve, 150));
-    }
-
-    // Phase 2: Start dive animation
-    console.log('[Transition] Starting dive to planet');
-    setSystemTransition('transitioning-out');
-    await systemMapRef.current?.diveToPlanet(planet.name);
-
-    // Phase 3: Switch view mode with React.startTransition (data already loaded)
-    console.log('[Transition] Switching to orbit view');
-    startTransition(() => {
-      setMapViewMode('orbit');
-      setCurrentBodySlug(planetSlug);
-      setOrbitTransition('transitioning-in');
-    });
-
-    // Phase 4: Wait for zoom-in animation to complete (2000ms + buffer)
-    await new Promise(resolve => setTimeout(resolve, 2200));
-
-    // Phase 5: Reset transition states
-    setSystemTransition('idle');
-    setOrbitTransition('idle');
-    console.log('[Transition] Navigate to orbit complete');
   }, [systemMapData, selectedPlanet]);
 
   // Debounced version with transition guard
@@ -783,6 +882,7 @@ function SharedConsole() {
                   onOrbitMapNavigate={handleOrbitMapNavigate}
                   onBackToGalaxy={handleBackToGalaxy}
                   onSystemLoaded={handleSystemLoaded}
+                  onReady={handleSceneReady}
                   transitionState={systemTransition}
                   hidden={mapViewMode === 'orbit' || activeTab !== 'map'}
                   paused={activeTab !== 'map'}
@@ -800,6 +900,7 @@ function SharedConsole() {
                   onElementSelect={handleOrbitElementSelect}
                   onBackToSystem={handleBackToSystem}
                   onOrbitMapLoaded={handleOrbitMapLoaded}
+                  onReady={handleSceneReady}
                   transitionState={orbitTransition}
                   hidden={activeTab !== 'map'}
                   paused={activeTab !== 'map'}

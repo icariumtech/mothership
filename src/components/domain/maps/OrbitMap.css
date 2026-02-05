@@ -7,12 +7,12 @@
   height: 100%;
   z-index: 0;
   opacity: 1;
-  transition: opacity 1s ease-out;
 }
 
 .orbit-map-container.transitioning-out {
-  opacity: 0;
+  opacity: 1; /* Start at 1 */
   pointer-events: none;
+  animation: orbitMapFadeOut 0.5s ease-out forwards; /* Match FADE_OUT_TIME */
 }
 
 .orbit-map-container.hidden {
@@ -32,12 +32,21 @@
   height: 100%;
 }
 
-/* Orbit map fade animation (no scale to avoid canvas sizing issues) */
+/* Orbit map fade animations (no scale to avoid canvas sizing issues) */
 @keyframes orbitMapFadeIn {
   0% {
     opacity: 0;
   }
   100% {
     opacity: 1;
+  }
+}
+
+@keyframes orbitMapFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }

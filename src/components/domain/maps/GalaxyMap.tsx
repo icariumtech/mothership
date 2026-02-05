@@ -36,7 +36,6 @@ interface GalaxyMapProps {
 }
 
 export interface GalaxyMapHandle {
-  diveToSystem: (systemName: string) => Promise<void>;
   selectSystemAndWait: (systemName: string) => Promise<void>;
   positionCameraOnSystem: (systemName: string) => void;
 }
@@ -59,12 +58,6 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
     useImperativeHandle(
       ref,
       () => ({
-        diveToSystem: (systemName: string) => {
-          if (sceneRef.current) {
-            return sceneRef.current.diveToSystem(systemName);
-          }
-          return Promise.resolve();
-        },
         selectSystemAndWait: (systemName: string) => {
           if (sceneRef.current) {
             return sceneRef.current.selectSystemAndWait(systemName);

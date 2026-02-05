@@ -46,8 +46,6 @@ export interface GalaxySceneHandle {
   selectSystemAndWait: (systemName: string) => Promise<void>;
   /** Instantly position camera on a system */
   positionCameraOnSystem: (systemName: string) => void;
-  /** Animate camera diving into a system (for transition) */
-  diveToSystem: (systemName: string) => Promise<void>;
   /** Get star positions map */
   getStarPositions: () => Map<string, [number, number, number]>;
 }
@@ -85,7 +83,6 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
     // Camera hooks
     const {
       moveToSystem,
-      diveToSystem,
       moveToOrigin,
       positionOnSystem,
     } = useGalaxyCamera({
@@ -127,12 +124,9 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
           selectSystem(systemName);
           positionOnSystem(systemName);
         },
-        diveToSystem: async (systemName: string) => {
-          await diveToSystem(systemName);
-        },
         getStarPositions: () => starPositions,
       }),
-      [selectSystem, moveToSystem, positionOnSystem, diveToSystem, starPositions]
+      [selectSystem, moveToSystem, positionOnSystem, starPositions]
     );
 
     // Track previous selection to detect changes (all selection is via menu)
@@ -164,6 +158,13 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
       }, 500);
       return () => clearTimeout(timer);
     }, [setAutoRotate]);
+
+    // Clear reticle position ref on unmount to prevent stale position when re-mounting
+    useEffect(() => {
+      return () => {
+        lastReticlePositionRef.current = [0, 0, 0];
+      };
+    }, []);
 
     // Don't render if no data
     if (!data) {

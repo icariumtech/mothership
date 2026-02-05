@@ -41,13 +41,16 @@ export function OrbitElementPath({
     return new THREE.BufferGeometry().setFromPoints(points);
   }, [radius]);
 
-  // Create the material
+  // Create the material with _baseOpacity set immediately
   const material = useMemo(() => {
-    return new THREE.LineBasicMaterial({
+    const mat = new THREE.LineBasicMaterial({
       color: new THREE.Color(PATH_COLOR),
       transparent: true,
-      opacity: PATH_OPACITY,
+      opacity: 0, // Start at 0, scene fade will bring to PATH_OPACITY
     });
+    // Set base opacity immediately for scene fade system
+    (mat as any)._baseOpacity = PATH_OPACITY;
+    return mat;
   }, []);
 
   // Create the line object

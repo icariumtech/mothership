@@ -65,18 +65,26 @@ export function LatLonGrid({
   const gridSize = planetSize * SIZE_MULTIPLIER;
   const axisLength = planetSize * 2;
 
+  // Create material with _baseOpacity set immediately
+  const material = useMemo(() => {
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(GRID_COLOR),
+      wireframe: true,
+      transparent: true,
+      opacity: 0, // Start at 0, scene fade will bring to GRID_OPACITY
+      depthWrite: false,
+    });
+    // Set base opacity immediately for scene fade system
+    (mat as any)._baseOpacity = GRID_OPACITY;
+    return mat;
+  }, []);
+
   return (
     <group rotation={[0, 0, axialTilt]}>
       {/* Wireframe grid sphere */}
       <mesh ref={meshRef}>
         <sphereGeometry args={[gridSize, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
-        <meshBasicMaterial
-          color={GRID_COLOR}
-          wireframe
-          transparent
-          opacity={GRID_OPACITY}
-          depthWrite={false}
-        />
+        <primitive object={material} attach="material" />
       </mesh>
 
       {/* Rotation axis line for debugging */}

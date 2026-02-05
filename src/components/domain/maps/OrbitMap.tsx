@@ -23,7 +23,7 @@ import {
 } from 'react';
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
-import { OrbitScene, LoadingScene } from './r3f';
+import { OrbitScene } from './r3f';
 import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { OrbitSceneHandle } from './r3f';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '@/types/orbitMap';
@@ -40,6 +40,8 @@ interface OrbitMapProps {
   ) => void;
   onBackToSystem?: () => void;
   onOrbitMapLoaded?: (data: OrbitMapData | null) => void;
+  /** Callback when scene is fully constructed and ready */
+  onReady?: () => void;
   /** Transition state */
   transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Whether to hide the canvas (keeps scene mounted but invisible) */
@@ -49,8 +51,7 @@ interface OrbitMapProps {
 }
 
 export interface OrbitMapHandle {
-  zoomOut: () => Promise<void>;
-  zoomIn: () => Promise<void>;
+  // No methods needed - transitions handled by parent
 }
 
 export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
@@ -64,6 +65,7 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       onBackToSystem: _onBackToSystem,
       onOrbitMapLoaded,
+      onReady,
       transitionState = 'idle',
       hidden = false,
       paused = false,
@@ -137,23 +139,10 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
       [onElementSelect]
     );
 
-    // Expose methods to parent
+    // Expose methods to parent (none needed for now - transitions handled by parent)
     useImperativeHandle(
       ref,
-      () => ({
-        zoomOut: () => {
-          if (sceneRef.current) {
-            return sceneRef.current.zoomOut();
-          }
-          return Promise.resolve();
-        },
-        zoomIn: () => {
-          if (sceneRef.current) {
-            return sceneRef.current.zoomIn();
-          }
-          return Promise.resolve();
-        },
-      }),
+      () => ({}),
       []
     );
 
@@ -230,7 +219,7 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
           {/* RAF-driven typewriter controller */}
           <TypewriterController speed={15} />
 
-          <Suspense fallback={<LoadingScene />}>
+          <Suspense fallback={null}>
             {orbitData && !isLoading ? (
               <OrbitScene
                 ref={sceneRef}
@@ -239,11 +228,11 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
                 bodySlug={bodySlug}
                 selectedElement={selectedElementProp}
                 paused={paused}
+                transitionState={transitionState}
                 onElementSelect={handleElementSelect}
+                onReady={onReady}
               />
-            ) : (
-              <LoadingScene />
-            )}
+            ) : null}
           </Suspense>
         </Canvas>
       </div>

@@ -3,15 +3,14 @@
  *
  * Provides camera transitions and tracking for the system scene:
  * - Move to and track selected planets
- * - Dive animation for system→orbit transition
- * - Zoom out animation for returning to galaxy view
  * - Camera offset tracking to follow orbiting planets
  */
 
 import { useRef, useCallback } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useSceneStore, useIsPaused } from './useSceneStore';
+import { useIsPaused } from './useSceneStore';
+import { useCameraAnimation, easeInOutQuad } from './useCameraAnimation';
 import type { BodyData, CameraConfig } from '@/types/systemMap';
 
 // Camera configuration constants
@@ -20,19 +19,6 @@ const PLANET_ZOOM_DISTANCE_RATIO = 0.3;
 const MIN_PLANET_ZOOM_DISTANCE = 20;
 // cos(45 deg) = sqrt(2)/2 for 45-degree camera offset angle
 const CAMERA_ANGLE_45_DEG = Math.SQRT1_2; // ~0.7071
-
-// Easing functions
-function easeInOutQuad(t: number): number {
-  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
-
-function easeInCubic(t: number): number {
-  return t * t * t;
-}
-
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
-}
 
 interface PlanetPositionGetter {
   (planetName: string): THREE.Vector3 | null;
@@ -52,14 +38,6 @@ interface UseSystemCameraReturn {
   positionOnPlanet: (planet: BodyData) => void;
   /** Return camera to default view */
   returnToDefault: () => Promise<void>;
-  /** Dive animation toward a planet (for system→orbit transition) */
-  diveToPlanet: (planetName: string) => Promise<void>;
-  /** Zoom out from a planet (for orbit→system transition) */
-  zoomOutFromPlanet: (planetName: string) => Promise<void>;
-  /** Zoom out from current view (for system→galaxy transition) */
-  zoomOut: () => Promise<void>;
-  /** Zoom in from distant view (for galaxy→system transition) */
-  zoomIn: () => void;
   /** Update camera tracking state (call from useFrame) */
   updateTracking: () => void;
   /** Set the planet to track */
@@ -70,6 +48,8 @@ interface UseSystemCameraReturn {
   setCameraOffset: (offset: THREE.Vector3) => void;
   /** Get current scene opacity (0-1) for fade-in effect */
   getSceneOpacity: () => number;
+  /** Set scene opacity directly (0-1) */
+  setSceneOpacity: (opacity: number) => void;
 }
 
 export function useSystemCamera({
@@ -77,137 +57,15 @@ export function useSystemCamera({
   defaultCamera,
 }: UseSystemCameraOptions): UseSystemCameraReturn {
   const { camera } = useThree();
-  const updateCamera = useSceneStore((state) => state.updateCamera);
   const isPaused = useIsPaused();
+
+  // Use generic animation system
+  const animation = useCameraAnimation();
 
   // Tracking state refs
   const trackedPlanetRef = useRef<BodyData | null>(null);
   const cameraOffsetRef = useRef<THREE.Vector3 | null>(null);
   const lastPlanetAngleRef = useRef(0);
-
-  // Animation state
-  const animationRef = useRef<{
-    active: boolean;
-    startTime: number;
-    duration: number;
-    startPos: THREE.Vector3;
-    endPos: THREE.Vector3;
-    startTarget: THREE.Vector3;
-    endTarget: THREE.Vector3;
-    easing: (t: number) => number;
-    resolve: (() => void) | null;
-    trackTarget: boolean; // Whether to track moving target
-    targetGetter?: () => THREE.Vector3; // Dynamic target getter
-    fadeIn: boolean; // Whether to fade in scene during animation
-    opacity: number; // Current scene opacity (0-1) for fade-in
-  }>({
-    active: false,
-    startTime: 0,
-    duration: 0,
-    startPos: new THREE.Vector3(),
-    endPos: new THREE.Vector3(),
-    startTarget: new THREE.Vector3(),
-    endTarget: new THREE.Vector3(),
-    easing: easeInOutQuad,
-    resolve: null,
-    trackTarget: false,
-    fadeIn: false,
-    opacity: 0, // Start at 0 for initial fade-in
-  });
-
-  // Process animation each frame
-  useFrame(() => {
-    const anim = animationRef.current;
-    if (!anim.active) return;
-
-    const elapsed = performance.now() - anim.startTime;
-    const progress = Math.min(elapsed / anim.duration, 1);
-    const eased = anim.easing(progress);
-
-    // Get current target (may be moving)
-    let currentTarget = anim.endTarget;
-    if (anim.trackTarget && anim.targetGetter) {
-      currentTarget = anim.targetGetter();
-    }
-
-    // Calculate end position relative to current target if tracking
-    let endPos = anim.endPos;
-    if (anim.trackTarget && anim.targetGetter) {
-      const offset = anim.endPos.clone().sub(anim.endTarget);
-      endPos = currentTarget.clone().add(offset);
-    }
-
-    // Interpolate position
-    const pos = new THREE.Vector3().lerpVectors(anim.startPos, endPos, eased);
-    const tgt = new THREE.Vector3().lerpVectors(anim.startTarget, currentTarget, eased);
-
-    camera.position.copy(pos);
-    camera.lookAt(tgt);
-
-    updateCamera(
-      [camera.position.x, camera.position.y, camera.position.z],
-      [tgt.x, tgt.y, tgt.z]
-    );
-
-    // Update opacity for fade-in effect
-    if (anim.fadeIn) {
-      anim.opacity = eased; // Use same easing as camera movement
-      if (Math.random() < 0.02) { // Log occasionally to avoid spam
-        console.log('[useSystemCamera] Fade-in progress:', eased.toFixed(3), 'opacity:', anim.opacity.toFixed(3));
-      }
-    }
-
-    if (progress >= 1) {
-      anim.active = false;
-      if (anim.fadeIn) {
-        anim.opacity = 1; // Ensure final opacity is exactly 1
-        anim.fadeIn = false;
-        console.log('[useSystemCamera] Fade-in complete, final opacity:', anim.opacity);
-      }
-      if (anim.resolve) {
-        anim.resolve();
-        anim.resolve = null;
-      }
-    }
-  });
-
-  // Start an animation
-  const startAnimation = useCallback(
-    (
-      endPos: THREE.Vector3,
-      endTarget: THREE.Vector3,
-      duration: number,
-      easing: (t: number) => number,
-      options?: { trackTarget?: boolean; targetGetter?: () => THREE.Vector3; startTarget?: THREE.Vector3 }
-    ): Promise<void> => {
-      return new Promise((resolve) => {
-        const anim = animationRef.current;
-
-        // Cancel any existing animation
-        if (anim.active && anim.resolve) {
-          anim.resolve();
-        }
-
-        anim.active = true;
-        anim.startTime = performance.now();
-        anim.duration = duration;
-        anim.startPos.copy(camera.position);
-        anim.endPos.copy(endPos);
-        // Use provided startTarget or default to origin
-        if (options?.startTarget) {
-          anim.startTarget.copy(options.startTarget);
-        } else {
-          anim.startTarget.set(0, 0, 0);
-        }
-        anim.endTarget.copy(endTarget);
-        anim.easing = easing;
-        anim.resolve = resolve;
-        anim.trackTarget = options?.trackTarget ?? false;
-        anim.targetGetter = options?.targetGetter;
-      });
-    },
-    [camera]
-  );
 
   // Calculate camera position for viewing a planet
   const calculatePlanetViewPosition = useCallback(
@@ -236,7 +94,7 @@ export function useSystemCamera({
 
       const endPosition = calculatePlanetViewPosition(planetPos, planet.orbital_radius);
 
-      await startAnimation(
+      await animation.startAnimation(
         endPosition,
         planetPos,
         ANIMATION_DURATION,
@@ -259,7 +117,7 @@ export function useSystemCamera({
         trackedPlanetRef.current = planet;
       }
     },
-    [getPlanetPosition, calculatePlanetViewPosition, startAnimation, camera]
+    [getPlanetPosition, calculatePlanetViewPosition, animation, camera]
   );
 
   // Instantly position camera on a planet
@@ -268,16 +126,8 @@ export function useSystemCamera({
       const planetPos = getPlanetPosition(planet.name);
       if (!planetPos) return;
 
-      // Cancel any ongoing animation
-      if (animationRef.current.active && animationRef.current.resolve) {
-        animationRef.current.resolve();
-        animationRef.current.active = false;
-      }
-
       const targetPosition = calculatePlanetViewPosition(planetPos, planet.orbital_radius);
-
-      camera.position.copy(targetPosition);
-      camera.lookAt(planetPos);
+      animation.positionCamera(targetPosition, planetPos);
 
       // Set up tracking
       cameraOffsetRef.current = new THREE.Vector3(
@@ -287,13 +137,8 @@ export function useSystemCamera({
       );
       lastPlanetAngleRef.current = Math.atan2(planetPos.z, planetPos.x);
       trackedPlanetRef.current = planet;
-
-      updateCamera(
-        [camera.position.x, camera.position.y, camera.position.z],
-        [planetPos.x, planetPos.y, planetPos.z]
-      );
     },
-    [getPlanetPosition, calculatePlanetViewPosition, camera, updateCamera]
+    [getPlanetPosition, calculatePlanetViewPosition, animation, camera]
   );
 
   // Return camera to default view
@@ -315,166 +160,18 @@ export function useSystemCamera({
       const targetPos = new THREE.Vector3(...defaultCamera.position);
       const targetLookAt = new THREE.Vector3(...defaultCamera.lookAt);
 
-      // Animate from current planet position to default view
-      await startAnimation(targetPos, targetLookAt, ANIMATION_DURATION, easeInOutQuad, {
+      await animation.startAnimation(targetPos, targetLookAt, ANIMATION_DURATION, easeInOutQuad, {
         startTarget: currentTarget ?? undefined,
       });
     },
-    [defaultCamera, getPlanetPosition, startAnimation]
+    [defaultCamera, getPlanetPosition, animation]
   );
-
-  // Dive toward a planet for system→orbit transition
-  const diveToPlanet = useCallback(
-    async (planetName: string): Promise<void> => {
-      const planetPos = getPlanetPosition(planetName);
-      if (!planetPos) return;
-
-      // Cancel any ongoing animation
-      if (animationRef.current.active && animationRef.current.resolve) {
-        animationRef.current.resolve();
-        animationRef.current.active = false;
-      }
-
-      cameraOffsetRef.current = null;
-
-      // Calculate zoom distance based on planet's orbital radius (closer planets = closer zoom)
-      const trackedPlanet = trackedPlanetRef.current;
-      const zoomFactor = trackedPlanet ? Math.max(trackedPlanet.orbital_radius * 0.05, 3) : 5;
-
-      // End position: close to the planet from 45-degree angle
-      const endPosition = planetPos.clone().add(new THREE.Vector3(
-        zoomFactor * CAMERA_ANGLE_45_DEG,
-        zoomFactor * CAMERA_ANGLE_45_DEG,
-        zoomFactor * CAMERA_ANGLE_45_DEG
-      ));
-
-      // Use constant 2-second duration - speed automatically adjusts based on distance
-      await startAnimation(
-        endPosition,
-        planetPos,
-        2000,
-        easeInCubic,
-        {
-          trackTarget: true,
-          targetGetter: () => getPlanetPosition(planetName) ?? planetPos,
-          startTarget: planetPos, // Start from current planet position to avoid snapping to sun
-        }
-      );
-    },
-    [getPlanetPosition, startAnimation]
-  );
-
-  // Zoom out from a planet for orbit→system transition
-  const zoomOutFromPlanet = useCallback(
-    async (planetName: string): Promise<void> => {
-      const trackedPlanet = trackedPlanetRef.current;
-      if (!trackedPlanet) return;
-
-      const planetPos = getPlanetPosition(planetName);
-      if (!planetPos) return;
-
-      // Calculate target position
-      const zoomDistance = trackedPlanet.orbital_radius * PLANET_ZOOM_DISTANCE_RATIO;
-      const actualZoomDistance = Math.max(zoomDistance, MIN_PLANET_ZOOM_DISTANCE);
-
-      const endOffset = new THREE.Vector3(
-        actualZoomDistance * CAMERA_ANGLE_45_DEG,
-        actualZoomDistance * CAMERA_ANGLE_45_DEG,
-        actualZoomDistance * CAMERA_ANGLE_45_DEG
-      );
-
-      // Start camera very close to the planet
-      const startPosition = planetPos.clone().add(new THREE.Vector3(0, 1, 3));
-      camera.position.copy(startPosition);
-      camera.lookAt(planetPos);
-
-      const endPosition = planetPos.clone().add(endOffset);
-
-      // Use constant 2-second duration - speed automatically adjusts based on distance
-      await startAnimation(
-        endPosition,
-        planetPos,
-        2000,
-        easeOutCubic,
-        {
-          trackTarget: true,
-          targetGetter: () => getPlanetPosition(planetName) ?? planetPos,
-        }
-      );
-
-      // Set up tracking after animation
-      const finalPos = getPlanetPosition(planetName);
-      if (finalPos) {
-        cameraOffsetRef.current = new THREE.Vector3(
-          camera.position.x - finalPos.x,
-          camera.position.y - finalPos.y,
-          camera.position.z - finalPos.z
-        );
-        lastPlanetAngleRef.current = Math.atan2(finalPos.z, finalPos.x);
-      }
-    },
-    [getPlanetPosition, startAnimation, camera]
-  );
-
-  // Zoom out from current view for system→galaxy transition
-  const zoomOut = useCallback(
-    async (): Promise<void> => {
-      cameraOffsetRef.current = null;
-
-      let lookAtTarget = new THREE.Vector3(0, 0, 0);
-      if (trackedPlanetRef.current) {
-        const planetPos = getPlanetPosition(trackedPlanetRef.current.name);
-        if (planetPos) {
-          lookAtTarget = planetPos;
-        }
-      }
-
-      // Calculate end position - zoom out significantly
-      const direction = camera.position.clone().sub(lookAtTarget).normalize();
-      const endPosition = lookAtTarget.clone().add(direction.multiplyScalar(200));
-
-      await startAnimation(endPosition, lookAtTarget, 600, easeInCubic);
-    },
-    [getPlanetPosition, startAnimation, camera]
-  );
-
-  // Zoom in from distant view for galaxy→system transition
-  const zoomIn = useCallback((): void => {
-    if (!defaultCamera) return;
-
-    console.log('[useSystemCamera] zoomIn called, setting opacity to 0');
-
-    // Cancel any ongoing animation
-    if (animationRef.current.active && animationRef.current.resolve) {
-      animationRef.current.resolve();
-      animationRef.current.active = false;
-    }
-
-    cameraOffsetRef.current = null;
-
-    const targetPos = new THREE.Vector3(...defaultCamera.position);
-    const targetLookAt = new THREE.Vector3(...defaultCamera.lookAt);
-
-    // Start from a distant position
-    const direction = targetPos.clone().sub(targetLookAt).normalize();
-    const startPosition = targetLookAt.clone().add(direction.multiplyScalar(300));
-
-    camera.position.copy(startPosition);
-    camera.lookAt(targetLookAt);
-
-    // Enable fade-in during zoom animation
-    animationRef.current.fadeIn = true;
-    animationRef.current.opacity = 0;
-    console.log('[useSystemCamera] Starting fade-in animation, opacity:', animationRef.current.opacity);
-
-    startAnimation(targetPos, targetLookAt, 1000, easeOutCubic);
-  }, [defaultCamera, camera, startAnimation]);
 
   // Update camera tracking for orbiting planets
   const updateTracking = useCallback(() => {
     if (isPaused) return;
     if (!trackedPlanetRef.current || !cameraOffsetRef.current) return;
-    if (animationRef.current.active) return;
+    if (animation.isAnimating()) return;
 
     const planetPos = getPlanetPosition(trackedPlanetRef.current.name);
     if (!planetPos) return;
@@ -498,12 +195,7 @@ export function useSystemCamera({
     camera.position.y = planetPos.y + cameraOffsetRef.current.y;
     camera.position.z = planetPos.z + rotatedOffsetZ;
     camera.lookAt(planetPos);
-
-    updateCamera(
-      [camera.position.x, camera.position.y, camera.position.z],
-      [planetPos.x, planetPos.y, planetPos.z]
-    );
-  }, [isPaused, getPlanetPosition, camera, updateCamera]);
+  }, [isPaused, getPlanetPosition, camera, animation]);
 
   // Set the planet to track
   const setTrackedPlanet = useCallback((planet: BodyData | null): void => {
@@ -532,21 +224,23 @@ export function useSystemCamera({
 
   // Get current scene opacity for fade-in effect
   const getSceneOpacity = useCallback((): number => {
-    return animationRef.current.opacity;
-  }, []);
+    return animation.getSceneOpacity();
+  }, [animation]);
+
+  // Set scene opacity directly
+  const setSceneOpacity = useCallback((opacity: number): void => {
+    animation.setSceneOpacity(opacity);
+  }, [animation]);
 
   return {
     moveToPlanet,
     positionOnPlanet,
     returnToDefault,
-    diveToPlanet,
-    zoomOutFromPlanet,
-    zoomOut,
-    zoomIn,
     updateTracking,
     setTrackedPlanet,
     getCameraOffset,
     setCameraOffset,
     getSceneOpacity,
+    setSceneOpacity,
   };
 }

@@ -18,6 +18,7 @@ import {
   useImperativeHandle,
   forwardRef,
   useEffect,
+  useLayoutEffect,
   useRef,
   useCallback,
 } from 'react';
@@ -35,7 +36,6 @@ import {
   useSceneStore,
   useSystemMapData,
   useSelectedPlanet,
-  useTransitionState,
   useIsPaused,
 } from './hooks/useSceneStore';
 import { useSystemCamera } from './hooks/useSystemCamera';
@@ -54,8 +54,12 @@ export interface SystemSceneProps {
   selectedPlanet?: BodyData | null;
   /** Whether rendering is paused */
   paused?: boolean;
+  /** Transition state for coordinating fade effects */
+  transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Callback when a planet is selected */
   onPlanetSelect?: (planet: BodyData | null) => void;
+  /** Callback when scene is fully constructed and ready */
+  onReady?: () => void;
 }
 
 export interface SystemSceneHandle {
@@ -63,14 +67,6 @@ export interface SystemSceneHandle {
   selectPlanetAndWait: (planetName: string) => Promise<void>;
   /** Instantly position camera on a planet */
   positionCameraOnPlanet: (planetName: string) => void;
-  /** Animate camera diving into a planet (for transition) */
-  diveToPlanet: (planetName: string) => Promise<void>;
-  /** Zoom out from a planet (for orbit→system transition) */
-  zoomOutFromPlanet: (planetName: string) => Promise<void>;
-  /** Zoom out from current view (for system→galaxy transition) */
-  zoomOut: () => Promise<void>;
-  /** Zoom in from distant view (for galaxy→system transition) */
-  zoomIn: () => void;
   /** Get planet positions map */
   getPlanetPositions: () => Map<string, THREE.Vector3>;
 }
@@ -82,7 +78,9 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       systemSlug,
       selectedPlanet: selectedPlanetProp,
       paused: pausedProp = false,
+      transitionState = 'idle',
       onPlanetSelect,
+      onReady,
     },
     ref
   ) {
@@ -90,7 +88,6 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     // Get data from store or props
     const storeData = useSystemMapData();
     const storeSelectedPlanet = useSelectedPlanet();
-    const transitionState = useTransitionState();
     const storePaused = useIsPaused();
 
     // Use props if provided, otherwise fall back to store
@@ -109,6 +106,13 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     const cameraInitializedRef = useRef<string | null>(null);
     const waitingForInitRef = useRef<string | null>(null);
     const waitFramesRef = useRef(0);
+    const readyCalledRef = useRef<string | null>(null);
+
+    // Track if a fade animation is currently running to prevent duplicates
+    const fadeAnimationRunningRef = useRef(false);
+
+    // Track the last processed transition to prevent duplicate handling
+    const lastProcessedTransitionRef = useRef<string>('idle');
 
     // Track scene opacity for fade-in effect using ref (avoids React state batching delays)
     // Start at 0 so scene is invisible until zoomIn animation begins
@@ -116,13 +120,6 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
 
     // Scene root ref for direct material updates (bypasses React prop system)
     const sceneRootRef = useRef<THREE.Group>(null);
-
-    // Reset opacity to 0 when switching to a new system (before zoomIn animation)
-    useEffect(() => {
-      if (systemSlug && cameraInitializedRef.current !== systemSlug) {
-        sceneOpacityRef.current = 0;
-      }
-    }, [systemSlug]);
 
     // Initialize camera position and lookAt after a few frames to let layout settle
     // Using useFrame ensures this happens within R3F's render cycle
@@ -153,10 +150,52 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
           camera.updateProjectionMatrix();
         }
 
-        // Use zoomIn to animate from distant position to default view
-        zoomIn();
+        // Position camera at default view immediately (no animation)
+        const targetPosition = new THREE.Vector3(...data.camera.position);
+        const targetLookAt = new THREE.Vector3(...data.camera.lookAt);
+        camera.position.copy(targetPosition);
+        camera.lookAt(targetLookAt);
 
+        // Mark as initialized
         cameraInitializedRef.current = systemSlug;
+
+        // Call onReady callback FIRST, while still at opacity 0
+        // This signals to parent that scene is ready to fade in
+        // The parent will wait for this, then the CSS animation will fade in
+        if (onReady && readyCalledRef.current !== systemSlug) {
+          readyCalledRef.current = systemSlug;
+          // Use RAF to ensure rendering has happened
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              onReady();
+              // Only start fade-in if NOT already transitioning
+              // If transitionState is 'transitioning-in', the useEffect will handle it
+              if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
+                console.log('[SystemScene] Starting fade-in animation (initialization)');
+                fadeAnimationRunningRef.current = true;
+                // Gradually fade in scene opacity to match CSS animation
+                // Start a gradual fade from 0 to 1 over 1200ms
+                const fadeStart = performance.now();
+                const fadeDuration = 1200; // Match CSS animation duration
+                const fadeIn = () => {
+                  const elapsed = performance.now() - fadeStart;
+                  const progress = Math.min(elapsed / fadeDuration, 1);
+                  const newOpacity = progress; // Linear fade 0→1
+
+                  setSceneOpacity(newOpacity);
+                  sceneOpacityRef.current = newOpacity;
+
+                  if (progress < 1) {
+                    requestAnimationFrame(fadeIn);
+                  } else {
+                    fadeAnimationRunningRef.current = false;
+                  }
+                };
+                requestAnimationFrame(fadeIn);
+              }
+            });
+          });
+        }
       }
     });
 
@@ -228,19 +267,91 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       moveToPlanet,
       positionOnPlanet,
       returnToDefault,
-      diveToPlanet,
-      zoomOutFromPlanet,
-      zoomOut,
-      zoomIn,
       updateTracking,
       setTrackedPlanet,
       // getCameraOffset is available but not currently used
       setCameraOffset,
       getSceneOpacity,
+      setSceneOpacity,
     } = useSystemCamera({
       getPlanetPosition,
       defaultCamera: data?.camera,
     });
+
+    // Reset opacity to 0 when switching to a new system (before zoomIn animation)
+    // CRITICAL: Use useLayoutEffect to run synchronously BEFORE paint, preventing flash
+    useLayoutEffect(() => {
+      if (systemSlug && cameraInitializedRef.current !== systemSlug) {
+        sceneOpacityRef.current = 0;
+        setSceneOpacity(0);
+      }
+    }, [systemSlug, setSceneOpacity]);
+
+    // Fade out scene materials when transitioning out
+    useEffect(() => {
+      // Skip if we've already processed this transition state
+      if (transitionState === lastProcessedTransitionRef.current) {
+        return;
+      }
+
+      if (transitionState === 'transitioning-out') {
+        if (fadeAnimationRunningRef.current) {
+          console.log('[SystemScene] Skipping fade-out - animation already running');
+          return;
+        }
+        console.log('[SystemScene] Starting fade-out animation');
+        lastProcessedTransitionRef.current = transitionState;
+        fadeAnimationRunningRef.current = true;
+        const fadeStart = performance.now();
+        const fadeDuration = 500; // Match FADE_OUT_TIME
+        const fadeOut = () => {
+          const elapsed = performance.now() - fadeStart;
+          const progress = Math.min(elapsed / fadeDuration, 1);
+          const newOpacity = 1 - progress; // Fade 1→0
+
+          setSceneOpacity(newOpacity);
+          sceneOpacityRef.current = newOpacity;
+
+          if (progress < 1) {
+            requestAnimationFrame(fadeOut);
+          } else {
+            console.log('[SystemScene] Fade-out complete');
+            fadeAnimationRunningRef.current = false;
+          }
+        };
+        requestAnimationFrame(fadeOut);
+      } else if (transitionState === 'transitioning-in') {
+        // Fade in when returning to this scene (e.g., back from orbit)
+        if (fadeAnimationRunningRef.current) {
+          console.log('[SystemScene] Skipping fade-in - animation already running');
+          return;
+        }
+        console.log('[SystemScene] Starting fade-in animation (transition)');
+        lastProcessedTransitionRef.current = transitionState;
+        fadeAnimationRunningRef.current = true;
+        const fadeStart = performance.now();
+        const fadeDuration = 1200; // Match FADE_TIME
+        const fadeIn = () => {
+          const elapsed = performance.now() - fadeStart;
+          const progress = Math.min(elapsed / fadeDuration, 1);
+          const newOpacity = progress; // Fade 0→1
+
+          setSceneOpacity(newOpacity);
+          sceneOpacityRef.current = newOpacity;
+
+          if (progress < 1) {
+            requestAnimationFrame(fadeIn);
+          } else {
+            console.log('[SystemScene] Fade-in complete');
+            fadeAnimationRunningRef.current = false;
+          }
+        };
+        requestAnimationFrame(fadeIn);
+      } else if (transitionState === 'idle') {
+        // Update tracking when transition completes
+        lastProcessedTransitionRef.current = 'idle';
+      }
+    }, [transitionState, setSceneOpacity]);
 
     // Update planet positions and scene opacity each frame
     useFrame(() => {
@@ -456,22 +567,17 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
             positionOnPlanet(body);
           }
         },
-        diveToPlanet: async (planetName: string) => {
-          await diveToPlanet(planetName);
-        },
-        zoomOutFromPlanet: async (planetName: string) => {
-          await zoomOutFromPlanet(planetName);
-        },
-        zoomOut: async () => {
-          await zoomOut();
-        },
-        zoomIn: () => {
-          zoomIn();
-        },
         getPlanetPositions: () => planetPositionsRef.current,
       }),
-      [data?.bodies, selectPlanet, setTrackedPlanet, moveToPlanet, positionOnPlanet, diveToPlanet, zoomOutFromPlanet, zoomOut, zoomIn]
+      [data?.bodies, selectPlanet, setTrackedPlanet, moveToPlanet, positionOnPlanet]
     );
+
+    // Clear reticle position ref on unmount to prevent stale position when re-mounting
+    useEffect(() => {
+      return () => {
+        lastReticlePositionRef.current = [0, 0, 0];
+      };
+    }, []);
 
     // Don't render if no data
     if (!data) {
@@ -517,9 +623,10 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
         </group>
 
         {/* Selection reticle */}
+        {/* Hide reticle until scene has faded in to prevent showing before objects are visible */}
         <SelectionReticle
           position={reticlePosition}
-          visible={!!selectedPlanet}
+          visible={!!(selectedPlanet && sceneOpacityRef.current > 0.8)}
           scale={reticleScale}
           getPosition={getReticlePosition}
         />

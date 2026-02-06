@@ -273,6 +273,7 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       setCameraOffset,
       getSceneOpacity,
       setSceneOpacity,
+      isAnimating,
     } = useSystemCamera({
       getPlanetPosition,
       defaultCamera: data?.camera,
@@ -469,12 +470,12 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
         } else {
           // Select new planet
           selectPlanet(body);
-          setTrackedPlanet(body);
+          // moveToPlanet will set up tracking after animation completes
           moveToPlanet(body);
           onPlanetSelect?.(body);
         }
       },
-      [selectedPlanet, selectPlanet, setTrackedPlanet, moveToPlanet, returnToDefault, onPlanetSelect]
+      [selectedPlanet, selectPlanet, moveToPlanet, returnToDefault, onPlanetSelect]
     );
 
     // Track previous selection to detect changes
@@ -496,9 +497,15 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
           if (planetPos) {
             const distance = camera.position.distanceTo(planetPos);
 
+            // If camera is already animating, skip - prevents duplicate animations
+            // when selection propagates from click handler -> parent -> prop
+            if (isAnimating()) {
+              // Just set up tracking without starting a new animation
+              setTrackedPlanet(newSelection);
+            }
             // If camera is already close to the planet (within 50 units), skip animation
             // This prevents unwanted animation when using positionCameraOnPlanet
-            if (distance > 50) {
+            else if (distance > 50) {
               // Camera is far - animate to planet
               setTrackedPlanet(newSelection);
               moveToPlanet(newSelection);
@@ -515,7 +522,7 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       }
 
       prevSelectedPlanetRef.current = newSelection;
-    }, [selectedPlanetProp, setTrackedPlanet, moveToPlanet, returnToDefault, getPlanetPosition, camera]);
+    }, [selectedPlanetProp, setTrackedPlanet, moveToPlanet, returnToDefault, getPlanetPosition, camera, isAnimating]);
 
     // Control target - orbits around selected planet or origin
     // Static target used as fallback when no planet is selected

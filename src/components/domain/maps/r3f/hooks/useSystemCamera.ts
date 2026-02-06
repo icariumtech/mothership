@@ -50,6 +50,8 @@ interface UseSystemCameraReturn {
   getSceneOpacity: () => number;
   /** Set scene opacity directly (0-1) */
   setSceneOpacity: (opacity: number) => void;
+  /** Check if a camera animation is currently in progress */
+  isAnimating: () => boolean;
 }
 
 export function useSystemCamera({
@@ -88,6 +90,12 @@ export function useSystemCamera({
       const planetPos = getPlanetPosition(planet.name);
       if (!planetPos) return;
 
+      // Capture what the camera is ACTUALLY looking at right now
+      // by calculating the point in front of the camera
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+      const currentLookAt = camera.position.clone().add(direction.multiplyScalar(100));
+
       // Clear tracking state
       cameraOffsetRef.current = null;
       lastPlanetAngleRef.current = 0;
@@ -102,6 +110,7 @@ export function useSystemCamera({
         {
           trackTarget: true,
           targetGetter: () => getPlanetPosition(planet.name) ?? planetPos,
+          startTarget: currentLookAt,  // Use actual camera lookAt, not store value
         }
       );
 
@@ -232,6 +241,11 @@ export function useSystemCamera({
     animation.setSceneOpacity(opacity);
   }, [animation]);
 
+  // Check if animation is in progress
+  const isAnimating = useCallback((): boolean => {
+    return animation.isAnimating();
+  }, [animation]);
+
   return {
     moveToPlanet,
     positionOnPlanet,
@@ -242,5 +256,6 @@ export function useSystemCamera({
     setCameraOffset,
     getSceneOpacity,
     setSceneOpacity,
+    isAnimating,
   };
 }

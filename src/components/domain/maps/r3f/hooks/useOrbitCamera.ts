@@ -54,6 +54,8 @@ interface UseOrbitCameraReturn {
   getSceneOpacity: () => number;
   /** Set scene opacity directly (0-1) */
   setSceneOpacity: (opacity: number) => void;
+  /** Raw animation system for custom animations */
+  animation: ReturnType<typeof import('./useCameraAnimation').useCameraAnimation>;
 }
 
 export function useOrbitCamera({
@@ -221,5 +223,6 @@ export function useOrbitCamera({
     isAnimating,
     getSceneOpacity,
     setSceneOpacity,
+    animation, // Expose raw animation system for custom animations
   };
 }

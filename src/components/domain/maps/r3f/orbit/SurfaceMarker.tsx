@@ -60,8 +60,8 @@ export function SurfaceMarker({
 }: SurfaceMarkerProps) {
   const spriteRef = useRef<THREE.Sprite>(null);
 
-  // Create marker texture
-  const markerTexture = useMemo(() => {
+  // Create marker texture and material with fade support
+  const { texture, material } = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 24;
     canvas.height = 24;
@@ -84,17 +84,27 @@ export function SurfaceMarker({
     ctx.fillStyle = MARKER_COLOR;
     ctx.fillRect(8, 8, 8, 8);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    return texture;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+
+    // Create material with _baseOpacity for scene fade
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0, // Start at 0, scene fade will bring to 1
+    });
+    (mat as any)._baseOpacity = 1.0;
+
+    return { texture: tex, material: mat };
   }, []);
 
-  // Cleanup texture on unmount
+  // Cleanup texture and material on unmount
   useEffect(() => {
     return () => {
-      markerTexture.dispose();
+      texture.dispose();
+      material.dispose();
     };
-  }, [markerTexture]);
+  }, [texture, material]);
 
   // Calculate base position (before rotation)
   const basePosition = useMemo(() => {
@@ -146,7 +156,7 @@ export function SurfaceMarker({
       scale={[MARKER_SIZE, MARKER_SIZE, 1]}
       onClick={handleClick}
     >
-      <spriteMaterial map={markerTexture} transparent />
+      <primitive object={material} attach="material" />
     </sprite>
   );
 }

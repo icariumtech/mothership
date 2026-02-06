@@ -77,6 +77,22 @@ function TexturedMoon({
     []
   );
 
+  // Create material with _baseOpacity set immediately for scene fade
+  const material = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      map: textures.map,
+      normalMap: textures.normalMap,
+      normalScale: normalScale,
+      roughness: ROUGHNESS,
+      metalness: METALNESS,
+      transparent: true,
+      opacity: 0, // Start at 0, scene fade will bring to 1
+    });
+    // Set base opacity immediately for scene fade system
+    (mat as any)._baseOpacity = 1.0;
+    return mat;
+  }, [textures.map, textures.normalMap, normalScale]);
+
   // Animate orbital position
   useFrame(() => {
     if (!groupRef.current || paused) return;
@@ -112,13 +128,7 @@ function TexturedMoon({
     <group ref={groupRef}>
       <mesh onClick={handleClick} castShadow receiveShadow>
         <sphereGeometry args={[size, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} />
-        <meshStandardMaterial
-          map={textures.map}
-          normalMap={textures.normalMap}
-          normalScale={normalScale}
-          roughness={ROUGHNESS}
-          metalness={METALNESS}
-        />
+        <primitive object={material} attach="material" />
       </mesh>
     </group>
   );

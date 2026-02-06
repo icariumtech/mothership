@@ -19,7 +19,13 @@ function AxisLine({ length }: { length: number }) {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array([0, -length, 0, 0, length, 0]);
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const material = new THREE.LineBasicMaterial({ color: GRID_COLOR });
+    const material = new THREE.LineBasicMaterial({
+      color: GRID_COLOR,
+      transparent: true,
+      opacity: 0, // Start at 0, scene fade will bring to GRID_OPACITY
+    });
+    // Set base opacity immediately for scene fade system
+    (material as any)._baseOpacity = GRID_OPACITY;
     return new THREE.Line(geometry, material);
   }, [length]);
 

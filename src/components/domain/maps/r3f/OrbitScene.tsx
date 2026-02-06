@@ -170,28 +170,14 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
       defaultCamera: data?.camera,
     });
 
-    // Reset opacity to 0 when switching to a new body (before zoomIn animation)
+    // Reset opacity to 0 when switching to a new body (before fade-in animation)
     // CRITICAL: Use useLayoutEffect to run synchronously BEFORE paint, preventing flash
     useLayoutEffect(() => {
       if (bodySlug && cameraInitializedRef.current !== bodySlug) {
         sceneOpacityRef.current = 0;
         setSceneOpacity(0);
-
-        // CRITICAL: Position camera far out immediately to prevent flash during frame wait
-        // Use data.camera if available, otherwise use default fallback position
-        const targetPos = data?.camera?.position
-          ? new THREE.Vector3(...data.camera.position)
-          : new THREE.Vector3(0, 50, 100);
-        const targetLookAt = data?.camera?.lookAt
-          ? new THREE.Vector3(...data.camera.lookAt)
-          : new THREE.Vector3(0, 0, 0);
-
-        const direction = targetPos.clone().sub(targetLookAt).normalize();
-        const startPosition = targetLookAt.clone().add(direction.multiplyScalar(300));
-        camera.position.copy(startPosition);
-        camera.lookAt(targetLookAt);
       }
-    }, [bodySlug, setSceneOpacity, data?.camera, camera]);
+    }, [bodySlug, setSceneOpacity]);
 
     // Fade out scene materials when transitioning out
     useEffect(() => {
@@ -258,7 +244,7 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
       }
     }, [transitionState, setSceneOpacity]);
 
-    // Initialize camera position after a few frames to let layout settle
+    // Initialize camera position after verifying all scene objects are loaded
     useFrame(() => {
       if (!data?.camera || !bodySlug) return;
 
@@ -270,8 +256,45 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
         }
         waitFramesRef.current++;
 
-        // Wait 2 frames for layout to settle (reduced from 10 since camera is pre-positioned)
+        // Wait minimum 2 frames for layout to settle
         if (waitFramesRef.current < 2) return;
+
+        // Verify all expected objects are in the scene before starting fade
+        // Count expected objects: planet (1) + moons + stations + surface markers
+        const expectedMoonCount = data.moons?.length ?? 0;
+        const expectedStationCount = data.orbital_stations?.length ?? 0;
+        const expectedMarkerCount = data.surface_markers?.length ?? 0;
+        const expectedTotalObjects = 1 + expectedMoonCount + expectedStationCount + expectedMarkerCount;
+
+        // Count actual meshes and sprites in scene (excluding helpers like grid, paths, lights)
+        let actualObjectCount = 0;
+        if (sceneRootRef.current) {
+          sceneRootRef.current.traverse((object) => {
+            // Count meshes (planet, moons) and sprites (stations, markers)
+            if (object.type === 'Mesh' || object.type === 'Sprite') {
+              // Only count if it has a material we recognize
+              if ('material' in object && object.material) {
+                const material = object.material as any;
+                // Planet and moons use MeshStandardMaterial, stations/markers use SpriteMaterial
+                if (material.type === 'MeshStandardMaterial' || material.type === 'SpriteMaterial') {
+                  actualObjectCount++;
+                }
+              }
+            }
+          });
+        }
+
+        // Wait until all objects are loaded (or timeout after 60 frames ~1 second)
+        if (actualObjectCount < expectedTotalObjects && waitFramesRef.current < 60) {
+          console.log(`[OrbitScene] Waiting for objects to load: ${actualObjectCount}/${expectedTotalObjects} (frame ${waitFramesRef.current})`);
+          return;
+        }
+
+        if (actualObjectCount < expectedTotalObjects) {
+          console.warn(`[OrbitScene] Timeout waiting for objects. Expected ${expectedTotalObjects}, found ${actualObjectCount}`);
+        } else {
+          console.log(`[OrbitScene] All ${actualObjectCount} objects loaded, starting animation`);
+        }
       }
 
       // Only initialize once per body
@@ -284,7 +307,7 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
           camera.updateProjectionMatrix();
         }
 
-        // Position camera at default view immediately (no animation)
+        // Position camera at default view immediately (no zoom animation)
         const targetPosition = new THREE.Vector3(...data.camera.position);
         const targetLookAt = new THREE.Vector3(...data.camera.lookAt);
         camera.position.copy(targetPosition);
@@ -295,7 +318,6 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
 
         // Call onReady callback FIRST, while still at opacity 0
         // This signals to parent that scene is ready to fade in
-        // The parent will wait for this, then the CSS animation will fade in
         if (onReady && readyCalledRef.current !== bodySlug) {
           readyCalledRef.current = bodySlug;
           // Use RAF to ensure rendering has happened
@@ -322,6 +344,7 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
                   if (progress < 1) {
                     requestAnimationFrame(fadeIn);
                   } else {
+                    console.log('[OrbitScene] Fade-in complete');
                     fadeAnimationRunningRef.current = false;
                   }
                 };
@@ -700,7 +723,7 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
             axialTilt={axialTilt}
             rotationRef={rotationRef}
             animationPaused={animationPaused}
-            showAxisLine
+            showAxisLine={true}
           />
 
           {/* Orbital paths for moons */}
@@ -779,6 +802,7 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
           getTarget={getControlTarget}
           hasSelection={!!(selectedElement?.name)}
           onCameraChange={handleCameraChange}
+          zoomLimits={data?.camera?.zoom_limits}
         />
       </>
     );

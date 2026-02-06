@@ -16,9 +16,9 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useSceneStore } from '../hooks/useSceneStore';
 
-// Zoom limits
-const MIN_ZOOM = 20;
-const MAX_ZOOM = 150;
+// Default zoom limits (used if not specified)
+const DEFAULT_MIN_ZOOM = 20;
+const DEFAULT_MAX_ZOOM = 150;
 const ZOOM_SPEED = 0.05;
 const ROTATE_SPEED = 0.003;
 
@@ -33,6 +33,8 @@ interface OrbitControlsProps {
   hasSelection?: boolean;
   /** Callback when camera position changes */
   onCameraChange?: (position: THREE.Vector3, target: THREE.Vector3) => void;
+  /** Zoom limits [min, max] from orbit map data */
+  zoomLimits?: [number, number];
 }
 
 export function OrbitControls({
@@ -41,12 +43,17 @@ export function OrbitControls({
   getTarget,
   hasSelection: _hasSelection = false,
   onCameraChange,
+  zoomLimits,
 }: OrbitControlsProps) {
   const { camera, gl } = useThree();
   const domElement = gl.domElement;
 
   const recordInteraction = useSceneStore((state) => state.recordInteraction);
   const updateCamera = useSceneStore((state) => state.updateCamera);
+
+  // Use zoom limits from data or defaults
+  const minZoom = zoomLimits?.[0] ?? DEFAULT_MIN_ZOOM;
+  const maxZoom = zoomLimits?.[1] ?? DEFAULT_MAX_ZOOM;
 
   // Control state refs
   const isDragging = useRef(false);
@@ -142,7 +149,7 @@ export function OrbitControls({
         distance *= (1 - ZOOM_SPEED);
       }
 
-      distance = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, distance));
+      distance = Math.max(minZoom, Math.min(maxZoom, distance));
       offset.normalize().multiplyScalar(distance);
       camera.position.copy(currentTarget).add(offset);
 
@@ -153,7 +160,7 @@ export function OrbitControls({
 
       onCameraChange?.(camera.position, currentTarget);
     },
-    [camera, getCurrentTarget, updateCamera, onCameraChange]
+    [camera, getCurrentTarget, updateCamera, onCameraChange, minZoom, maxZoom]
   );
 
   // Mouse wheel handler

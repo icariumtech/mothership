@@ -6,14 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 For detailed information on specific topics, refer to these guides:
 
-- **Read: README.md** - Project overview, quick start, and feature list
-- **Read: GETTING_STARTED.md** - First-time setup and basic usage instructions
-- **Read: NETWORK_ACCESS.md** - Configuring network access for players
-- **Read: QUICK_REFERENCE.md** - Quick reference for network URLs and common commands
+- **Read: README.md** - Project overview, quick start, feature list, and setup instructions
 - **Read: DATA_DIRECTORY_GUIDE.md** - Complete guide to data directory structure, file formats, and YAML schemas
-- **Read: ARCHITECTURE_CHANGES.md** - Recent architecture changes, component refactoring, and migration notes
 - **Read: src/components/ui/README.md** - React Panel component API, usage patterns, and migration examples
 - **Read: STYLE_GUIDE.md** - UI design system, color palette, panel patterns, and visual specifications
+- **Read: src/components/domain/maps/r3f/shared/POST_PROCESSING.md** - Post-processing effects guide (bloom, visual enhancements)
 
 ## Architecture Codemaps (Load Dynamically When Needed)
 
@@ -91,12 +88,18 @@ You are an expert full stack web developer. You should identify ways to write co
 
 # Quick Reference
 
+## Setup Commands
+```bash
+./setup.sh               # Automated setup (Python venv, dependencies, DB migrations)
+./start_server.sh        # Start Django server (after setup)
+```
+
 ## Key Commands
 ```bash
 npm run dev              # Start Vite dev server with hot reload
 npm run build            # Production build
 npm run typecheck        # TypeScript type checking
-python manage.py runserver  # Start Django server
+python manage.py runserver  # Start Django server (manual)
 ```
 
 ## Development URLs
@@ -143,8 +146,8 @@ charon/
 │   │   │   │   │   ├── galaxy/  # Galaxy scene components (stars, nebulae, routes)
 │   │   │   │   │   ├── system/  # System scene components (planets, orbits, star)
 │   │   │   │   │   ├── orbit/   # Orbit scene components (moons, stations, planet)
-│   │   │   │   │   ├── shared/  # Shared R3F components (reticle, loading, etc.)
-│   │   │   │   │   └── hooks/   # Custom R3F hooks (textures, animations)
+│   │   │   │   │   ├── shared/  # Shared R3F components (SelectionReticle, PostProcessing, LoadingScene)
+│   │   │   │   │   └── hooks/   # Custom R3F hooks (camera control, textures, animations, scene store)
 │   │   │   │   ├── GalaxyMap.tsx  # Galaxy Canvas wrapper
 │   │   │   │   ├── SystemMap.tsx  # System Canvas wrapper
 │   │   │   │   └── OrbitMap.tsx   # Orbit Canvas wrapper
@@ -155,7 +158,9 @@ charon/
 │   │   ├── layout/              # Layout components
 │   │   └── ui/                  # Reusable UI components (Panel, DashboardPanel, etc.)
 │   ├── services/                # API client services
-│   ├── hooks/                   # Custom React hooks
+│   ├── hooks/                   # Custom React hooks (useDebounce, etc.)
+│   ├── stores/                  # Zustand state management (sceneStore)
+│   ├── utils/                   # Utility functions (transitionCoordinator, typewriterUtils)
 │   ├── types/                   # TypeScript type definitions
 │   └── styles/                  # Global CSS styles
 ├── scripts/                     # Utility scripts
@@ -361,10 +366,11 @@ See [src/components/ui/README.md](src/components/ui/README.md) for detailed API 
 ### Dashboard Components (`src/components/domain/dashboard/`)
 
 **InfoPanel:**
-- Floating info panel with typewriter effect
+- Floating info panel with RAF-driven typewriter effect
 - Displays location details (systems, planets, moons, stations)
-- Supports forwardRef for parent access to typing state
-- Uses `useTypewriter` hook for character-by-character reveal
+- Reads typewriter progress from Zustand sceneStore
+- Uses `computeTypewriterContent()` from typewriterUtils for HTML-aware rendering
+- Synchronized with Canvas RAF loop (no setTimeout race conditions)
 - Helper functions: `buildSystemInfoHTML()`, `buildPlanetInfoHTML()`, etc.
 
 **StarMapPanel:**
@@ -408,10 +414,13 @@ See [src/components/ui/README.md](src/components/ui/README.md) for detailed API 
   - `domain/encounter/` - Encounter map components
   - `domain/charon/` - CHARON AI dialog
   - `domain/terminal/` - Communication terminals
-- **State Management**: React hooks (useState, useEffect, useCallback, useRef)
-- **Custom Hooks**: Shared logic in `src/hooks/` (e.g., useTypewriter for text effects)
+- **State Management**:
+  - React hooks (useState, useEffect, useCallback, useRef) for local component state
+  - Zustand stores (`src/stores/sceneStore.ts`) for centralized 3D scene state
+- **Custom Hooks**: Shared logic in `src/hooks/` and `src/components/domain/maps/r3f/hooks/`
 - **API Services**: Centralized axios-based clients in `src/services/`
 - **Type Definitions**: Shared types in `src/types/` (starMap, systemMap, orbitMap, encounterMap)
+- **Utilities**: Helper functions in `src/utils/` (transitionCoordinator, typewriterUtils)
 
 ### Component Patterns
 
@@ -475,7 +484,189 @@ The application uses React Three Fiber (R3F) for all 3D visualizations, replacin
   - `GalaxyScene.tsx`, `SystemScene.tsx`, `OrbitScene.tsx` - Main scene components
   - `galaxy/`, `system/`, `orbit/` - Scene-specific child components
   - `shared/` - Reusable components (SelectionReticle, LoadingScene, PostProcessing)
-  - `hooks/` - Custom hooks (useProceduralTexture, useOrbitalMotion)
+  - `hooks/` - Custom hooks (camera control, textures, animations, scene store)
+
+### Key Architectural Features
+
+#### Centralized State Management (Zustand Store)
+
+The application uses a Zustand store (`src/stores/sceneStore.ts`) as the single source of truth for all 3D scene state. This replaces scattered React useState across components.
+
+**Key Benefits:**
+- Single source of truth for map view mode, selections, transitions
+- Direct read/write access from R3F components (no prop drilling)
+- Coordinated state updates across map transitions
+- Performance optimization (components only re-render on relevant state changes)
+
+**Store Structure:**
+```typescript
+interface SceneState {
+  // View state
+  mapViewMode: 'galaxy' | 'system' | 'orbit';
+  transitionState: 'idle' | 'diving' | 'zooming-out' | 'fading-in' | 'fading-out';
+
+  // API data
+  starMapData: StarMapData | null;
+  systemMapData: SystemMapData | null;
+  orbitMapData: OrbitMapData | null;
+
+  // Selection state
+  selectedSystem: string | null;
+  selectedPlanet: BodyData | null;
+  selectedOrbitElement: SelectedOrbitElement;
+
+  // Camera and animation state
+  camera: CameraState;
+  animations: AnimationState;
+  typewriter: TypewriterState;
+}
+```
+
+**Usage Pattern:**
+```tsx
+// Read state
+const mapViewMode = useSceneStore(state => state.mapViewMode);
+
+// Write state
+const { setSelectedSystem } = useSceneStore();
+setSelectedSystem('sol');
+```
+
+#### Selection Reticle Architecture
+
+The `SelectionReticle` component (`src/components/domain/maps/r3f/shared/SelectionReticle.tsx`) provides animated selection indicators for 3D objects.
+
+**Architecture:**
+- **Fixed diamond corners**: Rotated 45° for angular sci-fi aesthetic
+- **Two rotating rings**: Inner and outer rings with independent rotation
+- **Randomized motion**: Each ring randomizes speed and direction every 2 seconds
+- **Dynamic position tracking**: Optional `getPosition` callback for tracking moving objects
+- **Procedural textures**: Generated textures for rings and corners
+
+**Key Features:**
+- Fade-in/fade-out transitions synchronized with scene state
+- Camera-facing sprites (always visible from any angle)
+- Supports scale override for different object sizes
+- Reusable across galaxy, system, and orbit views
+
+**Usage:**
+```tsx
+<SelectionReticle
+  position={targetPosition}
+  visible={isSelected}
+  getPosition={() => object.position}  // Optional: track moving object
+  scale={25}  // Adjust size for object
+/>
+```
+
+#### Transition Coordinator
+
+The transition coordinator (`src/utils/transitionCoordinator.ts`) provides helper functions and timing constants for coordinating complex view transitions.
+
+**Key Features:**
+- **Timing Constants**: Standardized durations for camera moves, fades, zoom animations
+- **Transition Locks**: Prevent concurrent transitions that could cause conflicts
+- **Typewriter Waiting**: Poll Zustand store to wait for typewriter completion before transitioning
+- **Promise-based API**: Async/await pattern for sequential transition steps
+
+**Usage Pattern:**
+```tsx
+import { waitForTypewriter, waitForCameraAnimation, TRANSITION_TIMING } from '@/utils/transitionCoordinator';
+
+async function diveToSystem(systemName: string) {
+  // Wait for info panel typing to complete
+  await waitForTypewriter(TRANSITION_TIMING.TYPEWRITER_MAX_WAIT);
+
+  // Zoom camera into target
+  zoomIntoTarget(systemName);
+  await waitForCameraAnimation(TRANSITION_TIMING.ZOOM_INTO_TIME);
+
+  // Fade out, switch view, fade in
+  setTransitionState('fading-out');
+  await waitForCameraAnimation(TRANSITION_TIMING.FADE_OUT_TIME);
+
+  setMapViewMode('system');
+  setTransitionState('fading-in');
+}
+```
+
+#### RAF-Driven Typewriter Effect
+
+The typewriter effect is now synchronized with the Canvas RAF loop for smooth coordination with 3D animations.
+
+**Components:**
+- `TypewriterController` (`src/components/domain/maps/r3f/shared/TypewriterController.tsx`) - R3F component that drives typewriter progress
+- `typewriterUtils.ts` (`src/utils/typewriterUtils.ts`) - Utility functions for computing displayed content
+
+**How It Works:**
+1. TypewriterController updates Zustand store progress (0-1) every frame
+2. InfoPanel reads progress from store and computes displayed HTML
+3. `computeTypewriterContent()` builds partial HTML preserving tags while animating text
+4. Synchronized with scene animations (no setTimeout race conditions)
+
+**Benefits:**
+- Single RAF loop (eliminates stuttering from competing timers)
+- Pause/resume support (pauses when canvas pauses)
+- HTML-aware (preserves tags during animation)
+- Centralized state (other components can wait for completion)
+
+#### Custom Camera Hooks
+
+The R3F hooks directory includes specialized camera control hooks for each view:
+
+**`useGalaxyCamera`** - Galaxy view camera with automatic orbit when idle:
+```tsx
+const { cameraPosition, cameraTarget } = useGalaxyCamera({
+  selectedSystem,
+  autoRotateEnabled: true,
+  autoRotateSpeed: 0.1,
+});
+```
+
+**`useSystemCamera`** - System view camera with zoom and focus:
+```tsx
+const { zoomToBody, resetCamera } = useSystemCamera({
+  selectedPlanet,
+  bodies: systemMapData.bodies,
+});
+```
+
+**`useOrbitCamera`** - Orbit view camera with dynamic positioning:
+```tsx
+const { focusOnElement } = useOrbitCamera({
+  selectedElement,
+  planetRadius,
+});
+```
+
+**`useCameraAnimation`** - Low-level camera transition utility:
+```tsx
+const { animateCamera } = useCameraAnimation();
+
+animateCamera({
+  targetPosition: [x, y, z],
+  targetLookAt: [0, 0, 0],
+  duration: 2000,
+  onComplete: () => console.log('Animation done'),
+});
+```
+
+#### Transition Guards and Debouncing
+
+The `useDebounce` and `useTransitionGuard` hooks prevent rapid-fire function calls that could cause animation conflicts.
+
+**`useDebounce`** - Enforce minimum time between calls:
+```tsx
+const debouncedHandler = useDebounce(handleClick, 300);
+```
+
+**`useTransitionGuard`** - Prevent concurrent async transitions:
+```tsx
+const [guardedTransition, isActive] = useTransitionGuard(performTransition, 300);
+
+// Call returns early if another transition is in progress
+await guardedTransition();
+```
 
 ### Best Practices
 - Use `@/` alias for `src/` directory imports (e.g., `@components/ui/Panel`)

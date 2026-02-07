@@ -141,7 +141,8 @@ src/
 │   └── global.css                          # CSS variables, base styles
 │
 └── utils/                      # Utility functions
-    └── typewriterUtils.ts                  # Typewriter text processing
+    ├── typewriterUtils.ts                  # Typewriter text processing
+    └── transitionCoordinator.ts            # Transition timing and coordination
 ```
 
 ## Entry Points (Vite Multi-Page)

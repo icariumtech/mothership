@@ -155,9 +155,12 @@ export function useSystemCamera({
     async (): Promise<void> => {
       if (!defaultCamera) return;
 
+      console.log('[useSystemCamera] returnToDefault - clearing tracking');
+
       // Capture current planet position before clearing tracking
       let currentTarget: THREE.Vector3 | null = null;
       if (trackedPlanetRef.current) {
+        console.log('[useSystemCamera] Previous tracked planet:', trackedPlanetRef.current.name);
         currentTarget = getPlanetPosition(trackedPlanetRef.current.name);
       }
 
@@ -166,12 +169,16 @@ export function useSystemCamera({
       cameraOffsetRef.current = null;
       lastPlanetAngleRef.current = 0;
 
+      console.log('[useSystemCamera] Tracking cleared, starting animation to default');
+
       const targetPos = new THREE.Vector3(...defaultCamera.position);
       const targetLookAt = new THREE.Vector3(...defaultCamera.lookAt);
 
       await animation.startAnimation(targetPos, targetLookAt, ANIMATION_DURATION, easeInOutQuad, {
         startTarget: currentTarget ?? undefined,
       });
+
+      console.log('[useSystemCamera] returnToDefault complete');
     },
     [defaultCamera, getPlanetPosition, animation]
   );
@@ -184,6 +191,8 @@ export function useSystemCamera({
 
     const planetPos = getPlanetPosition(trackedPlanetRef.current.name);
     if (!planetPos) return;
+
+    console.log('[useSystemCamera] updateTracking - following planet:', trackedPlanetRef.current.name);
 
     // Calculate planet's orbital angle change
     const currentPlanetAngle = Math.atan2(planetPos.z, planetPos.x);
@@ -208,6 +217,7 @@ export function useSystemCamera({
 
   // Set the planet to track
   const setTrackedPlanet = useCallback((planet: BodyData | null): void => {
+    console.log('[useSystemCamera] setTrackedPlanet:', planet?.name ?? 'null');
     trackedPlanetRef.current = planet;
     if (!planet) {
       cameraOffsetRef.current = null;

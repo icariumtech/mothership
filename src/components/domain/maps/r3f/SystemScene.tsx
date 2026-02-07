@@ -364,8 +364,10 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
           planetPositionsRef.current.set(body.name, pos);
         });
 
-        // Update camera tracking
-        updateTracking();
+        // Update camera tracking (only if a planet is still selected)
+        if (selectedPlanet) {
+          updateTracking();
+        }
       }
 
       // Update scene opacity for fade-in effect (even when paused)
@@ -461,14 +463,18 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     // Handle planet click
     const handlePlanetClick = useCallback(
       (body: BodyData) => {
+        console.log('[SystemScene] handlePlanetClick - clicked:', body.name, 'current selection:', selectedPlanet?.name ?? 'null');
         if (selectedPlanet?.name === body.name) {
           // Deselect if clicking the same planet
+          console.log('[SystemScene] handlePlanetClick - DESELECTING, calling selectPlanet(null)');
           selectPlanet(null);
+          console.log('[SystemScene] handlePlanetClick - After selectPlanet(null), store value:', useSceneStore.getState().selectedPlanet?.name ?? 'null');
           // returnToDefault handles clearing tracking state and animating
           returnToDefault();
           onPlanetSelect?.(null);
         } else {
           // Select new planet
+          console.log('[SystemScene] handlePlanetClick - SELECTING planet:', body.name);
           selectPlanet(body);
           // moveToPlanet will set up tracking after animation completes
           moveToPlanet(body);
@@ -489,6 +495,8 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       if (prevSelection?.name !== newSelection?.name) {
         if (newSelection === null) {
           // Deselected - return to default view
+          console.log('[SystemScene] useEffect - deselected via prop, updating store to null');
+          selectPlanet(null); // Update store to match prop
           // returnToDefault handles clearing tracking state and animating
           returnToDefault();
         } else {
@@ -533,10 +541,15 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     }, [selectedPlanet, getPlanetPosition]);
 
     // Dynamic target getter for controls - always returns current planet position
+    // IMPORTANT: Read directly from store to avoid stale closure values
     const getControlTarget = useCallback((): THREE.Vector3 | null => {
-      if (!selectedPlanet) return null;
-      return getPlanetPosition(selectedPlanet.name);
-    }, [selectedPlanet, getPlanetPosition]);
+      const currentSelected = useSceneStore.getState().selectedPlanet;
+      console.log('[SystemScene] getControlTarget - store selectedPlanet:', currentSelected?.name ?? 'null');
+      if (!currentSelected) return null;
+      const pos = getPlanetPosition(currentSelected.name);
+      console.log('[SystemScene] getControlTarget - returning position:', pos?.toArray() ?? 'null');
+      return pos;
+    }, [getPlanetPosition]);
 
     // Handle camera changes from controls
     const handleCameraChange = useCallback(
@@ -630,10 +643,10 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
         </group>
 
         {/* Selection reticle */}
-        {/* Hide reticle until scene has faded in to prevent showing before objects are visible */}
+        {/* Allow reticle to fade in with the scene (reticle has its own spring animation) */}
         <SelectionReticle
           position={reticlePosition}
-          visible={!!(selectedPlanet && sceneOpacityRef.current > 0.8)}
+          visible={!!(selectedPlanet && sceneOpacityRef.current > 0)}
           scale={reticleScale}
           getPosition={getReticlePosition}
         />

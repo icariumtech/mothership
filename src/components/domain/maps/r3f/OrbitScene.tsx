@@ -787,10 +787,10 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
         </group>
 
         {/* Selection reticle (outside group - not affected by opacity) */}
-        {/* Hide reticle until scene has faded in to prevent showing before objects are visible */}
+        {/* Allow reticle to fade in with the scene (reticle has its own spring animation) */}
         <SelectionReticle
           position={reticlePosition}
-          visible={!!(selectedElement?.name && selectedElement?.type && sceneOpacityRef.current > 0.8)}
+          visible={!!(selectedElement?.name && selectedElement?.type && sceneOpacityRef.current > 0)}
           scale={reticleScale}
           getPosition={getReticlePosition}
         />

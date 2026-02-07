@@ -78,9 +78,14 @@ export function SystemControls({
       const dynamicTarget = getTargetRef.current();
       if (dynamicTarget) {
         targetRef.current.copy(dynamicTarget);
+        console.log('[SystemControls] getCurrentTarget - using dynamic target:', targetRef.current.toArray());
         return targetRef.current;
       }
+      // If getTarget exists but returns null (deselected), reset to origin
+      console.log('[SystemControls] getCurrentTarget - getTarget returned null, resetting to origin');
+      targetRef.current.set(0, 0, 0);
     }
+    console.log('[SystemControls] getCurrentTarget - returning target:', targetRef.current.toArray());
     return targetRef.current;
   }, []);
 

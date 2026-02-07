@@ -10,12 +10,23 @@ import * as THREE from 'three';
 import {
   createStarTexture,
   createReticleTexture,
+  createReticleCornersTexture,
+  createReticleOuterRingTexture,
+  createReticleInnerRingTexture,
   createNebulaTexture,
   createGlowTexture,
   createPlanetTexture,
 } from '../shared/textureUtils';
 
-export type TextureType = 'star' | 'reticle' | 'nebula' | 'glow' | 'planet';
+export type TextureType =
+  | 'star'
+  | 'reticle'
+  | 'reticle-corners'
+  | 'reticle-outer-ring'
+  | 'reticle-inner-ring'
+  | 'nebula'
+  | 'glow'
+  | 'planet';
 
 interface TextureConfig {
   type: TextureType;
@@ -45,6 +56,12 @@ export function useProceduralTexture(
         return createStarTexture(size ?? 128);
       case 'reticle':
         return createReticleTexture(size ?? 256);
+      case 'reticle-corners':
+        return createReticleCornersTexture(size ?? 256);
+      case 'reticle-outer-ring':
+        return createReticleOuterRingTexture(size ?? 256);
+      case 'reticle-inner-ring':
+        return createReticleInnerRingTexture(size ?? 256);
       case 'nebula':
         return createNebulaTexture(size ?? 64);
       case 'glow':
@@ -101,6 +118,15 @@ export function useProceduralTextures(
           break;
         case 'reticle':
           texture = createReticleTexture(config.size ?? 256);
+          break;
+        case 'reticle-corners':
+          texture = createReticleCornersTexture(config.size ?? 256);
+          break;
+        case 'reticle-outer-ring':
+          texture = createReticleOuterRingTexture(config.size ?? 256);
+          break;
+        case 'reticle-inner-ring':
+          texture = createReticleInnerRingTexture(config.size ?? 256);
           break;
         case 'nebula':
           texture = createNebulaTexture(config.size ?? 64);

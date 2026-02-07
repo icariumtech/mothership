@@ -84,7 +84,7 @@ export function createStarTexture(size = 128): THREE.CanvasTexture {
 }
 
 /**
- * Create a procedural selection reticle texture
+ * Create a procedural selection reticle texture (legacy - combined)
  * Used for highlighting selected systems/planets/elements
  */
 export function createReticleTexture(size = 256): THREE.CanvasTexture {
@@ -153,6 +153,136 @@ export function createReticleTexture(size = 256): THREE.CanvasTexture {
   ctx.fillRect(centerX - crossLength, centerY - crossWidth / 2, crossLength * 2, crossWidth);
   ctx.fillRect(centerX - crossWidth / 2, centerY - crossLength, crossWidth, crossLength * 2);
   ctx.globalCompositeOperation = 'source-over';
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
+ * Create reticle corner brackets texture (diamond orientation)
+ * Just the four corner brackets without rings
+ */
+export function createReticleCornersTexture(size = 256): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const amberColor = 'rgba(139, 115, 85, 1.0)';
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Draw corner brackets
+  const bracketSize = size * 0.07; // 18 for 256px
+  const bracketDistance = size * 0.37; // 95 for 256px
+  ctx.strokeStyle = amberColor;
+  ctx.lineWidth = 3;
+
+  // Top-left bracket
+  ctx.beginPath();
+  ctx.moveTo(centerX - bracketDistance, centerY - bracketDistance + bracketSize);
+  ctx.lineTo(centerX - bracketDistance, centerY - bracketDistance);
+  ctx.lineTo(centerX - bracketDistance + bracketSize, centerY - bracketDistance);
+  ctx.stroke();
+
+  // Top-right bracket
+  ctx.beginPath();
+  ctx.moveTo(centerX + bracketDistance - bracketSize, centerY - bracketDistance);
+  ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance);
+  ctx.lineTo(centerX + bracketDistance, centerY - bracketDistance + bracketSize);
+  ctx.stroke();
+
+  // Bottom-left bracket
+  ctx.beginPath();
+  ctx.moveTo(centerX - bracketDistance, centerY + bracketDistance - bracketSize);
+  ctx.lineTo(centerX - bracketDistance, centerY + bracketDistance);
+  ctx.lineTo(centerX - bracketDistance + bracketSize, centerY + bracketDistance);
+  ctx.stroke();
+
+  // Bottom-right bracket
+  ctx.beginPath();
+  ctx.moveTo(centerX + bracketDistance - bracketSize, centerY + bracketDistance);
+  ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance);
+  ctx.lineTo(centerX + bracketDistance, centerY + bracketDistance - bracketSize);
+  ctx.stroke();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
+ * Create reticle outer ring texture
+ * Just the outer circle with cross cutout
+ */
+export function createReticleOuterRingTexture(size = 256): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const amberColor = 'rgba(139, 115, 85, 1.0)';
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Draw outer circle
+  ctx.strokeStyle = amberColor;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, size * 0.3125, 0, Math.PI * 2); // 80 for 256px
+  ctx.stroke();
+
+  // Cut out cross pattern for visual interest
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+  const crossWidth = size * 0.04; // 10 for 256px
+  const crossLength = size * 0.35; // 90 for 256px
+  ctx.fillRect(centerX - crossLength, centerY - crossWidth / 2, crossLength * 2, crossWidth);
+  ctx.fillRect(centerX - crossWidth / 2, centerY - crossLength, crossWidth, crossLength * 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
+ * Create reticle inner ring texture
+ * Just the inner circle with cross cutout
+ */
+export function createReticleInnerRingTexture(size = 256): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const amberColor = 'rgba(139, 115, 85, 1.0)';
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Draw inner circle
+  ctx.strokeStyle = amberColor;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, size * 0.234, 0, Math.PI * 2); // 60 for 256px
+  ctx.stroke();
+
+  // Cut out cross pattern for visual interest
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+  const crossWidth = size * 0.04; // 10 for 256px
+  const crossLength = size * 0.35; // 90 for 256px
+  ctx.fillRect(centerX - crossLength, centerY - crossWidth / 2, crossLength * 2, crossWidth);
+  ctx.fillRect(centerX - crossWidth / 2, centerY - crossLength, crossWidth, crossLength * 2);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;

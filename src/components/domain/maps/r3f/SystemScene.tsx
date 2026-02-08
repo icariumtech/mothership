@@ -171,7 +171,6 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
               // Only start fade-in if NOT already transitioning
               // If transitionState is 'transitioning-in', the useEffect will handle it
               if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
-                console.log('[SystemScene] Starting fade-in animation (initialization)');
                 fadeAnimationRunningRef.current = true;
                 // Gradually fade in scene opacity to match CSS animation
                 // Start a gradual fade from 0 to 1 over 1200ms
@@ -297,10 +296,8 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
 
       if (transitionState === 'transitioning-out') {
         if (fadeAnimationRunningRef.current) {
-          console.log('[SystemScene] Skipping fade-out - animation already running');
           return;
         }
-        console.log('[SystemScene] Starting fade-out animation');
         lastProcessedTransitionRef.current = transitionState;
         fadeAnimationRunningRef.current = true;
         const fadeStart = performance.now();
@@ -316,7 +313,6 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
           if (progress < 1) {
             requestAnimationFrame(fadeOut);
           } else {
-            console.log('[SystemScene] Fade-out complete');
             fadeAnimationRunningRef.current = false;
           }
         };
@@ -324,10 +320,8 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       } else if (transitionState === 'transitioning-in') {
         // Fade in when returning to this scene (e.g., back from orbit)
         if (fadeAnimationRunningRef.current) {
-          console.log('[SystemScene] Skipping fade-in - animation already running');
           return;
         }
-        console.log('[SystemScene] Starting fade-in animation (transition)');
         lastProcessedTransitionRef.current = transitionState;
         fadeAnimationRunningRef.current = true;
         const fadeStart = performance.now();
@@ -343,7 +337,6 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
           if (progress < 1) {
             requestAnimationFrame(fadeIn);
           } else {
-            console.log('[SystemScene] Fade-in complete');
             fadeAnimationRunningRef.current = false;
           }
         };
@@ -463,18 +456,14 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     // Handle planet click
     const handlePlanetClick = useCallback(
       (body: BodyData) => {
-        console.log('[SystemScene] handlePlanetClick - clicked:', body.name, 'current selection:', selectedPlanet?.name ?? 'null');
         if (selectedPlanet?.name === body.name) {
           // Deselect if clicking the same planet
-          console.log('[SystemScene] handlePlanetClick - DESELECTING, calling selectPlanet(null)');
           selectPlanet(null);
-          console.log('[SystemScene] handlePlanetClick - After selectPlanet(null), store value:', useSceneStore.getState().selectedPlanet?.name ?? 'null');
           // returnToDefault handles clearing tracking state and animating
           returnToDefault();
           onPlanetSelect?.(null);
         } else {
           // Select new planet
-          console.log('[SystemScene] handlePlanetClick - SELECTING planet:', body.name);
           selectPlanet(body);
           // moveToPlanet will set up tracking after animation completes
           moveToPlanet(body);
@@ -495,7 +484,6 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       if (prevSelection?.name !== newSelection?.name) {
         if (newSelection === null) {
           // Deselected - return to default view
-          console.log('[SystemScene] useEffect - deselected via prop, updating store to null');
           selectPlanet(null); // Update store to match prop
           // returnToDefault handles clearing tracking state and animating
           returnToDefault();
@@ -544,10 +532,8 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     // IMPORTANT: Read directly from store to avoid stale closure values
     const getControlTarget = useCallback((): THREE.Vector3 | null => {
       const currentSelected = useSceneStore.getState().selectedPlanet;
-      console.log('[SystemScene] getControlTarget - store selectedPlanet:', currentSelected?.name ?? 'null');
       if (!currentSelected) return null;
       const pos = getPlanetPosition(currentSelected.name);
-      console.log('[SystemScene] getControlTarget - returning position:', pos?.toArray() ?? 'null');
       return pos;
     }, [getPlanetPosition]);
 

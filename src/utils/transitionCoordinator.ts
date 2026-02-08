@@ -165,7 +165,6 @@ export async function executeDrillDownSequence(params: DrillDownSequenceParams):
 
   // Phase 1: Ensure element is selected
   if (currentSelection !== targetElement) {
-    console.log('[Transition] Selecting element:', targetElement);
     selectElement(targetElement);
 
     // Wait for camera animation
@@ -177,16 +176,13 @@ export async function executeDrillDownSequence(params: DrillDownSequenceParams):
   }
 
   // Phase 2: Zoom into element from current position
-  console.log('[Transition] Zooming into element');
   await zoomIntoElement();
 
   // Phase 3: Fade out current view
-  console.log('[Transition] Fading out current view');
   setCurrentTransition('transitioning-out');
   await new Promise(resolve => setTimeout(resolve, TRANSITION_TIMING.FADE_OUT_TIME));
 
   // Phase 4: Switch to next view
-  console.log('[Transition] Switching to next view');
   switchView();
   setNextTransition('transitioning-in');
 
@@ -196,7 +192,6 @@ export async function executeDrillDownSequence(params: DrillDownSequenceParams):
   // Phase 6: Reset transition states
   setCurrentTransition('idle');
   setNextTransition('idle');
-  console.log('[Transition] Drill down complete');
 }
 
 /**
@@ -236,12 +231,10 @@ export async function executeBackNavigationSequence(params: BackNavigationSequen
   } = params;
 
   // Phase 1: Zoom out and fade out current view
-  console.log('[Transition] Zooming out from current view');
   setCurrentTransition('transitioning-out');
   await zoomOutCurrent();
 
   // Phase 2: Switch to previous view
-  console.log('[Transition] Switching to previous view');
   switchView();
   setPreviousTransition('transitioning-in');
 
@@ -249,7 +242,6 @@ export async function executeBackNavigationSequence(params: BackNavigationSequen
   await waitForViewRender();
 
   // Phase 4: Position camera on previously selected element
-  console.log('[Transition] Positioning camera');
   positionCamera();
 
   // Phase 5: Wait for fade in
@@ -259,5 +251,4 @@ export async function executeBackNavigationSequence(params: BackNavigationSequen
   setCurrentTransition('idle');
   setPreviousTransition('idle');
   cleanupState();
-  console.log('[Transition] Back navigation complete');
 }

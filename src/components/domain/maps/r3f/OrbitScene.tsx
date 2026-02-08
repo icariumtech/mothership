@@ -188,10 +188,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
 
       if (transitionState === 'transitioning-out') {
         if (fadeAnimationRunningRef.current) {
-          console.log('[OrbitScene] Skipping fade-out - animation already running');
           return;
         }
-        console.log('[OrbitScene] Starting fade-out animation');
         lastProcessedTransitionRef.current = transitionState;
         fadeAnimationRunningRef.current = true;
         const fadeStart = performance.now();
@@ -207,7 +205,6 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
           if (progress < 1) {
             requestAnimationFrame(fadeOut);
           } else {
-            console.log('[OrbitScene] Fade-out complete');
             fadeAnimationRunningRef.current = false;
           }
         };
@@ -215,10 +212,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
       } else if (transitionState === 'transitioning-in') {
         // Fade in when returning to this scene (e.g., back from system)
         if (fadeAnimationRunningRef.current) {
-          console.log('[OrbitScene] Skipping fade-in - animation already running');
           return;
         }
-        console.log('[OrbitScene] Starting fade-in animation (transition)');
         lastProcessedTransitionRef.current = transitionState;
         fadeAnimationRunningRef.current = true;
         const fadeStart = performance.now();
@@ -234,7 +229,6 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
           if (progress < 1) {
             requestAnimationFrame(fadeIn);
           } else {
-            console.log('[OrbitScene] Fade-in complete');
             fadeAnimationRunningRef.current = false;
           }
         };
@@ -286,14 +280,11 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
 
         // Wait until all objects are loaded (or timeout after 60 frames ~1 second)
         if (actualObjectCount < expectedTotalObjects && waitFramesRef.current < 60) {
-          console.log(`[OrbitScene] Waiting for objects to load: ${actualObjectCount}/${expectedTotalObjects} (frame ${waitFramesRef.current})`);
           return;
         }
 
         if (actualObjectCount < expectedTotalObjects) {
           console.warn(`[OrbitScene] Timeout waiting for objects. Expected ${expectedTotalObjects}, found ${actualObjectCount}`);
-        } else {
-          console.log(`[OrbitScene] All ${actualObjectCount} objects loaded, starting animation`);
         }
       }
 
@@ -327,7 +318,6 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
               // Only start fade-in if NOT already transitioning
               // If transitionState is 'transitioning-in', the useEffect will handle it
               if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
-                console.log('[OrbitScene] Starting fade-in animation (initialization)');
                 fadeAnimationRunningRef.current = true;
                 // Gradually fade in scene opacity to match CSS animation
                 // Start a gradual fade from 0 to 1 over 1200ms
@@ -344,7 +334,6 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
                   if (progress < 1) {
                     requestAnimationFrame(fadeIn);
                   } else {
-                    console.log('[OrbitScene] Fade-in complete');
                     fadeAnimationRunningRef.current = false;
                   }
                 };

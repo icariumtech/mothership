@@ -28,6 +28,17 @@ urlpatterns = [
     path('api/gm/charon/reject/', views.api_charon_reject, name='charon_reject'),
     path('api/gm/charon/clear/', views.api_charon_clear, name='charon_clear'),
     path('api/gm/charon/toggle-dialog/', views.api_charon_toggle_dialog, name='charon_toggle_dialog'),
+    # CHARON Channel Management API endpoints (multi-channel support)
+    path('api/gm/charon/channels/', views.api_charon_channels, name='charon_channels'),
+    path('api/charon/<str:channel>/conversation/', views.api_charon_channel_conversation, name='charon_channel_conversation'),
+    path('api/charon/<str:channel>/submit/', views.api_charon_channel_submit, name='charon_channel_submit'),
+    path('api/gm/charon/<str:channel>/send/', views.api_charon_channel_send, name='charon_channel_send'),
+    path('api/gm/charon/<str:channel>/mark-read/', views.api_charon_channel_mark_read, name='charon_channel_mark_read'),
+    path('api/gm/charon/<str:channel>/pending/', views.api_charon_channel_pending, name='charon_channel_pending'),
+    path('api/gm/charon/<str:channel>/approve/', views.api_charon_channel_approve, name='charon_channel_approve'),
+    path('api/gm/charon/<str:channel>/reject/', views.api_charon_channel_reject, name='charon_channel_reject'),
+    path('api/gm/charon/<str:channel>/generate/', views.api_charon_channel_generate, name='charon_channel_generate'),
+    path('api/gm/charon/<str:channel>/clear/', views.api_charon_channel_clear, name='charon_channel_clear'),
     # Encounter Map API endpoints
     path('api/gm/encounter/switch-level/', views.api_encounter_switch_level, name='encounter_switch_level'),
     path('api/gm/encounter/toggle-room/', views.api_encounter_toggle_room, name='encounter_toggle_room'),

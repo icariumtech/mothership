@@ -87,6 +87,15 @@ DATABASES = {
     }
 }
 
+# Cache configuration
+# Use file-based cache to enable cross-process access (Django shell, server, etc.)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/tmp/django_cache',
+        'TIMEOUT': 14400,  # 4 hours (matches CACHE_TTL in charon_session.py)
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

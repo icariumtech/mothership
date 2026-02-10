@@ -173,6 +173,7 @@ def get_active_view_json(request):
         'charon_mode': active_view.charon_mode,
         'charon_location_path': active_view.charon_location_path or '',
         'charon_dialog_open': active_view.charon_dialog_open,
+        'charon_active_channel': active_view.charon_active_channel or 'story',
         'encounter_level': active_view.encounter_level,
         'encounter_deck_id': active_view.encounter_deck_id or '',
         'encounter_room_visibility': active_view.encounter_room_visibility or {},
@@ -456,6 +457,20 @@ def api_switch_view(request):
     # Clear overlay when switching views
     active_view.overlay_location_slug = ''
     active_view.overlay_terminal_slug = ''
+
+    # Auto-set CHARON channel based on view type
+    if new_view_type == 'CHARON_TERMINAL':
+        active_view.charon_active_channel = 'story'
+        # Clear story channel conversation on CHARON_TERMINAL view switch
+        from terminal.charon_session import CharonSessionManager
+        CharonSessionManager.clear_conversation('story')
+    elif new_view_type == 'BRIDGE':
+        active_view.charon_active_channel = 'bridge'
+        # Clear bridge channel conversation on BRIDGE view switch
+        from terminal.charon_session import CharonSessionManager
+        CharonSessionManager.clear_conversation('bridge')
+    elif new_view_type == 'ENCOUNTER' and new_location_slug:
+        active_view.charon_active_channel = f'encounter-{new_location_slug}'
 
     # When switching to a new ENCOUNTER location, initialize all rooms as hidden
     if is_new_encounter_location:
@@ -1256,3 +1271,305 @@ def api_terminal_data(request, location_slug, terminal_slug):
         'inbox': inbox,
         'sent': sent,
     })
+
+
+# =============================================================================
+# CHARON Channel Management (Multi-Channel Support)
+# =============================================================================
+
+@login_required
+def api_charon_channels(request):
+    """
+    Get list of all active CHARON channels with message counts and unread indicators.
+    GET: Returns list of channels with metadata.
+    """
+    from terminal.charon_session import CharonSessionManager
+    
+    channels = CharonSessionManager.get_all_channels()
+    channel_data = []
+    
+    for channel in channels:
+        conversation = CharonSessionManager.get_conversation(channel)
+        last_read = CharonSessionManager.get_last_read(channel)
+        last_read_id = last_read['message_id'] if last_read else None
+        unread_count = CharonSessionManager.get_unread_count(channel, last_read_id)
+        
+        channel_data.append({
+            'channel': channel,
+            'message_count': len(conversation),
+            'unread_count': unread_count,
+            'last_message': conversation[-1] if conversation else None,
+        })
+    
+    return JsonResponse({'channels': channel_data})
+
+
+@csrf_exempt
+def api_charon_channel_conversation(request, channel):
+    """
+    Get conversation for a specific channel (public for player terminals).
+    GET: Returns conversation messages for the channel.
+    """
+    from terminal.charon_session import CharonSessionManager
+    from terminal.models import ActiveView
+    
+    conversation = CharonSessionManager.get_conversation(channel)
+    active_view = ActiveView.get_current()
+    
+    mode = active_view.charon_mode
+    
+    return JsonResponse({
+        'channel': channel,
+        'mode': mode,
+        'messages': conversation,
+    })
+
+
+@csrf_exempt
+def api_charon_channel_submit(request, channel):
+    """
+    Player submits query to a specific CHARON channel.
+    POST: { query: string }
+    Public endpoint - players submit queries from terminals.
+    """
+    from terminal.charon_session import CharonSessionManager, CharonMessage
+    from terminal.models import ActiveView
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    query = data.get('query', '').strip()
+    if not query:
+        return JsonResponse({'error': 'Query required'}, status=400)
+    
+    # Add player query to conversation
+    query_msg = CharonMessage(role='user', content=query)
+    CharonSessionManager.add_message(query_msg, channel)
+    
+    # Generate AI response
+    active_view = ActiveView.get_current()
+    location_path = get_charon_location_path(active_view)
+    from terminal.charon_ai import get_charon_ai
+    ai = get_charon_ai(location_path=location_path)
+    conversation = CharonSessionManager.get_conversation(channel)
+    response = ai.generate_response(query, conversation)
+    
+    # Queue for GM approval
+    pending_id = CharonSessionManager.add_pending_response(
+        query=query,
+        response=response,
+        query_id=query_msg.message_id,
+        channel=channel
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'query_id': query_msg.message_id,
+        'pending_id': pending_id,
+    })
+
+
+@login_required
+def api_charon_channel_send(request, channel):
+    """
+    GM sends message to a specific CHARON channel.
+    POST: { content: string }
+    """
+    from terminal.charon_session import CharonSessionManager, CharonMessage
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    content = data.get('content', '').strip()
+    if not content:
+        return JsonResponse({'error': 'Content required'}, status=400)
+    
+    msg = CharonMessage(role='charon', content=content)
+    CharonSessionManager.add_message(msg, channel)
+    
+    return JsonResponse({
+        'success': True,
+        'message_id': msg.message_id,
+        'channel': channel,
+    })
+
+
+@login_required
+def api_charon_channel_mark_read(request, channel):
+    """
+    Mark all messages in a channel as read by GM.
+    POST: No body required.
+    """
+    from terminal.charon_session import CharonSessionManager
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    CharonSessionManager.mark_channel_read(channel, request.user.id)
+    
+    return JsonResponse({'success': True, 'channel': channel})
+
+
+@login_required
+def api_charon_channel_pending(request, channel):
+    """
+    Get pending AI responses for a specific channel.
+    GET: Returns pending responses awaiting GM approval.
+    """
+    from terminal.charon_session import CharonSessionManager
+    
+    pending = CharonSessionManager.get_pending_responses(channel)
+    
+    return JsonResponse({
+        'channel': channel,
+        'pending': pending,
+        'count': len(pending),
+    })
+
+
+@login_required
+def api_charon_channel_approve(request, channel):
+    """
+    Approve a pending AI response for a specific channel.
+    POST: { pending_id: string, modified_content?: string }
+    """
+    from terminal.charon_session import CharonSessionManager
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    
+    pending_id = data.get('pending_id')
+    modified_content = data.get('modified_content')
+    
+    if not pending_id:
+        return JsonResponse({'error': 'pending_id required'}, status=400)
+    
+    success = CharonSessionManager.approve_response(pending_id, modified_content, channel)
+    
+    if success:
+        return JsonResponse({'success': True, 'channel': channel})
+    else:
+        return JsonResponse({'error': 'Pending response not found'}, status=404)
+
+
+@login_required
+def api_charon_channel_reject(request, channel):
+    """
+    Reject a pending AI response for a specific channel.
+    POST: { pending_id: string }
+    """
+    from terminal.charon_session import CharonSessionManager
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    pending_id = data.get('pending_id')
+
+    if not pending_id:
+        return JsonResponse({'error': 'pending_id required'}, status=400)
+
+    success = CharonSessionManager.reject_response(pending_id, channel)
+
+    if success:
+        return JsonResponse({'success': True, 'channel': channel})
+    else:
+        return JsonResponse({'error': 'Pending response not found'}, status=404)
+
+
+@login_required
+def api_charon_channel_generate(request, channel):
+    """
+    GM prompts AI to generate a CHARON response for a specific channel.
+    POST: { prompt: string, context_override?: string }
+    Returns a pending response for GM approval.
+    """
+    from terminal.charon_session import CharonSessionManager
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    prompt = data.get('prompt', '').strip()
+    context_override = data.get('context_override', '').strip()
+
+    if not prompt:
+        return JsonResponse({'error': 'Prompt required'}, status=400)
+
+    # Determine location context from channel name
+    location_path = None
+    if channel.startswith('encounter-'):
+        location_slug = channel[len('encounter-'):]
+        from terminal.data_loader import DataLoader
+        loader = DataLoader()
+        path_slugs = loader.get_location_path(location_slug)
+        if path_slugs:
+            location_path = '/'.join(path_slugs)
+
+    # Generate AI response with location context
+    from terminal.charon_ai import get_charon_ai
+    ai = get_charon_ai(location_path=location_path)
+    conversation = CharonSessionManager.get_conversation(channel)
+
+    # Build context prompt
+    context_parts = [f"[GM PROMPT: {prompt}]"]
+    if context_override:
+        context_parts.append(f"[GM CONTEXT OVERRIDE: {context_override}]")
+    context_parts.append("\n\nGenerate a CHARON response based on this context.")
+    context_prompt = "\n".join(context_parts)
+
+    response = ai.generate_response(context_prompt, conversation)
+
+    # Queue for GM approval
+    import uuid
+    pending_id = CharonSessionManager.add_pending_response(
+        query=f"[GM Prompt] {prompt}",
+        response=response,
+        query_id=str(uuid.uuid4()),
+        channel=channel
+    )
+
+    return JsonResponse({
+        'success': True,
+        'pending_id': pending_id,
+        'response': response,
+        'channel': channel,
+    })
+
+
+@login_required
+def api_charon_channel_clear(request, channel):
+    """
+    GM clears conversation for a specific channel.
+    POST: {}
+    """
+    from terminal.charon_session import CharonSessionManager
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    CharonSessionManager.clear_conversation(channel)
+    return JsonResponse({'success': True, 'channel': channel})

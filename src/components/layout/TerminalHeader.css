@@ -56,21 +56,6 @@
   font-family: 'Cascadia Code', 'Courier New', monospace;
 }
 
-.terminal-header-right .charon-link {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: #8b7355;
-  font-family: 'Cascadia Code', 'Courier New', monospace;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.terminal-header-right .charon-link:hover {
-  color: #9a8065;
-}
 
 .terminal-header .typing-cursor {
   animation: blink 0.7s infinite;

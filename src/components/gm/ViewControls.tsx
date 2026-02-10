@@ -1,4 +1,4 @@
-import { Button, Card, Space } from 'antd';
+import { Button, Card, Space, Badge } from 'antd';
 import { PauseCircleOutlined, DashboardOutlined, RobotOutlined, GlobalOutlined } from '@ant-design/icons';
 
 interface ViewControlsProps {
@@ -7,9 +7,14 @@ interface ViewControlsProps {
   onBridge: () => void;
   onCharon: () => void;
   onEncounter: () => void;
+  unreadCounts?: {
+    bridge?: number;
+    story?: number;
+    encounter?: number;
+  };
 }
 
-export function ViewControls({ currentView, onStandby, onBridge, onCharon, onEncounter }: ViewControlsProps) {
+export function ViewControls({ currentView, onStandby, onBridge, onCharon, onEncounter, unreadCounts }: ViewControlsProps) {
   return (
     <Card title="VIEW CONTROLS" size="small">
       <Space>
@@ -20,27 +25,33 @@ export function ViewControls({ currentView, onStandby, onBridge, onCharon, onEnc
         >
           STANDBY
         </Button>
-        <Button
-          type={currentView === 'BRIDGE' ? 'primary' : 'default'}
-          icon={<DashboardOutlined />}
-          onClick={onBridge}
-        >
-          BRIDGE
-        </Button>
-        <Button
-          type={currentView === 'ENCOUNTER' ? 'primary' : 'default'}
-          icon={<GlobalOutlined />}
-          onClick={onEncounter}
-        >
-          ENCOUNTER
-        </Button>
-        <Button
-          type={currentView === 'CHARON_TERMINAL' ? 'primary' : 'default'}
-          icon={<RobotOutlined />}
-          onClick={onCharon}
-        >
-          CHARON
-        </Button>
+        <Badge count={unreadCounts?.bridge || 0} offset={[10, 5]}>
+          <Button
+            type={currentView === 'BRIDGE' ? 'primary' : 'default'}
+            icon={<DashboardOutlined />}
+            onClick={onBridge}
+          >
+            BRIDGE
+          </Button>
+        </Badge>
+        <Badge count={unreadCounts?.encounter || 0} offset={[10, 5]}>
+          <Button
+            type={currentView === 'ENCOUNTER' ? 'primary' : 'default'}
+            icon={<GlobalOutlined />}
+            onClick={onEncounter}
+          >
+            ENCOUNTER
+          </Button>
+        </Badge>
+        <Badge count={unreadCounts?.story || 0} offset={[10, 5]}>
+          <Button
+            type={currentView === 'CHARON_TERMINAL' ? 'primary' : 'default'}
+            icon={<RobotOutlined />}
+            onClick={onCharon}
+          >
+            CHARON
+          </Button>
+        </Badge>
       </Space>
     </Card>
   );

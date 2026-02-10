@@ -1,9 +1,9 @@
 import { ReactNode } from 'react';
 import { TabBar, BridgeTab } from './TabBar';
-import { CrewSection } from './sections/CrewSection';
-import { ContactsSection } from './sections/ContactsSection';
+import { PersonnelSection } from './sections/PersonnelSection';
 import { NotesSection } from './sections/NotesSection';
 import { StatusSection } from './sections/StatusSection';
+import { CharonSection } from './sections/CharonSection';
 import './BridgeView.css';
 
 // Re-export types from CampaignDashboard for compatibility
@@ -68,6 +68,7 @@ export interface BridgeViewProps {
   onTabChange: (tab: BridgeTab) => void;
   tabTransitionActive?: boolean;
   children?: ReactNode; // Map components and InfoPanel passed from SharedConsole
+  charonHasMessages?: boolean;
 }
 
 export function BridgeView({
@@ -75,6 +76,7 @@ export function BridgeView({
   onTabChange,
   tabTransitionActive = false,
   children,
+  charonHasMessages = false,
 }: BridgeViewProps) {
   return (
     <div className="bridge-view">
@@ -84,10 +86,14 @@ export function BridgeView({
         {activeTab === 'map' && children}
 
         {/* Other sections - conditionally rendered */}
-        {activeTab === 'crew' && <CrewSection />}
-        {activeTab === 'contacts' && <ContactsSection />}
+        {activeTab === 'personnel' && <PersonnelSection />}
         {activeTab === 'notes' && <NotesSection />}
         {activeTab === 'status' && <StatusSection />}
+
+        {/* CHARON Section - always mounted to preserve conversation state and avoid indicator flashes */}
+        <div style={{ display: activeTab === 'charon' ? 'block' : 'none' }}>
+          <CharonSection isVisible={activeTab === 'charon'} />
+        </div>
       </div>
 
       {/* Tab Bar */}
@@ -95,6 +101,7 @@ export function BridgeView({
         activeTab={activeTab}
         onTabChange={onTabChange}
         disabled={tabTransitionActive}
+        charonHasMessages={charonHasMessages}
       />
     </div>
   );

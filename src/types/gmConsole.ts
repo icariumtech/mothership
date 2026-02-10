@@ -26,6 +26,7 @@ export interface ActiveView {
   overlay_terminal_slug: string;
   charon_mode: 'DISPLAY' | 'QUERY';
   charon_dialog_open: boolean;
+  charon_active_channel?: string;
   // Location info (when in ENCOUNTER view)
   location_type?: string;
   location_name?: string;

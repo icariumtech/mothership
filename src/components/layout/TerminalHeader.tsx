@@ -6,7 +6,6 @@ interface TerminalHeaderProps {
   subtitle?: string;
   rightText?: string;
   hidden?: boolean;
-  onCharonClick?: () => void;
   typewriterTitle?: boolean;
 }
 
@@ -15,7 +14,6 @@ export function TerminalHeader({
   subtitle,
   rightText,
   hidden = false,
-  onCharonClick,
   typewriterTitle = false
 }: TerminalHeaderProps) {
   const [displayedTitle, setDisplayedTitle] = useState(typewriterTitle ? '' : title);
@@ -64,15 +62,6 @@ export function TerminalHeader({
         {subtitle && <span className="subtitle">{subtitle}</span>}
       </div>
       <div className="terminal-header-right">
-        {onCharonClick && (
-          <button
-            className="charon-link"
-            onClick={onCharonClick}
-            type="button"
-          >
-            CHARON
-          </button>
-        )}
         {rightText && <span>{rightText}</span>}
       </div>
     </header>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider, theme, Layout, message, Tabs } from 'antd';
 import { RobotOutlined, NotificationOutlined, RadarChartOutlined } from '@ant-design/icons';
@@ -20,8 +20,21 @@ function GMConsole() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const [channelUnreads, setChannelUnreads] = useState<Record<string, number>>({});
 
   const { expandedNodes, toggleNode } = useTreeState('gm-console-tree');
+
+  // Derive active CHARON channel from view state
+  const activeCharonChannel = useMemo(() => {
+    const viewType = activeView?.view_type || 'STANDBY';
+    if (viewType === 'CHARON_TERMINAL') return 'story';
+    if (viewType === 'BRIDGE') return 'bridge';
+    if (viewType === 'ENCOUNTER' && activeView?.location_slug) {
+      return `encounter-${activeView.location_slug}`;
+    }
+    // Fallback: use whatever the server says, or 'story'
+    return activeView?.charon_active_channel || 'story';
+  }, [activeView?.view_type, activeView?.location_slug, activeView?.charon_active_channel]);
 
   // Load initial data
   useEffect(() => {
@@ -57,6 +70,39 @@ function GMConsole() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Poll for channel unread counts
+  useEffect(() => {
+    const pollUnreads = async () => {
+      try {
+        const data = await charonApi.getChannels();
+        const unreads: Record<string, number> = {};
+        for (const ch of data.channels) {
+          const pending = await charonApi.getChannelPending(ch.channel);
+          if (pending.count > 0) {
+            unreads[ch.channel] = pending.count;
+          }
+        }
+        setChannelUnreads(unreads);
+      } catch (err) {
+        console.error('Failed to poll channel unreads:', err);
+      }
+    };
+
+    pollUnreads();
+    const interval = setInterval(pollUnreads, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Compute aggregate unread counts by category
+  const unreadCounts = useMemo(() => {
+    let bridge = channelUnreads['bridge'] || 0;
+    let story = channelUnreads['story'] || 0;
+    let encounter = Object.entries(channelUnreads)
+      .filter(([key]) => key.startsWith('encounter-'))
+      .reduce((sum, [, count]) => sum + count, 0);
+    return { bridge, story, encounter };
+  }, [channelUnreads]);
 
   const showStatus = useCallback((msg: string, type: 'success' | 'error' = 'success') => {
     messageApi.open({ type, content: msg });
@@ -230,6 +276,7 @@ function GMConsole() {
             onBridge={handleBridge}
             onEncounter={handleEncounter}
             onCharon={handleCharonActivate}
+            unreadCounts={unreadCounts}
           />
           <Tabs
             defaultActiveKey="charon"
@@ -240,7 +287,9 @@ function GMConsole() {
                 label: (
                   <span>
                     <RobotOutlined style={{ marginRight: 8 }} />
-                    CHARON TERMINAL
+                    CHARON {activeCharonChannel === 'bridge' ? '// BRIDGE' :
+                            activeCharonChannel === 'story' ? '// STORY' :
+                            activeCharonChannel.startsWith('encounter-') ? '// ENCOUNTER' : ''}
                   </span>
                 ),
                 children: (
@@ -253,6 +302,7 @@ function GMConsole() {
                     marginTop: -16
                   }}>
                     <CharonPanel
+                      channel={activeCharonChannel}
                       currentViewType={activeView?.view_type || 'STANDBY'}
                       charonDialogOpen={activeView?.charon_dialog_open || false}
                       onDialogToggle={handleToggleCharonDialog}

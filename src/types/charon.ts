@@ -5,6 +5,8 @@
 
 export type CharonMode = 'DISPLAY' | 'QUERY';
 
+export type CharonChannel = 'story' | 'bridge' | `encounter-${string}`;
+
 export interface CharonMessage {
   message_id: string;
   role: 'user' | 'charon';

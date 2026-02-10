@@ -2,16 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { charonApi } from '@/services/charonApi';
 import { Panel } from '@/components/ui/Panel';
 import type { CharonMessage, CharonMode } from '@/types/charon';
-import './CharonDialog.css';
+import './CharonTerminal.css';
 
-interface CharonDialogProps {
-  open: boolean;
-  onClose: () => void;
-  channel?: string;
-  disableClose?: boolean;
+interface CharonTerminalProps {
+  className?: string;
+  isVisible?: boolean;
 }
 
-export function CharonDialog({ open, onClose, channel = 'default', disableClose = false }: CharonDialogProps) {
+export function CharonTerminal({ className, isVisible = true }: CharonTerminalProps) {
   const [messages, setMessages] = useState<CharonMessage[]>([]);
   const [mode, setMode] = useState<CharonMode>('DISPLAY');
   const [queryInput, setQueryInput] = useState('');
@@ -23,9 +21,10 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
   const inputRef = useRef<HTMLInputElement>(null);
   const processedMessagesRef = useRef<Set<string>>(new Set());
 
-  // Typewriter effect for CHARON messages
+  // Typewriter effect for CHARON messages — only processes when tab is visible.
+  // Messages arriving while hidden are deferred until the tab becomes visible again.
   useEffect(() => {
-    if (!open) return;
+    if (!isVisible) return;
 
     const charonMessages = messages.filter(m => m.role === 'charon');
 
@@ -52,15 +51,13 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
         break;
       }
     }
-  }, [messages, open]);
+  }, [messages, isVisible]);
 
-  // Poll for conversation updates when dialog is open
+  // Poll for conversation updates (using bridge channel)
   useEffect(() => {
-    if (!open) return;
-
     const fetchConversation = async () => {
       try {
-        const data = await charonApi.getChannelConversation(channel);
+        const data = await charonApi.getChannelConversation('bridge');
         setMode(data.mode);
         setMessages(data.messages);
       } catch (err) {
@@ -71,20 +68,19 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     fetchConversation();
     const interval = setInterval(fetchConversation, 2000);
     return () => clearInterval(interval);
-  }, [open, channel]);
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
-    if (!open) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typedMessages, queryInput, isProcessing, open]);
+  }, [messages, typedMessages, queryInput, isProcessing]);
 
   // Focus input in query mode
   useEffect(() => {
-    if (open && mode === 'QUERY' && inputRef.current && typingMessageId === null && !isProcessing) {
+    if (mode === 'QUERY' && inputRef.current && typingMessageId === null && !isProcessing) {
       inputRef.current.focus();
     }
-  }, [mode, typingMessageId, isProcessing, open]);
+  }, [mode, typingMessageId, isProcessing]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -97,14 +93,14 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
       setIsProcessing(true);
 
       try {
-        await charonApi.submitChannelQuery(channel, query);
+        await charonApi.submitChannelQuery('bridge', query);
       } catch (err) {
         console.error('Error submitting query:', err);
         setIsProcessing(false);
         setSubmittedQuery('');
       }
     },
-    [queryInput, isProcessing, channel]
+    [queryInput, isProcessing]
   );
 
   const handleKeyDown = useCallback(
@@ -116,16 +112,6 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     },
     [handleSubmit]
   );
-
-  const handleBackdropClick = useCallback(() => {
-    if (!disableClose) {
-      onClose();
-    }
-  }, [onClose, disableClose]);
-
-  const handlePanelClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
 
   const getMessageContent = (msg: CharonMessage): string => {
     if (msg.role === 'charon') {
@@ -147,8 +133,6 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     return msg.message_id === typingMessageId;
   };
 
-  if (!open) return null;
-
   const isCurrentlyTyping = typingMessageId !== null;
   const showDisplayCursor = mode === 'DISPLAY' && !isCurrentlyTyping && !isProcessing;
   const showQueryPrompt = mode === 'QUERY' && !isCurrentlyTyping && !isProcessing;
@@ -156,66 +140,64 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     messages.some(m => m.role === 'user' && m.content === submittedQuery);
 
   return (
-    <div className="charon-dialog-backdrop" onClick={handleBackdropClick}>
-      <div className="charon-dialog-container" onClick={handlePanelClick}>
-        <Panel
-          title="CHARON"
-          chamferCorners={['tl', 'tr', 'bl', 'br']}
-          className="charon-dialog-panel"
-        >
-          <div className="charon-dialog-messages">
-            {messages.map((msg) => (
-              <div key={msg.message_id} className={`charon-message ${msg.role}`}>
-                {msg.role === 'user' && <span className="message-prefix">&gt; </span>}
+    <div className={`charon-terminal-wrapper ${className || ''}`}>
+      <Panel
+        title="CHARON"
+        chamferCorners={['tl', 'tr', 'bl', 'br']}
+        className="charon-terminal-panel"
+      >
+        <div className="charon-terminal-messages">
+          {messages.map((msg) => (
+            <div key={msg.message_id} className={`charon-message ${msg.role}`}>
+              {msg.role === 'user' && <span className="message-prefix">&gt; </span>}
+              <span className="message-content">
+                {getMessageContent(msg)}
+                {isTyping(msg) && <span className="typing-cursor">_</span>}
+              </span>
+            </div>
+          ))}
+
+          {isProcessing && (
+            <>
+              {!queryAlreadyInMessages && (
+                <div className="charon-message user">
+                  <span className="message-prefix">&gt; </span>
+                  <span className="message-content">{submittedQuery}</span>
+                </div>
+              )}
+              <div className="charon-message charon processing">
                 <span className="message-content">
-                  {getMessageContent(msg)}
-                  {isTyping(msg) && <span className="typing-cursor">_</span>}
+                  Processing<span className="processing-dots"></span>
                 </span>
               </div>
-            ))}
+            </>
+          )}
 
-            {isProcessing && (
-              <>
-                {!queryAlreadyInMessages && (
-                  <div className="charon-message user">
-                    <span className="message-prefix">&gt; </span>
-                    <span className="message-content">{submittedQuery}</span>
-                  </div>
-                )}
-                <div className="charon-message charon processing">
-                  <span className="message-content">
-                    Processing<span className="processing-dots"></span>
-                  </span>
-                </div>
-              </>
-            )}
+          {showDisplayCursor && (
+            <div className="charon-prompt">
+              <span className="blinking-cursor">_</span>
+            </div>
+          )}
 
-            {showDisplayCursor && (
-              <div className="charon-prompt">
-                <span className="blinking-cursor">_</span>
-              </div>
-            )}
+          {showQueryPrompt && (
+            <form className="charon-prompt" onSubmit={handleSubmit}>
+              <span className="query-prefix">&gt;&nbsp;</span>
+              <input
+                ref={inputRef}
+                type="text"
+                className="query-input"
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="off"
+                autoFocus
+              />
+            </form>
+          )}
 
-            {showQueryPrompt && (
-              <form className="charon-prompt" onSubmit={handleSubmit}>
-                <span className="query-prefix">&gt;&nbsp;</span>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  className="query-input"
-                  value={queryInput}
-                  onChange={(e) => setQueryInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  autoComplete="off"
-                  autoFocus
-                />
-              </form>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-        </Panel>
-      </div>
+          <div ref={messagesEndRef} />
+        </div>
+      </Panel>
     </div>
   );
 }

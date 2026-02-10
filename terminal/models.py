@@ -69,6 +69,11 @@ class ActiveView(models.Model):
         default=False,
         help_text='Whether the CHARON dialog overlay is visible to players'
     )
+    charon_active_channel = models.CharField(
+        max_length=200,
+        default='story',
+        help_text='Active CHARON channel (story, bridge, encounter-{slug})'
+    )
 
     # Multi-level encounter map fields
     encounter_level = models.IntegerField(

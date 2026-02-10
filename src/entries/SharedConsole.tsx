@@ -41,6 +41,7 @@ interface ActiveView {
   overlay_location_slug: string;
   overlay_terminal_slug: string;
   charon_dialog_open: boolean;
+  charon_active_channel?: string;
   updated_at: string;
   // ENCOUNTER view specific fields
   location_type?: string;
@@ -137,7 +138,7 @@ function SharedConsole() {
   const [activeTab, setActiveTab] = useState<BridgeTab>(() => {
     try {
       const saved = sessionStorage.getItem('bridgeActiveTab');
-      if (saved && ['map', 'crew', 'contacts', 'notes', 'status'].includes(saved)) {
+      if (saved && ['map', 'personnel', 'notes', 'status', 'charon'].includes(saved)) {
         return saved as BridgeTab;
       }
     } catch (error) {
@@ -174,6 +175,10 @@ function SharedConsole() {
 
   // CHARON dialog state
   const [charonDialogOpen, setCharonDialogOpen] = useState(false);
+
+  // Bridge CHARON message indicator
+  const [charonHasMessages, setCharonHasMessages] = useState(false);
+  const [lastReadMessageId, setLastReadMessageId] = useState<string | null>(null);
 
   // Comm terminal overlay state
   const [terminalOverlayOpen, setTerminalOverlayOpen] = useState(false);
@@ -285,6 +290,7 @@ function SharedConsole() {
             setSelectedOrbitElement(null);
             setSelectedOrbitElementType(null);
             setSelectedOrbitElementData(null);
+            setActiveTab('map');
           }
 
           // Sync terminal overlay state
@@ -318,6 +324,33 @@ function SharedConsole() {
 
     return () => clearInterval(pollInterval);
   }, [activeView?.updated_at, activeView?.view_type, charonDialogOpen, terminalOverlayOpen]);
+
+  // Poll bridge channel for new messages (for CHARON tab indicator).
+  // When the CHARON tab is active, auto-mark messages as read so the indicator
+  // doesn't flash when switching away.
+  useEffect(() => {
+    const pollBridgeMessages = async () => {
+      try {
+        const data = await charonApi.getChannelConversation('bridge');
+        if (data.messages.length > 0) {
+          const lastMessage = data.messages[data.messages.length - 1];
+          if (activeTab === 'charon') {
+            // User is viewing CHARON — keep lastReadMessageId in sync
+            setLastReadMessageId(lastMessage.message_id);
+            setCharonHasMessages(false);
+          } else if (!lastReadMessageId || lastMessage.message_id !== lastReadMessageId) {
+            setCharonHasMessages(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll bridge messages:', error);
+      }
+    };
+
+    pollBridgeMessages();
+    const pollInterval = setInterval(pollBridgeMessages, 3000);
+    return () => clearInterval(pollInterval);
+  }, [lastReadMessageId, activeTab]);
 
   const viewType = activeView?.view_type || 'STANDBY';
   const isStandby = viewType === 'STANDBY';
@@ -742,16 +775,6 @@ function SharedConsole() {
   }, [activeTab, tabTransition]);
 
   // CHARON dialog handlers
-  const handleCharonDialogOpen = useCallback(async () => {
-    setCharonDialogOpen(true); // Immediate feedback
-    try {
-      await charonApi.toggleDialog(true);
-    } catch (error) {
-      console.error('Failed to open CHARON dialog:', error);
-      setCharonDialogOpen(false); // Revert on error
-    }
-  }, []);
-
   const handleCharonDialogClose = useCallback(async () => {
     setCharonDialogOpen(false); // Immediate feedback
     try {
@@ -786,7 +809,6 @@ function SharedConsole() {
         subtitle={viewType === 'ENCOUNTER' ? undefined : 'TERMINAL'}
         rightText={viewType === 'ENCOUNTER' || viewType === 'BRIDGE' ? undefined : 'STATION ACCESS'}
         hidden={isStandby || isCharonTerminal}
-        onCharonClick={viewType === 'BRIDGE' ? handleCharonDialogOpen : undefined}
         typewriterTitle={viewType === 'ENCOUNTER'}
       />
 
@@ -812,6 +834,7 @@ function SharedConsole() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           tabTransitionActive={tabTransition !== 'idle'}
+          charonHasMessages={charonHasMessages}
         >
           {/* Map components - only visible when map tab is active */}
           <>
@@ -929,6 +952,8 @@ function SharedConsole() {
       <CharonDialog
         open={charonDialogOpen}
         onClose={handleCharonDialogClose}
+        channel={activeView?.charon_active_channel || 'story'}
+        disableClose={isCharonTerminal}
       />
 
       {/* Comm Terminal Dialog - overlay for viewing terminal messages */}

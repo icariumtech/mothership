@@ -1,0 +1,257 @@
+@import '../../../../styles/variables.css';
+
+/* Personnel section layout - matches .section-charon pattern */
+.section-personnel {
+  position: absolute;
+  top: 30px;
+  bottom: 128px; /* 30px gap + 68px tab bar + 30px gap */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75vw;
+  max-width: 1024px;
+  z-index: 50;
+}
+
+.section-personnel .panel-wrapper {
+  height: 100%;
+  max-height: 100%;
+}
+
+/* Hide the title text but keep the header for the top border line */
+.section-personnel .panel-header h3 {
+  font-size: 0;
+  padding-top: 0;
+  padding-bottom: 3px;
+}
+
+/* Internal split layout */
+.personnel-split {
+  display: flex;
+  height: 100%;
+  gap: 1px;
+  background-color: var(--color-border-subtle);
+}
+
+/* Left side - scrollable list */
+.personnel-list {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  background-color: var(--color-bg-panel-dark);
+}
+
+/* Right side - detail view */
+.personnel-detail {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  background-color: var(--color-bg-panel-dark);
+}
+
+/* Empty detail state */
+.personnel-detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+/* Group headers */
+.personnel-group-header {
+  color: var(--color-teal);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  padding-left: 4px;
+  opacity: 0.8;
+}
+
+.personnel-group-header:first-child {
+  margin-top: 0;
+}
+
+/* Personnel row - reuses star-system-row pattern */
+.personnel-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background-color: rgba(15, 21, 21, 0.4);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.personnel-row:hover {
+  background-color: rgba(74, 107, 107, 0.2);
+  border-color: var(--color-teal);
+}
+
+.personnel-row.selected {
+  background-color: rgba(74, 107, 107, 0.3);
+  border-color: var(--color-teal);
+}
+
+.personnel-row-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.personnel-row-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--color-teal);
+  background-color: rgba(15, 21, 21, 0.6);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.personnel-row-checkbox.checked {
+  background-color: var(--color-teal);
+  box-shadow: 0 0 6px var(--color-teal);
+}
+
+.personnel-row-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.personnel-row-name {
+  color: var(--color-text-primary);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.personnel-row-role {
+  color: var(--color-text-muted);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status indicator on the right side of row */
+.personnel-row-status {
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: 1px solid;
+}
+
+.personnel-row-status.active {
+  color: var(--color-teal);
+  border-color: var(--color-teal);
+}
+
+.personnel-row-status.missing {
+  color: var(--color-amber);
+  border-color: var(--color-amber);
+}
+
+.personnel-row-status.deceased {
+  color: #6b4a4a;
+  border-color: #6b4a4a;
+}
+
+/* ===== Detail view layout ===== */
+
+/* Detail header: portrait on left, key fields on right */
+.personnel-detail-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+/* Portrait image - fixed 512x512, no stretching */
+.personnel-portrait {
+  width: 256px;
+  height: 256px;
+  object-fit: cover;
+  object-position: center top;
+  border: 1px solid var(--color-amber);
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Key fields beside portrait */
+.personnel-detail-fields {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Extended body below portrait row */
+.personnel-detail-extended {
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 16px;
+}
+
+/* Detail body - reuses info-panel-body pattern */
+.personnel-detail-body {
+  line-height: 1.8;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.personnel-detail-body.visible {
+  opacity: 1;
+}
+
+.personnel-detail-body p,
+.personnel-detail-fields p,
+.personnel-detail-extended p {
+  margin: 8px 0;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+.personnel-detail-body .info-label,
+.personnel-detail-fields .info-label,
+.personnel-detail-extended .info-label {
+  color: var(--color-teal);
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.personnel-detail-body .info-value,
+.personnel-detail-fields .info-value,
+.personnel-detail-extended .info-value {
+  color: var(--color-amber);
+}
+
+/* Stats grid - 2-column layout for stats and saves */
+.personnel-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  margin: 8px 0;
+}
+
+.personnel-stats-grid p {
+  margin: 4px 0;
+}
+

@@ -73,6 +73,8 @@ interface ActiveView {
 interface InitialData {
   activeView: ActiveView;
   campaignTitle?: string;
+  crew?: import('@components/domain/dashboard/BridgeView').CrewMember[];
+  npcs?: import('@components/domain/dashboard/BridgeView').NPC[];
 }
 
 // Get initial data from Django (passed via window object)

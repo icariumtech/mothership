@@ -1,0 +1,36 @@
+# Campaign NPC Roster
+# Non-player characters the crew may encounter
+
+npcs:
+  - id: "lucia_vance"
+    name: "Dr. Lucia Vance"
+    role: "Station Director"
+    faction: "Weyland-Yutani"
+    location: "Veil Station"
+    portrait: "/data/campaign/NPCs/images/lucia_vance.png"
+    status: "ACTIVE"
+    description: "Oversees all operations aboard Veil Station. Calm under pressure but known to prioritize corporate interests over crew safety. Has extensive knowledge of xenobiological containment protocols."
+
+  - id: "ewan_mcgregor"
+    name: "Ewan McGregor"
+    role: "Dock Foreman"
+    faction: "Teamsters Union"
+    location: "Veil Station"
+    portrait: "/data/campaign/NPCs/images/ewan_mcgregor.png"
+    status: "ACTIVE"
+    description: "Runs the docking bay with an iron fist and a short temper. Knows every ship that passes through and keeps meticulous records. Rumored to run a black market supply operation on the side."
+
+  - id: "dr_yuki_tanaka"
+    name: "Dr. Yuki Tanaka"
+    role: "Xenobiologist"
+    location: "Kepler-442 Research Outpost"
+    status: "MISSING"
+    description: "Lead researcher studying alien organism samples recovered from the outer veil. Last transmission was a garbled distress call three weeks ago. Research logs indicate increasingly erratic behavior before disappearance."
+
+  - id: "captain_harrow"
+    name: "Captain Dex Harrow"
+    role: "Salvage Operator"
+    faction: "Independent"
+    location: "The Outer Veil"
+    status: "ACTIVE"
+    description: "Freelance salvage captain operating a retrofitted mining vessel. Known to trade in questionable goods and has contacts across multiple stations. Owes the crew a favor after they pulled him from a derelict."

@@ -467,6 +467,18 @@ class DataLoader:
 
         return crew_data.get('crew', []) if crew_data else []
 
+    def load_npcs(self) -> List[Dict[str, Any]]:
+        """Load campaign NPC roster from data/campaign/npcs.yaml."""
+        npcs_file = self.data_dir / "campaign" / "npcs.yaml"
+
+        if not npcs_file.exists():
+            return []
+
+        with open(npcs_file, 'r') as f:
+            npcs_data = yaml.safe_load(f)
+
+        return npcs_data.get('npcs', []) if npcs_data else []
+
     def load_system_map(self, system_slug: str) -> Dict[str, Any]:
         """Load solar system visualization for a star system."""
         system_map_file = self.systems_dir / system_slug / "system_map.yaml"

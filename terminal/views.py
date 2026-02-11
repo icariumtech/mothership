@@ -96,15 +96,18 @@ def display_view_react(request):
     except (FileNotFoundError, Exception):
         pass
 
-    # Load crew data from campaign directory
+    # Load crew and NPC data from campaign directory
     loader = DataLoader()
     crew_data = loader.load_crew()
     crew_json = json.dumps(crew_data)
+    npcs_data = loader.load_npcs()
+    npcs_json = json.dumps(npcs_data)
 
     return render(request, 'terminal/shared_console_react.html', {
         'active_view': active_view,
         'star_systems_json': star_systems_json,
         'crew_json': crew_json,
+        'npcs_json': npcs_json,
     })
 
 

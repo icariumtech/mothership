@@ -63,6 +63,17 @@ export interface CrewMember {
   description: string;
 }
 
+export interface NPC {
+  id: string;
+  name: string;
+  role: string;
+  faction?: string;
+  location: string;
+  portrait?: string;
+  status: string;
+  description: string;
+}
+
 export interface BridgeViewProps {
   activeTab: BridgeTab;
   onTabChange: (tab: BridgeTab) => void;

@@ -6,7 +6,7 @@ This milestone extends the existing Bridge view with essential GM tools: campaig
 
 ## Phases
 
-- [ ] **Phase 1: Campaign Logs Tab** - Display session logs in LOGS bridge tab (rename NOTES)
+- [x] **Phase 1: Campaign Logs Tab** - Display session logs in LOGS bridge tab (rename NOTES)
 - [ ] **Phase 2: Ship Status Dashboard** - Ship systems and status panels in STATUS bridge tab
 - [ ] **Phase 3: Encounter Tokens** - Movable tokens on encounter maps with live updates
 - [ ] **Phase 4: NPC Portrait System** - Portrait overlays during encounters with typewriter effects
@@ -27,8 +27,8 @@ This milestone extends the existing Bridge view with essential GM tools: campaig
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Backend data pipeline: DataLoader, Django view, INITIAL_DATA, sample sessions
-- [ ] 01-02-PLAN.md — Frontend LOGS tab: rename NOTES, LogsSection component, react-markdown rendering
+- [x] 01-01-PLAN.md — Backend data pipeline: DataLoader, Django view, INITIAL_DATA, sample sessions
+- [x] 01-02-PLAN.md — Frontend LOGS tab: rename NOTES, LogsSection component, react-markdown rendering
 
 ### Phase 2: Ship Status Dashboard
 **Goal**: Bridge STATUS tab displays real-time ship systems and operational state
@@ -114,7 +114,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Campaign Logs Tab | 0/TBD | Not started | - |
+| 1. Campaign Logs Tab | 2/2 | ✓ Complete | 2026-02-12 |
 | 2. Ship Status Dashboard | 0/TBD | Not started | - |
 | 3. Encounter Tokens | 0/TBD | Not started | - |
 | 4. NPC Portrait System | 0/TBD | Not started | - |

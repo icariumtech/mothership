@@ -75,6 +75,7 @@ interface InitialData {
   campaignTitle?: string;
   crew?: import('@components/domain/dashboard/BridgeView').CrewMember[];
   npcs?: import('@components/domain/dashboard/BridgeView').NPC[];
+  sessions?: import('@/types/session').SessionLog[];
 }
 
 // Get initial data from Django (passed via window object)

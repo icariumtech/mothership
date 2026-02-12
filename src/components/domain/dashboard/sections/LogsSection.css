@@ -1,0 +1,230 @@
+@import '../../../../styles/variables.css';
+
+/* Logs section layout - matches personnel pattern */
+.section-logs {
+  position: absolute;
+  top: 30px;
+  bottom: 128px; /* 30px gap + 68px tab bar + 30px gap */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75vw;
+  max-width: 1024px;
+  z-index: 50;
+}
+
+.section-logs .panel-wrapper {
+  height: 100%;
+  max-height: 100%;
+}
+
+/* Hide the title text but keep the header for the top border line */
+.section-logs .panel-header h3 {
+  font-size: 0;
+  padding-top: 0;
+  padding-bottom: 3px;
+}
+
+/* Internal split layout */
+.logs-split {
+  display: flex;
+  height: 100%;
+  gap: 1px;
+  background-color: var(--color-border-subtle);
+}
+
+/* Left side - scrollable session list */
+.logs-list {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  background-color: var(--color-bg-panel-dark);
+}
+
+/* Right side - detail view */
+.logs-detail {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  background-color: var(--color-bg-panel-dark);
+}
+
+/* Session row - matches personnel-row pattern */
+.logs-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background-color: rgba(15, 21, 21, 0.4);
+  border: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logs-row:hover {
+  background-color: rgba(74, 107, 107, 0.2);
+  border-color: var(--color-teal);
+}
+
+.logs-row.selected {
+  background-color: rgba(74, 107, 107, 0.3);
+  border-color: var(--color-teal);
+}
+
+.logs-row-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--color-teal);
+  background-color: rgba(15, 21, 21, 0.6);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.logs-row-checkbox.checked {
+  background-color: var(--color-teal);
+  box-shadow: 0 0 6px var(--color-teal);
+}
+
+.logs-row-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.logs-row-title {
+  color: var(--color-text-primary);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logs-row-date {
+  color: var(--color-text-muted);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Detail view empty state */
+.logs-detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+/* Detail body container */
+.logs-detail-body {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.logs-detail-body.visible {
+  opacity: 1;
+}
+
+/* Metadata header */
+.logs-detail-header {
+  line-height: 1.8;
+}
+
+.logs-detail-header p {
+  margin: 8px 0;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+}
+
+.logs-detail-header .info-label {
+  color: var(--color-teal);
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.logs-detail-header .info-value {
+  color: var(--color-amber);
+}
+
+/* Separator line and markdown content */
+.logs-detail-content {
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 16px;
+}
+
+/* Markdown element styling - terminal aesthetic */
+.logs-h1 {
+  color: var(--color-teal);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 20px 0 12px 0;
+  line-height: 1.4;
+}
+
+.logs-h2 {
+  color: var(--color-teal);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 16px 0 10px 0;
+  line-height: 1.4;
+}
+
+.logs-h3 {
+  color: var(--color-teal);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 14px 0 8px 0;
+  line-height: 1.4;
+}
+
+.logs-p {
+  color: var(--color-text-primary);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 8px 0;
+}
+
+.logs-strong {
+  color: var(--color-amber);
+  font-weight: bold;
+}
+
+.logs-em {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.logs-ul,
+.logs-ol {
+  color: var(--color-text-primary);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.logs-li {
+  margin: 4px 0;
+}

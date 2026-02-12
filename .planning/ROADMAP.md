@@ -24,11 +24,11 @@ This milestone extends the existing Bridge view with essential GM tools: campaig
   2. Each log entry shows session number and date
   3. Log data loads from YAML files in campaign data directory
   4. Existing NOTES tab successfully renamed to LOGS without breaking navigation
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Backend data pipeline: DataLoader, Django view, INITIAL_DATA, sample sessions
+- [ ] 01-02-PLAN.md — Frontend LOGS tab: rename NOTES, LogsSection component, react-markdown rendering
 
 ### Phase 2: Ship Status Dashboard
 **Goal**: Bridge STATUS tab displays real-time ship systems and operational state

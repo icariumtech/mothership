@@ -41,12 +41,12 @@ Plans:
   4. Crew count and capacity are displayed
   5. System status changes animate visually when GM toggles states
   6. GM can toggle system states from the GM Console
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [ ] 02-01-PLAN.md — Backend data pipeline: ship.yaml, DataLoader, API endpoints, ActiveView overrides, TypeScript types
+- [ ] 02-02-PLAN.md — Frontend STATUS tab: StatusSection component with schematic, system panels, hull/armor bars, animations
+- [ ] 02-03-PLAN.md — GM Console controls: ShipStatusPanel with system state dropdowns
 
 ### Phase 3: Encounter Tokens
 **Goal**: GM can place and move tokens on encounter maps with live player updates

@@ -499,6 +499,66 @@ class DataLoader:
         with open(orbit_map_file, 'r') as f:
             return yaml.safe_load(f)
 
+    def load_sessions(self) -> List[Dict[str, Any]]:
+        """Load all session logs from data/campaign/sessions/ directory."""
+        sessions_dir = self.data_dir / "campaign" / "sessions"
+
+        if not sessions_dir.exists():
+            return []
+
+        sessions = []
+
+        # Load all .md files from the sessions directory
+        for session_file in sessions_dir.glob("*.md"):
+            session_data = self.parse_session_file(session_file)
+            if session_data:
+                # Normalize npcs field: convert string to list, or ensure it's a list
+                if 'npcs' in session_data:
+                    if isinstance(session_data['npcs'], str):
+                        # Split comma-separated string into list
+                        session_data['npcs'] = [npc.strip() for npc in session_data['npcs'].split(',')]
+                else:
+                    session_data['npcs'] = []
+
+                # Normalize date field: convert to string and take only date part
+                if 'date' in session_data:
+                    date_str = str(session_data['date'])
+                    # Split on space and take first element (date part only)
+                    session_data['date'] = date_str.split()[0]
+
+                sessions.append(session_data)
+
+        # Sort by session_number descending (newest first)
+        sessions.sort(key=lambda s: s.get('session_number', 0), reverse=True)
+
+        return sessions
+
+    def parse_session_file(self, session_file: Path) -> Dict[str, Any]:
+        """Parse a session markdown file with YAML frontmatter."""
+        with open(session_file, 'r') as f:
+            content = f.read()
+
+        # Split frontmatter and content
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                frontmatter = yaml.safe_load(parts[1])
+                body_content = parts[2].strip()
+            else:
+                frontmatter = {}
+                body_content = content
+        else:
+            frontmatter = {}
+            body_content = content
+
+        session_data = {
+            'body': body_content,
+            'filename': session_file.name,
+            **frontmatter
+        }
+
+        return session_data
+
 
 def group_messages_by_conversation(messages: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """

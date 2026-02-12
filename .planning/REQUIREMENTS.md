@@ -102,13 +102,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated during roadmap creation) | | |
+| LOGS-01 | Phase 1 | Pending |
+| LOGS-02 | Phase 1 | Pending |
+| LOGS-03 | Phase 1 | Pending |
+| STAT-01 | Phase 2 | Pending |
+| STAT-02 | Phase 2 | Pending |
+| STAT-03 | Phase 2 | Pending |
+| STAT-04 | Phase 2 | Pending |
+| STAT-05 | Phase 2 | Pending |
+| STAT-06 | Phase 2 | Pending |
+| TOKN-01 | Phase 3 | Pending |
+| TOKN-02 | Phase 3 | Pending |
+| TOKN-03 | Phase 3 | Pending |
+| TOKN-04 | Phase 3 | Pending |
+| TOKN-05 | Phase 3 | Pending |
+| PORT-01 | Phase 4 | Pending |
+| PORT-02 | Phase 4 | Pending |
+| PORT-03 | Phase 4 | Pending |
+| PORT-04 | Phase 4 | Pending |
+| PORT-05 | Phase 4 | Pending |
+| RTMA-01 | Phase 5 | Pending |
+| RTMA-02 | Phase 5 | Pending |
+| RTMA-03 | Phase 5 | Pending |
+| RTMA-04 | Phase 5 | Pending |
+| AUDI-01 | Phase 6 | Pending |
+| AUDI-02 | Phase 6 | Pending |
+| AUDI-03 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 22 total
-- Mapped to phases: 0
-- Unmapped: 22 (pending roadmap)
+- Mapped to phases: 22
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-11*
-*Last updated: 2026-02-11 after initial definition*
+*Last updated: 2026-02-11 — Traceability mapping complete, 100% coverage achieved*

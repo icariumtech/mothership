@@ -103,11 +103,16 @@ def display_view_react(request):
     npcs_data = loader.load_npcs()
     npcs_json = json.dumps(npcs_data)
 
+    # Load session logs
+    sessions_data = loader.load_sessions()
+    sessions_json = json.dumps(sessions_data)
+
     return render(request, 'terminal/shared_console_react.html', {
         'active_view': active_view,
         'star_systems_json': star_systems_json,
         'crew_json': crew_json,
         'npcs_json': npcs_json,
+        'sessions_json': sessions_json,
     })
 
 

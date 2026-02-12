@@ -32,19 +32,16 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 
 ### Active
 
-- [ ] Bridge tab: CREW — player character stats, stress levels, saves
-- [ ] Bridge tab: CONTACTS — NPC and faction directory with details
-- [ ] Bridge tab: LOGS — campaign logs and session notes
-- [ ] Ship dashboard display — dedicated ship status, systems, and resource tracking
+- [ ] Bridge tab: LOGS — campaign logs and session notes (rename existing NOTES tab)
+- [ ] Bridge tab: STATUS — ship status, systems, and resource tracking (repurpose existing STATUS tab placeholder)
 - [ ] Encounter tokens — movable tokens on encounter maps for players, NPCs, and creatures
 - [ ] NPC portrait display — show NPC portraits during encounter interactions
+- [ ] UI audio — click sounds, transition effects, ambient atmosphere for immersion
+- [ ] Real-time architecture — replace polling/SQLite with push-based cross-client state (SSE or WebSockets), move ephemeral state (ActiveView) out of DB, keep DB for persistent data (Messages) and future auth/credentials
 
 ### Out of Scope
 
-- Authentication/authorization system — not needed for local network play
-- Real-time WebSockets — polling every 2 seconds is sufficient
 - Mobile native app — web-first, mobile responsive is enough
-- Sound effects and ambient audio — deferred to future milestone
 - Player character sheet editing — read-only for now
 
 ## Context
@@ -52,7 +49,7 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 - Developed collaboratively between GM and Claude Code
 - Tech stack: Django 5.2.7, React 19, TypeScript, Vite 5.4, React Three Fiber 9.0, Zustand, GSAP, Ant Design 6.1
 - Data stored as YAML + Markdown files in nested directory hierarchy (git-friendly)
-- SQLite only stores ActiveView singleton and broadcast Messages
+- SQLite currently stores ActiveView singleton and broadcast Messages (architecture under review)
 - Codebase map exists at `.planning/codebase/`
 - UI follows Alien Romulus (2024) aesthetic — muted multi-color palette, monospaced fonts, angular panels
 - Players access from phones/tablets at the gaming table
@@ -73,8 +70,8 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 | File-based data over DB | Git-friendly, no sync required, easy to edit manually | ✓ Good |
 | React Three Fiber over imperative Three.js | Declarative, less code, unified RAF loop | ✓ Good |
 | Zustand for 3D scene state | Single source of truth, no prop drilling, performant selectors | ✓ Good |
-| Polling over WebSockets | Simpler architecture, 2s interval sufficient for tabletop pace | ✓ Good |
+| Polling over WebSockets | Simpler architecture, 2s interval sufficient for tabletop pace | ⟳ Revisiting — exploring SSE/WebSocket push model |
 | Ant Design for layout/forms | Rapid development, consistent components | — Pending |
 
 ---
-*Last updated: 2026-02-10 after initialization*
+*Last updated: 2026-02-11 — added UI audio requirement, real-time architecture exploration*

@@ -1,7 +1,7 @@
 import { Panel } from '@components/ui/Panel';
 import './TabBar.css';
 
-export type BridgeTab = 'map' | 'personnel' | 'notes' | 'status' | 'charon';
+export type BridgeTab = 'map' | 'personnel' | 'logs' | 'status' | 'charon';
 
 interface TabBarProps {
   activeTab: BridgeTab;
@@ -14,7 +14,7 @@ export function TabBar({ activeTab, onTabChange, disabled = false, charonHasMess
   const tabs: { id: BridgeTab; label: string }[] = [
     { id: 'map', label: 'MAP' },
     { id: 'personnel', label: 'PERSONNEL' },
-    { id: 'notes', label: 'NOTES' },
+    { id: 'logs', label: 'LOGS' },
     { id: 'status', label: 'STATUS' },
     { id: 'charon', label: 'CHARON' },
   ];

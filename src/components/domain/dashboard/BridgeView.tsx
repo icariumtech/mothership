@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { TabBar, BridgeTab } from './TabBar';
 import { PersonnelSection } from './sections/PersonnelSection';
-import { NotesSection } from './sections/NotesSection';
+import { LogsSection } from './sections/LogsSection';
 import { StatusSection } from './sections/StatusSection';
 import { CharonSection } from './sections/CharonSection';
 import './BridgeView.css';
@@ -98,7 +98,7 @@ export function BridgeView({
 
         {/* Other sections - conditionally rendered */}
         {activeTab === 'personnel' && <PersonnelSection />}
-        {activeTab === 'notes' && <NotesSection />}
+        {activeTab === 'logs' && <LogsSection />}
         {activeTab === 'status' && <StatusSection />}
 
         {/* CHARON Section - always mounted to preserve conversation state and avoid indicator flashes */}

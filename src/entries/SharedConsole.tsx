@@ -140,7 +140,12 @@ function SharedConsole() {
   const [activeTab, setActiveTab] = useState<BridgeTab>(() => {
     try {
       const saved = sessionStorage.getItem('bridgeActiveTab');
-      if (saved && ['map', 'personnel', 'notes', 'status', 'charon'].includes(saved)) {
+      // Handle migration from 'notes' to 'logs'
+      if (saved === 'notes') {
+        sessionStorage.setItem('bridgeActiveTab', 'logs');
+        return 'logs';
+      }
+      if (saved && ['map', 'personnel', 'logs', 'status', 'charon'].includes(saved)) {
         return saved as BridgeTab;
       }
     } catch (error) {

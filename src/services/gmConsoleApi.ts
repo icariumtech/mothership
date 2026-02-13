@@ -1,5 +1,6 @@
 import { api } from './api';
 import { Location, ActiveView, BroadcastMessage } from '@/types/gmConsole';
+import { ShipStatusData } from '@/types/shipStatus';
 
 async function getLocations(): Promise<Location[]> {
   const response = await api.get<{ locations: Location[] }>('/gm/locations/');
@@ -31,6 +32,16 @@ async function switchToBridge(): Promise<void> {
   await api.post('/gm/switch-view/', { view_type: 'BRIDGE' });
 }
 
+async function getShipStatus(): Promise<ShipStatusData> {
+  const response = await api.get<ShipStatusData>('/ship-status/');
+  return response.data;
+}
+
+async function toggleShipSystem(system: string, status: string, condition?: number, info?: string): Promise<any> {
+  const response = await api.post('/gm/ship-status/toggle/', { system, status, condition, info });
+  return response.data;
+}
+
 export const gmConsoleApi = {
   getLocations,
   getActiveView,
@@ -38,5 +49,7 @@ export const gmConsoleApi = {
   showTerminal,
   sendBroadcast,
   switchToStandby,
-  switchToBridge
+  switchToBridge,
+  getShipStatus,
+  toggleShipSystem
 };

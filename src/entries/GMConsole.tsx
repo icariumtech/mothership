@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider, theme, Layout, message, Tabs } from 'antd';
-import { RobotOutlined, NotificationOutlined, RadarChartOutlined } from '@ant-design/icons';
+import { RobotOutlined, NotificationOutlined, RadarChartOutlined, DashboardOutlined } from '@ant-design/icons';
 import { Location, ActiveView, BroadcastMessage } from '@/types/gmConsole';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { useTreeState } from '@/hooks/useTreeState';
@@ -10,6 +10,7 @@ import { BroadcastForm } from '@/components/gm/BroadcastForm';
 import { ViewControls } from '@/components/gm/ViewControls';
 import { CharonPanel } from '@/components/gm/CharonPanel';
 import { EncounterPanel } from '@/components/gm/EncounterPanel';
+import { ShipStatusPanel } from '@/components/gm/ShipStatusPanel';
 import { charonApi } from '@/services/charonApi';
 
 const { Content, Sider } = Layout;
@@ -331,6 +332,27 @@ function GMConsole() {
                       activeView={activeView}
                       onViewUpdate={handleEncounterViewUpdate}
                     />
+                  </div>
+                ),
+              },
+              {
+                key: 'ship-status',
+                label: (
+                  <span>
+                    <DashboardOutlined style={{ marginRight: 8 }} />
+                    SHIP STATUS
+                  </span>
+                ),
+                children: (
+                  <div style={{
+                    padding: 16,
+                    background: '#141414',
+                    border: '1px solid #303030',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    marginTop: -16
+                  }}>
+                    <ShipStatusPanel />
                   </div>
                 ),
               },

@@ -190,8 +190,8 @@
   filter: grayscale(0.6);
 }
 
-/* State changing - temporary flicker */
-.system-panel.state-changing {
+/* State changing - temporary flicker (on inner content to avoid stagger animation conflict) */
+.system-panel-content.state-changing {
   animation: flicker 0.4s ease-in-out;
 }
 

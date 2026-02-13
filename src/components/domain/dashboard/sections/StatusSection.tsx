@@ -146,9 +146,9 @@ function SystemStatusPanel({
   const changingClass = isChanging ? 'state-changing' : '';
 
   return (
-    <div className={`system-panel ${statusClass} ${changingClass}`} style={{ animationDelay: `${delay}s` }}>
+    <div className={`system-panel ${statusClass}`} style={{ animationDelay: `${delay}s` }}>
       <DashboardPanel title={name} chamferCorners={['tl', 'br']} padding={12}>
-        <div className="system-panel-content">
+        <div className={`system-panel-content ${changingClass}`}>
           <div className={`system-status-label ${statusClass}`}>{status}</div>
           <div className="system-condition-bar">
             <div

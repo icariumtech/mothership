@@ -1,0 +1,295 @@
+@import '../../../../styles/variables.css';
+
+/* Main container */
+.section-status {
+  position: absolute;
+  top: 30px;
+  bottom: 128px; /* 30px gap + 68px tab bar + 30px gap */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75vw;
+  max-width: 1024px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  /* Status color variables */
+  --status-online: #4a6b6b;
+  --status-stressed: #8b7355;
+  --status-damaged: #9a6045;
+  --status-critical: #8b5555;
+  --status-offline: #3a3a3a;
+}
+
+/* Ship identity header */
+.ship-identity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-main);
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  animation: fade-slide-in 0.6s ease backwards;
+  animation-delay: 0.2s;
+}
+
+.ship-identity-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-teal-bright);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.ship-identity-class {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  letter-spacing: 1px;
+}
+
+.ship-identity-crew {
+  font-size: 12px;
+  color: var(--color-amber);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Main layout - 3 columns */
+.status-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Side columns */
+.status-column-left,
+.status-column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Ship schematic container */
+.status-schematic-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-slide-in 0.6s ease backwards;
+  animation-delay: 0.6s;
+}
+
+.ship-schematic {
+  width: 100%;
+  height: 100%;
+  max-width: 400px;
+  max-height: 600px;
+  filter: drop-shadow(0 0 8px rgba(74, 107, 107, 0.3));
+}
+
+/* System panel wrapper */
+.system-panel {
+  animation: fade-slide-in 0.6s ease backwards;
+}
+
+.system-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Status labels */
+.system-status-label {
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 6px 0;
+}
+
+.system-status-label.status-online {
+  color: var(--status-online);
+}
+
+.system-status-label.status-stressed {
+  color: var(--status-stressed);
+}
+
+.system-status-label.status-damaged {
+  color: var(--status-damaged);
+}
+
+.system-status-label.status-critical {
+  color: var(--status-critical);
+}
+
+.system-status-label.status-offline {
+  color: var(--status-offline);
+}
+
+/* Condition bar */
+.system-condition-bar {
+  height: 16px;
+  background-color: rgba(15, 21, 21, 0.8);
+  border: 1px solid var(--color-border-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.system-condition-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.system-condition-fill.status-online {
+  background-color: var(--status-online);
+  box-shadow: 0 0 8px var(--status-online);
+}
+
+.system-condition-fill.status-stressed {
+  background-color: var(--status-stressed);
+  box-shadow: 0 0 8px var(--status-stressed);
+}
+
+.system-condition-fill.status-damaged {
+  background-color: var(--status-damaged);
+  box-shadow: 0 0 8px var(--status-damaged);
+}
+
+.system-condition-fill.status-critical {
+  background-color: var(--status-critical);
+  box-shadow: 0 0 8px var(--status-critical);
+}
+
+.system-condition-fill.status-offline {
+  background-color: var(--status-offline);
+}
+
+/* Info text */
+.system-info-text {
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.4;
+  min-height: 28px;
+}
+
+/* Status states - persistent animations */
+.system-panel.status-critical {
+  animation: pulse-critical 2s ease-in-out infinite;
+}
+
+.system-panel.status-offline {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+}
+
+/* State changing - temporary flicker */
+.system-panel.state-changing {
+  animation: flicker 0.4s ease-in-out;
+}
+
+/* Status bars container */
+.status-bars-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  background-color: var(--color-bg-panel-dark);
+  border: 1px solid var(--color-border-main);
+  animation: fade-slide-in 0.6s ease backwards;
+  animation-delay: 1.4s;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-bar-label {
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.status-bar-hull .status-bar-label {
+  color: var(--color-teal);
+}
+
+.status-bar-armor .status-bar-label {
+  color: var(--color-amber);
+}
+
+.status-bar-track {
+  flex: 1;
+  height: 20px;
+  background-color: rgba(15, 21, 21, 0.8);
+  border: 1px solid var(--color-border-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.status-bar-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.status-bar-fill.status-bar-hull {
+  background-color: var(--color-teal);
+  box-shadow: 0 0 8px var(--color-teal);
+}
+
+.status-bar-fill.status-bar-armor {
+  background-color: var(--color-amber);
+  box-shadow: 0 0 8px var(--color-amber);
+}
+
+/* Animations */
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes pulse-critical {
+  0%, 100% {
+    opacity: 1;
+    border-color: var(--status-critical);
+  }
+  50% {
+    opacity: 0.7;
+    border-color: rgba(139, 85, 85, 0.5);
+  }
+}

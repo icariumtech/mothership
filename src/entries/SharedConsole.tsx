@@ -76,6 +76,7 @@ interface InitialData {
   crew?: import('@components/domain/dashboard/BridgeView').CrewMember[];
   npcs?: import('@components/domain/dashboard/BridgeView').NPC[];
   sessions?: import('@/types/session').SessionLog[];
+  shipStatus?: import('@/types/shipStatus').ShipStatusData;
 }
 
 // Get initial data from Django (passed via window object)

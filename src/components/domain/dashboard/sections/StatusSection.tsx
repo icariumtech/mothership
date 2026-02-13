@@ -163,29 +163,34 @@ function SystemStatusPanel({
   );
 }
 
-// Status bar component for hull/armor
-interface StatusBarProps {
+// Integrity panel component for hull/armor
+interface IntegrityPanelProps {
+  label: string;
   current: number;
   max: number;
-  label: string;
   variant: 'hull' | 'armor';
+  delay: number;
 }
 
-function StatusBar({ current, max, label, variant }: StatusBarProps) {
+function IntegrityPanel({ label, current, max, variant, delay }: IntegrityPanelProps) {
   const percentage = (current / max) * 100;
-  const variantClass = `status-bar-${variant}`;
+  const variantClass = `integrity-${variant}`;
 
   return (
-    <div className={`status-bar ${variantClass}`}>
-      <div className="status-bar-label">
-        {label}: {current}/{max}
-      </div>
-      <div className="status-bar-track">
-        <div
-          className={`status-bar-fill ${variantClass}`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
+    <div className={`system-panel ${variantClass}`} style={{ animationDelay: `${delay}s` }}>
+      <DashboardPanel title={label} chamferCorners={['tl', 'br']} padding={12}>
+        <div className="system-panel-content">
+          <div className={`integrity-value ${variantClass}`}>
+            {current} / {max}
+          </div>
+          <div className="system-condition-bar">
+            <div
+              className={`system-condition-fill integrity-fill-${variant}`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+        </div>
+      </DashboardPanel>
     </div>
   );
 }
@@ -283,25 +288,31 @@ export function StatusSection() {
         </div>
       </div>
 
-      {/* Main layout: system panels + schematic */}
+      {/* Main layout: panels + schematic */}
       <div className="status-layout">
-        {/* Left column - Life Support and Engines */}
+        {/* Left column - Hull, Armor, Life Support */}
         <div className="status-column-left">
+          <IntegrityPanel
+            label="HULL"
+            current={ship.hull.current}
+            max={ship.hull.max}
+            variant="hull"
+            delay={0.6}
+          />
+          <IntegrityPanel
+            label="ARMOR"
+            current={ship.armor.current}
+            max={ship.armor.max}
+            variant="armor"
+            delay={0.8}
+          />
           <SystemStatusPanel
             name="LIFE SUPPORT"
             status={ship.systems.life_support.status}
             condition={ship.systems.life_support.condition}
             info={ship.systems.life_support.info}
             isChanging={changingFlags.life_support}
-            delay={0.8}
-          />
-          <SystemStatusPanel
-            name="ENGINES"
-            status={ship.systems.engines.status}
-            condition={ship.systems.engines.condition}
-            info={ship.systems.engines.info}
-            isChanging={changingFlags.engines}
-            delay={1.2}
+            delay={1.0}
           />
         </div>
 
@@ -310,15 +321,23 @@ export function StatusSection() {
           <ShipSchematic />
         </div>
 
-        {/* Right column - Weapons and Comms */}
+        {/* Right column - Engines, Weapons, Comms */}
         <div className="status-column-right">
+          <SystemStatusPanel
+            name="ENGINES"
+            status={ship.systems.engines.status}
+            condition={ship.systems.engines.condition}
+            info={ship.systems.engines.info}
+            isChanging={changingFlags.engines}
+            delay={0.6}
+          />
           <SystemStatusPanel
             name="WEAPONS"
             status={ship.systems.weapons.status}
             condition={ship.systems.weapons.condition}
             info={ship.systems.weapons.info}
             isChanging={changingFlags.weapons}
-            delay={0.6}
+            delay={0.8}
           />
           <SystemStatusPanel
             name="COMMS"
@@ -329,22 +348,6 @@ export function StatusSection() {
             delay={1.0}
           />
         </div>
-      </div>
-
-      {/* Bottom - Hull and Armor bars */}
-      <div className="status-bars-container">
-        <StatusBar
-          current={ship.hull.current}
-          max={ship.hull.max}
-          label="HULL"
-          variant="hull"
-        />
-        <StatusBar
-          current={ship.armor.current}
-          max={ship.armor.max}
-          label="ARMOR"
-          variant="armor"
-        />
       </div>
     </div>
   );

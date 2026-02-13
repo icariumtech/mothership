@@ -289,8 +289,8 @@ function SharedConsole() {
             setCharonDialogOpen(data.charon_dialog_open);
           }
 
-          // Reset selection on view change to dashboard
-          if (data.view_type === 'BRIDGE') {
+          // Reset selection only when transitioning TO BRIDGE from another view type
+          if (data.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
             setSelectedSystem(null);
             setMapViewMode('galaxy');
             setCurrentSystemSlug(null);

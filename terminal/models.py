@@ -96,6 +96,13 @@ class ActiveView(models.Model):
         help_text='Map of connection_id -> door_status string (runtime override)'
     )
 
+    # Ship status runtime overrides
+    ship_system_overrides = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Runtime overrides for ship system states {system_name: {status, condition, info}}'
+    )
+
     # Metadata
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)

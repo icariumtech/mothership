@@ -107,12 +107,22 @@ def display_view_react(request):
     sessions_data = loader.load_sessions()
     sessions_json = json.dumps(sessions_data)
 
+    # Load ship status and merge runtime overrides
+    ship_data = loader.load_ship_status()
+    if ship_data and ship_data.get('ship'):
+        overrides = active_view.ship_system_overrides or {}
+        for system_name, override in overrides.items():
+            if system_name in ship_data['ship'].get('systems', {}):
+                ship_data['ship']['systems'][system_name].update(override)
+    ship_status_json = json.dumps(ship_data) if ship_data else 'null'
+
     return render(request, 'terminal/shared_console_react.html', {
         'active_view': active_view,
         'star_systems_json': star_systems_json,
         'crew_json': crew_json,
         'npcs_json': npcs_json,
         'sessions_json': sessions_json,
+        'ship_status_json': ship_status_json,
     })
 
 
@@ -1223,6 +1233,89 @@ def api_encounter_all_decks(request, location_slug):
         'decks': decks_data,
         'room_visibility': active_view.encounter_room_visibility or {},
         'current_deck_id': active_view.encounter_deck_id,
+    })
+
+
+def api_ship_status(request):
+    """
+    API endpoint to get ship status data.
+    Merges YAML defaults with ActiveView runtime overrides.
+    GET: Returns ship status JSON
+    Public endpoint - no login required (terminal needs to read it).
+    """
+    from terminal.data_loader import DataLoader
+    from terminal.models import ActiveView
+
+    loader = DataLoader()
+    ship_data = loader.load_ship_status()
+
+    if not ship_data:
+        return JsonResponse({'error': 'Ship data not found'}, status=404)
+
+    # Merge runtime overrides from ActiveView
+    active_view = ActiveView.get_current()
+    if ship_data and ship_data.get('ship'):
+        overrides = active_view.ship_system_overrides or {}
+        for system_name, override in overrides.items():
+            if system_name in ship_data['ship'].get('systems', {}):
+                ship_data['ship']['systems'][system_name].update(override)
+
+    return JsonResponse(ship_data)
+
+
+@login_required
+def api_ship_toggle_system(request):
+    """
+    API endpoint to toggle/update ship system status.
+    GM only - updates runtime overrides in ActiveView.
+    POST: { system: string, status: string, condition?: number, info?: string }
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    system_name = data.get('system', '').strip()
+    status = data.get('status', '').strip()
+
+    # Validate system name
+    valid_systems = ['life_support', 'engines', 'weapons', 'comms']
+    if system_name not in valid_systems:
+        return JsonResponse({
+            'error': f'Invalid system. Must be one of: {", ".join(valid_systems)}'
+        }, status=400)
+
+    # Validate status
+    valid_statuses = ['ONLINE', 'STRESSED', 'DAMAGED', 'CRITICAL', 'OFFLINE']
+    if status not in valid_statuses:
+        return JsonResponse({
+            'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
+        }, status=400)
+
+    # Build override object
+    override = {'status': status}
+    if 'condition' in data:
+        override['condition'] = int(data['condition'])
+    if 'info' in data:
+        override['info'] = data['info']
+
+    # Store override in ActiveView
+    active_view = ActiveView.get_current()
+    overrides = active_view.ship_system_overrides or {}
+    overrides[system_name] = override
+    active_view.ship_system_overrides = overrides
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'system': system_name,
+        'override': override
     })
 
 

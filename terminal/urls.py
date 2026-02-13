@@ -11,6 +11,9 @@ urlpatterns = [
     path('api/star-map/', views.get_star_map_json, name='star_map_api'),
     path('api/system-map/<str:system_slug>/', views.get_system_map_json, name='system_map_api'),
     path('api/orbit-map/<str:system_slug>/<str:body_slug>/', views.get_orbit_map_json, name='orbit_map_api'),
+    # Ship Status API endpoints
+    path('api/ship-status/', views.api_ship_status, name='ship_status_api'),
+    path('api/gm/ship-status/toggle/', views.api_ship_toggle_system, name='ship_toggle_system'),
     # GM Console React API endpoints
     path('api/gm/locations/', views.api_locations, name='api_locations'),
     path('api/gm/switch-view/', views.api_switch_view, name='api_switch_view'),

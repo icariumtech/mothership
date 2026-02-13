@@ -7,7 +7,7 @@ This milestone extends the existing Bridge view with essential GM tools: campaig
 ## Phases
 
 - [x] **Phase 1: Campaign Logs Tab** - Display session logs in LOGS bridge tab (rename NOTES)
-- [ ] **Phase 2: Ship Status Dashboard** - Ship systems and status panels in STATUS bridge tab
+- [x] **Phase 2: Ship Status Dashboard** - Ship systems and status panels in STATUS bridge tab
 - [ ] **Phase 3: Encounter Tokens** - Movable tokens on encounter maps with live updates
 - [ ] **Phase 4: NPC Portrait System** - Portrait overlays during encounters with typewriter effects
 - [ ] **Phase 5: Real-Time Push Architecture** - Replace polling with SSE, move ActiveView out of DB
@@ -44,9 +44,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Backend data pipeline: ship.yaml, DataLoader, API endpoints, ActiveView overrides, TypeScript types
-- [ ] 02-02-PLAN.md — Frontend STATUS tab: StatusSection component with schematic, system panels, hull/armor bars, animations
-- [ ] 02-03-PLAN.md — GM Console controls: ShipStatusPanel with system state dropdowns
+- [x] 02-01-PLAN.md — Backend data pipeline: ship.yaml, DataLoader, API endpoints, ActiveView overrides, TypeScript types
+- [x] 02-02-PLAN.md — Frontend STATUS tab: StatusSection component with schematic, system panels, hull/armor bars, animations
+- [x] 02-03-PLAN.md — GM Console controls: ShipStatusPanel with system state dropdowns
 
 ### Phase 3: Encounter Tokens
 **Goal**: GM can place and move tokens on encounter maps with live player updates
@@ -115,7 +115,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Campaign Logs Tab | 2/2 | ✓ Complete | 2026-02-12 |
-| 2. Ship Status Dashboard | 0/TBD | Not started | - |
+| 2. Ship Status Dashboard | 3/3 | ✓ Complete | 2026-02-12 |
 | 3. Encounter Tokens | 0/TBD | Not started | - |
 | 4. NPC Portrait System | 0/TBD | Not started | - |
 | 5. Real-Time Push Architecture | 0/TBD | Not started | - |

@@ -1,0 +1,28 @@
+ship:
+  name: "USCSS Morrigan"
+  class: "Hargrave-Class Light Freighter"
+  crew_count: 7
+  crew_capacity: 12
+  hull:
+    current: 45
+    max: 60
+  armor:
+    current: 8
+    max: 12
+  systems:
+    life_support:
+      status: "ONLINE"
+      condition: 100
+      info: "O2 levels nominal"
+    engines:
+      status: "STRESSED"
+      condition: 72
+      info: "Coolant pressure low"
+    weapons:
+      status: "ONLINE"
+      condition: 100
+      info: "Defense grid active"
+    comms:
+      status: "DAMAGED"
+      condition: 45
+      info: "Long-range offline"

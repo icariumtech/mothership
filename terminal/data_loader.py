@@ -559,6 +559,15 @@ class DataLoader:
 
         return session_data
 
+    def load_ship_status(self) -> Dict[str, Any]:
+        """Load ship status from data/campaign/ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        if not ship_file.exists():
+            return None
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f)
+        return ship_data
+
 
 def group_messages_by_conversation(messages: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """

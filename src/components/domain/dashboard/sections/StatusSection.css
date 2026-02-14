@@ -92,6 +92,11 @@
 
 /* System panel wrapper */
 .system-panel {
+  /* No persistent animation here — stagger handled by .stagger-animate */
+}
+
+/* One-shot stagger animation on mount only */
+.system-panel.stagger-animate {
   animation: fade-slide-in 0.6s ease backwards;
 }
 

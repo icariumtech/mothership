@@ -131,6 +131,7 @@ interface SystemStatusPanelProps {
   info?: string;
   isChanging: boolean;
   delay: number;
+  staggerDone: boolean;
 }
 
 function SystemStatusPanel({
@@ -140,13 +141,15 @@ function SystemStatusPanel({
   info,
   isChanging,
   delay,
+  staggerDone,
 }: SystemStatusPanelProps) {
   const statusLower = status.toLowerCase();
   const statusClass = `status-${statusLower}`;
   const changingClass = isChanging ? 'state-changing' : '';
+  const staggerClass = staggerDone ? '' : 'stagger-animate';
 
   return (
-    <div className={`system-panel ${statusClass}`} style={{ animationDelay: `${delay}s` }}>
+    <div className={`system-panel ${statusClass} ${staggerClass}`} style={!staggerDone ? { animationDelay: `${delay}s` } : undefined}>
       <DashboardPanel title={name} chamferCorners={['tl', 'br']} padding={12}>
         <div className={`system-panel-content ${changingClass}`}>
           <div className={`system-status-label ${statusClass}`}>{status}</div>
@@ -170,14 +173,16 @@ interface IntegrityPanelProps {
   max: number;
   variant: 'hull' | 'armor';
   delay: number;
+  staggerDone: boolean;
 }
 
-function IntegrityPanel({ label, current, max, variant, delay }: IntegrityPanelProps) {
+function IntegrityPanel({ label, current, max, variant, delay, staggerDone }: IntegrityPanelProps) {
   const percentage = (current / max) * 100;
   const variantClass = `integrity-${variant}`;
+  const staggerClass = staggerDone ? '' : 'stagger-animate';
 
   return (
-    <div className={`system-panel ${variantClass}`} style={{ animationDelay: `${delay}s` }}>
+    <div className={`system-panel ${variantClass} ${staggerClass}`} style={!staggerDone ? { animationDelay: `${delay}s` } : undefined}>
       <DashboardPanel title={label} chamferCorners={['tl', 'br']} padding={12}>
         <div className="system-panel-content">
           <div className={`integrity-value ${variantClass}`}>
@@ -197,6 +202,7 @@ function IntegrityPanel({ label, current, max, variant, delay }: IntegrityPanelP
 
 export function StatusSection() {
   const [shipData, setShipData] = useState<ShipStatusData | null>(getShipStatusData());
+  const [staggerComplete, setStaggerComplete] = useState(false);
   const previousStatusesRef = useRef<PreviousStatuses | null>(null);
   const [changingFlags, setChangingFlags] = useState<ChangingFlags>({
     life_support: false,
@@ -204,6 +210,12 @@ export function StatusSection() {
     weapons: false,
     comms: false,
   });
+
+  // Mark stagger animation complete after longest delay + animation duration
+  useEffect(() => {
+    const timer = setTimeout(() => setStaggerComplete(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Initialize previous statuses on mount
   useEffect(() => {
@@ -298,6 +310,7 @@ export function StatusSection() {
             max={ship.hull.max}
             variant="hull"
             delay={0.6}
+            staggerDone={staggerComplete}
           />
           <IntegrityPanel
             label="ARMOR"
@@ -305,6 +318,7 @@ export function StatusSection() {
             max={ship.armor.max}
             variant="armor"
             delay={0.8}
+            staggerDone={staggerComplete}
           />
           <SystemStatusPanel
             name="LIFE SUPPORT"
@@ -313,6 +327,7 @@ export function StatusSection() {
             info={ship.systems.life_support.info}
             isChanging={changingFlags.life_support}
             delay={1.0}
+            staggerDone={staggerComplete}
           />
         </div>
 
@@ -330,6 +345,7 @@ export function StatusSection() {
             info={ship.systems.engines.info}
             isChanging={changingFlags.engines}
             delay={0.6}
+            staggerDone={staggerComplete}
           />
           <SystemStatusPanel
             name="WEAPONS"
@@ -338,6 +354,7 @@ export function StatusSection() {
             info={ship.systems.weapons.info}
             isChanging={changingFlags.weapons}
             delay={0.8}
+            staggerDone={staggerComplete}
           />
           <SystemStatusPanel
             name="COMMS"
@@ -346,6 +363,7 @@ export function StatusSection() {
             info={ship.systems.comms.info}
             isChanging={changingFlags.comms}
             delay={1.0}
+            staggerDone={staggerComplete}
           />
         </div>
       </div>

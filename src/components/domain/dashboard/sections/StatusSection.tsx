@@ -229,53 +229,56 @@ export function StatusSection() {
     }
   }, [shipData]);
 
-  // Poll for ship status updates every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/ship-status/');
-        if (!res.ok) {
-          console.error('Failed to fetch ship status:', res.statusText);
-          return;
-        }
-        const data: ShipStatusData = await res.json();
-
-        // Detect changes and set flicker flags
-        if (previousStatusesRef.current) {
-          const newChangingFlags: ChangingFlags = {
-            life_support: data.ship.systems.life_support.status !== previousStatusesRef.current.life_support,
-            engines: data.ship.systems.engines.status !== previousStatusesRef.current.engines,
-            weapons: data.ship.systems.weapons.status !== previousStatusesRef.current.weapons,
-            comms: data.ship.systems.comms.status !== previousStatusesRef.current.comms,
-          };
-
-          setChangingFlags(newChangingFlags);
-
-          // Clear flicker flags after 400ms
-          setTimeout(() => {
-            setChangingFlags({
-              life_support: false,
-              engines: false,
-              weapons: false,
-              comms: false,
-            });
-          }, 400);
-
-          // Update previous statuses
-          previousStatusesRef.current = {
-            life_support: data.ship.systems.life_support.status,
-            engines: data.ship.systems.engines.status,
-            weapons: data.ship.systems.weapons.status,
-            comms: data.ship.systems.comms.status,
-          };
-        }
-
-        setShipData(data);
-      } catch (err) {
-        console.error('Failed to poll ship status:', err);
+  // Fetch fresh ship status from API
+  const fetchShipStatus = async (skipFlicker = false) => {
+    try {
+      const res = await fetch('/api/ship-status/');
+      if (!res.ok) {
+        console.error('Failed to fetch ship status:', res.statusText);
+        return;
       }
-    }, 3000);
+      const data: ShipStatusData = await res.json();
 
+      // Detect changes and set flicker flags (skip on initial fetch)
+      if (!skipFlicker && previousStatusesRef.current) {
+        const newChangingFlags: ChangingFlags = {
+          life_support: data.ship.systems.life_support.status !== previousStatusesRef.current.life_support,
+          engines: data.ship.systems.engines.status !== previousStatusesRef.current.engines,
+          weapons: data.ship.systems.weapons.status !== previousStatusesRef.current.weapons,
+          comms: data.ship.systems.comms.status !== previousStatusesRef.current.comms,
+        };
+
+        setChangingFlags(newChangingFlags);
+
+        // Clear flicker flags after 400ms
+        setTimeout(() => {
+          setChangingFlags({
+            life_support: false,
+            engines: false,
+            weapons: false,
+            comms: false,
+          });
+        }, 400);
+      }
+
+      // Update previous statuses
+      previousStatusesRef.current = {
+        life_support: data.ship.systems.life_support.status,
+        engines: data.ship.systems.engines.status,
+        weapons: data.ship.systems.weapons.status,
+        comms: data.ship.systems.comms.status,
+      };
+
+      setShipData(data);
+    } catch (err) {
+      console.error('Failed to poll ship status:', err);
+    }
+  };
+
+  // Fetch fresh data immediately on mount, then poll every 3 seconds
+  useEffect(() => {
+    fetchShipStatus(true);
+    const interval = setInterval(() => fetchShipStatus(), 3000);
     return () => clearInterval(interval);
   }, []);
 

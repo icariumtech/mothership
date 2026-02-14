@@ -185,8 +185,8 @@
   min-height: 28px;
 }
 
-/* Status states - persistent animations */
-.system-panel.status-critical {
+/* Status states - persistent animations (only after stagger completes) */
+.system-panel.status-critical:not(.stagger-animate) {
   animation: pulse-critical 2s ease-in-out infinite;
 }
 

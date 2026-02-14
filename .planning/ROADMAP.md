@@ -58,12 +58,12 @@ Plans:
   3. Tokens visually distinguish between types (player, NPC, creature, object)
   4. GM can drag tokens and players see position updates via polling/push
   5. Tokens display status indicators (wounded, dead, panicked)
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [ ] 03-01-PLAN.md — Backend data pipeline: ActiveView encounter_tokens field, token CRUD API endpoints, TypeScript types, API client
+- [ ] 03-02-PLAN.md — Frontend token rendering: TokenLayer, Token, TokenStatusOverlay components, encounter map integration, polling wire-up
+- [ ] 03-03-PLAN.md — GM Console controls: TokenPalette with placement/status/removal, drag-to-move on encounter map
 
 ### Phase 4: NPC Portrait System
 **Goal**: GM can trigger NPC portrait displays during encounters with atmospheric presentation
@@ -116,7 +116,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Campaign Logs Tab | 2/2 | ✓ Complete | 2026-02-12 |
 | 2. Ship Status Dashboard | 3/3 | ✓ Complete | 2026-02-12 |
-| 3. Encounter Tokens | 0/TBD | Not started | - |
+| 3. Encounter Tokens | 0/3 | In Progress | - |
 | 4. NPC Portrait System | 0/TBD | Not started | - |
 | 5. Real-Time Push Architecture | 0/TBD | Not started | - |
 | 6. UI Audio System | 0/TBD | Not started | - |

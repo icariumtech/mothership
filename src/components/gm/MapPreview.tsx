@@ -13,8 +13,14 @@ import type {
   RoomVisibilityState,
   DoorStatusState,
   DoorStatus,
+  TokenState,
+  TokenType,
+  TokenStatus,
 } from '@/types/encounterMap';
 import { DoorStatusPopup } from './DoorStatusPopup';
+import { TokenLayer } from '@/components/domain/encounter/TokenLayer';
+import { getGridCell } from '@/utils/svgCoordinates';
+import { message } from 'antd';
 
 // Pan and zoom state
 interface ViewState {
@@ -44,6 +50,18 @@ interface MapPreviewProps {
   aspectRatio?: number;
   /** If true, show all rooms but dim hidden ones. If false, only show visible rooms. */
   showAllRooms?: boolean;
+  /** Token state for rendering tokens on the map */
+  tokens?: TokenState;
+  /** Is this the GM view? (enables token drag-and-drop) */
+  isGM?: boolean;
+  /** Callback when GM places a new token */
+  onTokenPlace?: (type: TokenType, name: string, x: number, y: number, imageUrl: string, roomId: string) => void;
+  /** Callback when GM moves an existing token */
+  onTokenMove?: (id: string, x: number, y: number) => void;
+  /** Callback when GM removes a token */
+  onTokenRemove?: (id: string) => void;
+  /** Callback when GM toggles token status */
+  onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
 }
 
 // V2-1 Color palette (simplified for preview)
@@ -76,6 +94,12 @@ export function MapPreview({
   height,
   aspectRatio,
   showAllRooms = true,
+  tokens,
+  isGM = false,
+  onTokenPlace,
+  onTokenMove,
+  onTokenRemove,
+  onTokenStatusToggle,
 }: MapPreviewProps) {
   const grid = mapData.grid;
   const unitSize = grid.unit_size || 40;
@@ -94,9 +118,12 @@ export function MapPreview({
 
   // Refs for drag tracking
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const viewStart = useRef({ panX: 0, panY: 0 });
+
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Zoom limits
   const MIN_ZOOM = 0.5;
@@ -175,6 +202,77 @@ export function MapPreview({
 
   // Check if view is modified
   const isViewModified = viewState.zoom !== 1 || viewState.panX !== 0 || viewState.panY !== 0;
+
+  // Helper: Find which room contains a grid cell
+  const findRoomAtCell = useCallback((gridX: number, gridY: number): RoomData | null => {
+    for (const room of mapData.rooms) {
+      if (
+        gridX >= room.x &&
+        gridX < room.x + room.width &&
+        gridY >= room.y &&
+        gridY < room.y + room.height
+      ) {
+        return room;
+      }
+    }
+    return null;
+  }, [mapData.rooms]);
+
+  // Helper: Check if a cell is occupied by a token
+  const isCellOccupied = useCallback((gridX: number, gridY: number): boolean => {
+    if (!tokens) return false;
+    return Object.values(tokens).some(token => token.x === gridX && token.y === gridY);
+  }, [tokens]);
+
+  // Drag over handler - allow drop
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!isGM || !onTokenPlace) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, [isGM, onTokenPlace]);
+
+  // Drop handler - place token
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    if (!isGM || !onTokenPlace || !svgRef.current) return;
+
+    e.preventDefault();
+
+    // Parse template data
+    const dataStr = e.dataTransfer.getData('application/json');
+    if (!dataStr) return;
+
+    let template: { type: TokenType; name: string; imageUrl: string };
+    try {
+      template = JSON.parse(dataStr);
+    } catch (err) {
+      console.error('Failed to parse drag data:', err);
+      return;
+    }
+
+    // Convert drop position to grid cell
+    const { gridX, gridY } = getGridCell(svgRef.current, e.clientX, e.clientY, unitSize);
+
+    // Overlap prevention: check if cell is occupied
+    if (isCellOccupied(gridX, gridY)) {
+      messageApi.warning('Cell is already occupied by another token');
+      return;
+    }
+
+    // Revealed rooms only: check if cell is in a revealed room
+    const room = findRoomAtCell(gridX, gridY);
+    if (!room) {
+      messageApi.warning('Token can only be placed inside a room');
+      return;
+    }
+
+    if (roomVisibility[room.id] === false) {
+      messageApi.warning('Token can only be placed in revealed rooms');
+      return;
+    }
+
+    // Valid placement - call handler
+    onTokenPlace(template.type, template.name, gridX, gridY, template.imageUrl || '', room.id);
+  }, [isGM, onTokenPlace, unitSize, isCellOccupied, findRoomAtCell, roomVisibility, messageApi]);
 
   // Check if a room is visible
   const isRoomVisible = (roomId: string): boolean => {
@@ -509,24 +607,29 @@ export function MapPreview({
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{ ...containerStyle, cursor: 'grab' }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
-      <svg
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        preserveAspectRatio="xMidYMid meet"
-        style={{
-          width: '100%',
-          height: '100%',
-          transform: `translate(${viewState.panX}px, ${viewState.panY}px) scale(${viewState.zoom})`,
-          transformOrigin: '0 0',
-        }}
+    <>
+      {contextHolder}
+      <div
+        ref={containerRef}
+        style={{ ...containerStyle, cursor: 'grab' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{
+            width: '100%',
+            height: '100%',
+            transform: `translate(${viewState.panX}px, ${viewState.panY}px) scale(${viewState.zoom})`,
+            transformOrigin: '0 0',
+          }}
+        >
         {/* Background */}
         <rect x={0} y={0} width={svgWidth} height={svgHeight} fill={COLORS.bgPrimary} />
 
@@ -544,6 +647,20 @@ export function MapPreview({
         <g>
           {visibleDoors.map(renderDoor)}
         </g>
+
+        {/* Tokens */}
+        {tokens && (
+          <TokenLayer
+            tokens={tokens}
+            unitSize={unitSize}
+            roomVisibility={roomVisibility}
+            isGM={isGM}
+            onTokenMove={onTokenMove}
+            onTokenRemove={onTokenRemove}
+            onTokenStatusToggle={onTokenStatusToggle}
+            mapRooms={mapData.rooms}
+          />
+        )}
       </svg>
 
       {/* Reset view button */}
@@ -594,6 +711,7 @@ export function MapPreview({
           onClose={() => setSelectedDoor(null)}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

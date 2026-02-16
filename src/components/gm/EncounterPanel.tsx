@@ -24,8 +24,12 @@ import type {
   DeckInfo,
   RoomData,
   EncounterMapData,
+  TokenState,
+  TokenType,
+  TokenStatus,
 } from '@/types/encounterMap';
 import { MapPreview } from './MapPreview';
+import { TokenPalette } from './TokenPalette';
 
 const { Text } = Typography;
 
@@ -47,6 +51,7 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
   const [roomVisibility, setRoomVisibility] = useState<RoomVisibilityState>({});
   const [doorStatus, setDoorStatus] = useState<DoorStatusState>({});
   const [currentDeckMapData, setCurrentDeckMapData] = useState<EncounterMapData | null>(null);
+  const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -152,6 +157,15 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
     }
   }, [activeView?.encounter_door_status]);
 
+  // Sync token state from activeView
+  useEffect(() => {
+    if (activeView?.encounter_tokens) {
+      setEncounterTokens(activeView.encounter_tokens);
+    } else {
+      setEncounterTokens({});
+    }
+  }, [activeView?.encounter_tokens]);
+
   const handleDeckSelect = useCallback(async (deck: DeckInfo) => {
     if (deck.id === currentDeckId) return;
 
@@ -219,6 +233,68 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
   const isRoomVisible = (roomId: string) => {
     return roomVisibility[roomId] !== false;
   };
+
+  // Token handlers
+  const handleTokenPlace = useCallback(async (
+    type: TokenType,
+    name: string,
+    x: number,
+    y: number,
+    imageUrl: string,
+    roomId: string
+  ) => {
+    try {
+      const result = await encounterApi.placeToken(type, name, x, y, imageUrl, roomId);
+      setEncounterTokens(result.tokens);
+      onViewUpdate();
+      messageApi.success(`Placed token: ${name}`);
+    } catch (err) {
+      console.error('Error placing token:', err);
+      messageApi.error('Failed to place token');
+    }
+  }, [onViewUpdate, messageApi]);
+
+  const handleTokenMove = useCallback(async (id: string, x: number, y: number) => {
+    try {
+      const result = await encounterApi.moveToken(id, x, y);
+      setEncounterTokens(result.tokens);
+      onViewUpdate();
+    } catch (err) {
+      console.error('Error moving token:', err);
+      messageApi.error('Failed to move token');
+    }
+  }, [onViewUpdate, messageApi]);
+
+  const handleTokenRemove = useCallback(async (id: string) => {
+    try {
+      const result = await encounterApi.removeToken(id);
+      setEncounterTokens(result.tokens);
+      onViewUpdate();
+      messageApi.success('Token removed');
+    } catch (err) {
+      console.error('Error removing token:', err);
+      messageApi.error('Failed to remove token');
+    }
+  }, [onViewUpdate, messageApi]);
+
+  const handleTokenStatusToggle = useCallback(async (id: string, status: TokenStatus) => {
+    const token = encounterTokens[id];
+    if (!token) return;
+
+    // Toggle status in array
+    const newStatus = token.status.includes(status)
+      ? token.status.filter(s => s !== status)
+      : [...token.status, status];
+
+    try {
+      const result = await encounterApi.updateTokenStatus(id, newStatus);
+      setEncounterTokens(result.tokens);
+      onViewUpdate();
+    } catch (err) {
+      console.error('Error updating token status:', err);
+      messageApi.error('Failed to update token status');
+    }
+  }, [encounterTokens, onViewUpdate, messageApi]);
 
   if (!isActive) {
     return (
@@ -337,6 +413,12 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
             doorStatus={doorStatus}
             onDoorStatusChange={handleDoorStatusChange}
             showAllRooms={true}
+            tokens={encounterTokens}
+            isGM={true}
+            onTokenPlace={handleTokenPlace}
+            onTokenMove={handleTokenMove}
+            onTokenRemove={handleTokenRemove}
+            onTokenStatusToggle={handleTokenStatusToggle}
           />
         ) : (
           <div style={{
@@ -352,6 +434,23 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
             </Text>
           </div>
         )}
+      </Card>
+
+      {/* Token Palette */}
+      <Card
+        size="small"
+        title={<Text style={{ color: '#5a7a7a' }}>TOKENS</Text>}
+        style={{ marginBottom: 16, background: '#1a1a1a' }}
+        bodyStyle={{ padding: 12 }}
+      >
+        <TokenPalette
+          activeView={activeView}
+          tokens={encounterTokens}
+          onTokensChange={setEncounterTokens}
+          onViewUpdate={onViewUpdate}
+          mapData={currentDeckMapData}
+          roomVisibility={roomVisibility}
+        />
       </Card>
 
       {/* Room Visibility Card */}

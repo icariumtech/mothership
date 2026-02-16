@@ -1,4 +1,4 @@
-import { RoomVisibilityState, DoorStatusState } from './encounterMap';
+import { RoomVisibilityState, DoorStatusState, TokenState } from './encounterMap';
 
 export interface Terminal {
   slug: string;
@@ -35,6 +35,7 @@ export interface ActiveView {
   encounter_deck_id: string;
   encounter_room_visibility: RoomVisibilityState;
   encounter_door_status: DoorStatusState;
+  encounter_tokens: TokenState;
   updated_at: string;
 }
 

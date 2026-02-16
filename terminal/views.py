@@ -196,6 +196,7 @@ def get_active_view_json(request):
         'encounter_deck_id': active_view.encounter_deck_id or '',
         'encounter_room_visibility': active_view.encounter_room_visibility or {},
         'encounter_door_status': active_view.encounter_door_status or {},
+        'encounter_tokens': active_view.encounter_tokens or {},
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     }
 
@@ -1117,6 +1118,283 @@ def api_encounter_set_door_status(request):
         'door_status': door_status,
         'all_door_status': door_states
     })
+
+
+@csrf_exempt
+def api_encounter_place_token(request):
+    """
+    Place a new token on the encounter map.
+    POST: { type: string, name: string, x: int, y: int, image_url?: string, room_id?: string }
+    Valid types: player, npc, creature, object
+    """
+    from terminal.models import ActiveView
+    import uuid
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    token_type = data.get('type')
+    name = data.get('name')
+    x = data.get('x')
+    y = data.get('y')
+    image_url = data.get('image_url', '')
+    room_id = data.get('room_id', '')
+
+    # Validate required fields
+    if not token_type or not name or x is None or y is None:
+        return JsonResponse({'error': 'type, name, x, and y are required'}, status=400)
+
+    # Validate token type
+    valid_types = ['player', 'npc', 'creature', 'object']
+    if token_type not in valid_types:
+        return JsonResponse({
+            'error': f'Invalid type. Must be one of: {", ".join(valid_types)}'
+        }, status=400)
+
+    # Validate coordinates are integers
+    if not isinstance(x, int) or not isinstance(y, int):
+        return JsonResponse({'error': 'x and y must be integers'}, status=400)
+
+    # Generate token ID
+    token_id = uuid.uuid4().hex[:8]
+
+    # Create token data
+    token_data = {
+        'type': token_type,
+        'name': name,
+        'x': x,
+        'y': y,
+        'status': [],
+        'image_url': image_url,
+        'room_id': room_id,
+    }
+
+    # Store token
+    active_view = ActiveView.get_current()
+    tokens = active_view.encounter_tokens or {}
+    tokens[token_id] = token_data
+
+    active_view.encounter_tokens = tokens
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'token_id': token_id,
+        'tokens': tokens
+    })
+
+
+@csrf_exempt
+def api_encounter_move_token(request):
+    """
+    Move an existing token to a new position.
+    POST: { token_id: string, x: int, y: int, room_id?: string }
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    token_id = data.get('token_id')
+    x = data.get('x')
+    y = data.get('y')
+    room_id = data.get('room_id', '')
+
+    if not token_id or x is None or y is None:
+        return JsonResponse({'error': 'token_id, x, and y are required'}, status=400)
+
+    # Validate coordinates are integers
+    if not isinstance(x, int) or not isinstance(y, int):
+        return JsonResponse({'error': 'x and y must be integers'}, status=400)
+
+    # Update token
+    active_view = ActiveView.get_current()
+    tokens = active_view.encounter_tokens or {}
+
+    if token_id not in tokens:
+        return JsonResponse({'error': 'Token not found'}, status=404)
+
+    tokens[token_id]['x'] = x
+    tokens[token_id]['y'] = y
+    tokens[token_id]['room_id'] = room_id
+
+    active_view.encounter_tokens = tokens
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'token_id': token_id,
+        'tokens': tokens
+    })
+
+
+@csrf_exempt
+def api_encounter_remove_token(request):
+    """
+    Remove a token from the encounter map.
+    POST: { token_id: string }
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    token_id = data.get('token_id')
+
+    if not token_id:
+        return JsonResponse({'error': 'token_id is required'}, status=400)
+
+    # Remove token
+    active_view = ActiveView.get_current()
+    tokens = active_view.encounter_tokens or {}
+
+    if token_id not in tokens:
+        return JsonResponse({'error': 'Token not found'}, status=404)
+
+    del tokens[token_id]
+
+    active_view.encounter_tokens = tokens
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'tokens': tokens
+    })
+
+
+@csrf_exempt
+def api_encounter_update_token_status(request):
+    """
+    Update the status list of a token (wounded, dead, panicked, etc.).
+    POST: { token_id: string, status: [string] }
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    token_id = data.get('token_id')
+    status = data.get('status')
+
+    if not token_id or status is None:
+        return JsonResponse({'error': 'token_id and status are required'}, status=400)
+
+    if not isinstance(status, list):
+        return JsonResponse({'error': 'status must be an array'}, status=400)
+
+    # Update token status
+    active_view = ActiveView.get_current()
+    tokens = active_view.encounter_tokens or {}
+
+    if token_id not in tokens:
+        return JsonResponse({'error': 'Token not found'}, status=404)
+
+    tokens[token_id]['status'] = status
+
+    active_view.encounter_tokens = tokens
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'token_id': token_id,
+        'tokens': tokens
+    })
+
+
+@csrf_exempt
+def api_encounter_clear_tokens(request):
+    """
+    Clear all tokens from the encounter map.
+    POST: {} (empty body)
+    """
+    from terminal.models import ActiveView
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    # Clear all tokens
+    active_view = ActiveView.get_current()
+    active_view.encounter_tokens = {}
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'tokens': {}
+    })
+
+
+@csrf_exempt
+def api_encounter_token_images(request):
+    """
+    Get list of available token images from campaign data.
+    GET: Returns list of image objects with id, name, type, url, source
+    """
+    from terminal.data_loader import DataLoader
+
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    loader = DataLoader()
+    images = []
+
+    # Load crew portraits
+    crew = loader.load_crew()
+    for member in crew:
+        if member.get('portrait'):
+            images.append({
+                'id': member.get('id', member.get('name', '')),
+                'name': member.get('name', ''),
+                'type': 'player',
+                'url': member.get('portrait'),
+                'source': 'crew'
+            })
+
+    # Load NPC portraits
+    npcs = loader.load_npcs()
+    for npc in npcs:
+        if npc.get('portrait'):
+            images.append({
+                'id': npc.get('id', npc.get('name', '')),
+                'name': npc.get('name', ''),
+                'type': 'npc',
+                'url': npc.get('portrait'),
+                'source': 'npc'
+            })
+
+    # Scan loose image files in NPCs/images/ directory
+    npc_images_dir = loader.data_dir / 'campaign' / 'NPCs' / 'images'
+    if npc_images_dir.exists():
+        for img_file in npc_images_dir.iterdir():
+            if img_file.is_file() and img_file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp']:
+                images.append({
+                    'id': img_file.name,
+                    'name': img_file.stem,
+                    'type': 'creature',
+                    'url': str(img_file.relative_to(loader.data_dir)),
+                    'source': 'images'
+                })
+
+    return JsonResponse({'images': images})
 
 
 def api_encounter_map_data(request, location_slug):

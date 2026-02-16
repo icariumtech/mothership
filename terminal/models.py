@@ -95,6 +95,11 @@ class ActiveView(models.Model):
         blank=True,
         help_text='Map of connection_id -> door_status string (runtime override)'
     )
+    encounter_tokens = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Map of token_id -> token data for encounter tokens'
+    )
 
     # Ship status runtime overrides
     ship_system_overrides = models.JSONField(

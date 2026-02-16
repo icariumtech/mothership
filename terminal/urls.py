@@ -47,6 +47,12 @@ urlpatterns = [
     path('api/gm/encounter/toggle-room/', views.api_encounter_toggle_room, name='encounter_toggle_room'),
     path('api/gm/encounter/room-visibility/', views.api_encounter_room_visibility, name='encounter_room_visibility'),
     path('api/gm/encounter/set-door-status/', views.api_encounter_set_door_status, name='encounter_set_door_status'),
+    path('api/gm/encounter/place-token/', views.api_encounter_place_token, name='encounter_place_token'),
+    path('api/gm/encounter/move-token/', views.api_encounter_move_token, name='encounter_move_token'),
+    path('api/gm/encounter/remove-token/', views.api_encounter_remove_token, name='encounter_remove_token'),
+    path('api/gm/encounter/update-token-status/', views.api_encounter_update_token_status, name='encounter_update_token_status'),
+    path('api/gm/encounter/clear-tokens/', views.api_encounter_clear_tokens, name='encounter_clear_tokens'),
+    path('api/gm/encounter/token-images/', views.api_encounter_token_images, name='encounter_token_images'),
     path('api/encounter-map/<str:location_slug>/all-decks/', views.api_encounter_all_decks, name='encounter_all_decks'),
     path('api/encounter-map/<str:location_slug>/', views.api_encounter_map_data, name='encounter_map_data'),
     # Terminal API endpoints

@@ -15,10 +15,13 @@ import {
   RoomVisibilityState,
   DoorStatusState,
   DoorStatus,
+  TokenState,
+  TokenStatus,
 } from '../../../types/encounterMap';
 import { RoomTooltip } from './RoomTooltip';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
+import { TokenLayer } from './TokenLayer';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
@@ -31,6 +34,14 @@ interface EncounterMapRendererProps {
   totalLevels?: number;
   /** Current deck name */
   deckName?: string;
+  /** Token state */
+  tokens?: TokenState;
+  /** Is this a GM view? */
+  isGM?: boolean;
+  /** Token callbacks */
+  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenRemove?: (id: string) => void;
+  onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
 }
 
 // Pan and zoom state
@@ -86,6 +97,11 @@ export function EncounterMapRenderer({
   currentLevel = 1,
   totalLevels = 1,
   deckName,
+  tokens,
+  isGM = false,
+  onTokenMove,
+  onTokenRemove,
+  onTokenStatusToggle,
 }: EncounterMapRendererProps) {
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
@@ -95,6 +111,7 @@ export function EncounterMapRenderer({
   });
 
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
 
   // Pan and zoom state
   const [viewState, setViewState] = useState<ViewState>({
@@ -324,7 +341,8 @@ export function EncounterMapRenderer({
     if (target.closest('.encounter-map__room') ||
         target.closest('.encounter-map__terminal') ||
         target.closest('.encounter-map__poi') ||
-        target.closest('.encounter-map__door')) {
+        target.closest('.encounter-map__door') ||
+        target.closest('.encounter-map__token')) {
       return;
     }
 
@@ -987,6 +1005,21 @@ export function EncounterMapRenderer({
         <g className="encounter-map__pois">
           {visiblePois.map(renderPoi)}
         </g>
+
+        {/* Token layer (rendered above all other elements) */}
+        {tokens && Object.keys(tokens).length > 0 && (
+          <TokenLayer
+            tokens={tokens}
+            unitSize={unitSize}
+            roomVisibility={roomVisibility}
+            isGM={isGM}
+            onTokenMove={onTokenMove}
+            onTokenRemove={onTokenRemove}
+            onTokenStatusToggle={onTokenStatusToggle}
+            selectedTokenId={selectedTokenId}
+            onTokenSelect={setSelectedTokenId}
+          />
+        )}
       </svg>
 
       {/* Overlay panels - positioned by CSS Grid */}

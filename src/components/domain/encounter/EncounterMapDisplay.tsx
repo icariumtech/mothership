@@ -15,6 +15,8 @@ import {
   EncounterMapData,
   RoomVisibilityState,
   DoorStatusState,
+  TokenState,
+  TokenStatus,
   isEncounterMap,
   isMultiDeckMap,
   MultiDeckMapData,
@@ -61,6 +63,14 @@ interface EncounterMapDisplayProps {
   totalLevels?: number;
   /** Current deck name */
   deckName?: string;
+  /** Token state */
+  tokens?: TokenState;
+  /** Is this a GM view? */
+  isGM?: boolean;
+  /** Token callbacks */
+  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenRemove?: (id: string) => void;
+  onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
 }
 
 export function EncounterMapDisplay({
@@ -70,6 +80,11 @@ export function EncounterMapDisplay({
   currentLevel = 1,
   totalLevels = 1,
   deckName,
+  tokens,
+  isGM = false,
+  onTokenMove,
+  onTokenRemove,
+  onTokenStatusToggle,
 }: EncounterMapDisplayProps) {
   const mapData = locationData?.map;
 
@@ -86,6 +101,11 @@ export function EncounterMapDisplay({
         currentLevel={currentLevel}
         totalLevels={totalLevels}
         deckName={deckName}
+        tokens={tokens}
+        isGM={isGM}
+        onTokenMove={onTokenMove}
+        onTokenRemove={onTokenRemove}
+        onTokenStatusToggle={onTokenStatusToggle}
       />
     );
   }
@@ -100,6 +120,11 @@ export function EncounterMapDisplay({
         currentLevel={currentLevel}
         totalLevels={totalLevels}
         deckName={deckName}
+        tokens={tokens}
+        isGM={isGM}
+        onTokenMove={onTokenMove}
+        onTokenRemove={onTokenRemove}
+        onTokenStatusToggle={onTokenStatusToggle}
       />
     );
   }

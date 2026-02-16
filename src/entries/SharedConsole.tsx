@@ -23,7 +23,7 @@ import { TRANSITION_TIMING, waitForTypewriter } from '@/utils/transitionCoordina
 import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { MoonData, StationData, SurfaceMarkerData, OrbitMapData } from '../types/orbitMap';
-import type { DoorStatusState } from '../types/encounterMap';
+import type { DoorStatusState, TokenState } from '../types/encounterMap';
 
 // Transition state type
 type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
@@ -68,6 +68,8 @@ interface ActiveView {
   // Multi-deck manifest info (added by API)
   encounter_total_decks?: number;
   encounter_deck_name?: string;
+  // Token state
+  encounter_tokens?: TokenState;
 }
 
 interface InitialData {
@@ -92,6 +94,9 @@ function SharedConsole() {
   );
   const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
   const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
+
+  // Encounter token state
+  const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
 
   // Performance mode state - reduces visual effects for low-powered devices
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -269,6 +274,11 @@ function SharedConsole() {
       try {
         const response = await fetch('/api/active-view/');
         const data = await response.json();
+
+        // Update encounter tokens if present
+        if (data.encounter_tokens) {
+          setEncounterTokens(data.encounter_tokens);
+        }
 
         // Check if view changed
         if (data.updated_at !== activeView?.updated_at) {
@@ -941,6 +951,8 @@ function SharedConsole() {
           deckName={activeView?.encounter_deck_name}
           roomVisibility={activeView?.encounter_room_visibility}
           doorStatus={activeView?.encounter_door_status}
+          tokens={encounterTokens}
+          isGM={false}
         />
       )}
 

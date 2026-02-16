@@ -17,7 +17,7 @@ import { SystemMap } from '@components/domain/maps/SystemMap';
 import { OrbitMap } from '@components/domain/maps/OrbitMap';
 import { EncounterMapDisplay } from './EncounterMapDisplay';
 import type { StarMapData } from '../../../types/starMap';
-import type { RoomVisibilityState, DoorStatusState } from '../../../types/encounterMap';
+import type { RoomVisibilityState, DoorStatusState, TokenState, TokenStatus } from '../../../types/encounterMap';
 import './EncounterView.css';
 
 // Location data from API
@@ -66,6 +66,14 @@ interface EncounterViewProps {
   roomVisibility?: RoomVisibilityState;
   /** Door status state from GM */
   doorStatus?: DoorStatusState;
+  /** Token state */
+  tokens?: TokenState;
+  /** Is this a GM view? */
+  isGM?: boolean;
+  /** Token callbacks */
+  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenRemove?: (id: string) => void;
+  onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
 }
 
 // Determine view mode based on location type
@@ -102,6 +110,11 @@ export function EncounterView({
   deckName,
   roomVisibility,
   doorStatus,
+  tokens,
+  isGM = false,
+  onTokenMove,
+  onTokenRemove,
+  onTokenStatusToggle,
 }: EncounterViewProps) {
   const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
 
@@ -184,6 +197,11 @@ export function EncounterView({
           currentLevel={encounterLevel}
           totalLevels={totalDecks}
           deckName={deckName}
+          tokens={tokens}
+          isGM={isGM}
+          onTokenMove={onTokenMove}
+          onTokenRemove={onTokenRemove}
+          onTokenStatusToggle={onTokenStatusToggle}
         />
       )}
     </div>

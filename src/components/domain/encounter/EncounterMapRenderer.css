@@ -312,3 +312,32 @@
 
 /* Legend - now uses LegendPanel component */
 /* See LegendPanel.css for legend styling */
+
+/* === Token Layer === */
+.encounter-map__token { cursor: pointer; transition: opacity 0.2s ease; }
+.encounter-map__token[data-draggable="true"] { cursor: grab; }
+.encounter-map__token.is-dragging { opacity: 0.7; cursor: grabbing !important; }
+.encounter-map__token--hidden { opacity: 0.4; }
+
+/* Token labels - initial shown, full name on hover */
+.encounter-map__token-label { fill: #9a9a9a; font-size: 10px; font-family: 'Cascadia Code', monospace; pointer-events: none; user-select: none; }
+.encounter-map__token-label--full { display: none; }
+.encounter-map__token:hover .encounter-map__token-label--full { display: block; }
+.encounter-map__token:hover .encounter-map__token-label--initial { display: none; }
+
+/* Status indicator animations */
+@keyframes pulse-wounded { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes pulse-panicked { 0%, 100% { opacity: 1; stroke-width: 2; } 50% { opacity: 0.5; stroke-width: 3; } }
+.status-indicator--wounded { animation: pulse-wounded 1.5s ease-in-out infinite; }
+.status-indicator--panicked { animation: pulse-panicked 1s ease-in-out infinite; }
+
+/* Token popup */
+.token-popup { background: #1a1a1a; border: 1px solid #4a6b6b; border-radius: 4px; padding: 8px; font-family: 'Cascadia Code', monospace; font-size: 11px; color: #9a9a9a; position: relative; }
+.token-popup__close { position: absolute; top: 2px; right: 4px; background: none; border: none; color: #5a5a5a; cursor: pointer; font-size: 14px; }
+.token-popup__close:hover { color: #9a9a9a; }
+.token-popup__name { color: #5a7a7a; font-weight: bold; margin-bottom: 4px; }
+.token-popup__type { color: #5a5a5a; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+.token-popup__status-btn { background: #2a3a3a; border: 1px solid #3a4a4a; color: #9a9a9a; padding: 2px 6px; margin: 2px; cursor: pointer; font-size: 9px; font-family: inherit; }
+.token-popup__status-btn--active { background: #4a6b6b; border-color: #5a7a7a; color: #d0d0d0; }
+.token-popup__remove-btn { background: #3a2a2a; border: 1px solid #5a3a3a; color: #8b5555; padding: 3px 8px; margin-top: 6px; cursor: pointer; font-size: 10px; font-family: inherit; width: 100%; }
+.token-popup__remove-btn:hover { background: #4a3a3a; }

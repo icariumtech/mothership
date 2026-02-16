@@ -6,6 +6,10 @@ import {
   DoorStatus,
   RoomData,
   EncounterManifest,
+  TokenState,
+  TokenType,
+  TokenStatus,
+  TokenImage,
 } from '@/types/encounterMap';
 
 interface SwitchLevelResponse {
@@ -46,6 +50,16 @@ interface SetDoorStatusResponse {
   connection_id: string;
   door_status: DoorStatus;
   all_door_status: DoorStatusState;
+}
+
+interface TokenResponse {
+  success: boolean;
+  token_id?: string;
+  tokens: TokenState;
+}
+
+interface TokenImagesResponse {
+  images: TokenImage[];
 }
 
 /**
@@ -134,6 +148,78 @@ async function setDoorStatus(connectionId: string, doorStatus: DoorStatus): Prom
   return response.data;
 }
 
+/**
+ * Place a new token on the encounter map (GM only)
+ */
+async function placeToken(
+  type: TokenType,
+  name: string,
+  x: number,
+  y: number,
+  imageUrl?: string,
+  roomId?: string
+): Promise<TokenResponse> {
+  const response = await api.post<TokenResponse>('/gm/encounter/place-token/', {
+    type,
+    name,
+    x,
+    y,
+    image_url: imageUrl || '',
+    room_id: roomId || '',
+  });
+  return response.data;
+}
+
+/**
+ * Move an existing token to a new position (GM only)
+ */
+async function moveToken(tokenId: string, x: number, y: number, roomId?: string): Promise<TokenResponse> {
+  const response = await api.post<TokenResponse>('/gm/encounter/move-token/', {
+    token_id: tokenId,
+    x,
+    y,
+    room_id: roomId || '',
+  });
+  return response.data;
+}
+
+/**
+ * Remove a token from the encounter map (GM only)
+ */
+async function removeToken(tokenId: string): Promise<TokenResponse> {
+  const response = await api.post<TokenResponse>('/gm/encounter/remove-token/', {
+    token_id: tokenId,
+  });
+  return response.data;
+}
+
+/**
+ * Update token status flags (GM only)
+ */
+async function updateTokenStatus(tokenId: string, status: TokenStatus[]): Promise<TokenResponse> {
+  const response = await api.post<TokenResponse>('/gm/encounter/update-token-status/', {
+    token_id: tokenId,
+    status,
+  });
+  return response.data;
+}
+
+/**
+ * Clear all tokens from the encounter map (GM only)
+ */
+async function clearAllTokens(): Promise<TokenResponse> {
+  const response = await api.post<TokenResponse>('/gm/encounter/clear-tokens/', {});
+  return response.data;
+}
+
+/**
+ * Get list of available token images from campaign data (GM only)
+ */
+async function getTokenImages(): Promise<TokenImage[]> {
+  const response = await api.get<TokenImagesResponse>('/gm/encounter/token-images/');
+  return response.data.images;
+}
+
 export const encounterApi = {
   getMapData,
   getAllDecks,
@@ -143,7 +229,13 @@ export const encounterApi = {
   setRoomVisibility,
   showAllRooms,
   hideAllRooms,
-  setDoorStatus
+  setDoorStatus,
+  placeToken,
+  moveToken,
+  removeToken,
+  updateTokenStatus,
+  clearAllTokens,
+  getTokenImages,
 };
 
 export type { DeckWithRooms, AllDecksResponse };

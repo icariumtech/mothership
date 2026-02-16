@@ -3,6 +3,33 @@
  * Matches the YAML schema for encounter_map.yaml
  */
 
+// Token types for encounter map tokens
+export type TokenType = 'player' | 'npc' | 'creature' | 'object';
+export type TokenStatus = 'wounded' | 'dead' | 'panicked' | 'stunned' | 'hidden';
+
+export interface TokenData {
+  type: TokenType;
+  x: number;
+  y: number;
+  name: string;
+  status: TokenStatus[];
+  image_url: string;
+  room_id: string;
+}
+
+export interface TokenState {
+  [tokenId: string]: TokenData;
+}
+
+// Token image available for selection in GM gallery
+export interface TokenImage {
+  id: string;
+  name: string;
+  type: TokenType;
+  url: string;
+  source: 'crew' | 'npc' | 'images';
+}
+
 // Grid configuration
 export interface GridConfig {
   width: number;

@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 3 of 6 (Encounter Tokens)
-Plan: 2 of 3 completed
-Status: In Progress
-Last activity: 2026-02-16 — Completed 03-02-PLAN.md (Token Rendering)
+Plan: 3 of 3 completed
+Status: Complete
+Last activity: 2026-02-16 — Completed 03-03-PLAN.md (GM Token Controls)
 
-Progress: [██████░░░░] 67% (Phase 3: 2/3 plans)
+Progress: [██████████] 100% (Phase 3: 3/3 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 4.8 minutes
-- Total execution time: 0.56 hours
+- Total plans completed: 8
+- Average duration: 18.9 minutes
+- Total execution time: 3.11 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [██████░░░░] 67% (Phase 3: 2/3 plans)
 |-------|-------|-------|----------|
 | 01-campaign-logs-tab | 2 | 352s | 176s |
 | 02-ship-status-dashboard | 3 | 1167s | 389s |
-| 03-encounter-tokens | 2 | 523s | 262s |
+| 03-encounter-tokens | 3 | 9775s | 3258s |
 
 **Recent Trend:**
-- Last 5 plans: 438s, 521s, 208s, 231s, 292s
-- Trend: Phase 03 maintaining good velocity (292s, consistent with 231s previous)
+- Last 5 plans: 521s, 208s, 231s, 292s, 9252s
+- Trend: Phase 03-03 significantly longer (9252s) due to complex integration with drag-and-drop, coordinate transforms, and multi-component wiring
 
 *Updated after each plan completion*
 
@@ -73,6 +73,12 @@ Recent decisions affecting current work:
 - [Phase 03]: Circular tokens with SVG clipPath for round image clipping (03-02)
 - [Phase 03]: Type-colored glow/shadow using SVG filters (amber/teal/burgundy/gray for player/NPC/creature/object) (03-02)
 - [Phase 03]: Room visibility filtering: GM sees all tokens, players only see tokens in revealed rooms or unassigned (03-02)
+- [Phase 03]: Selected template persists after placement for duplicate token creation without reselection (03-03)
+- [Phase 03]: SVG coordinate transforms use getScreenCTM().inverse() for accurate viewBox/pan/zoom handling (03-03)
+- [Phase 03]: Grid snapping uses Math.floor(svgCoord / unitSize) for discrete cell indices (03-03)
+- [Phase 03]: Overlap prevention rejects placement/move if target cell is occupied (03-03)
+- [Phase 03]: Tokens can only be placed/moved in revealed rooms (roomVisibility check) (03-03)
+- [Phase 03]: Drag-to-move shows ghost token at snapped position, calls API only on mouseup (03-03)
 
 ### Pending Todos
 
@@ -84,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-16 — Phase 3 Plan 2 execution
-Stopped at: Completed 03-02-PLAN.md (Token Rendering)
+Last session: 2026-02-16 — Phase 3 Plan 3 execution
+Stopped at: Completed 03-03-PLAN.md (GM Token Controls) - Phase 3 Complete
 Resume file: None

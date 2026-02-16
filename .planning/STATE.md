@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 2 - Ship Status Dashboard
+**Current focus:** Phase 3 - Encounter Tokens
 
 ## Current Position
 
-Phase: 2 of 6 (Ship Status Dashboard)
-Plan: 3 of 3 completed
-Status: Complete
-Last activity: 2026-02-13 — Completed 02-03-PLAN.md (GM Console Ship Status Controls)
+Phase: 3 of 6 (Encounter Tokens)
+Plan: 1 of 3 completed
+Status: In Progress
+Last activity: 2026-02-16 — Completed 03-01-PLAN.md (Encounter Token Backend)
 
-Progress: [█████████░] 100% (Phase 2: 3/3 plans)
+Progress: [███░░░░░░░] 33% (Phase 3: 1/3 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 5.1 minutes
-- Total execution time: 0.45 hours
+- Total plans completed: 6
+- Average duration: 4.6 minutes
+- Total execution time: 0.50 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [█████████░] 100% (Phase 2: 3/3 plans)
 |-------|-------|-------|----------|
 | 01-campaign-logs-tab | 2 | 352s | 176s |
 | 02-ship-status-dashboard | 3 | 1167s | 389s |
+| 03-encounter-tokens | 1 | 231s | 231s |
 
 **Recent Trend:**
-- Last 5 plans: 213s, 208s, 438s, 521s
-- Trend: Phase 02 plans averaging 389s (more complex than Phase 01's 176s average)
+- Last 5 plans: 208s, 438s, 521s, 208s, 231s
+- Trend: Phase 03 starting efficiently (231s vs Phase 02's 389s average)
 
 *Updated after each plan completion*
 
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - [Phase 02]: SHIP STATUS tab positioned between ENCOUNTER and BROADCAST for logical workflow
 - [Phase 02]: Auto-polling every 5 seconds keeps GM view in sync with server state
 - [Phase 02]: Color-coded status labels use design system palette for quick visual feedback
+- [Phase 03]: Token state stored in ActiveView.encounter_tokens JSONField matching existing patterns
+- [Phase 03]: Token IDs generated as 8-character hex UUIDs for uniqueness and brevity
+- [Phase 03]: Token images discovered from crew/NPC portraits and campaign/NPCs/images/ directory
+- [Phase 03]: Token status is array of strings (wounded, dead, panicked) for flexible tracking
 
 ### Pending Todos
 
@@ -76,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-13 — Phase 2 Plan 3 execution
-Stopped at: Completed 02-03-PLAN.md (GM Console Ship Status Controls)
+Last session: 2026-02-16 — Phase 3 Plan 1 execution
+Stopped at: Completed 03-01-PLAN.md (Encounter Token Backend)
 Resume file: None

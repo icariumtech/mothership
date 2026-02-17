@@ -6,6 +6,7 @@
  */
 
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import '@/components/domain/encounter/EncounterMapRenderer.css';
 import type {
   EncounterMapData,
   RoomData,
@@ -115,6 +116,9 @@ export function MapPreview({
 
   // Selected door for popup
   const [selectedDoor, setSelectedDoor] = useState<SelectedDoor | null>(null);
+
+  // Selected token for popup (GM console token interaction)
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
 
   // Refs for drag tracking
   const containerRef = useRef<HTMLDivElement>(null);
@@ -658,6 +662,8 @@ export function MapPreview({
             onTokenMove={onTokenMove}
             onTokenRemove={onTokenRemove}
             onTokenStatusToggle={onTokenStatusToggle}
+            selectedTokenId={selectedTokenId}
+            onTokenSelect={setSelectedTokenId}
             mapRooms={mapData.rooms}
           />
         )}

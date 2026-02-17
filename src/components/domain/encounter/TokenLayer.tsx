@@ -63,9 +63,9 @@ export function TokenLayer({
     // Players only see tokens in revealed rooms or unassigned tokens
     if (!token.room_id || token.room_id === '') return true;
 
-    // Check room visibility
+    // Check room visibility - require explicit true to show token
     if (!roomVisibility) return true;
-    return roomVisibility[token.room_id] !== false;
+    return roomVisibility[token.room_id] === true;
   });
 
   // Helper: Find which room contains a grid cell

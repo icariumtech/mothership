@@ -48,12 +48,18 @@ export function TokenPopup({
     return data.status.includes(status);
   };
 
+  // Calculate height based on content: header + optional statuses + GM controls
+  const baseHeight = 50; // name + type + padding
+  const statusTagHeight = data.status.length > 0 ? 24 : 0;
+  const gmControlsHeight = isGM ? 100 : 0;
+  const totalHeight = baseHeight + statusTagHeight + gmControlsHeight;
+
   return (
     <foreignObject
       x={popupX}
       y={popupY}
-      width={160}
-      height={180}
+      width={140}
+      height={totalHeight}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="token-popup">
@@ -70,60 +76,19 @@ export function TokenPopup({
         <div className="token-popup__name">{data.name}</div>
         <div className="token-popup__type">{data.type}</div>
 
-        {/* Current status tags */}
-        {data.status.length > 0 && (
-          <div style={{ marginTop: '6px', marginBottom: '4px' }}>
-            {data.status.map((s) => (
-              <span
-                key={s}
-                style={{
-                  display: 'inline-block',
-                  background: '#2a3a3a',
-                  color: '#9a9a9a',
-                  padding: '2px 4px',
-                  margin: '2px',
-                  fontSize: '8px',
-                  textTransform: 'uppercase',
-                  borderRadius: '2px',
-                }}
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-        )}
-
         {/* GM controls */}
         {isGM && (
           <>
-            <div style={{ marginTop: '8px', fontSize: '9px', color: '#5a5a5a' }}>
-              STATUS
-            </div>
-            <div>
-              <button
-                className={`token-popup__status-btn ${isStatusActive('wounded') ? 'token-popup__status-btn--active' : ''}`}
-                onClick={() => handleStatusToggle('wounded')}
-              >
-                WOUNDED
-              </button>
-              <button
-                className={`token-popup__status-btn ${isStatusActive('dead') ? 'token-popup__status-btn--active' : ''}`}
-                onClick={() => handleStatusToggle('dead')}
-              >
-                DEAD
-              </button>
-              <button
-                className={`token-popup__status-btn ${isStatusActive('panicked') ? 'token-popup__status-btn--active' : ''}`}
-                onClick={() => handleStatusToggle('panicked')}
-              >
-                PANICKED
-              </button>
-              <button
-                className={`token-popup__status-btn ${isStatusActive('stunned') ? 'token-popup__status-btn--active' : ''}`}
-                onClick={() => handleStatusToggle('stunned')}
-              >
-                STUNNED
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
+              {(['wounded', 'dead', 'panicked', 'stunned'] as TokenStatus[]).map((status) => (
+                <button
+                  key={status}
+                  className={`token-popup__status-btn ${isStatusActive(status) ? 'token-popup__status-btn--active' : ''}`}
+                  onClick={() => handleStatusToggle(status)}
+                >
+                  {status.toUpperCase()}
+                </button>
+              ))}
             </div>
 
             <button

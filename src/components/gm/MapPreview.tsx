@@ -269,10 +269,7 @@ export function MapPreview({
       return;
     }
 
-    if (roomVisibility[room.id] === false) {
-      messageApi.warning('Token can only be placed in revealed rooms');
-      return;
-    }
+    // No room visibility restriction for GM — allow placing tokens in hidden rooms for encounter setup
 
     // Valid placement - call handler
     onTokenPlace(template.type, template.name, gridX, gridY, template.imageUrl || '', room.id);

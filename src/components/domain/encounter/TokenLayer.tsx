@@ -46,6 +46,10 @@ export function TokenLayer({
   const [ghostPosition, setGhostPosition] = useState<{ gridX: number; gridY: number } | null>(null);
   const svgElementRef = useRef<SVGSVGElement | null>(null);
 
+  // Pending drag: track mousedown before movement threshold is met
+  const pendingDrag = useRef<{ id: string; startX: number; startY: number } | null>(null);
+  const DRAG_THRESHOLD = 5; // pixels before drag starts
+
   // Get parent SVG element on mount
   useEffect(() => {
     const tokenLayerElement = document.querySelector('.encounter-map__token-layer');
@@ -102,31 +106,48 @@ export function TokenLayer({
     if (!isGM || !onTokenMove) return;
 
     e.stopPropagation(); // Prevent map panning
-    setIsDragging(true);
-    setDragTokenId(id);
 
-    // Initial ghost position is current token position
-    const token = tokens[id];
-    if (token) {
-      setGhostPosition({ gridX: token.x, gridY: token.y });
-    }
-  }, [isGM, onTokenMove, tokens]);
+    // Don't start drag immediately — wait for movement threshold
+    pendingDrag.current = { id, startX: e.clientX, startY: e.clientY };
+  }, [isGM, onTokenMove]);
 
-  // Mouse move handler for dragging
+  // Mouse move/up handler for pending drag threshold and active dragging
   useEffect(() => {
-    if (!isDragging || !dragTokenId || !svgElementRef.current) return;
-
     const handleMouseMove = (e: MouseEvent) => {
-      if (!svgElementRef.current) return;
+      // Check pending drag threshold
+      if (pendingDrag.current && !isDragging) {
+        const dx = e.clientX - pendingDrag.current.startX;
+        const dy = e.clientY - pendingDrag.current.startY;
+        if (Math.sqrt(dx * dx + dy * dy) >= DRAG_THRESHOLD) {
+          // Threshold met — start real drag
+          const id = pendingDrag.current.id;
+          const token = tokens[id];
+          pendingDrag.current = null;
+          if (token) {
+            setIsDragging(true);
+            setDragTokenId(id);
+            setGhostPosition({ gridX: token.x, gridY: token.y });
+          }
+        }
+        return;
+      }
 
-      // Convert screen coordinates to SVG coordinates and snap to grid
+      // Active drag — update ghost position
+      if (!isDragging || !dragTokenId || !svgElementRef.current) return;
       const svgCoords = screenToSVG(svgElementRef.current, e.clientX, e.clientY);
       const snapped = snapToGrid(svgCoords.x, svgCoords.y, unitSize);
-
       setGhostPosition(snapped);
     };
 
     const handleMouseUp = () => {
+      // If pending drag never met threshold — treat as click (select handled by Token onClick)
+      if (pendingDrag.current) {
+        pendingDrag.current = null;
+        return;
+      }
+
+      if (!isDragging || !dragTokenId) return;
+
       if (!svgElementRef.current || !onTokenMove || !ghostPosition) {
         setIsDragging(false);
         setDragTokenId(null);
@@ -136,7 +157,7 @@ export function TokenLayer({
 
       const { gridX, gridY } = ghostPosition;
 
-      // Validate placement (overlap prevention, revealed room check)
+      // Validate placement (overlap prevention, room check)
       if (isCellOccupied(gridX, gridY, dragTokenId)) {
         console.warn('Cannot move token: cell is occupied');
         setIsDragging(false);
@@ -148,14 +169,6 @@ export function TokenLayer({
       const room = findRoomAtCell(gridX, gridY);
       if (!room) {
         console.warn('Cannot move token: not inside a room');
-        setIsDragging(false);
-        setDragTokenId(null);
-        setGhostPosition(null);
-        return;
-      }
-
-      if (roomVisibility && roomVisibility[room.id] === false) {
-        console.warn('Cannot move token: room is not revealed');
         setIsDragging(false);
         setDragTokenId(null);
         setGhostPosition(null);
@@ -177,7 +190,7 @@ export function TokenLayer({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragTokenId, unitSize, onTokenMove, ghostPosition, isCellOccupied, findRoomAtCell, roomVisibility]);
+  }, [isDragging, dragTokenId, unitSize, onTokenMove, ghostPosition, isCellOccupied, findRoomAtCell, tokens]);
 
   return (
     <g className="encounter-map__token-layer">

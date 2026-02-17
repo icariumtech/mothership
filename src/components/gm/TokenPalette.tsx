@@ -9,7 +9,7 @@
  * - Template persistence after placement (for duplicates)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Input, Space, Typography, Modal, message as antdMessage } from 'antd';
 import { DeleteOutlined, PlusOutlined, UserOutlined, TeamOutlined, BugOutlined, BoxPlotOutlined } from '@ant-design/icons';
 import { encounterApi } from '@/services/encounterApi';
@@ -64,6 +64,17 @@ export function TokenPalette({
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = antdMessage.useMessage();
 
+  // Pre-loaded image cache for synchronous drag preview generation
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
+
+  // Pre-load an image into cache
+  const preloadImage = useCallback((url: string) => {
+    if (!url || imageCache.current.has(url)) return;
+    const img = new Image();
+    img.src = url;
+    imageCache.current.set(url, img);
+  }, []);
+
   // Load templates from campaign data on mount
   useEffect(() => {
     const loadTemplates = async () => {
@@ -79,6 +90,9 @@ export function TokenPalette({
         }));
 
         setTemplates(templateList);
+
+        // Pre-load all template images for synchronous drag preview
+        templateList.forEach(t => { if (t.imageUrl) preloadImage(t.imageUrl); });
       } catch (err) {
         console.error('Error loading token templates:', err);
         messageApi.error('Failed to load token templates');
@@ -88,7 +102,7 @@ export function TokenPalette({
     };
 
     loadTemplates();
-  }, [messageApi]);
+  }, [messageApi, preloadImage]);
 
   // Handle template selection
   const handleTemplateClick = useCallback((template: TokenTemplate) => {
@@ -108,9 +122,21 @@ export function TokenPalette({
       imageUrl: customImageUrl,
     };
 
+    // Add custom token to the templates grid so it can be dragged and reused
+    setTemplates(prev => [...prev, customTemplate]);
+
+    // Pre-load image for drag preview if provided
+    if (customImageUrl) preloadImage(customImageUrl);
+
+    // Auto-select the new template
     setSelectedTemplate(customTemplate);
+
+    // Clear form fields so it's ready for another custom token
+    setCustomName('');
+    setCustomImageUrl('');
+
     messageApi.success(`Custom token "${customTemplate.name}" ready to place`);
-  }, [customName, customType, customImageUrl, messageApi]);
+  }, [customName, customType, customImageUrl, messageApi, preloadImage]);
 
   // Handle image selection from gallery
   const handleImageSelect = useCallback((image: TokenImage) => {
@@ -119,18 +145,48 @@ export function TokenPalette({
     setCustomType(image.type); // Pre-fill type with image type
   }, []);
 
-  // Handle drag start for templates
+  // Handle drag start for templates - creates a 40x40 circular canvas drag preview
   const handleDragStart = useCallback((e: React.DragEvent, template: TokenTemplate) => {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/json', JSON.stringify(template));
 
-    // Optional: Create drag preview (small canvas with token image)
-    if (template.imageUrl) {
-      const img = new Image();
-      img.src = template.imageUrl;
-      e.dataTransfer.setDragImage(img, 16, 16);
+    // Create a 40x40 canvas for the drag preview (matches rendered token size)
+    const canvas = document.createElement('canvas');
+    canvas.width = 40;
+    canvas.height = 40;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const cachedImg = template.imageUrl ? imageCache.current.get(template.imageUrl) : null;
+
+    if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+      // Draw circular clipped image
+      ctx.beginPath();
+      ctx.arc(20, 20, 20, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(cachedImg, 0, 0, 40, 40);
+    } else {
+      // Fall back to a solid colored circle matching token type
+      const color = TYPE_COLORS[template.type] || '#5a5a5a';
+      ctx.beginPath();
+      ctx.arc(20, 20, 20, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      // Draw initial letter in center
+      ctx.fillStyle = '#d0d0d0';
+      ctx.font = 'bold 18px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(template.name.charAt(0).toUpperCase(), 20, 20);
     }
-  }, []);
+
+    // Append off-screen, set as drag image with center hotspot, then remove
+    canvas.style.position = 'fixed';
+    canvas.style.top = '-100px';
+    document.body.appendChild(canvas);
+    e.dataTransfer.setDragImage(canvas, 20, 20);
+    requestAnimationFrame(() => document.body.removeChild(canvas));
+  }, [imageCache]);
 
   // Handle Clear All Tokens
   const handleClearAll = useCallback(() => {

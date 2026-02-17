@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 3 of 6 (Encounter Tokens)
-Plan: 3 of 3 completed
+Plan: 4 of 4 completed
 Status: Complete
-Last activity: 2026-02-16 — Completed 03-03-PLAN.md (GM Token Controls)
+Last activity: 2026-02-17 — Completed 03-04-PLAN.md (UAT Gap Closure)
 
-Progress: [██████████] 100% (Phase 3: 3/3 plans)
+Progress: [██████████] 100% (Phase 3: 4/4 plans)
 
 ## Performance Metrics
 
@@ -29,11 +29,11 @@ Progress: [██████████] 100% (Phase 3: 3/3 plans)
 |-------|-------|-------|----------|
 | 01-campaign-logs-tab | 2 | 352s | 176s |
 | 02-ship-status-dashboard | 3 | 1167s | 389s |
-| 03-encounter-tokens | 3 | 9775s | 3258s |
+| 03-encounter-tokens | 4 | 9899s | 2475s |
 
 **Recent Trend:**
-- Last 5 plans: 521s, 208s, 231s, 292s, 9252s
-- Trend: Phase 03-03 significantly longer (9252s) due to complex integration with drag-and-drop, coordinate transforms, and multi-component wiring
+- Last 5 plans: 208s, 231s, 292s, 9252s, 124s
+- Trend: Phase 03-04 UAT gap closure was fast (124s) - targeted fixes to 3 existing files
 
 *Updated after each plan completion*
 
@@ -79,6 +79,10 @@ Recent decisions affecting current work:
 - [Phase 03]: Overlap prevention rejects placement/move if target cell is occupied (03-03)
 - [Phase 03]: Tokens can only be placed/moved in revealed rooms (roomVisibility check) (03-03)
 - [Phase 03]: Drag-to-move shows ghost token at snapped position, calls API only on mouseup (03-03)
+- [Phase 03]: Canvas drag preview (40x40 circular) uses preloaded image cache for synchronous rendering (03-04)
+- [Phase 03]: Custom tokens added to template array so they appear in grid and can be re-dragged (03-04)
+- [Phase 03]: GM console wires selectedTokenId to TokenLayer enabling TokenPopup (03-04)
+- [Phase 03]: Visibility filter uses strict === true; undefined/missing room means hidden from players (03-04)
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-16 — Phase 3 Plan 3 execution
-Stopped at: Completed 03-03-PLAN.md (GM Token Controls) - Phase 3 Complete
+Last session: 2026-02-17 — Phase 3 Plan 4 execution
+Stopped at: Completed 03-04-PLAN.md (UAT Gap Closure) - Phase 3 Fully Complete
 Resume file: None

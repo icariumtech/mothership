@@ -98,14 +98,24 @@ function SharedConsole() {
 
   // Encounter token state
   const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
+  const tokenMoveInFlight = useRef(false);
 
-  // Player token move handler
+  // Player token move handler — optimistic update to prevent poll snap-back
   const handleTokenMove = useCallback(async (id: string, x: number, y: number) => {
+    // Optimistic update: move token locally before API responds
+    setEncounterTokens(prev => {
+      if (!prev[id]) return prev;
+      return { ...prev, [id]: { ...prev[id], x, y } };
+    });
+
+    tokenMoveInFlight.current = true;
     try {
       const result = await encounterApi.moveToken(id, x, y);
       setEncounterTokens(result.tokens);
     } catch (err) {
       console.error('Error moving token:', err);
+    } finally {
+      tokenMoveInFlight.current = false;
     }
   }, []);
 
@@ -286,8 +296,8 @@ function SharedConsole() {
         const response = await fetch('/api/active-view/');
         const data = await response.json();
 
-        // Update encounter tokens if present
-        if (data.encounter_tokens) {
+        // Update encounter tokens if present (skip during in-flight moves to prevent snap-back)
+        if (data.encounter_tokens && !tokenMoveInFlight.current) {
           setEncounterTokens(data.encounter_tokens);
         }
 

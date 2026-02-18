@@ -21,7 +21,7 @@ import {
 import { RoomTooltip } from './RoomTooltip';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
-import { TokenLayer } from './TokenLayer';
+import { TokenLayer, tokenTouchActive } from './TokenLayer';
 import { TokenPopup } from './TokenPopup';
 import './EncounterMapRenderer.css';
 
@@ -399,9 +399,8 @@ export function EncounterMapRenderer({
 
   // Touch start handler
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    // Don't start map pan if touch is on a draggable token
-    const target = e.target as Element;
-    if (target.closest('[data-draggable="true"]')) return;
+    // Don't start map pan if a token touch drag is active
+    if (tokenTouchActive) return;
 
     if (e.touches.length === 1) {
       // Single finger - start panning
@@ -423,6 +422,9 @@ export function EncounterMapRenderer({
 
   // Touch move handler — attached as native event with { passive: false } to allow preventDefault
   const touchMoveHandler = useCallback((e: TouchEvent) => {
+    // Don't interfere with token drag
+    if (tokenTouchActive) return;
+
     e.preventDefault();
 
     if (e.touches.length === 1 && isDragging.current) {

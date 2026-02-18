@@ -14,6 +14,10 @@ interface RoomVisibilityState {
   [roomId: string]: boolean;
 }
 
+// Module-level flag: signals to parent components that a token touch is active
+// This avoids relying on stopPropagation across SVG/HTML boundary on touch devices
+export let tokenTouchActive = false;
+
 interface TokenLayerProps {
   tokens: TokenState;
   unitSize: number;
@@ -115,6 +119,7 @@ export function TokenLayer({
     if (!touch) return;
 
     e.stopPropagation();
+    tokenTouchActive = true;
 
     pendingDrag.current = { id, startX: touch.clientX, startY: touch.clientY };
   }, [onTokenMove]);
@@ -146,6 +151,8 @@ export function TokenLayer({
   }, [isDragging, dragTokenId, unitSize, tokens]);
 
   const handlePointerUp = useCallback(() => {
+    tokenTouchActive = false;
+
     // If pending drag never met threshold — treat as click (select handled by Token onClick)
     if (pendingDrag.current) {
       pendingDrag.current = null;

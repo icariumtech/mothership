@@ -22,6 +22,7 @@ import { RoomTooltip } from './RoomTooltip';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
 import { TokenLayer } from './TokenLayer';
+import { TokenPopup } from './TokenPopup';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
@@ -1057,6 +1058,37 @@ export function EncounterMapRenderer({
         status={tooltip.content.status}
         type={tooltip.content.type}
       />
+
+      {/* Token popup — rendered outside SVG for proper styling */}
+      {selectedTokenId && tokens && tokens[selectedTokenId] && (() => {
+        const token = tokens[selectedTokenId];
+        const svg = containerRef.current?.querySelector('svg');
+        if (!svg) return null;
+
+        const viewBox = svg.viewBox.baseVal;
+        const svgRect = svg.getBoundingClientRect();
+        const scaleX = svgRect.width / viewBox.width;
+        const scaleY = svgRect.height / viewBox.height;
+        const scale = Math.min(scaleX, scaleY);
+        const offsetX = (svgRect.width - viewBox.width * scale) / 2;
+        const offsetY = (svgRect.height - viewBox.height * scale) / 2;
+
+        const tokenSvgX = token.x * unitSize + unitSize / 2;
+        const tokenSvgY = token.y * unitSize + unitSize / 2;
+        const popupX = offsetX + tokenSvgX * scale * viewState.zoom + viewState.panX;
+        const popupY = offsetY + tokenSvgY * scale * viewState.zoom + viewState.panY;
+
+        return (
+          <TokenPopup
+            tokenId={selectedTokenId}
+            data={token}
+            x={popupX}
+            y={popupY}
+            onClose={() => setSelectedTokenId(null)}
+            isGM={isGM}
+          />
+        );
+      })()}
     </div>
   );
 }

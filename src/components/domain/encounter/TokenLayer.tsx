@@ -97,14 +97,16 @@ export function TokenLayer({
     }
   };
 
+  const canDrag = !!onTokenMove;
+
   const handleTokenDragStart = useCallback((id: string, e: React.MouseEvent) => {
-    if (!isGM || !onTokenMove) return;
+    if (!onTokenMove) return;
 
     e.stopPropagation(); // Prevent map panning
 
     // Don't start drag immediately — wait for movement threshold
     pendingDrag.current = { id, startX: e.clientX, startY: e.clientY };
-  }, [isGM, onTokenMove]);
+  }, [onTokenMove]);
 
   // Mouse move/up handler for pending drag threshold and active dragging
   useEffect(() => {
@@ -200,7 +202,7 @@ export function TokenLayer({
             id={id}
             data={tokenData}
             unitSize={unitSize}
-            draggable={isGM}
+            draggable={canDrag}
             selected={selectedTokenId === id}
             onSelect={handleTokenSelect}
             onDragStart={handleTokenDragStart}

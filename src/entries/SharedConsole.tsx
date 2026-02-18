@@ -17,6 +17,7 @@ import { CommTerminalDialog } from '@components/domain/terminal/CommTerminalDial
 import { EncounterView } from '@components/domain/encounter/EncounterView';
 import { charonApi } from '@/services/charonApi';
 import { terminalApi } from '@/services/terminalApi';
+import { encounterApi } from '@/services/encounterApi';
 import { useTransitionGuard } from '@hooks/useDebounce';
 import { useSceneStore } from '@/stores/sceneStore';
 import { TRANSITION_TIMING, waitForTypewriter } from '@/utils/transitionCoordinator';
@@ -97,6 +98,16 @@ function SharedConsole() {
 
   // Encounter token state
   const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
+
+  // Player token move handler
+  const handleTokenMove = useCallback(async (id: string, x: number, y: number) => {
+    try {
+      const result = await encounterApi.moveToken(id, x, y);
+      setEncounterTokens(result.tokens);
+    } catch (err) {
+      console.error('Error moving token:', err);
+    }
+  }, []);
 
   // Performance mode state - reduces visual effects for low-powered devices
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -953,6 +964,7 @@ function SharedConsole() {
           doorStatus={activeView?.encounter_door_status}
           tokens={encounterTokens}
           isGM={false}
+          onTokenMove={handleTokenMove}
         />
       )}
 

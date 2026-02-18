@@ -1017,6 +1017,7 @@ export function EncounterMapRenderer({
             onTokenMove={onTokenMove}
             selectedTokenId={selectedTokenId}
             onTokenSelect={setSelectedTokenId}
+            mapRooms={mapData.rooms}
           />
         )}
       </svg>

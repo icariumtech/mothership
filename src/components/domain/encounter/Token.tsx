@@ -17,6 +17,7 @@ interface TokenProps {
   selected?: boolean;
   onSelect?: (id: string) => void;
   onDragStart?: (id: string, e: React.MouseEvent) => void;
+  onTouchDragStart?: (id: string, e: React.TouchEvent) => void;
 }
 
 // Type-based glow colors (per user decision)
@@ -34,6 +35,7 @@ export function Token({
   draggable = false,
   onSelect,
   onDragStart,
+  onTouchDragStart,
 }: TokenProps) {
   // Calculate center position
   const centerX = data.x * unitSize + unitSize / 2;
@@ -48,6 +50,13 @@ export function Token({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (draggable && onDragStart) {
       onDragStart(id, e);
+      e.stopPropagation();
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (draggable && onTouchDragStart) {
+      onTouchDragStart(id, e);
       e.stopPropagation();
     }
   };
@@ -79,6 +88,7 @@ export function Token({
       data-token-id={id}
       data-draggable={draggable}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onClick={handleClick}
       style={{ cursor: draggable ? 'grab' : 'pointer' }}
     >

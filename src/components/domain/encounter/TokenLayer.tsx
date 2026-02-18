@@ -108,95 +108,125 @@ export function TokenLayer({
     pendingDrag.current = { id, startX: e.clientX, startY: e.clientY };
   }, [onTokenMove]);
 
-  // Mouse move/up handler for pending drag threshold and active dragging
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      // Check pending drag threshold
-      if (pendingDrag.current && !isDragging) {
-        const dx = e.clientX - pendingDrag.current.startX;
-        const dy = e.clientY - pendingDrag.current.startY;
-        if (Math.sqrt(dx * dx + dy * dy) >= DRAG_THRESHOLD) {
-          // Threshold met — start real drag
-          const id = pendingDrag.current.id;
-          const token = tokens[id];
-          pendingDrag.current = null;
-          if (token) {
-            setIsDragging(true);
-            setDragTokenId(id);
-            setGhostPosition({ gridX: token.x, gridY: token.y });
-          }
-        }
-        return;
-      }
+  const handleTokenTouchDragStart = useCallback((id: string, e: React.TouchEvent) => {
+    if (!onTokenMove) return;
 
-      // Active drag — update ghost position
-      if (!isDragging || !dragTokenId || !svgElementRef.current) return;
-      const svgCoords = screenToSVG(svgElementRef.current, e.clientX, e.clientY);
-      const snapped = snapToGrid(svgCoords.x, svgCoords.y, unitSize);
-      setGhostPosition(snapped);
-    };
+    const touch = e.touches[0];
+    if (!touch) return;
 
-    const handleMouseUp = () => {
-      // If pending drag never met threshold — treat as click (select handled by Token onClick)
-      if (pendingDrag.current) {
+    e.stopPropagation();
+
+    pendingDrag.current = { id, startX: touch.clientX, startY: touch.clientY };
+  }, [onTokenMove]);
+
+  // Shared drag logic for mouse and touch
+  const handlePointerMove = useCallback((clientX: number, clientY: number) => {
+    // Check pending drag threshold
+    if (pendingDrag.current && !isDragging) {
+      const dx = clientX - pendingDrag.current.startX;
+      const dy = clientY - pendingDrag.current.startY;
+      if (Math.sqrt(dx * dx + dy * dy) >= DRAG_THRESHOLD) {
+        const id = pendingDrag.current.id;
+        const token = tokens[id];
         pendingDrag.current = null;
-        return;
+        if (token) {
+          setIsDragging(true);
+          setDragTokenId(id);
+          setGhostPosition({ gridX: token.x, gridY: token.y });
+        }
       }
+      return;
+    }
 
-      if (!isDragging || !dragTokenId) return;
+    // Active drag — update ghost position
+    if (!isDragging || !dragTokenId || !svgElementRef.current) return;
+    const svgCoords = screenToSVG(svgElementRef.current, clientX, clientY);
+    const snapped = snapToGrid(svgCoords.x, svgCoords.y, unitSize);
+    setGhostPosition(snapped);
+  }, [isDragging, dragTokenId, unitSize, tokens]);
 
-      if (!svgElementRef.current || !onTokenMove || !ghostPosition) {
-        setIsDragging(false);
-        setDragTokenId(null);
-        setGhostPosition(null);
-        return;
-      }
+  const handlePointerUp = useCallback(() => {
+    // If pending drag never met threshold — treat as click (select handled by Token onClick)
+    if (pendingDrag.current) {
+      pendingDrag.current = null;
+      return;
+    }
 
-      const { gridX, gridY } = ghostPosition;
+    if (!isDragging || !dragTokenId) return;
 
-      // Validate placement (overlap prevention, room check)
-      if (isCellOccupied(gridX, gridY, dragTokenId)) {
-        console.warn('Cannot move token: cell is occupied');
-        setIsDragging(false);
-        setDragTokenId(null);
-        setGhostPosition(null);
-        return;
-      }
-
-      const room = findRoomAtCell(gridX, gridY);
-      if (!room) {
-        console.warn('Cannot move token: not inside a room');
-        setIsDragging(false);
-        setDragTokenId(null);
-        setGhostPosition(null);
-        return;
-      }
-
-      // Players can't drop tokens in hidden rooms (GM can)
-      if (!isGM && roomVisibility && roomVisibility[room.id] !== true) {
-        console.warn('Cannot move token: room is not revealed');
-        setIsDragging(false);
-        setDragTokenId(null);
-        setGhostPosition(null);
-        return;
-      }
-
-      // Valid move - call handler
-      onTokenMove(dragTokenId, gridX, gridY);
-
+    if (!svgElementRef.current || !onTokenMove || !ghostPosition) {
       setIsDragging(false);
       setDragTokenId(null);
       setGhostPosition(null);
+      return;
+    }
+
+    const { gridX, gridY } = ghostPosition;
+
+    // Validate placement (overlap prevention, room check)
+    if (isCellOccupied(gridX, gridY, dragTokenId)) {
+      console.warn('Cannot move token: cell is occupied');
+      setIsDragging(false);
+      setDragTokenId(null);
+      setGhostPosition(null);
+      return;
+    }
+
+    const room = findRoomAtCell(gridX, gridY);
+    if (!room) {
+      console.warn('Cannot move token: not inside a room');
+      setIsDragging(false);
+      setDragTokenId(null);
+      setGhostPosition(null);
+      return;
+    }
+
+    // Players can't drop tokens in hidden rooms (GM can)
+    if (!isGM && roomVisibility && roomVisibility[room.id] !== true) {
+      console.warn('Cannot move token: room is not revealed');
+      setIsDragging(false);
+      setDragTokenId(null);
+      setGhostPosition(null);
+      return;
+    }
+
+    // Valid move - call handler
+    onTokenMove(dragTokenId, gridX, gridY);
+
+    setIsDragging(false);
+    setDragTokenId(null);
+    setGhostPosition(null);
+  }, [isDragging, dragTokenId, onTokenMove, ghostPosition, isCellOccupied, findRoomAtCell, isGM, roomVisibility]);
+
+  // Mouse and touch event listeners
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => handlePointerMove(e.clientX, e.clientY);
+    const handleMouseUp = () => handlePointerUp();
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      // Prevent page scroll while dragging a token
+      if (pendingDrag.current || isDragging) {
+        e.preventDefault();
+      }
+      handlePointerMove(touch.clientX, touch.clientY);
     };
+
+    const handleTouchEnd = () => handlePointerUp();
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isDragging, dragTokenId, unitSize, onTokenMove, ghostPosition, isCellOccupied, findRoomAtCell, tokens]);
+  }, [handlePointerMove, handlePointerUp, isDragging]);
 
   return (
     <g className="encounter-map__token-layer">
@@ -215,6 +245,7 @@ export function TokenLayer({
             selected={selectedTokenId === id}
             onSelect={handleTokenSelect}
             onDragStart={handleTokenDragStart}
+            onTouchDragStart={handleTokenTouchDragStart}
           />
         );
       })}

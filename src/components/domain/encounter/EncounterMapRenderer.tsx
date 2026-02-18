@@ -100,8 +100,8 @@ export function EncounterMapRenderer({
   tokens,
   isGM = false,
   onTokenMove,
-  onTokenRemove,
-  onTokenStatusToggle,
+  onTokenRemove: _onTokenRemove,
+  onTokenStatusToggle: _onTokenStatusToggle,
 }: EncounterMapRendererProps) {
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
@@ -1014,8 +1014,6 @@ export function EncounterMapRenderer({
             roomVisibility={roomVisibility}
             isGM={isGM}
             onTokenMove={onTokenMove}
-            onTokenRemove={onTokenRemove}
-            onTokenStatusToggle={onTokenStatusToggle}
             selectedTokenId={selectedTokenId}
             onTokenSelect={setSelectedTokenId}
           />

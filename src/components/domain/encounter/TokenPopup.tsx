@@ -1,105 +1,183 @@
 /**
- * TokenPopup - Inline popup for token details and GM controls
+ * TokenPopup - Popup for token details and GM controls
  *
- * Shows token name, type, status tags, and GM-only controls
- * (status toggles, remove button) when selected.
+ * Rendered outside SVG as absolutely positioned div (same pattern as DoorStatusPopup).
+ * Shows token name, type, status toggles, and remove button.
  */
 
+import { useEffect, useRef } from 'react';
 import { TokenData, TokenStatus } from '../../../types/encounterMap';
 
 interface TokenPopupProps {
   tokenId: string;
   data: TokenData;
-  unitSize: number;
-  position: { x: number; y: number };  // Center of token in SVG coords
+  /** Position in container pixel coordinates (not SVG coords) */
+  x: number;
+  y: number;
   onClose: () => void;
   onRemove?: (id: string) => void;
   onStatusToggle?: (id: string, status: TokenStatus) => void;
   isGM?: boolean;
 }
 
+const COLORS = {
+  bg: '#0f1515',
+  border: '#4a6b6b',
+  teal: '#4a6b6b',
+  tealBright: '#5a7a7a',
+  amber: '#8b7355',
+  hazard: '#8b5555',
+  text: '#9a9a9a',
+  textMuted: '#5a5a5a',
+  btnBg: '#1a1a1a',
+  dark: '#0a0a0a',
+};
+
+const STATUS_OPTIONS: { status: TokenStatus; label: string }[] = [
+  { status: 'wounded', label: 'WOUNDED' },
+  { status: 'dead', label: 'DEAD' },
+  { status: 'panicked', label: 'PANICKED' },
+  { status: 'stunned', label: 'STUNNED' },
+];
+
 export function TokenPopup({
   tokenId,
   data,
-  unitSize,
-  position,
+  x,
+  y,
   onClose,
   onRemove,
   onStatusToggle,
   isGM = false,
 }: TokenPopupProps) {
-  // Position popup to the right of the token
-  const popupX = position.x + unitSize * 0.6;
-  const popupY = position.y - 70;
+  const popupRef = useRef<HTMLDivElement>(null);
 
-  const handleStatusToggle = (status: TokenStatus) => {
-    if (onStatusToggle) {
-      onStatusToggle(tokenId, status);
-    }
-  };
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
 
-  const handleRemove = () => {
-    if (onRemove) {
-      onRemove(tokenId);
-    }
-  };
+    const timeout = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
 
-  const isStatusActive = (status: TokenStatus) => {
-    return data.status.includes(status);
-  };
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
-  // Calculate height based on content: header + optional statuses + GM controls
-  const baseHeight = 50; // name + type + padding
-  const statusTagHeight = data.status.length > 0 ? 24 : 0;
-  const gmControlsHeight = isGM ? 100 : 0;
-  const totalHeight = baseHeight + statusTagHeight + gmControlsHeight;
+  // Close on Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  const isStatusActive = (status: TokenStatus) => data.status.includes(status);
 
   return (
-    <foreignObject
-      x={popupX}
-      y={popupY}
-      width={140}
-      height={totalHeight}
+    <div
+      ref={popupRef}
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        transform: 'translate(8px, -50%)',
+        background: COLORS.bg,
+        border: `1px solid ${COLORS.border}`,
+        padding: '6px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        zIndex: 100,
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+        minWidth: '100px',
+        fontFamily: "'Cascadia Code', monospace",
+        fontSize: '10px',
+      }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="token-popup">
-        {/* Close button */}
-        <button
-          className="token-popup__close"
-          onClick={onClose}
-          title="Close"
-        >
-          ×
-        </button>
-
-        {/* Header */}
-        <div className="token-popup__name">{data.name}</div>
-        <div className="token-popup__type">{data.type}</div>
-
-        {/* GM controls */}
-        {isGM && (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
-              {(['wounded', 'dead', 'panicked', 'stunned'] as TokenStatus[]).map((status) => (
-                <button
-                  key={status}
-                  className={`token-popup__status-btn ${isStatusActive(status) ? 'token-popup__status-btn--active' : ''}`}
-                  onClick={() => handleStatusToggle(status)}
-                >
-                  {status.toUpperCase()}
-                </button>
-              ))}
-            </div>
-
-            <button
-              className="token-popup__remove-btn"
-              onClick={handleRemove}
-            >
-              REMOVE
-            </button>
-          </>
-        )}
+      {/* Header */}
+      <div style={{ color: COLORS.tealBright, fontWeight: 'bold', fontSize: '11px', letterSpacing: '0.5px' }}>
+        {data.name}
       </div>
-    </foreignObject>
+      <div style={{ color: COLORS.textMuted, fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+        {data.type}
+      </div>
+
+      {/* GM controls */}
+      {isGM && (
+        <>
+          {STATUS_OPTIONS.map(({ status, label }) => {
+            const active = isStatusActive(status);
+            return (
+              <button
+                key={status}
+                onClick={() => onStatusToggle && onStatusToggle(tokenId, status)}
+                style={{
+                  background: active ? COLORS.teal : COLORS.btnBg,
+                  border: `1px solid ${COLORS.teal}`,
+                  color: active ? COLORS.dark : COLORS.teal,
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  fontFamily: 'inherit',
+                  letterSpacing: '1px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  textAlign: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.background = COLORS.teal;
+                    e.currentTarget.style.color = COLORS.dark;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.background = COLORS.btnBg;
+                    e.currentTarget.style.color = COLORS.teal;
+                  }
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => onRemove && onRemove(tokenId)}
+            style={{
+              background: COLORS.btnBg,
+              border: `1px solid ${COLORS.hazard}`,
+              color: COLORS.hazard,
+              padding: '4px 8px',
+              marginTop: '2px',
+              fontSize: '10px',
+              fontFamily: 'inherit',
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              textAlign: 'center',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = COLORS.hazard;
+              e.currentTarget.style.color = COLORS.dark;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = COLORS.btnBg;
+              e.currentTarget.style.color = COLORS.hazard;
+            }}
+          >
+            REMOVE
+          </button>
+        </>
+      )}
+    </div>
   );
 }

@@ -6,9 +6,8 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { TokenState, TokenStatus, RoomData } from '../../../types/encounterMap';
+import { TokenState, RoomData } from '../../../types/encounterMap';
 import { Token } from './Token';
-import { TokenPopup } from './TokenPopup';
 import { screenToSVG, snapToGrid } from '@/utils/svgCoordinates';
 
 interface RoomVisibilityState {
@@ -21,8 +20,6 @@ interface TokenLayerProps {
   roomVisibility?: RoomVisibilityState;
   isGM?: boolean;
   onTokenMove?: (id: string, x: number, y: number) => void;
-  onTokenRemove?: (id: string) => void;
-  onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
   selectedTokenId?: string | null;
   onTokenSelect?: (id: string | null) => void;
   mapRooms?: RoomData[];
@@ -34,8 +31,6 @@ export function TokenLayer({
   roomVisibility,
   isGM = false,
   onTokenMove,
-  onTokenRemove,
-  onTokenStatusToggle,
   selectedTokenId = null,
   onTokenSelect,
   mapRooms = [],
@@ -230,22 +225,6 @@ export function TokenLayer({
         />
       )}
 
-      {/* Render popup for selected token */}
-      {selectedTokenId && tokens[selectedTokenId] && !isDragging && (
-        <TokenPopup
-          tokenId={selectedTokenId}
-          data={tokens[selectedTokenId]}
-          unitSize={unitSize}
-          position={{
-            x: tokens[selectedTokenId].x * unitSize + unitSize / 2,
-            y: tokens[selectedTokenId].y * unitSize + unitSize / 2,
-          }}
-          onClose={() => onTokenSelect && onTokenSelect(null)}
-          onRemove={onTokenRemove}
-          onStatusToggle={onTokenStatusToggle}
-          isGM={isGM}
-        />
-      )}
     </g>
   );
 }

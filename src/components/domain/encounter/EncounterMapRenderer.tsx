@@ -399,6 +399,10 @@ export function EncounterMapRenderer({
 
   // Touch start handler
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Don't start map pan if touch is on a draggable token
+    const target = e.target as Element;
+    if (target.closest('[data-draggable="true"]')) return;
+
     if (e.touches.length === 1) {
       // Single finger - start panning
       isDragging.current = true;
@@ -417,8 +421,8 @@ export function EncounterMapRenderer({
     }
   }, [viewState.panX, viewState.panY]);
 
-  // Touch move handler
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+  // Touch move handler — attached as native event with { passive: false } to allow preventDefault
+  const touchMoveHandler = useCallback((e: TouchEvent) => {
     e.preventDefault();
 
     if (e.touches.length === 1 && isDragging.current) {
@@ -465,6 +469,17 @@ export function EncounterMapRenderer({
       lastTouchCenter.current = { x: centerX + rect.left, y: centerY + rect.top };
     }
   }, []);
+
+  // Attach touchmove as native event listener with { passive: false }
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('touchmove', touchMoveHandler, { passive: false });
+    return () => {
+      container.removeEventListener('touchmove', touchMoveHandler);
+    };
+  }, [touchMoveHandler]);
 
   // Touch end handler
   const handleTouchEnd = useCallback(() => {
@@ -965,7 +980,6 @@ export function EncounterMapRenderer({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ cursor: 'grab', touchAction: 'none' }}
     >

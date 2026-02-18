@@ -172,6 +172,15 @@ export function TokenLayer({
         return;
       }
 
+      // Players can't drop tokens in hidden rooms (GM can)
+      if (!isGM && roomVisibility && roomVisibility[room.id] !== true) {
+        console.warn('Cannot move token: room is not revealed');
+        setIsDragging(false);
+        setDragTokenId(null);
+        setGhostPosition(null);
+        return;
+      }
+
       // Valid move - call handler
       onTokenMove(dragTokenId, gridX, gridY);
 

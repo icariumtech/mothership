@@ -39,102 +39,96 @@ export function TokenLayer({
   onTokenSelect,
   mapRooms = [],
 }: TokenLayerProps) {
-  // Drag state for drag-to-move
+  // Rendering state (drives JSX)
   const [isDragging, setIsDragging] = useState(false);
   const [dragTokenId, setDragTokenId] = useState<string | null>(null);
   const [ghostPosition, setGhostPosition] = useState<{ gridX: number; gridY: number } | null>(null);
-  const svgElementRef = useRef<SVGSVGElement | null>(null);
 
-  // Pending drag: track mousedown before movement threshold is met
+  // Refs mirroring drag state — event handlers always read from refs to avoid stale closures
+  const isDraggingRef = useRef(false);
+  const dragTokenIdRef = useRef<string | null>(null);
+  const ghostPositionRef = useRef<{ gridX: number; gridY: number } | null>(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { isDraggingRef.current = isDragging; }, [isDragging]);
+  useEffect(() => { dragTokenIdRef.current = dragTokenId; }, [dragTokenId]);
+  useEffect(() => { ghostPositionRef.current = ghostPosition; }, [ghostPosition]);
+
+  // Stable refs for props that event handlers need
+  const tokensRef = useRef(tokens);
+  const onTokenMoveRef = useRef(onTokenMove);
+  const mapRoomsRef = useRef(mapRooms);
+  const roomVisibilityRef = useRef(roomVisibility);
+  const isGMRef = useRef(isGM);
+  const unitSizeRef = useRef(unitSize);
+
+  useEffect(() => { tokensRef.current = tokens; }, [tokens]);
+  useEffect(() => { onTokenMoveRef.current = onTokenMove; }, [onTokenMove]);
+  useEffect(() => { mapRoomsRef.current = mapRooms; }, [mapRooms]);
+  useEffect(() => { roomVisibilityRef.current = roomVisibility; }, [roomVisibility]);
+  useEffect(() => { isGMRef.current = isGM; }, [isGM]);
+  useEffect(() => { unitSizeRef.current = unitSize; }, [unitSize]);
+
+  const svgElementRef = useRef<SVGSVGElement | null>(null);
   const pendingDrag = useRef<{ id: string; startX: number; startY: number } | null>(null);
-  const DRAG_THRESHOLD = 5; // pixels before drag starts
+  const DRAG_THRESHOLD = 5;
 
   // Get parent SVG element on mount
   useEffect(() => {
     const tokenLayerElement = document.querySelector('.encounter-map__token-layer');
     if (tokenLayerElement) {
-      const svgElement = tokenLayerElement.closest('svg') as SVGSVGElement;
-      svgElementRef.current = svgElement;
+      svgElementRef.current = tokenLayerElement.closest('svg') as SVGSVGElement;
     }
   }, []);
 
   // Filter tokens by visibility
   const filteredTokens = Object.entries(tokens).filter(([_id, token]) => {
-    // GM sees all tokens
     if (isGM) return true;
-
-    // Players only see tokens in revealed rooms or unassigned tokens
     if (!token.room_id || token.room_id === '') return true;
-
-    // Check room visibility - require explicit true to show token
     if (!roomVisibility) return true;
     return roomVisibility[token.room_id] === true;
   });
 
-  // Helper: Find which room contains a grid cell
-  const findRoomAtCell = useCallback((gridX: number, gridY: number): RoomData | null => {
-    for (const room of mapRooms) {
-      if (
-        gridX >= room.x &&
-        gridX < room.x + room.width &&
-        gridY >= room.y &&
-        gridY < room.y + room.height
-      ) {
+  const findRoomAtCell = (gridX: number, gridY: number): RoomData | null => {
+    for (const room of mapRoomsRef.current) {
+      if (gridX >= room.x && gridX < room.x + room.width &&
+          gridY >= room.y && gridY < room.y + room.height) {
         return room;
       }
     }
     return null;
-  }, [mapRooms]);
+  };
 
-  // Helper: Check if a cell is occupied by a token (excluding the dragging token)
-  const isCellOccupied = useCallback((gridX: number, gridY: number, excludeTokenId?: string): boolean => {
-    return Object.entries(tokens).some(([id, token]) => {
+  const isCellOccupied = (gridX: number, gridY: number, excludeTokenId?: string): boolean => {
+    return Object.entries(tokensRef.current).some(([id, token]) => {
       if (id === excludeTokenId) return false;
       return token.x === gridX && token.y === gridY;
     });
-  }, [tokens]);
-
-  const handleTokenSelect = (id: string) => {
-    if (onTokenSelect) {
-      // Toggle selection: clicking same token deselects it
-      onTokenSelect(selectedTokenId === id ? null : id);
-    }
   };
 
-  const canDrag = !!onTokenMove;
+  const stopDrag = () => {
+    isDraggingRef.current = false;
+    dragTokenIdRef.current = null;
+    ghostPositionRef.current = null;
+    setIsDragging(false);
+    setDragTokenId(null);
+    setGhostPosition(null);
+  };
 
-  const handleTokenDragStart = useCallback((id: string, e: React.MouseEvent) => {
-    if (!onTokenMove) return;
-
-    e.stopPropagation(); // Prevent map panning
-
-    // Don't start drag immediately — wait for movement threshold
-    pendingDrag.current = { id, startX: e.clientX, startY: e.clientY };
-  }, [onTokenMove]);
-
-  const handleTokenTouchDragStart = useCallback((id: string, e: React.TouchEvent) => {
-    if (!onTokenMove) return;
-
-    const touch = e.touches[0];
-    if (!touch) return;
-
-    e.stopPropagation();
-    tokenTouchActive = true;
-
-    pendingDrag.current = { id, startX: touch.clientX, startY: touch.clientY };
-  }, [onTokenMove]);
-
-  // Shared drag logic for mouse and touch
+  // Stable event handlers — read all values from refs, never from closure
   const handlePointerMove = useCallback((clientX: number, clientY: number) => {
-    // Check pending drag threshold
-    if (pendingDrag.current && !isDragging) {
+    // Pending drag threshold check
+    if (pendingDrag.current && !isDraggingRef.current) {
       const dx = clientX - pendingDrag.current.startX;
       const dy = clientY - pendingDrag.current.startY;
       if (Math.sqrt(dx * dx + dy * dy) >= DRAG_THRESHOLD) {
         const id = pendingDrag.current.id;
-        const token = tokens[id];
+        const token = tokensRef.current[id];
         pendingDrag.current = null;
         if (token) {
+          isDraggingRef.current = true;
+          dragTokenIdRef.current = id;
+          ghostPositionRef.current = { gridX: token.x, gridY: token.y };
           setIsDragging(true);
           setDragTokenId(id);
           setGhostPosition({ gridX: token.x, gridY: token.y });
@@ -144,103 +138,109 @@ export function TokenLayer({
     }
 
     // Active drag — update ghost position
-    if (!isDragging || !dragTokenId || !svgElementRef.current) return;
+    if (!isDraggingRef.current || !dragTokenIdRef.current || !svgElementRef.current) return;
     const svgCoords = screenToSVG(svgElementRef.current, clientX, clientY);
-    const snapped = snapToGrid(svgCoords.x, svgCoords.y, unitSize);
+    const snapped = snapToGrid(svgCoords.x, svgCoords.y, unitSizeRef.current);
+    ghostPositionRef.current = snapped;
     setGhostPosition(snapped);
-  }, [isDragging, dragTokenId, unitSize, tokens]);
+  }, []); // stable — reads all values from refs
 
   const handlePointerUp = useCallback(() => {
     tokenTouchActive = false;
 
-    // If pending drag never met threshold — treat as click (select handled by Token onClick)
+    // Tap without movement — click will handle selection
     if (pendingDrag.current) {
       pendingDrag.current = null;
       return;
     }
 
-    if (!isDragging || !dragTokenId) return;
+    if (!isDraggingRef.current || !dragTokenIdRef.current) return;
 
-    if (!svgElementRef.current || !onTokenMove || !ghostPosition) {
-      setIsDragging(false);
-      setDragTokenId(null);
-      setGhostPosition(null);
+    const ghost = ghostPositionRef.current;
+    if (!svgElementRef.current || !onTokenMoveRef.current || !ghost) {
+      stopDrag();
       return;
     }
 
-    const { gridX, gridY } = ghostPosition;
+    const { gridX, gridY } = ghost;
+    const tokenId = dragTokenIdRef.current;
 
-    // Validate placement (overlap prevention, room check)
-    if (isCellOccupied(gridX, gridY, dragTokenId)) {
+    if (isCellOccupied(gridX, gridY, tokenId)) {
       console.warn('Cannot move token: cell is occupied');
-      setIsDragging(false);
-      setDragTokenId(null);
-      setGhostPosition(null);
+      stopDrag();
       return;
     }
 
     const room = findRoomAtCell(gridX, gridY);
     if (!room) {
       console.warn('Cannot move token: not inside a room');
-      setIsDragging(false);
-      setDragTokenId(null);
-      setGhostPosition(null);
+      stopDrag();
       return;
     }
 
-    // Players can't drop tokens in hidden rooms (GM can)
-    if (!isGM && roomVisibility && roomVisibility[room.id] !== true) {
+    if (!isGMRef.current && roomVisibilityRef.current && roomVisibilityRef.current[room.id] !== true) {
       console.warn('Cannot move token: room is not revealed');
-      setIsDragging(false);
-      setDragTokenId(null);
-      setGhostPosition(null);
+      stopDrag();
       return;
     }
 
-    // Valid move - call handler
-    onTokenMove(dragTokenId, gridX, gridY);
+    onTokenMoveRef.current(tokenId, gridX, gridY);
+    stopDrag();
+  }, []); // stable — reads all values from refs
 
-    setIsDragging(false);
-    setDragTokenId(null);
-    setGhostPosition(null);
-  }, [isDragging, dragTokenId, onTokenMove, ghostPosition, isCellOccupied, findRoomAtCell, isGM, roomVisibility]);
-
-  // Mouse and touch event listeners
+  // Single useEffect for event listeners — stable handlers never need re-attachment
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => handlePointerMove(e.clientX, e.clientY);
-    const handleMouseUp = () => handlePointerUp();
+    const onMouseMove = (e: MouseEvent) => handlePointerMove(e.clientX, e.clientY);
+    const onMouseUp = () => handlePointerUp();
 
-    const handleTouchMove = (e: TouchEvent) => {
+    const onTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
-      // Prevent page scroll only once drag threshold is met (not during tap detection)
-      // Calling preventDefault during tap prevents the click event from firing
-      if (isDragging) {
-        e.preventDefault();
-      }
+      if (isDraggingRef.current) e.preventDefault();
       handlePointerMove(touch.clientX, touch.clientY);
     };
 
-    const handleTouchEnd = () => handlePointerUp();
+    const onTouchEnd = () => handlePointerUp();
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [handlePointerMove, handlePointerUp, isDragging]);
+  }, []); // stable — never re-attaches
+
+  const canDrag = !!onTokenMove;
+
+  const handleTokenSelect = (id: string) => {
+    if (onTokenSelect) {
+      onTokenSelect(selectedTokenId === id ? null : id);
+    }
+  };
+
+  const handleTokenDragStart = useCallback((id: string, e: React.MouseEvent) => {
+    if (!onTokenMove) return;
+    e.stopPropagation();
+    pendingDrag.current = { id, startX: e.clientX, startY: e.clientY };
+  }, [onTokenMove]);
+
+  const handleTokenTouchDragStart = useCallback((id: string, e: React.TouchEvent) => {
+    if (!onTokenMove) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    e.stopPropagation();
+    tokenTouchActive = true;
+    pendingDrag.current = { id, startX: touch.clientX, startY: touch.clientY };
+  }, [onTokenMove]);
 
   return (
     <g className="encounter-map__token-layer">
-      {/* Render all visible tokens */}
       {filteredTokens.map(([id, tokenData]) => {
-        // Hide the token being dragged (show ghost instead)
         if (isDragging && id === dragTokenId) return null;
 
         return (
@@ -258,7 +258,6 @@ export function TokenLayer({
         );
       })}
 
-      {/* Ghost token during drag */}
       {isDragging && dragTokenId && ghostPosition && tokens[dragTokenId] && (
         <Token
           key={`ghost-${dragTokenId}`}
@@ -274,7 +273,6 @@ export function TokenLayer({
           onSelect={() => {}}
         />
       )}
-
     </g>
   );
 }

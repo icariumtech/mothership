@@ -303,8 +303,8 @@ export function EncounterMapRenderer({
     return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
   }, []);
 
-  // Wheel zoom handler
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  // Wheel zoom handler — attached as native listener with { passive: false }
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
 
     const container = containerRef.current;
@@ -482,6 +482,17 @@ export function EncounterMapRenderer({
       container.removeEventListener('touchmove', touchMoveHandler);
     };
   }, [touchMoveHandler]);
+
+  // Attach wheel as native event listener with { passive: false } so preventDefault works
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
 
   // Touch end handler
   const handleTouchEnd = useCallback(() => {
@@ -977,7 +988,6 @@ export function EncounterMapRenderer({
     <div
       ref={containerRef}
       className="encounter-map-renderer"
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

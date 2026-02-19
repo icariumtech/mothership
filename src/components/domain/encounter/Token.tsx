@@ -90,7 +90,7 @@ export function Token({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onClick={handleClick}
-      style={{ cursor: draggable ? 'grab' : 'pointer' }}
+      style={{ cursor: draggable ? 'grab' : 'pointer', touchAction: draggable ? 'none' : 'auto' }}
     >
       {/* Define filters for glow effect */}
       <defs>

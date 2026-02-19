@@ -213,8 +213,9 @@ export function TokenLayer({
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (!touch) return;
-      // Prevent page scroll while dragging a token
-      if (pendingDrag.current || isDragging) {
+      // Prevent page scroll only once drag threshold is met (not during tap detection)
+      // Calling preventDefault during tap prevents the click event from firing
+      if (isDragging) {
         e.preventDefault();
       }
       handlePointerMove(touch.clientX, touch.clientY);

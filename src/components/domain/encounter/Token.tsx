@@ -16,8 +16,7 @@ interface TokenProps {
   draggable?: boolean;
   selected?: boolean;
   onSelect?: (id: string) => void;
-  onDragStart?: (id: string, e: React.MouseEvent) => void;
-  onTouchDragStart?: (id: string, e: React.TouchEvent) => void;
+  onPointerDragStart?: (id: string, e: React.PointerEvent<Element>) => void;
 }
 
 // Type-based glow colors (per user decision)
@@ -34,8 +33,7 @@ export function Token({
   unitSize,
   draggable = false,
   onSelect,
-  onDragStart,
-  onTouchDragStart,
+  onPointerDragStart,
 }: TokenProps) {
   // Calculate center position
   const centerX = data.x * unitSize + unitSize / 2;
@@ -47,16 +45,12 @@ export function Token({
   // Glow radius (slightly larger for glow effect)
   const glowRadius = tokenRadius + 4;
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (draggable && onDragStart) {
-      onDragStart(id, e);
-      e.stopPropagation();
-    }
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (draggable && onTouchDragStart) {
-      onTouchDragStart(id, e);
+  const handlePointerDown = (e: React.PointerEvent<Element>) => {
+    if (draggable && onPointerDragStart) {
+      // Capture pointer so pointermove/pointerup route here even if finger moves off-element.
+      // Also prevents the browser from converting the touch into simulated mouse events.
+      e.currentTarget.setPointerCapture(e.pointerId);
+      onPointerDragStart(id, e);
       e.stopPropagation();
     }
   };
@@ -87,8 +81,7 @@ export function Token({
       transform={`translate(${centerX}, ${centerY})`}
       data-token-id={id}
       data-draggable={draggable}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
+      onPointerDown={handlePointerDown}
       onClick={handleClick}
       style={{ cursor: draggable ? 'grab' : 'pointer', touchAction: draggable ? 'none' : 'auto' }}
     >

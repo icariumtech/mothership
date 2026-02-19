@@ -121,7 +121,8 @@ export function TokenLayer({
     if (pendingDrag.current && !isDraggingRef.current) {
       const dx = clientX - pendingDrag.current.startX;
       const dy = clientY - pendingDrag.current.startY;
-      if (Math.sqrt(dx * dx + dy * dy) >= DRAG_THRESHOLD) {
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist >= DRAG_THRESHOLD) {
         const id = pendingDrag.current.id;
         const token = tokensRef.current[id];
         pendingDrag.current = null;
@@ -154,7 +155,9 @@ export function TokenLayer({
       return;
     }
 
-    if (!isDraggingRef.current || !dragTokenIdRef.current) return;
+    if (!isDraggingRef.current || !dragTokenIdRef.current) {
+      return;
+    }
 
     const ghost = ghostPositionRef.current;
     if (!svgElementRef.current || !onTokenMoveRef.current || !ghost) {
@@ -165,7 +168,8 @@ export function TokenLayer({
     const { gridX, gridY } = ghost;
     const tokenId = dragTokenIdRef.current;
 
-    if (isCellOccupied(gridX, gridY, tokenId)) {
+    const occupied = isCellOccupied(gridX, gridY, tokenId ?? undefined);
+    if (occupied) {
       console.warn('Cannot move token: cell is occupied');
       stopDrag();
       return;
@@ -189,29 +193,31 @@ export function TokenLayer({
   }, []); // stable — reads all values from refs
 
   // Single useEffect for event listeners — stable handlers never need re-attachment
+  // Uses Pointer Events API to unify mouse, touch, and pen input, which prevents
+  // the browser from converting mid-drag touch into simulated mouse events.
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => handlePointerMove(e.clientX, e.clientY);
-    const onMouseUp = () => handlePointerUp();
-
-    const onTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      if (!touch) return;
-      if (isDraggingRef.current) e.preventDefault();
-      handlePointerMove(touch.clientX, touch.clientY);
+    const onPointerMove = (e: PointerEvent) => {
+      // Prevent browser scroll/pan from taking over while drag is active
+      if (pendingDrag.current || isDraggingRef.current) e.preventDefault();
+      handlePointerMove(e.clientX, e.clientY);
     };
 
-    const onTouchEnd = () => handlePointerUp();
+    const onPointerUp = () => handlePointerUp();
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd);
+    const onPointerCancel = () => {
+      tokenTouchActive = false;
+      pendingDrag.current = null;
+      stopDrag();
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
 
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
     };
   }, []); // stable — never re-attaches
 
@@ -223,25 +229,34 @@ export function TokenLayer({
     }
   };
 
-  const handleTokenDragStart = useCallback((id: string, e: React.MouseEvent) => {
+  const handleTokenPointerDragStart = useCallback((id: string, e: React.PointerEvent) => {
     if (!onTokenMove) return;
-    e.stopPropagation();
+    // For touch/pen, set flag so EncounterMapRenderer skips touch pan handling
+    if (e.pointerType !== 'mouse') tokenTouchActive = true;
     pendingDrag.current = { id, startX: e.clientX, startY: e.clientY };
-  }, [onTokenMove]);
-
-  const handleTokenTouchDragStart = useCallback((id: string, e: React.TouchEvent) => {
-    if (!onTokenMove) return;
-    const touch = e.touches[0];
-    if (!touch) return;
-    e.stopPropagation();
-    tokenTouchActive = true;
-    pendingDrag.current = { id, startX: touch.clientX, startY: touch.clientY };
   }, [onTokenMove]);
 
   return (
     <g className="encounter-map__token-layer">
       {filteredTokens.map(([id, tokenData]) => {
-        if (isDragging && id === dragTokenId) return null;
+        const isActiveDrag = isDragging && id === dragTokenId;
+
+        if (isActiveDrag) {
+          // Keep in DOM (pointer capture requires the element to exist) but invisible.
+          // pointer-events must remain active so the captured pointer events propagate.
+          return (
+            <g key={id} style={{ opacity: 0 }}>
+              <Token
+                id={id}
+                data={tokenData}
+                unitSize={unitSize}
+                draggable={false}
+                selected={false}
+                onSelect={() => {}}
+              />
+            </g>
+          );
+        }
 
         return (
           <Token
@@ -252,8 +267,7 @@ export function TokenLayer({
             draggable={canDrag}
             selected={selectedTokenId === id}
             onSelect={handleTokenSelect}
-            onDragStart={handleTokenDragStart}
-            onTouchDragStart={handleTokenTouchDragStart}
+            onPointerDragStart={handleTokenPointerDragStart}
           />
         );
       })}

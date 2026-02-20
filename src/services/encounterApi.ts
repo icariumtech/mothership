@@ -220,6 +220,18 @@ async function getTokenImages(): Promise<TokenImage[]> {
   return response.data.images;
 }
 
+/**
+ * Toggle an NPC portrait display on the terminal (GM only).
+ * If npcId is active, dismisses it. If not active, shows it.
+ */
+async function togglePortrait(npcId: string): Promise<{ success: boolean; active_portraits: string[] }> {
+  const response = await api.post<{ success: boolean; active_portraits: string[] }>(
+    '/gm/encounter/toggle-portrait/',
+    { npc_id: npcId }
+  );
+  return response.data;
+}
+
 export const encounterApi = {
   getMapData,
   getAllDecks,
@@ -236,6 +248,7 @@ export const encounterApi = {
   updateTokenStatus,
   clearAllTokens,
   getTokenImages,
+  togglePortrait,
 };
 
 export type { DeckWithRooms, AllDecksResponse };

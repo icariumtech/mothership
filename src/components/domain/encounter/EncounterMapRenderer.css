@@ -319,12 +319,6 @@
 .encounter-map__token.is-dragging { opacity: 0.7; cursor: grabbing !important; }
 .encounter-map__token--hidden { opacity: 0.4; }
 
-/* Token labels - initial shown, full name on hover */
-.encounter-map__token-label { fill: #9a9a9a; font-size: 10px; font-family: 'Cascadia Code', monospace; pointer-events: none; user-select: none; }
-.encounter-map__token-label--full { display: none; }
-.encounter-map__token:hover .encounter-map__token-label--full { display: block; }
-.encounter-map__token:hover .encounter-map__token-label--initial { display: none; }
-
 /* Status indicator animations */
 @keyframes pulse-wounded { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes pulse-panicked { 0%, 100% { opacity: 1; stroke-width: 2; } 50% { opacity: 0.5; stroke-width: 3; } }

@@ -163,23 +163,6 @@ export function Token({
       {/* Status overlays */}
       <TokenStatusOverlay status={data.status} tokenRadius={tokenRadius} />
 
-      {/* Label - initial by default, full name on hover */}
-      <text
-        x={0}
-        y={tokenRadius + 12}
-        textAnchor="middle"
-        className="encounter-map__token-label encounter-map__token-label--initial"
-      >
-        {initial}
-      </text>
-      <text
-        x={0}
-        y={tokenRadius + 12}
-        textAnchor="middle"
-        className="encounter-map__token-label encounter-map__token-label--full"
-      >
-        {data.name}
-      </text>
     </g>
   );
 }

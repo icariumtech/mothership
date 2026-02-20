@@ -32,10 +32,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### NPC Portraits
 
-- [ ] **PORT-01**: GM can trigger an NPC portrait display on the terminal
+- [x] **PORT-01**: GM can trigger an NPC portrait display on the terminal
 - [ ] **PORT-02**: Portrait panel shows NPC name and basic info with CRT/amber styling
 - [ ] **PORT-03**: Portrait appears as overlay during encounter view
-- [ ] **PORT-04**: Multiple portraits can display simultaneously for group conversations
+- [x] **PORT-04**: Multiple portraits can display simultaneously for group conversations
 - [ ] **PORT-05**: Portrait reveal uses animated typewriter name and fade-in effect
 
 ### UI Audio
@@ -116,10 +116,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOKN-03 | Phase 3 | Pending |
 | TOKN-04 | Phase 3 | Pending |
 | TOKN-05 | Phase 3 | Pending |
-| PORT-01 | Phase 4 | Pending |
+| PORT-01 | Phase 4 | Complete |
 | PORT-02 | Phase 4 | Pending |
 | PORT-03 | Phase 4 | Pending |
-| PORT-04 | Phase 4 | Pending |
+| PORT-04 | Phase 4 | Complete |
 | PORT-05 | Phase 4 | Pending |
 | RTMA-01 | Phase 5 | Pending |
 | RTMA-02 | Phase 5 | Pending |

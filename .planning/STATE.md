@@ -30,7 +30,7 @@ Progress: [█████░░░░░] 50% (Phase 4: 2/4 plans)
 | 01-campaign-logs-tab | 2 | 352s | 176s |
 | 02-ship-status-dashboard | 3 | 1167s | 389s |
 | 03-encounter-tokens | 4 | 9899s | 2475s |
-| 04-npc-portrait-system | 2/4 | 79s (04-02) | — |
+| 04-npc-portrait-system | 3/4 | 188s (04-01+04-02) | — |
 
 **Recent Trend:**
 - Last 5 plans: 231s, 292s, 9252s, 124s, 79s
@@ -84,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Custom tokens added to template array so they appear in grid and can be re-dragged (03-04)
 - [Phase 03]: GM console wires selectedTokenId to TokenLayer enabling TokenPopup (03-04)
 - [Phase 03]: Visibility filter uses strict === true; undefined/missing room means hidden from players (03-04)
+- [Phase 04]: encounter_active_portraits uses default=list (not default=dict) since it is an ordered list of NPC IDs, not a lookup map (04-01)
+- [Phase 04]: Always include encounter_npc_data in every active-view response (not ENCOUNTER-only) to avoid second API request from portrait overlay (04-01)
+- [Phase 04]: Portrait clear is unconditional on new encounter location switch (outside map-existence guard) (04-01)
 - [Phase 04]: gmConsole.ts ActiveView uses required fields (non-optional) for portrait data; SharedConsole.tsx uses optional to handle old cached responses (04-02)
 - [Phase 04]: NpcPortraitData.portrait field is URL string (empty = no image), matching token image_url pattern from Phase 3 (04-02)
 - [Phase 04]: togglePortrait returns active_portraits array for optimistic UI update without waiting for poll cycle (04-02)
@@ -98,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-20 — Completed 04-02-PLAN.md (TypeScript types and API client)
-Stopped at: Completed 04-02-PLAN.md — NpcPortraitData types, ActiveView portrait fields, encounterApi.togglePortrait added
+Last session: 2026-02-20 — Completed 04-01-PLAN.md (Backend API for NPC portrait system)
+Stopped at: Completed 04-01-PLAN.md — encounter_active_portraits JSONField, toggle-portrait endpoint, active-view response extension
 Resume file: None

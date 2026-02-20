@@ -71,6 +71,9 @@ interface ActiveView {
   encounter_deck_name?: string;
   // Token state
   encounter_tokens?: TokenState;
+  // Portrait overlay state
+  encounter_active_portraits?: string[];
+  encounter_npc_data?: { [id: string]: { id: string; name: string; portrait: string } };
 }
 
 interface InitialData {

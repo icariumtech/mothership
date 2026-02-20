@@ -76,11 +76,13 @@ Plans:
   3. Portrait appears as overlay during encounter view without obscuring map
   4. Multiple portraits can display simultaneously for group conversations
   5. Portrait reveal uses animated typewriter name and fade-in effect
-**Plans**: TBD
+**Plans:** 1/4 plans executed
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — Backend: encounter_active_portraits field, toggle-portrait endpoint, active-view response extension
+- [ ] 04-02-PLAN.md — Frontend foundation: TypeScript types (NpcPortraitData, ActiveView fields), togglePortrait API method
+- [ ] 04-03-PLAN.md — Frontend features: EncounterPanel NPC section, NPCPortraitOverlay, NPCPortraitCard, CSS animations, SharedConsole wiring
+- [ ] 04-04-PLAN.md — Human verification: end-to-end test of GM trigger flow and CRT animation sequence
 
 ### Phase 5: Real-Time Push Architecture
 **Goal**: Replace 2-second polling with Server-Sent Events for instant state updates
@@ -118,6 +120,6 @@ Plans:
 | 1. Campaign Logs Tab | 2/2 | ✓ Complete | 2026-02-12 |
 | 2. Ship Status Dashboard | 3/3 | ✓ Complete | 2026-02-12 |
 | 3. Encounter Tokens | 0/4 | In Progress | - |
-| 4. NPC Portrait System | 0/TBD | Not started | - |
+| 4. NPC Portrait System | 1/4 | In Progress|  |
 | 5. Real-Time Push Architecture | 0/TBD | Not started | - |
 | 6. UI Audio System | 0/TBD | Not started | - |

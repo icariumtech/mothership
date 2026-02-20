@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 3 - Encounter Tokens
+**Current focus:** Phase 4 - NPC Portrait System
 
 ## Current Position
 
-Phase: 3 of 6 (Encounter Tokens)
-Plan: 4 of 4 completed
-Status: Complete
-Last activity: 2026-02-17 — Completed 03-04-PLAN.md (UAT Gap Closure)
+Phase: 4 of 6 (NPC Portrait System)
+Plan: 2 of 4 completed
+Status: In Progress
+Last activity: 2026-02-20 — Completed 04-02-PLAN.md (TypeScript types and API client)
 
-Progress: [██████████] 100% (Phase 3: 4/4 plans)
+Progress: [█████░░░░░] 50% (Phase 4: 2/4 plans)
 
 ## Performance Metrics
 
@@ -30,10 +30,11 @@ Progress: [██████████] 100% (Phase 3: 4/4 plans)
 | 01-campaign-logs-tab | 2 | 352s | 176s |
 | 02-ship-status-dashboard | 3 | 1167s | 389s |
 | 03-encounter-tokens | 4 | 9899s | 2475s |
+| 04-npc-portrait-system | 2/4 | 79s (04-02) | — |
 
 **Recent Trend:**
-- Last 5 plans: 208s, 231s, 292s, 9252s, 124s
-- Trend: Phase 03-04 UAT gap closure was fast (124s) - targeted fixes to 3 existing files
+- Last 5 plans: 231s, 292s, 9252s, 124s, 79s
+- Trend: Phase 04-02 TypeScript types plan was very fast (79s) - pure type additions to 3 files
 
 *Updated after each plan completion*
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Custom tokens added to template array so they appear in grid and can be re-dragged (03-04)
 - [Phase 03]: GM console wires selectedTokenId to TokenLayer enabling TokenPopup (03-04)
 - [Phase 03]: Visibility filter uses strict === true; undefined/missing room means hidden from players (03-04)
+- [Phase 04]: gmConsole.ts ActiveView uses required fields (non-optional) for portrait data; SharedConsole.tsx uses optional to handle old cached responses (04-02)
+- [Phase 04]: NpcPortraitData.portrait field is URL string (empty = no image), matching token image_url pattern from Phase 3 (04-02)
+- [Phase 04]: togglePortrait returns active_portraits array for optimistic UI update without waiting for poll cycle (04-02)
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-18 — Session resumed, proceeding to Phase 4 planning
-Stopped at: Session resumed — Phase 3 complete, ready to plan Phase 4 (NPC Portrait System)
+Last session: 2026-02-20 — Completed 04-02-PLAN.md (TypeScript types and API client)
+Stopped at: Completed 04-02-PLAN.md — NpcPortraitData types, ActiveView portrait fields, encounterApi.togglePortrait added
 Resume file: None

@@ -15,6 +15,7 @@ import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
 import { CharonDialog } from '@components/domain/charon/CharonDialog';
 import { CommTerminalDialog } from '@components/domain/terminal/CommTerminalDialog';
 import { EncounterView } from '@components/domain/encounter/EncounterView';
+import { NPCPortraitOverlay } from '@components/domain/encounter/NPCPortraitOverlay';
 import { charonApi } from '@/services/charonApi';
 import { terminalApi } from '@/services/terminalApi';
 import { encounterApi } from '@/services/encounterApi';
@@ -966,19 +967,28 @@ function SharedConsole() {
 
       {/* ENCOUNTER view - clean display for player terminal */}
       {viewType === 'ENCOUNTER' && (
-        <EncounterView
-          locationSlug={activeView?.location_slug || null}
-          locationType={activeView?.location_type || null}
-          locationData={activeView?.location_data || null}
-          encounterLevel={activeView?.encounter_level}
-          totalDecks={activeView?.encounter_total_decks}
-          deckName={activeView?.encounter_deck_name}
-          roomVisibility={activeView?.encounter_room_visibility}
-          doorStatus={activeView?.encounter_door_status}
-          tokens={encounterTokens}
-          isGM={false}
-          onTokenMove={handleTokenMove}
-        />
+        <>
+          <EncounterView
+            locationSlug={activeView?.location_slug || null}
+            locationType={activeView?.location_type || null}
+            locationData={activeView?.location_data || null}
+            encounterLevel={activeView?.encounter_level}
+            totalDecks={activeView?.encounter_total_decks}
+            deckName={activeView?.encounter_deck_name}
+            roomVisibility={activeView?.encounter_room_visibility}
+            doorStatus={activeView?.encounter_door_status}
+            tokens={encounterTokens}
+            isGM={false}
+            onTokenMove={handleTokenMove}
+          />
+          {/* NPC Portrait overlay — shown when GM has active portraits */}
+          {(activeView?.encounter_active_portraits?.length ?? 0) > 0 && (
+            <NPCPortraitOverlay
+              activePortraitIds={activeView?.encounter_active_portraits || []}
+              npcData={activeView?.encounter_npc_data || {}}
+            />
+          )}
+        </>
       )}
 
       {/* Other view types can be added here */}

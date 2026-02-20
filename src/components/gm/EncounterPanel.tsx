@@ -296,6 +296,17 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
     }
   }, [encounterTokens, onViewUpdate, messageApi]);
 
+  // NPC portrait toggle handler
+  const handleTogglePortrait = useCallback(async (npcId: string) => {
+    try {
+      await encounterApi.togglePortrait(npcId);
+      onViewUpdate();
+    } catch (err) {
+      console.error('Error toggling portrait:', err);
+      messageApi.error('Failed to toggle portrait');
+    }
+  }, [onViewUpdate, messageApi]);
+
   if (!isActive) {
     return (
       <>
@@ -360,6 +371,10 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
       </>
     );
   }
+
+  // Derive NPC list and active portrait IDs from polled activeView data
+  const npcs = Object.values(activeView?.encounter_npc_data || {});
+  const activePortraits = activeView?.encounter_active_portraits || [];
 
   return (
     <>
@@ -477,7 +492,7 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
             </Space>
           </div>
         }
-        style={{ background: '#1a1a1a' }}
+        style={{ marginBottom: 16, background: '#1a1a1a' }}
         bodyStyle={{ padding: 0 }}
       >
         <List
@@ -543,6 +558,40 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
             );
           }}
         />
+      </Card>
+
+      {/* NPC Portraits Card */}
+      <Card
+        size="small"
+        title={<Text style={{ color: '#5a7a7a' }}>NPC PORTRAITS</Text>}
+        style={{ marginBottom: 16, background: '#1a1a1a' }}
+        bodyStyle={{ padding: 12 }}
+      >
+        {npcs.length === 0 ? (
+          <Text type="secondary" style={{ fontSize: 11 }}>No NPCs in campaign data</Text>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {npcs.map(npc => {
+              const isPortraitActive = activePortraits.includes(npc.id);
+              return (
+                <div
+                  key={npc.id}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <Text style={{ fontSize: 12 }}>{npc.name}</Text>
+                  <Button
+                    size="small"
+                    type={isPortraitActive ? 'primary' : 'default'}
+                    style={isPortraitActive ? { background: '#8b7355', borderColor: '#8b7355' } : {}}
+                    onClick={() => handleTogglePortrait(npc.id)}
+                  >
+                    {isPortraitActive ? 'DISMISS' : 'SHOW'}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
     </>
   );

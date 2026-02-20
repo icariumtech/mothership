@@ -76,7 +76,7 @@ Plans:
   3. Portrait appears as overlay during encounter view without obscuring map
   4. Multiple portraits can display simultaneously for group conversations
   5. Portrait reveal uses animated typewriter name and fade-in effect
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Backend: encounter_active_portraits field, toggle-portrait endpoint, active-view response extension
@@ -120,6 +120,6 @@ Plans:
 | 1. Campaign Logs Tab | 2/2 | ✓ Complete | 2026-02-12 |
 | 2. Ship Status Dashboard | 3/3 | ✓ Complete | 2026-02-12 |
 | 3. Encounter Tokens | 0/4 | In Progress | - |
-| 4. NPC Portrait System | 2/4 | In Progress|  |
+| 4. NPC Portrait System | 3/4 | In Progress|  |
 | 5. Real-Time Push Architecture | 0/TBD | Not started | - |
 | 6. UI Audio System | 0/TBD | Not started | - |

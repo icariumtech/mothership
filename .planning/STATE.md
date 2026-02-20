@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 4 of 6 (NPC Portrait System)
-Plan: 2 of 4 completed
+Plan: 3 of 4 completed
 Status: In Progress
-Last activity: 2026-02-20 — Completed 04-02-PLAN.md (TypeScript types and API client)
+Last activity: 2026-02-20 — Completed 04-03-PLAN.md (Frontend portrait components)
 
-Progress: [█████░░░░░] 50% (Phase 4: 2/4 plans)
+Progress: [███████░░░] 75% (Phase 4: 3/4 plans)
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: [█████░░░░░] 50% (Phase 4: 2/4 plans)
 | 01-campaign-logs-tab | 2 | 352s | 176s |
 | 02-ship-status-dashboard | 3 | 1167s | 389s |
 | 03-encounter-tokens | 4 | 9899s | 2475s |
-| 04-npc-portrait-system | 3/4 | 188s (04-01+04-02) | — |
+| 04-npc-portrait-system | 3/4 | 1074s (04-01+04-02+04-03) | — |
 
 **Recent Trend:**
 - Last 5 plans: 231s, 292s, 9252s, 124s, 79s
@@ -90,6 +90,10 @@ Recent decisions affecting current work:
 - [Phase 04]: gmConsole.ts ActiveView uses required fields (non-optional) for portrait data; SharedConsole.tsx uses optional to handle old cached responses (04-02)
 - [Phase 04]: NpcPortraitData.portrait field is URL string (empty = no image), matching token image_url pattern from Phase 3 (04-02)
 - [Phase 04]: togglePortrait returns active_portraits array for optimistic UI update without waiting for poll cycle (04-02)
+- [Phase 04]: npcs derived from Object.values(activeView?.encounter_npc_data || {}) in EncounterPanel — no new prop, stays fresh from poll (04-03)
+- [Phase 04]: clip-path animation applied to .portrait-image-wrapper div (not img) for Safari compatibility (04-03)
+- [Phase 04]: dismissingIds tracked as Set<string> so multiple portrait cards can dismiss concurrently (04-03)
+- [Phase 04]: Animation state machine pattern: AnimPhase literal union drives CSS class, async useEffect with cancelled flag sequences phases (04-03)
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-20 — Completed 04-01-PLAN.md (Backend API for NPC portrait system)
-Stopped at: Completed 04-01-PLAN.md — encounter_active_portraits JSONField, toggle-portrait endpoint, active-view response extension
+Last session: 2026-02-20 — Completed 04-03-PLAN.md (Frontend portrait components)
+Stopped at: Completed 04-03-PLAN.md — NPCPortraitCard, NPCPortraitOverlay, EncounterPanel toggle UI, SharedConsole wiring
 Resume file: None

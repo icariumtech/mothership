@@ -197,8 +197,19 @@ def get_active_view_json(request):
         'encounter_room_visibility': active_view.encounter_room_visibility or {},
         'encounter_door_status': active_view.encounter_door_status or {},
         'encounter_tokens': active_view.encounter_tokens or {},
+        'encounter_active_portraits': list(active_view.encounter_active_portraits or []),
         'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
     }
+
+    # Always include NPC data so portrait overlay has name/image without a second request
+    loader_for_npcs = DataLoader()
+    npcs = loader_for_npcs.load_npcs()
+    encounter_npc_data = {
+        npc['id']: {'id': npc['id'], 'name': npc['name'], 'portrait': npc.get('portrait', '')}
+        for npc in npcs
+        if npc.get('id')
+    }
+    response['encounter_npc_data'] = encounter_npc_data
 
     # For ENCOUNTER view, include location metadata for view rendering
     if active_view.view_type == 'ENCOUNTER' and active_view.location_slug:
@@ -493,6 +504,8 @@ def api_switch_view(request):
 
     # When switching to a new ENCOUNTER location, initialize all rooms as hidden
     if is_new_encounter_location:
+        # Clear portrait overlays when switching to a new encounter location
+        active_view.encounter_active_portraits = []
         loader = DataLoader()
         location = loader.find_location_by_slug(new_location_slug)
         if location and location.get('map'):
@@ -1340,6 +1353,47 @@ def api_encounter_clear_tokens(request):
     return JsonResponse({
         'success': True,
         'tokens': {}
+    })
+
+
+@login_required
+def api_encounter_toggle_portrait(request):
+    """
+    Toggle an NPC portrait display on the terminal.
+    POST: { npc_id: string }
+    If npc_id is already in encounter_active_portraits, removes it (dismiss).
+    If not, appends it (show).
+    """
+    from terminal.models import ActiveView
+    import json
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    npc_id = data.get('npc_id', '').strip()
+    if not npc_id:
+        return JsonResponse({'error': 'npc_id required'}, status=400)
+
+    active_view = ActiveView.get_current()
+    portraits = list(active_view.encounter_active_portraits or [])
+
+    if npc_id in portraits:
+        portraits.remove(npc_id)
+    else:
+        portraits.append(npc_id)
+
+    active_view.encounter_active_portraits = portraits
+    active_view.updated_by = request.user
+    active_view.save()
+
+    return JsonResponse({
+        'success': True,
+        'active_portraits': portraits,
     })
 
 

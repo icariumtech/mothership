@@ -100,6 +100,11 @@ class ActiveView(models.Model):
         blank=True,
         help_text='Map of token_id -> token data for encounter tokens'
     )
+    encounter_active_portraits = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Ordered list of NPC IDs currently displayed as portrait overlays'
+    )
 
     # Ship status runtime overrides
     ship_system_overrides = models.JSONField(

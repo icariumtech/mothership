@@ -94,11 +94,13 @@ Plans:
   3. Messages remain in SQLite as persistent data
   4. Database retained and prepared for future auth/credentials use
   5. Token movements and portrait displays update instantly without polling delay
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md — Backend foundation: active_view_store.py, sse_broadcaster.py, migration to drop ActiveView, SSE streaming endpoint
+- [ ] 05-02-PLAN.md — Backend views refactor: migrate all 17 write endpoints from ActiveView ORM to store + broadcaster
+- [ ] 05-03-PLAN.md — Frontend SSE: useSSE hook, SSEConnectionToast, replace polling in SharedConsole and GMConsole
+- [ ] 05-04-PLAN.md — Human verification: end-to-end latency, connection resilience, database integrity
 
 ### Phase 6: UI Audio System
 **Goal**: Add atmospheric audio feedback for UI interactions and view transitions
@@ -121,5 +123,14 @@ Plans:
 | 2. Ship Status Dashboard | 3/3 | ✓ Complete | 2026-02-12 |
 | 3. Encounter Tokens | 0/4 | In Progress | - |
 | 4. NPC Portrait System | 3/4 | In Progress|  |
-| 5. Real-Time Push Architecture | 0/TBD | Not started | - |
+| 5. Real-Time Push Architecture | 0/4 | Not started | - |
 | 6. UI Audio System | 0/TBD | Not started | - |
+
+### Phase 7: Grid-based encounter map redesign
+
+**Goal:** [To be planned]
+**Depends on:** Phase 6
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 7 to break down)

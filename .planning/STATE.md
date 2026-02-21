@@ -95,6 +95,10 @@ Recent decisions affecting current work:
 - [Phase 04]: dismissingIds tracked as Set<string> so multiple portrait cards can dismiss concurrently (04-03)
 - [Phase 04]: Animation state machine pattern: AnimPhase literal union drives CSS class, async useEffect with cancelled flag sequences phases (04-03)
 
+### Roadmap Evolution
+
+- Phase 7 added: Grid-based encounter map redesign
+
 ### Pending Todos
 
 None yet.

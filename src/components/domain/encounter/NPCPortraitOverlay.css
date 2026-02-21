@@ -31,9 +31,9 @@
   align-items: flex-end;
 }
 
-/* Portrait panel — zero out panel-content margin so image fills to border edge */
-.portrait-panel .panel-content {
-  margin: 0;
+/* Portrait panel — 2px margin so border lines are visible on all sides */
+.portrait-panel .panel-content.no-scroll {
+  margin: 2px;
 }
 
 /* Individual portrait card */

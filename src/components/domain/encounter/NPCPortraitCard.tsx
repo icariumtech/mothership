@@ -86,26 +86,26 @@ export function NPCPortraitCard({ npcId, name, portrait, isDismissing, onDismiss
 
   return (
     <div className="portrait-card">
-      <div style={{ border: '1px solid #4a6b6b' }}>
-        <Panel
-          chamferCorners={['tl', 'tr', 'bl', 'br']}
-          chamferSize={12}
-          padding={6}
-        >
-          <div className={imageWrapperClass}>
-            {portrait ? (
-              <img
-                src={portrait}
-                alt={name}
-                className="portrait-image"
-                draggable={false}
-              />
-            ) : (
-              <div className="portrait-placeholder">?</div>
-            )}
-          </div>
-        </Panel>
-      </div>
+      <Panel
+        chamferCorners={['tl', 'tr', 'bl', 'br']}
+        chamferSize={12}
+        padding={0}
+        scrollable={false}
+        className="portrait-panel"
+      >
+        <div className={imageWrapperClass}>
+          {portrait ? (
+            <img
+              src={portrait}
+              alt={name}
+              className="portrait-image"
+              draggable={false}
+            />
+          ) : (
+            <div className="portrait-placeholder">?</div>
+          )}
+        </div>
+      </Panel>
       <div className="portrait-name">{displayedName}</div>
     </div>
   );

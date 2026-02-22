@@ -1,13 +1,16 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Message
+import queue as queue_module
 import yaml
 import os
 import json
 from django.conf import settings
+from terminal.active_view_store import get_state, update_state
+from terminal.sse_broadcaster import broadcaster, format_sse
 
 
 def get_charon_location_path(active_view) -> str:
@@ -19,21 +22,33 @@ def get_charon_location_path(active_view) -> str:
     2. Fall back to explicitly set charon_location_path
     3. Return None if no location context available
 
+    Accepts either a dict (from get_state()) or an ORM object.
+
     Returns:
         Location path string like "sol/earth/uscss_morrigan" or None
     """
     from terminal.data_loader import DataLoader
 
+    # Support both dict and ORM object
+    if isinstance(active_view, dict):
+        view_type = active_view.get('view_type', '')
+        location_slug = active_view.get('location_slug', '')
+        charon_location_path = active_view.get('charon_location_path', '')
+    else:
+        view_type = active_view.view_type
+        location_slug = active_view.location_slug
+        charon_location_path = active_view.charon_location_path
+
     # If in ENCOUNTER view, derive from encounter location
-    if active_view.view_type == 'ENCOUNTER' and active_view.location_slug:
+    if view_type == 'ENCOUNTER' and location_slug:
         loader = DataLoader()
-        path_slugs = loader.get_location_path(active_view.location_slug)
+        path_slugs = loader.get_location_path(location_slug)
         if path_slugs:
             return '/'.join(path_slugs)
 
     # Fall back to explicitly set CHARON location
-    if active_view.charon_location_path:
-        return active_view.charon_location_path
+    if charon_location_path:
+        return charon_location_path
 
     return None
 
@@ -64,11 +79,10 @@ def display_view_react(request):
     React version of the shared terminal display.
     Test endpoint for React migration.
     """
-    from terminal.models import ActiveView
     from terminal.data_loader import DataLoader
 
     # Get current active view from GM console
-    active_view = ActiveView.get_current()
+    active_view = get_state()
 
     # Load star map data for star system list
     star_map_path = os.path.join(settings.BASE_DIR, 'data', 'galaxy', 'star_map.yaml')
@@ -110,7 +124,7 @@ def display_view_react(request):
     # Load ship status and merge runtime overrides
     ship_data = loader.load_ship_status()
     if ship_data and ship_data.get('ship'):
-        overrides = active_view.ship_system_overrides or {}
+        overrides = active_view.get('ship_system_overrides') or {}
         for system_name, override in overrides.items():
             if system_name in ship_data['ship'].get('systems', {}):
                 ship_data['ship']['systems'][system_name].update(override)
@@ -171,63 +185,51 @@ def get_messages_json(request):
     })
 
 
-def get_active_view_json(request):
-    """
-    API endpoint to get the current active view state.
-    Used by the display terminal to detect when GM changes the view.
-    Public endpoint - no login required.
-    """
-    from terminal.models import ActiveView
+def build_active_view_payload(state: dict) -> dict:
+    """Build the enriched active-view response dict from raw in-memory state."""
     from terminal.data_loader import DataLoader
 
-    active_view = ActiveView.get_current()
-
     response = {
-        'location_slug': active_view.location_slug or '',
-        'view_type': active_view.view_type,
-        'view_slug': active_view.view_slug or '',
-        'overlay_location_slug': active_view.overlay_location_slug or '',
-        'overlay_terminal_slug': active_view.overlay_terminal_slug or '',
-        'charon_mode': active_view.charon_mode,
-        'charon_location_path': active_view.charon_location_path or '',
-        'charon_dialog_open': active_view.charon_dialog_open,
-        'charon_active_channel': active_view.charon_active_channel or 'story',
-        'encounter_level': active_view.encounter_level,
-        'encounter_deck_id': active_view.encounter_deck_id or '',
-        'encounter_room_visibility': active_view.encounter_room_visibility or {},
-        'encounter_door_status': active_view.encounter_door_status or {},
-        'encounter_tokens': active_view.encounter_tokens or {},
-        'encounter_active_portraits': list(active_view.encounter_active_portraits or []),
-        'updated_at': active_view.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'location_slug': state.get('location_slug', ''),
+        'view_type': state.get('view_type', 'STANDBY'),
+        'view_slug': state.get('view_slug', ''),
+        'overlay_location_slug': state.get('overlay_location_slug', ''),
+        'overlay_terminal_slug': state.get('overlay_terminal_slug', ''),
+        'charon_mode': state.get('charon_mode', 'DISPLAY'),
+        'charon_location_path': state.get('charon_location_path', ''),
+        'charon_dialog_open': state.get('charon_dialog_open', False),
+        'charon_active_channel': state.get('charon_active_channel', 'story'),
+        'encounter_level': state.get('encounter_level', 1),
+        'encounter_deck_id': state.get('encounter_deck_id', ''),
+        'encounter_room_visibility': state.get('encounter_room_visibility', {}),
+        'encounter_door_status': state.get('encounter_door_status', {}),
+        'encounter_tokens': state.get('encounter_tokens', {}),
+        'encounter_active_portraits': list(state.get('encounter_active_portraits', [])),
+        'ship_system_overrides': state.get('ship_system_overrides', {}),
     }
 
-    # Always include NPC data so portrait overlay has name/image without a second request
+    # Always include NPC data (portrait overlay needs it without a second request)
     loader_for_npcs = DataLoader()
     npcs = loader_for_npcs.load_npcs()
-    encounter_npc_data = {
+    response['encounter_npc_data'] = {
         npc['id']: {'id': npc['id'], 'name': npc['name'], 'portrait': npc.get('portrait', '')}
         for npc in npcs
         if npc.get('id')
     }
-    response['encounter_npc_data'] = encounter_npc_data
 
-    # For ENCOUNTER view, include location metadata for view rendering
-    if active_view.view_type == 'ENCOUNTER' and active_view.location_slug:
+    # ENCOUNTER view: include location metadata and multi-deck map data
+    if state.get('view_type') == 'ENCOUNTER' and state.get('location_slug'):
         loader = DataLoader()
-        location = loader.find_location_by_slug(active_view.location_slug)
+        location = loader.find_location_by_slug(state['location_slug'])
         if location:
             response['location_type'] = location.get('type', 'unknown')
             response['location_name'] = location.get('name', '')
             response['location_data'] = location
-
-            # Get hierarchical path for navigation (e.g., ['sol', 'earth'] for Earth)
-            location_path = loader.get_location_path(active_view.location_slug)
+            location_path = loader.get_location_path(state['location_slug'])
             if location_path:
                 response['location_path'] = location_path
-                # For planets/moons, include system_slug for orbit map loading
                 if len(location_path) >= 1:
                     response['location_data']['system_slug'] = location_path[0]
-                # For planets, the body is at index 1
                 if len(location_path) >= 2:
                     response['location_data']['parent_slug'] = location_path[0]
 
@@ -239,7 +241,7 @@ def get_active_view_json(request):
                 if manifest:
                     response['encounter_total_decks'] = manifest.get('total_decks', 1)
                     # Get current deck ID (or use default)
-                    current_deck_id = active_view.encounter_deck_id
+                    current_deck_id = state.get('encounter_deck_id', '')
                     if not current_deck_id:
                         # Find default deck or use first deck
                         default_deck = next(
@@ -267,7 +269,43 @@ def get_active_view_json(request):
                                 response['encounter_deck_name'] = deck.get('name', '')
                                 break
 
-    return JsonResponse(response)
+    return response
+
+
+def api_active_view_stream(request):
+    """
+    SSE endpoint — streams ActiveView state changes to all connected clients.
+    Public endpoint — no login required (same pattern as /api/active-view/).
+    """
+    def event_stream():
+        # Send full current state immediately on connect so client is in sync
+        initial_payload = build_active_view_payload(get_state())
+        yield format_sse(json.dumps(initial_payload), event='activeview')
+
+        q = broadcaster.listen()
+        try:
+            while True:
+                try:
+                    msg = q.get(timeout=30)
+                    yield msg
+                except queue_module.Empty:
+                    yield ': keepalive\n\n'
+        finally:
+            broadcaster.unlisten(q)
+
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
+
+
+def get_active_view_json(request):
+    """
+    API endpoint to get the current active view state.
+    Used by the display terminal to detect when GM changes the view.
+    Public endpoint - no login required.
+    """
+    return JsonResponse(build_active_view_payload(get_state()))
 
 
 def get_star_map_json(request):
@@ -458,7 +496,6 @@ def api_switch_view(request):
     API endpoint to switch the active view.
     POST: { view_type: string, location_slug?: string, view_slug?: string }
     """
-    from terminal.models import ActiveView
     from terminal.data_loader import DataLoader
     import json
 
@@ -470,7 +507,7 @@ def api_switch_view(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     new_view_type = data.get('view_type', 'STANDBY')
     new_location_slug = data.get('location_slug', '')
 
@@ -563,7 +600,6 @@ def api_show_terminal(request):
     API endpoint to show a terminal overlay.
     POST: { location_slug: string, terminal_slug: string }
     """
-    from terminal.models import ActiveView
     import json
 
     if request.method != 'POST':
@@ -574,7 +610,7 @@ def api_show_terminal(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     active_view.overlay_location_slug = data.get('location_slug', '')
     active_view.overlay_terminal_slug = data.get('terminal_slug', '')
     active_view.updated_by = request.user
@@ -593,12 +629,11 @@ def api_hide_terminal(request):
     Called by players when they dismiss the terminal dialog.
     POST: {}
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     active_view.overlay_location_slug = ''
     active_view.overlay_terminal_slug = ''
     active_view.save()
@@ -650,21 +685,19 @@ def api_charon_conversation(request):
     Get current CHARON conversation (public for terminal display).
     GET: Returns conversation messages and mode.
     """
-    from terminal.models import ActiveView
     from terminal.charon_session import CharonSessionManager
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     conversation = CharonSessionManager.get_conversation()
 
     # Get the derived location path (from encounter or explicit setting)
     derived_location_path = get_charon_location_path(active_view)
 
     return JsonResponse({
-        'mode': active_view.charon_mode,
-        'charon_location_path': active_view.charon_location_path or '',
+        'mode': active_view.get('charon_mode', 'DISPLAY'),
+        'charon_location_path': active_view.get('charon_location_path') or '',
         'active_location_path': derived_location_path or '',  # What CHARON is actually using
         'messages': conversation,
-        'updated_at': active_view.updated_at.isoformat(),
     })
 
 
@@ -676,15 +709,14 @@ def api_charon_submit_query(request):
     Public endpoint - players submit queries from shared terminal.
     CSRF exempt since this is called from unauthenticated player terminals.
     """
-    from terminal.models import ActiveView
     from terminal.charon_session import CharonSessionManager, CharonMessage
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     # Check if in query mode
-    active_view = ActiveView.get_current()
-    if active_view.charon_mode != 'QUERY':
+    active_view = get_state()
+    if active_view.get('charon_mode') != 'QUERY':
         return JsonResponse({'error': 'Terminal not in query mode'}, status=403)
 
     try:
@@ -728,7 +760,6 @@ def api_charon_switch_mode(request):
     Switch CHARON terminal mode (Display/Query).
     POST: { mode: 'DISPLAY' | 'QUERY' }
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -742,7 +773,7 @@ def api_charon_switch_mode(request):
     if mode not in ('DISPLAY', 'QUERY'):
         return JsonResponse({'error': 'Invalid mode. Must be DISPLAY or QUERY'}, status=400)
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     active_view.charon_mode = mode
     active_view.updated_by = request.user
     active_view.save()
@@ -756,7 +787,6 @@ def api_charon_set_location(request):
     Set the active CHARON instance location.
     POST: { location_path: string }
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -768,7 +798,7 @@ def api_charon_set_location(request):
 
     location_path = data.get('location_path', '')
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     active_view.charon_location_path = location_path
     active_view.updated_by = request.user
     active_view.save()
@@ -825,8 +855,7 @@ def api_charon_generate(request):
 
     # Get active CHARON location for knowledge context
     # Derive location from encounter view or fall back to explicit setting
-    from terminal.models import ActiveView
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     location_path = get_charon_location_path(active_view)
 
     # Generate AI response based on GM's prompt with location knowledge
@@ -946,7 +975,6 @@ def api_charon_toggle_dialog(request):
     Public endpoint - players can open/close dialog from shared terminal.
     CSRF exempt since this is called from unauthenticated player terminals.
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -956,7 +984,7 @@ def api_charon_toggle_dialog(request):
     except json.JSONDecodeError:
         data = {}
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
 
     # If 'open' is specified, set to that value; otherwise toggle
     if 'open' in data:
@@ -983,7 +1011,6 @@ def api_encounter_switch_level(request):
     Switch the current encounter deck/level.
     POST: { level: number, deck_id: string }
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -996,7 +1023,7 @@ def api_encounter_switch_level(request):
     level = data.get('level', 1)
     deck_id = data.get('deck_id', '')
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     active_view.encounter_level = level
     active_view.encounter_deck_id = deck_id
     # Don't clear room visibility when switching levels - preserve visibility state
@@ -1017,7 +1044,6 @@ def api_encounter_toggle_room(request):
     POST: { room_id: string, visible?: boolean }
     If visible is not specified, toggles the current state.
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1031,7 +1057,7 @@ def api_encounter_toggle_room(request):
     if not room_id:
         return JsonResponse({'error': 'room_id required'}, status=400)
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     visibility = active_view.encounter_room_visibility or {}
 
     # If visible is specified, use it; otherwise toggle
@@ -1059,9 +1085,8 @@ def api_encounter_room_visibility(request):
     GET: Returns { room_visibility: { room_id: bool, ... } }
     POST: { room_visibility: { room_id: bool, ... } }
     """
-    from terminal.models import ActiveView
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
 
     if request.method == 'GET':
         return JsonResponse({
@@ -1094,7 +1119,6 @@ def api_encounter_set_door_status(request):
     POST: { connection_id: string, door_status: string }
     Valid statuses: OPEN, CLOSED, LOCKED, SEALED, DAMAGED
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1117,7 +1141,7 @@ def api_encounter_set_door_status(request):
             'error': f'Invalid door_status. Must be one of: {", ".join(valid_statuses)}'
         }, status=400)
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     door_states = active_view.encounter_door_status or {}
     door_states[connection_id] = door_status
 
@@ -1140,7 +1164,6 @@ def api_encounter_place_token(request):
     POST: { type: string, name: string, x: int, y: int, image_url?: string, room_id?: string }
     Valid types: player, npc, creature, object
     """
-    from terminal.models import ActiveView
     import uuid
 
     if request.method != 'POST':
@@ -1188,7 +1211,7 @@ def api_encounter_place_token(request):
     }
 
     # Store token
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     tokens = active_view.encounter_tokens or {}
     tokens[token_id] = token_data
 
@@ -1208,7 +1231,6 @@ def api_encounter_move_token(request):
     Move an existing token to a new position.
     POST: { token_id: string, x: int, y: int, room_id?: string }
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1231,7 +1253,7 @@ def api_encounter_move_token(request):
         return JsonResponse({'error': 'x and y must be integers'}, status=400)
 
     # Update token
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     tokens = active_view.encounter_tokens or {}
 
     if token_id not in tokens:
@@ -1257,7 +1279,6 @@ def api_encounter_remove_token(request):
     Remove a token from the encounter map.
     POST: { token_id: string }
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1273,7 +1294,7 @@ def api_encounter_remove_token(request):
         return JsonResponse({'error': 'token_id is required'}, status=400)
 
     # Remove token
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     tokens = active_view.encounter_tokens or {}
 
     if token_id not in tokens:
@@ -1296,7 +1317,6 @@ def api_encounter_update_token_status(request):
     Update the status list of a token (wounded, dead, panicked, etc.).
     POST: { token_id: string, status: [string] }
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1316,7 +1336,7 @@ def api_encounter_update_token_status(request):
         return JsonResponse({'error': 'status must be an array'}, status=400)
 
     # Update token status
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     tokens = active_view.encounter_tokens or {}
 
     if token_id not in tokens:
@@ -1340,13 +1360,12 @@ def api_encounter_clear_tokens(request):
     Clear all tokens from the encounter map.
     POST: {} (empty body)
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     # Clear all tokens
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     active_view.encounter_tokens = {}
     active_view.save()
 
@@ -1364,7 +1383,6 @@ def api_encounter_toggle_portrait(request):
     If npc_id is already in encounter_active_portraits, removes it (dismiss).
     If not, appends it (show).
     """
-    from terminal.models import ActiveView
     import json
 
     if request.method != 'POST':
@@ -1379,7 +1397,7 @@ def api_encounter_toggle_portrait(request):
     if not npc_id:
         return JsonResponse({'error': 'npc_id required'}, status=400)
 
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     portraits = list(active_view.encounter_active_portraits or [])
 
     if npc_id in portraits:
@@ -1459,7 +1477,6 @@ def api_encounter_map_data(request, location_slug):
     Optional query param: deck_id - specific deck to load
     """
     from terminal.data_loader import DataLoader
-    from terminal.models import ActiveView
 
     loader = DataLoader()
 
@@ -1473,10 +1490,10 @@ def api_encounter_map_data(request, location_slug):
         return JsonResponse({'error': 'No map data for location'}, status=404)
 
     # Get active view for room visibility and current deck
-    active_view = ActiveView.get_current()
+    active_view = get_state()
 
-    # Handle optional deck_id query param - fall back to active_view.encounter_deck_id
-    requested_deck_id = request.GET.get('deck_id') or active_view.encounter_deck_id
+    # Handle optional deck_id query param - fall back to active_view encounter_deck_id
+    requested_deck_id = request.GET.get('deck_id') or active_view.get('encounter_deck_id', '')
 
     # If it's a multi-deck map and a specific deck is requested (or stored in active_view)
     if map_data.get('is_multi_deck') and requested_deck_id:
@@ -1493,9 +1510,9 @@ def api_encounter_map_data(request, location_slug):
                 map_data['current_deck_id'] = requested_deck_id
 
     # Add room visibility state
-    map_data['room_visibility'] = active_view.encounter_room_visibility or {}
-    map_data['encounter_level'] = active_view.encounter_level
-    map_data['encounter_deck_id'] = active_view.encounter_deck_id
+    map_data['room_visibility'] = active_view.get('encounter_room_visibility') or {}
+    map_data['encounter_level'] = active_view.get('encounter_level', 1)
+    map_data['encounter_deck_id'] = active_view.get('encounter_deck_id', '')
 
     return JsonResponse(map_data)
 
@@ -1507,7 +1524,6 @@ def api_encounter_all_decks(request, location_slug):
     GET: /api/encounter-map/<location_slug>/all-decks/
     """
     from terminal.data_loader import DataLoader
-    from terminal.models import ActiveView
 
     loader = DataLoader()
 
@@ -1521,7 +1537,7 @@ def api_encounter_all_decks(request, location_slug):
         return JsonResponse({'error': 'No map data for location'}, status=404)
 
     # Get active view for room visibility
-    active_view = ActiveView.get_current()
+    active_view = get_state()
 
     # If not a multi-deck map, just return current deck data
     if not map_data.get('is_multi_deck'):
@@ -1533,7 +1549,7 @@ def api_encounter_all_decks(request, location_slug):
                 'level': 1,
                 'rooms': map_data.get('rooms', []),
             }],
-            'room_visibility': active_view.encounter_room_visibility or {},
+            'room_visibility': active_view.get('encounter_room_visibility') or {},
         })
 
     # Load all decks from manifest
@@ -1563,8 +1579,8 @@ def api_encounter_all_decks(request, location_slug):
         'is_multi_deck': True,
         'manifest': manifest,
         'decks': decks_data,
-        'room_visibility': active_view.encounter_room_visibility or {},
-        'current_deck_id': active_view.encounter_deck_id,
+        'room_visibility': active_view.get('encounter_room_visibility') or {},
+        'current_deck_id': active_view.get('encounter_deck_id', ''),
     })
 
 
@@ -1576,7 +1592,6 @@ def api_ship_status(request):
     Public endpoint - no login required (terminal needs to read it).
     """
     from terminal.data_loader import DataLoader
-    from terminal.models import ActiveView
 
     loader = DataLoader()
     ship_data = loader.load_ship_status()
@@ -1584,10 +1599,10 @@ def api_ship_status(request):
     if not ship_data:
         return JsonResponse({'error': 'Ship data not found'}, status=404)
 
-    # Merge runtime overrides from ActiveView
-    active_view = ActiveView.get_current()
+    # Merge runtime overrides from active view store
+    active_view = get_state()
     if ship_data and ship_data.get('ship'):
-        overrides = active_view.ship_system_overrides or {}
+        overrides = active_view.get('ship_system_overrides') or {}
         for system_name, override in overrides.items():
             if system_name in ship_data['ship'].get('systems', {}):
                 ship_data['ship']['systems'][system_name].update(override)
@@ -1602,7 +1617,6 @@ def api_ship_toggle_system(request):
     GM only - updates runtime overrides in ActiveView.
     POST: { system: string, status: string, condition?: number, info?: string }
     """
-    from terminal.models import ActiveView
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1637,7 +1651,7 @@ def api_ship_toggle_system(request):
         override['info'] = data['info']
 
     # Store override in ActiveView
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     overrides = active_view.ship_system_overrides or {}
     overrides[system_name] = override
     active_view.ship_system_overrides = overrides
@@ -1744,13 +1758,12 @@ def api_charon_channel_conversation(request, channel):
     GET: Returns conversation messages for the channel.
     """
     from terminal.charon_session import CharonSessionManager
-    from terminal.models import ActiveView
     
     conversation = CharonSessionManager.get_conversation(channel)
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     
-    mode = active_view.charon_mode
-    
+    mode = active_view.get('charon_mode', 'DISPLAY')
+
     return JsonResponse({
         'channel': channel,
         'mode': mode,
@@ -1766,7 +1779,6 @@ def api_charon_channel_submit(request, channel):
     Public endpoint - players submit queries from terminals.
     """
     from terminal.charon_session import CharonSessionManager, CharonMessage
-    from terminal.models import ActiveView
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1785,7 +1797,7 @@ def api_charon_channel_submit(request, channel):
     CharonSessionManager.add_message(query_msg, channel)
     
     # Generate AI response
-    active_view = ActiveView.get_current()
+    active_view = get_state()
     location_path = get_charon_location_path(active_view)
     from terminal.charon_ai import get_charon_ai
     ai = get_charon_ai(location_path=location_path)

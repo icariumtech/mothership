@@ -1,19 +1,5 @@
 from django.contrib import admin
-from .models import Message, ActiveView
-
-
-@admin.register(ActiveView)
-class ActiveViewAdmin(admin.ModelAdmin):
-    list_display = ['view_type', 'location_slug', 'view_slug', 'updated_at', 'updated_by']
-    readonly_fields = ['updated_at']
-
-    def has_add_permission(self, request):
-        # Only allow one ActiveView instance
-        return not ActiveView.objects.exists()
-
-    def has_delete_permission(self, request, obj=None):
-        # Don't allow deletion of the singleton
-        return False
+from .models import Message
 
 
 @admin.register(Message)

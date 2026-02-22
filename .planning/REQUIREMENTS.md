@@ -51,6 +51,19 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **RTMA-03**: Messages remain in SQLite as persistent data
 - [x] **RTMA-04**: Database retained and prepared for future auth/credentials use
 
+### Grid-Based Encounter Map
+
+- [ ] **GRID-01**: New TypeScript types for grid-based rooms (GridRect, GridRoom, DoorDef, GridEncounterMapData) exported from encounterMap.ts
+- [ ] **GRID-02**: YAML map files rebuilt in grid-based format (rooms defined by rects, doors on walls, no connections array)
+- [ ] **GRID-03**: Encounter map renderer uses wall-segment algorithm: interior edges between same-room rects are suppressed, only exterior perimeter drawn
+- [ ] **GRID-04**: Map background shows faint dark grid in void; room interiors show scanline floor texture
+- [ ] **GRID-05**: Walls render in amber (#8b7355), room labels centered and only visible when room is revealed
+- [ ] **GRID-06**: GM click-to-reveal: clicking a room in GM map preview toggles its reveal/hide state; bulk reveal all / hide all buttons available
+- [ ] **GRID-07**: TokenLayer findRoomAtCell tests all rects in a GridRoom for correct multi-rect room hit detection
+- [ ] **GRID-08**: MapPreview and EncounterPanel updated for GridRoom schema (no status field, type field, onRoomToggle wired)
+- [ ] **GRID-09**: isGridEncounterMap() type guard routes new maps to grid renderer in EncounterMapDisplay
+- [ ] **GRID-10**: End-to-end human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect placement
+
 ## v2 Requirements
 
 Deferred to future milestone. Tracked but not in current roadmap.
@@ -128,12 +141,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUDI-01 | Phase 6 | Pending |
 | AUDI-02 | Phase 6 | Pending |
 | AUDI-03 | Phase 6 | Pending |
+| GRID-01 | Phase 7 | Pending |
+| GRID-02 | Phase 7 | Pending |
+| GRID-03 | Phase 7 | Pending |
+| GRID-04 | Phase 7 | Pending |
+| GRID-05 | Phase 7 | Pending |
+| GRID-06 | Phase 7 | Pending |
+| GRID-07 | Phase 7 | Pending |
+| GRID-08 | Phase 7 | Pending |
+| GRID-09 | Phase 7 | Pending |
+| GRID-10 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 22 total
-- Mapped to phases: 22
+- v1 requirements: 32 total
+- Mapped to phases: 32
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-11*
-*Last updated: 2026-02-11 — Traceability mapping complete, 100% coverage achieved*
+*Last updated: 2026-02-21 — Phase 7 grid-based encounter map requirements added (GRID-01 through GRID-10)*

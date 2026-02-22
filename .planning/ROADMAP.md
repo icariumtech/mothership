@@ -128,9 +128,13 @@ Plans:
 
 ### Phase 7: Grid-based encounter map redesign
 
-**Goal:** [To be planned]
+**Goal:** Replace the floating-room node-graph encounter map with a true grid-based layout where rooms are defined by grid coordinates, share walls with adjacent rooms, support irregular shapes (L/T/U via multi-rect composition), and carry forward all token placement and room visibility features.
 **Depends on:** Phase 6
-**Plans:** 0 plans
+**Requirements:** GRID-01, GRID-02, GRID-03, GRID-04, GRID-05, GRID-06, GRID-07, GRID-08, GRID-09, GRID-10
+**Plans:** 4 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 7 to break down)
+- [ ] 07-01-PLAN.md — TypeScript grid types + YAML map files rebuilt in grid format
+- [ ] 07-02-PLAN.md — EncounterMapRenderer rewrite (wall-segment algorithm, floor texture, GM click-to-reveal) + EncounterMapDisplay routing
+- [ ] 07-03-PLAN.md — TokenLayer multi-rect update + MapPreview/EncounterPanel grid support + bulk reveal/hide
+- [ ] 07-04-PLAN.md — Human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect

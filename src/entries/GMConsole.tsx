@@ -12,6 +12,8 @@ import { CharonPanel } from '@/components/gm/CharonPanel';
 import { EncounterPanel } from '@/components/gm/EncounterPanel';
 import { ShipStatusPanel } from '@/components/gm/ShipStatusPanel';
 import { charonApi } from '@/services/charonApi';
+import { useSSE } from '@/hooks/useSSE';
+import { SSEConnectionToast } from '@/components/ui/SSEConnectionToast';
 
 const { Content, Sider } = Layout;
 
@@ -37,7 +39,10 @@ function GMConsole() {
     return activeView?.charon_active_channel || 'story';
   }, [activeView?.view_type, activeView?.location_slug, activeView?.charon_active_channel]);
 
-  // Load initial data
+  // Load initial data (locations + one-time active-view bootstrap)
+  // One-time initial load: SSE first-event will also deliver active-view state,
+  // but this ensures state is set and loading=false if the SSE connection is slow to open.
+  // Locations data is only available via REST (no SSE channel for it).
   useEffect(() => {
     async function loadData() {
       try {
@@ -58,19 +63,16 @@ function GMConsole() {
     loadData();
   }, []);
 
-  // Poll for active view updates
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const viewData = await gmConsoleApi.getActiveView();
-        setActiveView(viewData);
-      } catch (err) {
-        console.error('Error polling active view:', err);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // SSE subscription — replaces 5s active-view polling
+  // failureThreshold: 2 — GM console warns sooner (2 failed reconnects)
+  const { connectionLost } = useSSE({
+    url: '/api/active-view/stream/',
+    onEvent: useCallback((rawData: unknown) => {
+      setActiveView(rawData as ActiveView);
+    }, []),
+    failureThreshold: 2,
+    retryDelayMs: 3000,
+  });
 
   // Poll for channel unread counts
   useEffect(() => {
@@ -115,8 +117,7 @@ function GMConsole() {
       // Only update location if we're in ENCOUNTER view
       if (activeView?.view_type === 'ENCOUNTER') {
         await gmConsoleApi.switchView('ENCOUNTER', slug || '');
-        const viewData = await gmConsoleApi.getActiveView();
-        setActiveView(viewData);
+        // SSE will deliver updated state automatically after write
         if (slug) {
           showStatus(`Selected ${slug}`);
         } else {
@@ -133,8 +134,7 @@ function GMConsole() {
   const handleEncounter = useCallback(async () => {
     try {
       await gmConsoleApi.switchView('ENCOUNTER', activeView?.location_slug || '');
-      const viewData = await gmConsoleApi.getActiveView();
-      setActiveView(viewData);
+      // SSE will deliver updated state automatically after write
       showStatus('Switched to encounter');
     } catch (err) {
       console.error('Error switching to encounter:', err);
@@ -151,14 +151,12 @@ function GMConsole() {
       if (isAlreadyShown) {
         // Hide the terminal by sending empty values
         await gmConsoleApi.showTerminal('', '');
-        const viewData = await gmConsoleApi.getActiveView();
-        setActiveView(viewData);
+        // SSE will deliver updated state automatically after write
         showStatus('Terminal hidden');
       } else {
         // Show the new terminal (this automatically replaces any existing overlay)
         await gmConsoleApi.showTerminal(locationSlug, terminalSlug);
-        const viewData = await gmConsoleApi.getActiveView();
-        setActiveView(viewData);
+        // SSE will deliver updated state automatically after write
         showStatus(`Showing terminal ${terminalSlug}`);
       }
     } catch (err) {
@@ -170,8 +168,7 @@ function GMConsole() {
   const handleStandby = useCallback(async () => {
     try {
       await gmConsoleApi.switchToStandby();
-      const viewData = await gmConsoleApi.getActiveView();
-      setActiveView(viewData);
+      // SSE will deliver updated state automatically after write
       showStatus('Switched to standby');
     } catch (err) {
       console.error('Error switching to standby:', err);
@@ -182,8 +179,7 @@ function GMConsole() {
   const handleBridge = useCallback(async () => {
     try {
       await gmConsoleApi.switchToBridge();
-      const viewData = await gmConsoleApi.getActiveView();
-      setActiveView(viewData);
+      // SSE will deliver updated state automatically after write
       showStatus('Switched to bridge');
     } catch (err) {
       console.error('Error switching to bridge:', err);
@@ -205,8 +201,7 @@ function GMConsole() {
   const handleCharonActivate = useCallback(async () => {
     try {
       await charonApi.switchToCharon();
-      const viewData = await gmConsoleApi.getActiveView();
-      setActiveView(viewData);
+      // SSE will deliver updated state automatically after write
       showStatus('CHARON Terminal activated');
     } catch (err) {
       console.error('Error activating CHARON:', err);
@@ -217,8 +212,7 @@ function GMConsole() {
   const handleToggleCharonDialog = useCallback(async () => {
     try {
       const result = await charonApi.toggleDialog();
-      const viewData = await gmConsoleApi.getActiveView();
-      setActiveView(viewData);
+      // SSE will deliver updated state automatically after write
       showStatus(result.charon_dialog_open ? 'CHARON dialog shown' : 'CHARON dialog hidden');
     } catch (err) {
       console.error('Error toggling CHARON dialog:', err);
@@ -226,14 +220,10 @@ function GMConsole() {
     }
   }, [showStatus]);
 
-  // Callback for EncounterPanel to refresh active view after changes
-  const handleEncounterViewUpdate = useCallback(async () => {
-    try {
-      const viewData = await gmConsoleApi.getActiveView();
-      setActiveView(viewData);
-    } catch (err) {
-      console.error('Error refreshing active view:', err);
-    }
+  // Callback for EncounterPanel — SSE delivers state automatically after writes,
+  // so this is now a no-op kept for interface compatibility with EncounterPanel prop.
+  const handleEncounterViewUpdate = useCallback(() => {
+    // SSE will deliver updated active view state automatically after any write operation
   }, []);
 
   if (loading) {
@@ -254,6 +244,8 @@ function GMConsole() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* SSE connection lost warning — shown after 2 failed reconnects (GM warns sooner) */}
+      {connectionLost && <SSEConnectionToast />}
       {contextHolder}
       <Sider width={400} style={{ background: '#141414', padding: 16, overflow: 'auto' }}>
         <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 16 }}>LOCATIONS</h2>

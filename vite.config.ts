@@ -42,7 +42,18 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://127.0.0.1:8000',
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            // Force chunk flushing for SSE — prevents Vite's http-proxy from buffering
+            // the text/event-stream response before forwarding to the browser
+            if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
+              proxyRes.headers['x-accel-buffering'] = 'no';
+            }
+          });
+        },
+      },
       '/gmconsole': 'http://127.0.0.1:8000',
     }
   }

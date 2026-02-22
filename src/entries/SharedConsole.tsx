@@ -20,6 +20,8 @@ import { charonApi } from '@/services/charonApi';
 import { terminalApi } from '@/services/terminalApi';
 import { encounterApi } from '@/services/encounterApi';
 import { useTransitionGuard } from '@hooks/useDebounce';
+import { useSSE } from '@hooks/useSSE';
+import { SSEConnectionToast } from '@components/ui/SSEConnectionToast';
 import { useSceneStore } from '@/stores/sceneStore';
 import { TRANSITION_TIMING, waitForTypewriter } from '@/utils/transitionCoordinator';
 import type { StarMapData } from '../types/starMap';
@@ -99,6 +101,10 @@ function SharedConsole() {
   );
   const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
   const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
+
+  // Refs for stable SSE callback closures (avoids reconnect storms from dependency changes)
+  const activeViewRef = useRef(activeView);
+  useEffect(() => { activeViewRef.current = activeView; }, [activeView]);
 
   // Encounter token state
   const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
@@ -278,96 +284,61 @@ function SharedConsole() {
     fetchStarMapData();
   }, []);
 
-  // Fetch full active view data on mount (initial data from template is incomplete)
-  useEffect(() => {
-    async function fetchActiveView() {
-      try {
-        const response = await fetch('/api/active-view/');
-        const data = await response.json();
-        setActiveView(data);
+  // SSE subscription — replaces polling. onEvent uses refs to avoid reconnect storms.
+  // failureThreshold: 5 — player terminal is more tolerant (shows warning after 5 failed reconnects)
+  const { connectionLost } = useSSE({
+    url: '/api/active-view/stream/',
+    onEvent: useCallback((rawData: unknown) => {
+      const data = rawData as ActiveView;
+
+      // Update encounter tokens if present (skip during in-flight moves to prevent snap-back)
+      if (data.encounter_tokens && !tokenMoveInFlight.current) {
+        setEncounterTokens(data.encounter_tokens);
+      }
+
+      // Read previous view type from ref (stable — no reconnect storm risk)
+      const previousViewType = activeViewRef.current?.view_type;
+      setActiveView(data);
+
+      // CHARON_TERMINAL transition handling
+      if (data.view_type === 'CHARON_TERMINAL' && previousViewType !== 'CHARON_TERMINAL') {
+        // Switching TO CHARON_TERMINAL - auto-open dialog
+        setCharonDialogOpen(true);
+        charonApi.toggleDialog(true).catch(console.error);
+      } else if (data.view_type !== 'CHARON_TERMINAL' && previousViewType === 'CHARON_TERMINAL') {
+        // Switching AWAY from CHARON_TERMINAL - auto-close dialog
+        setCharonDialogOpen(false);
+        charonApi.toggleDialog(false).catch(console.error);
+      } else {
+        // Sync charon dialog state for other transitions
         setCharonDialogOpen(data.charon_dialog_open);
-      } catch (error) {
-        console.error('Failed to fetch active view:', error);
       }
-    }
-    fetchActiveView();
-  }, []);
 
-  // Poll for active view changes
-  useEffect(() => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch('/api/active-view/');
-        const data = await response.json();
-
-        // Update encounter tokens if present (skip during in-flight moves to prevent snap-back)
-        if (data.encounter_tokens && !tokenMoveInFlight.current) {
-          setEncounterTokens(data.encounter_tokens);
-        }
-
-        // Check if view changed
-        if (data.updated_at !== activeView?.updated_at) {
-          const previousViewType = activeView?.view_type;
-          setActiveView(data);
-
-          // Handle CHARON_TERMINAL view transitions
-          if (data.view_type === 'CHARON_TERMINAL' && previousViewType !== 'CHARON_TERMINAL') {
-            // Switching TO CHARON_TERMINAL - auto-open dialog
-            setCharonDialogOpen(true);
-            charonApi.toggleDialog(true).catch(console.error);
-          } else if (data.view_type !== 'CHARON_TERMINAL' && previousViewType === 'CHARON_TERMINAL') {
-            // Switching AWAY from CHARON_TERMINAL - auto-close dialog
-            setCharonDialogOpen(false);
-            charonApi.toggleDialog(false).catch(console.error);
-          } else {
-            // Sync charon dialog state for other transitions
-            setCharonDialogOpen(data.charon_dialog_open);
-          }
-
-          // Reset selection only when transitioning TO BRIDGE from another view type
-          if (data.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
-            setSelectedSystem(null);
-            setMapViewMode('galaxy');
-            setCurrentSystemSlug(null);
-            setSelectedPlanet(null);
-            setCurrentBodySlug(null);
-            setSelectedOrbitElement(null);
-            setSelectedOrbitElementType(null);
-            setSelectedOrbitElementData(null);
-            setActiveTab('map');
-          }
-
-          // Sync terminal overlay state
-          if (data.overlay_terminal_slug && data.overlay_location_slug) {
-            setTerminalOverlayLocation(data.overlay_location_slug);
-            setTerminalOverlaySlug(data.overlay_terminal_slug);
-            setTerminalOverlayOpen(true);
-          } else {
-            setTerminalOverlayOpen(false);
-          }
-        } else if (data.charon_dialog_open !== charonDialogOpen) {
-          // Sync dialog state even if updated_at didn't change
-          setCharonDialogOpen(data.charon_dialog_open);
-        }
-
-        // Sync terminal overlay state even if updated_at didn't change
-        const overlayOpen = !!(data.overlay_terminal_slug && data.overlay_location_slug);
-        if (overlayOpen !== terminalOverlayOpen) {
-          if (overlayOpen) {
-            setTerminalOverlayLocation(data.overlay_location_slug);
-            setTerminalOverlaySlug(data.overlay_terminal_slug);
-            setTerminalOverlayOpen(true);
-          } else {
-            setTerminalOverlayOpen(false);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to poll active view:', error);
+      // Reset map state when transitioning TO BRIDGE from another view type
+      if (data.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
+        setSelectedSystem(null);
+        setMapViewMode('galaxy');
+        setCurrentSystemSlug(null);
+        setSelectedPlanet(null);
+        setCurrentBodySlug(null);
+        setSelectedOrbitElement(null);
+        setSelectedOrbitElementType(null);
+        setSelectedOrbitElementData(null);
+        setActiveTab('map');
       }
-    }, 2000);
 
-    return () => clearInterval(pollInterval);
-  }, [activeView?.updated_at, activeView?.view_type, charonDialogOpen, terminalOverlayOpen]);
+      // Sync terminal overlay state
+      if (data.overlay_terminal_slug && data.overlay_location_slug) {
+        setTerminalOverlayLocation(data.overlay_location_slug);
+        setTerminalOverlaySlug(data.overlay_terminal_slug);
+        setTerminalOverlayOpen(true);
+      } else {
+        setTerminalOverlayOpen(false);
+      }
+    }, []),
+    failureThreshold: 5,
+    retryDelayMs: 3000,
+  });
 
   // Poll bridge channel for new messages (for CHARON tab indicator).
   // When the CHARON tab is active, auto-mark messages as read so the indicator
@@ -844,6 +815,9 @@ function SharedConsole() {
 
   return (
     <>
+      {/* SSE connection lost warning — shown after 5 failed reconnects */}
+      {connectionLost && <SSEConnectionToast />}
+
       {/* Scanline overlay */}
       <div className="scanline-overlay" />
 

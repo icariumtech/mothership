@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 5 of 6 (Real-Time Push Architecture)
-Plan: 1 of 4 completed
+Plan: 2 of 4 completed
 Status: In Progress
-Last activity: 2026-02-22 — Completed 05-01-PLAN.md (SSE server infrastructure, in-memory store, migration 0017)
+Last activity: 2026-02-22 — Completed 05-02-PLAN.md (migrated all 17 write endpoints to update_state + broadcaster.announce)
 
 Progress: [████████░░] 80% (Phase 5: 1/4 plans)
 
@@ -36,7 +36,7 @@ Progress: [████████░░] 80% (Phase 5: 1/4 plans)
 - Last 5 plans: 231s, 292s, 9252s, 124s, 79s
 - Trend: Phase 04-02 TypeScript types plan was very fast (79s) - pure type additions to 3 files
 
-| 05-real-time-push-architecture | 1/4 | 566s (05-01) | — |
+| 05-real-time-push-architecture | 2/4 | 746s (05-01+05-02) | — |
 
 *Updated after each plan completion*
 
@@ -100,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 05-01]: Queue-per-listener fan-out with maxsize=5 and dead-queue eviction on queue.Full prevents memory leaks
 - [Phase 05-01]: SSE named event 'activeview' chosen over anonymous events for explicit frontend listener binding
 - [Phase 05-01]: build_active_view_payload() shared between REST GET and SSE initial-event for payload consistency
+- [Phase 05-02]: All 17 write endpoints use update_state(**kwargs) + broadcaster.announce(build_active_view_payload(new_state))
+- [Phase 05-02]: dict() copy pattern for mutable dict fields prevents shared-reference bugs across concurrent requests
+- [Phase 05-02]: active_view.updated_by removed — not needed in store model, not used for SSE change detection
 
 ### Roadmap Evolution
 
@@ -115,6 +118,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22 — Completed 05-01-PLAN.md (SSE server infrastructure)
-Stopped at: Completed 05-01-PLAN.md — active_view_store, sse_broadcaster, migration 0017, SSE endpoint at /api/active-view/stream/
+Last session: 2026-02-22 — Completed 05-02-PLAN.md (views migration — all 17 write endpoints)
+Stopped at: Completed 05-02-PLAN.md — all write endpoints use update_state() + broadcaster.announce(); full real-time push pipeline operational
 Resume file: None

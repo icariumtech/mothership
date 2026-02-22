@@ -123,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22 — Completed 05-03-PLAN.md (frontend SSE layer: useSSE hook + SSEConnectionToast, SharedConsole + GMConsole wired)
-Stopped at: Completed 05-03-PLAN.md — useSSE hook replaces polling in both consoles; SSE pipeline end-to-end complete
+Last session: 2026-02-22 — Reached checkpoint in 05-04-PLAN.md (human verification of end-to-end SSE push architecture)
+Stopped at: Checkpoint 05-04 — awaiting human verification of 7 manual tests (SSE stream, token latency, portrait latency, toast behavior, DB integrity, messages polling, server restart)
 Resume file: None

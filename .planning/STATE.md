@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 4 - NPC Portrait System
+**Current focus:** Phase 5 - Real-Time Push Architecture
 
 ## Current Position
 
-Phase: 4 of 6 (NPC Portrait System)
-Plan: 3 of 4 completed
+Phase: 5 of 6 (Real-Time Push Architecture)
+Plan: 1 of 4 completed
 Status: In Progress
-Last activity: 2026-02-20 — Completed 04-03-PLAN.md (Frontend portrait components)
+Last activity: 2026-02-22 — Completed 05-01-PLAN.md (SSE server infrastructure, in-memory store, migration 0017)
 
-Progress: [███████░░░] 75% (Phase 4: 3/4 plans)
+Progress: [████████░░] 80% (Phase 5: 1/4 plans)
 
 ## Performance Metrics
 
@@ -35,6 +35,8 @@ Progress: [███████░░░] 75% (Phase 4: 3/4 plans)
 **Recent Trend:**
 - Last 5 plans: 231s, 292s, 9252s, 124s, 79s
 - Trend: Phase 04-02 TypeScript types plan was very fast (79s) - pure type additions to 3 files
+
+| 05-real-time-push-architecture | 1/4 | 566s (05-01) | — |
 
 *Updated after each plan completion*
 
@@ -94,6 +96,10 @@ Recent decisions affecting current work:
 - [Phase 04]: clip-path animation applied to .portrait-image-wrapper div (not img) for Safari compatibility (04-03)
 - [Phase 04]: dismissingIds tracked as Set<string> so multiple portrait cards can dismiss concurrently (04-03)
 - [Phase 04]: Animation state machine pattern: AnimPhase literal union drives CSS class, async useEffect with cancelled flag sequences phases (04-03)
+- [Phase 05-01]: In-memory state store replaces SQLite ActiveView singleton — SSE push replaces 2s polling
+- [Phase 05-01]: Queue-per-listener fan-out with maxsize=5 and dead-queue eviction on queue.Full prevents memory leaks
+- [Phase 05-01]: SSE named event 'activeview' chosen over anonymous events for explicit frontend listener binding
+- [Phase 05-01]: build_active_view_payload() shared between REST GET and SSE initial-event for payload consistency
 
 ### Roadmap Evolution
 
@@ -109,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-20 — Completed 04-03-PLAN.md (Frontend portrait components)
-Stopped at: Completed 04-03-PLAN.md — NPCPortraitCard, NPCPortraitOverlay, EncounterPanel toggle UI, SharedConsole wiring
+Last session: 2026-02-22 — Completed 05-01-PLAN.md (SSE server infrastructure)
+Stopped at: Completed 05-01-PLAN.md — active_view_store, sse_broadcaster, migration 0017, SSE endpoint at /api/active-view/stream/
 Resume file: None

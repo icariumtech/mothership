@@ -94,7 +94,7 @@ Plans:
   3. Messages remain in SQLite as persistent data
   4. Database retained and prepared for future auth/credentials use
   5. Token movements and portrait displays update instantly without polling delay
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 - [ ] 05-01-PLAN.md — Backend foundation: active_view_store.py, sse_broadcaster.py, migration to drop ActiveView, SSE streaming endpoint
@@ -123,7 +123,7 @@ Plans:
 | 2. Ship Status Dashboard | 3/3 | ✓ Complete | 2026-02-12 |
 | 3. Encounter Tokens | 0/4 | In Progress | - |
 | 4. NPC Portrait System | 3/4 | In Progress|  |
-| 5. Real-Time Push Architecture | 0/4 | Not started | - |
+| 5. Real-Time Push Architecture | 1/4 | In Progress|  |
 | 6. UI Audio System | 0/TBD | Not started | - |
 
 ### Phase 7: Grid-based encounter map redesign

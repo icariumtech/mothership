@@ -33,10 +33,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### NPC Portraits
 
 - [x] **PORT-01**: GM can trigger an NPC portrait display on the terminal
-- [ ] **PORT-02**: Portrait panel shows NPC name and basic info with CRT/amber styling
-- [ ] **PORT-03**: Portrait appears as overlay during encounter view
+- [x] **PORT-02**: Portrait panel shows NPC name and basic info with CRT/amber styling
+- [x] **PORT-03**: Portrait appears as overlay during encounter view
 - [x] **PORT-04**: Multiple portraits can display simultaneously for group conversations
-- [ ] **PORT-05**: Portrait reveal uses animated typewriter name and fade-in effect
+- [x] **PORT-05**: Portrait reveal uses animated typewriter name and fade-in effect
 
 ### UI Audio
 
@@ -46,10 +46,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Real-Time Architecture
 
-- [ ] **RTMA-01**: Server-Sent Events replace 2-second polling for terminal state updates
-- [ ] **RTMA-02**: ActiveView ephemeral state moved out of SQLite (in-memory or cache-backed)
-- [ ] **RTMA-03**: Messages remain in SQLite as persistent data
-- [ ] **RTMA-04**: Database retained and prepared for future auth/credentials use
+- [x] **RTMA-01**: Server-Sent Events replace 2-second polling for terminal state updates
+- [x] **RTMA-02**: ActiveView ephemeral state moved out of SQLite (in-memory or cache-backed)
+- [x] **RTMA-03**: Messages remain in SQLite as persistent data
+- [x] **RTMA-04**: Database retained and prepared for future auth/credentials use
 
 ## v2 Requirements
 
@@ -117,14 +117,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOKN-04 | Phase 3 | Pending |
 | TOKN-05 | Phase 3 | Pending |
 | PORT-01 | Phase 4 | Complete |
-| PORT-02 | Phase 4 | Pending |
-| PORT-03 | Phase 4 | Pending |
+| PORT-02 | Phase 4 | Complete |
+| PORT-03 | Phase 4 | Complete |
 | PORT-04 | Phase 4 | Complete |
-| PORT-05 | Phase 4 | Pending |
-| RTMA-01 | Phase 5 | Pending |
-| RTMA-02 | Phase 5 | Pending |
-| RTMA-03 | Phase 5 | Pending |
-| RTMA-04 | Phase 5 | Pending |
+| PORT-05 | Phase 4 | Complete |
+| RTMA-01 | Phase 5 | Complete |
+| RTMA-02 | Phase 5 | Complete |
+| RTMA-03 | Phase 5 | Complete |
+| RTMA-04 | Phase 5 | Complete |
 | AUDI-01 | Phase 6 | Pending |
 | AUDI-02 | Phase 6 | Pending |
 | AUDI-03 | Phase 6 | Pending |

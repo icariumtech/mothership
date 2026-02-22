@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 5 of 6 (Real-Time Push Architecture)
-Plan: 2 of 4 completed
+Plan: 3 of 4 completed
 Status: In Progress
-Last activity: 2026-02-22 — Completed 05-02-PLAN.md (migrated all 17 write endpoints to update_state + broadcaster.announce)
+Last activity: 2026-02-22 — Completed 05-03-PLAN.md (frontend SSE layer: useSSE hook, SSEConnectionToast, SharedConsole + GMConsole wired)
 
-Progress: [████████░░] 80% (Phase 5: 1/4 plans)
+Progress: [█████████░] 88% (Phase 5: 3/4 plans)
 
 ## Performance Metrics
 
@@ -36,7 +36,7 @@ Progress: [████████░░] 80% (Phase 5: 1/4 plans)
 - Last 5 plans: 231s, 292s, 9252s, 124s, 79s
 - Trend: Phase 04-02 TypeScript types plan was very fast (79s) - pure type additions to 3 files
 
-| 05-real-time-push-architecture | 2/4 | 746s (05-01+05-02) | — |
+| 05-real-time-push-architecture | 3/4 | 1083s (05-01+05-02+05-03) | — |
 
 *Updated after each plan completion*
 
@@ -103,6 +103,11 @@ Recent decisions affecting current work:
 - [Phase 05-02]: All 17 write endpoints use update_state(**kwargs) + broadcaster.announce(build_active_view_payload(new_state))
 - [Phase 05-02]: dict() copy pattern for mutable dict fields prevents shared-reference bugs across concurrent requests
 - [Phase 05-02]: active_view.updated_by removed — not needed in store model, not used for SSE change detection
+- [Phase 05-03]: useSSE uses addEventListener('activeview') not onmessage — named SSE events require explicit listener
+- [Phase 05-03]: onEvent wrapped with useCallback(fn, []) with stable ref reads (activeViewRef) to prevent reconnect storms
+- [Phase 05-03]: SharedConsole failureThreshold 5 (tolerant), GMConsole failureThreshold 2 (warns sooner)
+- [Phase 05-03]: All post-write getActiveView() + setActiveView() removed from GMConsole callbacks — SSE push is authoritative
+- [Phase 05-03]: Initial load getActiveView() retained in GMConsole for locations bootstrap before SSE connects
 
 ### Roadmap Evolution
 
@@ -118,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22 — Completed 05-02-PLAN.md (views migration — all 17 write endpoints)
-Stopped at: Completed 05-02-PLAN.md — all write endpoints use update_state() + broadcaster.announce(); full real-time push pipeline operational
+Last session: 2026-02-22 — Completed 05-03-PLAN.md (frontend SSE layer: useSSE hook + SSEConnectionToast, SharedConsole + GMConsole wired)
+Stopped at: Completed 05-03-PLAN.md — useSSE hook replaces polling in both consoles; SSE pipeline end-to-end complete
 Resume file: None

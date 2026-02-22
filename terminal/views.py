@@ -280,7 +280,7 @@ def api_active_view_stream(request):
     def event_stream():
         # Send full current state immediately on connect so client is in sync
         initial_payload = build_active_view_payload(get_state())
-        yield format_sse(json.dumps(initial_payload), event='activeview')
+        yield format_sse(json.dumps(initial_payload, default=str), event='activeview')
 
         q = broadcaster.listen()
         try:

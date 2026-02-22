@@ -23,7 +23,7 @@ class MessageAnnouncer:
                 pass
 
     def announce(self, data: dict) -> None:
-        msg = format_sse(json.dumps(data), event='activeview')
+        msg = format_sse(json.dumps(data, default=str), event='activeview')
         with self._lock:
             listeners = list(self.listeners)
         for i in reversed(range(len(listeners))):

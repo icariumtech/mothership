@@ -507,7 +507,7 @@ def api_switch_view(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    active_view = get_state()
+    current = get_state()
     new_view_type = data.get('view_type', 'STANDBY')
     new_location_slug = data.get('location_slug', '')
 
@@ -515,34 +515,37 @@ def api_switch_view(request):
     is_new_encounter_location = (
         new_view_type == 'ENCOUNTER' and
         new_location_slug and
-        (active_view.location_slug != new_location_slug or active_view.view_type != 'ENCOUNTER')
+        (current.get('location_slug') != new_location_slug or current.get('view_type') != 'ENCOUNTER')
     )
 
-    active_view.view_type = new_view_type
-    active_view.location_slug = new_location_slug
-    active_view.view_slug = data.get('view_slug', '')
-    # Clear overlay when switching views
-    active_view.overlay_location_slug = ''
-    active_view.overlay_terminal_slug = ''
+    # Build update kwargs — start with base fields
+    update_kwargs = {
+        'view_type': new_view_type,
+        'location_slug': new_location_slug,
+        'view_slug': data.get('view_slug', ''),
+        # Clear overlay when switching views
+        'overlay_location_slug': '',
+        'overlay_terminal_slug': '',
+    }
 
     # Auto-set CHARON channel based on view type
     if new_view_type == 'CHARON_TERMINAL':
-        active_view.charon_active_channel = 'story'
+        update_kwargs['charon_active_channel'] = 'story'
         # Clear story channel conversation on CHARON_TERMINAL view switch
         from terminal.charon_session import CharonSessionManager
         CharonSessionManager.clear_conversation('story')
     elif new_view_type == 'BRIDGE':
-        active_view.charon_active_channel = 'bridge'
+        update_kwargs['charon_active_channel'] = 'bridge'
         # Clear bridge channel conversation on BRIDGE view switch
         from terminal.charon_session import CharonSessionManager
         CharonSessionManager.clear_conversation('bridge')
     elif new_view_type == 'ENCOUNTER' and new_location_slug:
-        active_view.charon_active_channel = f'encounter-{new_location_slug}'
+        update_kwargs['charon_active_channel'] = f'encounter-{new_location_slug}'
 
     # When switching to a new ENCOUNTER location, initialize all rooms as hidden
     if is_new_encounter_location:
         # Clear portrait overlays when switching to a new encounter location
-        active_view.encounter_active_portraits = []
+        update_kwargs['encounter_active_portraits'] = []
         loader = DataLoader()
         location = loader.find_location_by_slug(new_location_slug)
         if location and location.get('map'):
@@ -565,7 +568,7 @@ def api_switch_view(request):
                     all_room_ids = [r['id'] for r in map_data['rooms']]
 
             # Set all rooms to hidden (False)
-            active_view.encounter_room_visibility = {room_id: False for room_id in all_room_ids}
+            update_kwargs['encounter_room_visibility'] = {room_id: False for room_id in all_room_ids}
 
             # Set default deck level and ID
             if map_data.get('is_multi_deck'):
@@ -574,23 +577,23 @@ def api_switch_view(request):
                 # Find the default deck, or use the first one
                 default_deck = next((d for d in decks if d.get('default')), decks[0] if decks else None)
                 if default_deck:
-                    active_view.encounter_level = default_deck.get('level', 1)
-                    active_view.encounter_deck_id = default_deck.get('id', '')
+                    update_kwargs['encounter_level'] = default_deck.get('level', 1)
+                    update_kwargs['encounter_deck_id'] = default_deck.get('id', '')
                 else:
-                    active_view.encounter_level = 1
-                    active_view.encounter_deck_id = ''
+                    update_kwargs['encounter_level'] = 1
+                    update_kwargs['encounter_deck_id'] = ''
             else:
                 # Single deck map
-                active_view.encounter_level = 1
-                active_view.encounter_deck_id = map_data.get('deck_id', '')
+                update_kwargs['encounter_level'] = 1
+                update_kwargs['encounter_deck_id'] = map_data.get('deck_id', '')
 
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(**update_kwargs)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
-        'view_type': active_view.view_type,
-        'location_slug': active_view.location_slug
+        'view_type': new_state['view_type'],
+        'location_slug': new_state['location_slug']
     })
 
 
@@ -610,15 +613,15 @@ def api_show_terminal(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    active_view = get_state()
-    active_view.overlay_location_slug = data.get('location_slug', '')
-    active_view.overlay_terminal_slug = data.get('terminal_slug', '')
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(
+        overlay_location_slug=data.get('location_slug', ''),
+        overlay_terminal_slug=data.get('terminal_slug', ''),
+    )
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
-        'overlay_terminal_slug': active_view.overlay_terminal_slug
+        'overlay_terminal_slug': new_state['overlay_terminal_slug']
     })
 
 
@@ -633,10 +636,11 @@ def api_hide_terminal(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    active_view = get_state()
-    active_view.overlay_location_slug = ''
-    active_view.overlay_terminal_slug = ''
-    active_view.save()
+    new_state = update_state(
+        overlay_location_slug='',
+        overlay_terminal_slug='',
+    )
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True
@@ -773,10 +777,8 @@ def api_charon_switch_mode(request):
     if mode not in ('DISPLAY', 'QUERY'):
         return JsonResponse({'error': 'Invalid mode. Must be DISPLAY or QUERY'}, status=400)
 
-    active_view = get_state()
-    active_view.charon_mode = mode
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(charon_mode=mode)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({'success': True, 'mode': mode})
 
@@ -798,10 +800,8 @@ def api_charon_set_location(request):
 
     location_path = data.get('location_path', '')
 
-    active_view = get_state()
-    active_view.charon_location_path = location_path
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(charon_location_path=location_path)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({'success': True, 'location_path': location_path})
 
@@ -984,22 +984,20 @@ def api_charon_toggle_dialog(request):
     except json.JSONDecodeError:
         data = {}
 
-    active_view = get_state()
+    current = get_state()
 
     # If 'open' is specified, set to that value; otherwise toggle
     if 'open' in data:
-        active_view.charon_dialog_open = bool(data['open'])
+        new_dialog_open = bool(data['open'])
     else:
-        active_view.charon_dialog_open = not active_view.charon_dialog_open
+        new_dialog_open = not current.get('charon_dialog_open', False)
 
-    # Only set updated_by if user is authenticated
-    if request.user.is_authenticated:
-        active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(charon_dialog_open=new_dialog_open)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
-        'charon_dialog_open': active_view.charon_dialog_open
+        'charon_dialog_open': new_state['charon_dialog_open']
     })
 
 
@@ -1023,12 +1021,9 @@ def api_encounter_switch_level(request):
     level = data.get('level', 1)
     deck_id = data.get('deck_id', '')
 
-    active_view = get_state()
-    active_view.encounter_level = level
-    active_view.encounter_deck_id = deck_id
     # Don't clear room visibility when switching levels - preserve visibility state
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(encounter_level=level, encounter_deck_id=deck_id)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1057,8 +1052,8 @@ def api_encounter_toggle_room(request):
     if not room_id:
         return JsonResponse({'error': 'room_id required'}, status=400)
 
-    active_view = get_state()
-    visibility = active_view.encounter_room_visibility or {}
+    current = get_state()
+    visibility = dict(current.get('encounter_room_visibility') or {})
 
     # If visible is specified, use it; otherwise toggle
     if 'visible' in data:
@@ -1066,9 +1061,8 @@ def api_encounter_toggle_room(request):
     else:
         visibility[room_id] = not visibility.get(room_id, True)
 
-    active_view.encounter_room_visibility = visibility
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(encounter_room_visibility=visibility)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1086,11 +1080,11 @@ def api_encounter_room_visibility(request):
     POST: { room_visibility: { room_id: bool, ... } }
     """
 
-    active_view = get_state()
+    current = get_state()
 
     if request.method == 'GET':
         return JsonResponse({
-            'room_visibility': active_view.encounter_room_visibility or {}
+            'room_visibility': current.get('encounter_room_visibility') or {}
         })
 
     if request.method == 'POST':
@@ -1100,9 +1094,8 @@ def api_encounter_room_visibility(request):
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
         visibility = data.get('room_visibility', {})
-        active_view.encounter_room_visibility = visibility
-        active_view.updated_by = request.user
-        active_view.save()
+        new_state = update_state(encounter_room_visibility=visibility)
+        broadcaster.announce(build_active_view_payload(new_state))
 
         return JsonResponse({
             'success': True,
@@ -1141,13 +1134,12 @@ def api_encounter_set_door_status(request):
             'error': f'Invalid door_status. Must be one of: {", ".join(valid_statuses)}'
         }, status=400)
 
-    active_view = get_state()
-    door_states = active_view.encounter_door_status or {}
+    current = get_state()
+    door_states = dict(current.get('encounter_door_status') or {})
     door_states[connection_id] = door_status
 
-    active_view.encounter_door_status = door_states
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(encounter_door_status=door_states)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1211,12 +1203,12 @@ def api_encounter_place_token(request):
     }
 
     # Store token
-    active_view = get_state()
-    tokens = active_view.encounter_tokens or {}
+    current = get_state()
+    tokens = dict(current.get('encounter_tokens') or {})
     tokens[token_id] = token_data
 
-    active_view.encounter_tokens = tokens
-    active_view.save()
+    new_state = update_state(encounter_tokens=tokens)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1253,18 +1245,19 @@ def api_encounter_move_token(request):
         return JsonResponse({'error': 'x and y must be integers'}, status=400)
 
     # Update token
-    active_view = get_state()
-    tokens = active_view.encounter_tokens or {}
+    current = get_state()
+    tokens = dict(current.get('encounter_tokens') or {})
 
     if token_id not in tokens:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
+    tokens[token_id] = dict(tokens[token_id])
     tokens[token_id]['x'] = x
     tokens[token_id]['y'] = y
     tokens[token_id]['room_id'] = room_id
 
-    active_view.encounter_tokens = tokens
-    active_view.save()
+    new_state = update_state(encounter_tokens=tokens)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1294,16 +1287,16 @@ def api_encounter_remove_token(request):
         return JsonResponse({'error': 'token_id is required'}, status=400)
 
     # Remove token
-    active_view = get_state()
-    tokens = active_view.encounter_tokens or {}
+    current = get_state()
+    tokens = dict(current.get('encounter_tokens') or {})
 
     if token_id not in tokens:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
     del tokens[token_id]
 
-    active_view.encounter_tokens = tokens
-    active_view.save()
+    new_state = update_state(encounter_tokens=tokens)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1336,16 +1329,17 @@ def api_encounter_update_token_status(request):
         return JsonResponse({'error': 'status must be an array'}, status=400)
 
     # Update token status
-    active_view = get_state()
-    tokens = active_view.encounter_tokens or {}
+    current = get_state()
+    tokens = dict(current.get('encounter_tokens') or {})
 
     if token_id not in tokens:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
+    tokens[token_id] = dict(tokens[token_id])
     tokens[token_id]['status'] = status
 
-    active_view.encounter_tokens = tokens
-    active_view.save()
+    new_state = update_state(encounter_tokens=tokens)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1365,9 +1359,8 @@ def api_encounter_clear_tokens(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     # Clear all tokens
-    active_view = get_state()
-    active_view.encounter_tokens = {}
-    active_view.save()
+    new_state = update_state(encounter_tokens={})
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1397,17 +1390,16 @@ def api_encounter_toggle_portrait(request):
     if not npc_id:
         return JsonResponse({'error': 'npc_id required'}, status=400)
 
-    active_view = get_state()
-    portraits = list(active_view.encounter_active_portraits or [])
+    current = get_state()
+    portraits = list(current.get('encounter_active_portraits') or [])
 
     if npc_id in portraits:
         portraits.remove(npc_id)
     else:
         portraits.append(npc_id)
 
-    active_view.encounter_active_portraits = portraits
-    active_view.updated_by = request.user
-    active_view.save()
+    new_state = update_state(encounter_active_portraits=portraits)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -1650,13 +1642,13 @@ def api_ship_toggle_system(request):
     if 'info' in data:
         override['info'] = data['info']
 
-    # Store override in ActiveView
-    active_view = get_state()
-    overrides = active_view.ship_system_overrides or {}
+    # Store override in active view store
+    current = get_state()
+    overrides = dict(current.get('ship_system_overrides') or {})
     overrides[system_name] = override
-    active_view.ship_system_overrides = overrides
-    active_view.updated_by = request.user
-    active_view.save()
+
+    new_state = update_state(ship_system_overrides=overrides)
+    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,

@@ -172,6 +172,8 @@ export function MapPreview({
   // Mouse down handler for pan start
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('.encounter-map__token')) return;
     isDragging.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY };
     viewStart.current = { panX: viewState.panX, panY: viewState.panY };

@@ -241,34 +241,21 @@ export function TokenLayer({
       {filteredTokens.map(([id, tokenData]) => {
         const isActiveDrag = isDragging && id === dragTokenId;
 
-        if (isActiveDrag) {
-          // Keep in DOM (pointer capture requires the element to exist) but invisible.
-          // pointer-events must remain active so the captured pointer events propagate.
-          return (
-            <g key={id} style={{ opacity: 0 }}>
-              <Token
-                id={id}
-                data={tokenData}
-                unitSize={unitSize}
-                draggable={false}
-                selected={false}
-                onSelect={() => {}}
-              />
-            </g>
-          );
-        }
-
+        // Always wrap Token in <g key={id}> so key always corresponds to the same element type.
+        // This preserves the inner Token's <g> DOM node (and its pointer capture) across the
+        // transition from "idle" to "active drag" — prevents pointercancel from firing.
         return (
-          <Token
-            key={id}
-            id={id}
-            data={tokenData}
-            unitSize={unitSize}
-            draggable={canDrag}
-            selected={selectedTokenId === id}
-            onSelect={handleTokenSelect}
-            onPointerDragStart={handleTokenPointerDragStart}
-          />
+          <g key={id} style={{ opacity: isActiveDrag ? 0 : 1 }}>
+            <Token
+              id={id}
+              data={tokenData}
+              unitSize={unitSize}
+              draggable={!isActiveDrag && canDrag}
+              selected={!isActiveDrag && selectedTokenId === id}
+              onSelect={isActiveDrag ? undefined : handleTokenSelect}
+              onPointerDragStart={isActiveDrag ? undefined : handleTokenPointerDragStart}
+            />
+          </g>
         );
       })}
 

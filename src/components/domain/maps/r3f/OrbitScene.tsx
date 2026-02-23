@@ -170,14 +170,20 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
       defaultCamera: data?.camera,
     });
 
-    // Reset opacity to 0 when switching to a new body (before fade-in animation)
+    // Reset opacity when switching to a new body (before fade-in animation)
     // CRITICAL: Use useLayoutEffect to run synchronously BEFORE paint, preventing flash
+    // In 'idle' mode (encounter view), show immediately at full opacity
     useLayoutEffect(() => {
       if (bodySlug && cameraInitializedRef.current !== bodySlug) {
-        sceneOpacityRef.current = 0;
-        setSceneOpacity(0);
+        if (transitionState === 'idle') {
+          sceneOpacityRef.current = 1;
+          setSceneOpacity(1);
+        } else {
+          sceneOpacityRef.current = 0;
+          setSceneOpacity(0);
+        }
       }
-    }, [bodySlug, setSceneOpacity]);
+    }, [bodySlug, transitionState, setSceneOpacity]);
 
     // Fade out scene materials when transitioning out
     useEffect(() => {
@@ -307,20 +313,23 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
         // Mark as initialized
         cameraInitializedRef.current = bodySlug;
 
-        // Call onReady callback FIRST, while still at opacity 0
-        // This signals to parent that scene is ready to fade in
-        if (onReady && readyCalledRef.current !== bodySlug) {
+        // Call onReady callback FIRST (if provided), while still at opacity 0
+        // This signals to parent that scene is ready to fade in.
+        // Fade-in runs regardless of whether onReady is provided (encounter mode has no onReady).
+        if (readyCalledRef.current !== bodySlug) {
           readyCalledRef.current = bodySlug;
           // Use RAF to ensure rendering has happened
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              onReady();
-              // Only start fade-in if NOT already transitioning
+              onReady?.();
+              // In 'idle' mode (encounter view), show immediately — no fade animation needed
               // If transitionState is 'transitioning-in', the useEffect will handle it
-              if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
+              if (transitionState === 'idle') {
+                setSceneOpacity(1);
+                sceneOpacityRef.current = 1;
+              } else if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
                 fadeAnimationRunningRef.current = true;
                 // Gradually fade in scene opacity to match CSS animation
-                // Start a gradual fade from 0 to 1 over 1200ms
                 const fadeStart = performance.now();
                 const fadeDuration = 1200; // Match CSS animation duration
                 const fadeIn = () => {

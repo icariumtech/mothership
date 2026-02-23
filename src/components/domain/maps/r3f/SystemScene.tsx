@@ -159,21 +159,23 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
         // Mark as initialized
         cameraInitializedRef.current = systemSlug;
 
-        // Call onReady callback FIRST, while still at opacity 0
-        // This signals to parent that scene is ready to fade in
-        // The parent will wait for this, then the CSS animation will fade in
-        if (onReady && readyCalledRef.current !== systemSlug) {
+        // Call onReady callback FIRST (if provided), while still at opacity 0
+        // This signals to parent that scene is ready to fade in.
+        // Fade-in runs regardless of whether onReady is provided (encounter mode has no onReady).
+        if (readyCalledRef.current !== systemSlug) {
           readyCalledRef.current = systemSlug;
           // Use RAF to ensure rendering has happened
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              onReady();
-              // Only start fade-in if NOT already transitioning
+              onReady?.();
+              // In 'idle' mode (encounter view), show immediately — no fade animation needed
               // If transitionState is 'transitioning-in', the useEffect will handle it
-              if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
+              if (transitionState === 'idle') {
+                setSceneOpacity(1);
+                sceneOpacityRef.current = 1;
+              } else if (transitionState !== 'transitioning-in' && !fadeAnimationRunningRef.current) {
                 fadeAnimationRunningRef.current = true;
                 // Gradually fade in scene opacity to match CSS animation
-                // Start a gradual fade from 0 to 1 over 1200ms
                 const fadeStart = performance.now();
                 const fadeDuration = 1200; // Match CSS animation duration
                 const fadeIn = () => {
@@ -278,14 +280,20 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       defaultCamera: data?.camera,
     });
 
-    // Reset opacity to 0 when switching to a new system (before zoomIn animation)
+    // Reset opacity when switching to a new system (before fade-in animation)
     // CRITICAL: Use useLayoutEffect to run synchronously BEFORE paint, preventing flash
+    // In 'idle' mode (encounter view), show immediately at full opacity
     useLayoutEffect(() => {
       if (systemSlug && cameraInitializedRef.current !== systemSlug) {
-        sceneOpacityRef.current = 0;
-        setSceneOpacity(0);
+        if (transitionState === 'idle') {
+          sceneOpacityRef.current = 1;
+          setSceneOpacity(1);
+        } else {
+          sceneOpacityRef.current = 0;
+          setSceneOpacity(0);
+        }
       }
-    }, [systemSlug, setSceneOpacity]);
+    }, [systemSlug, transitionState, setSceneOpacity]);
 
     // Fade out scene materials when transitioning out
     useEffect(() => {

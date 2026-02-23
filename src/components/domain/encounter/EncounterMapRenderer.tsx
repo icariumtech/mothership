@@ -239,17 +239,6 @@ export function EncounterMapRenderer({
   // -------------------------------------------------------------------
   // GM click-to-reveal
   // -------------------------------------------------------------------
-  const getRoomAtPoint = useCallback((svgX: number, svgY: number): GridRoom | null => {
-    const gridX = Math.floor(svgX / unitSize);
-    const gridY = Math.floor(svgY / unitSize);
-    return mapData.rooms.find(room =>
-      room.rects.some(r =>
-        gridX >= r.x && gridX < r.x + r.w &&
-        gridY >= r.y && gridY < r.y + r.h
-      )
-    ) ?? null;
-  }, [mapData.rooms, unitSize]);
-
   const handleRoomClick = useCallback((room: GridRoom) => {
     if (!isGM || !onRoomToggle) return;
     onRoomToggle(room.id, !isRoomVisible(room.id));

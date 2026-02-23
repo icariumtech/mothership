@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { TokenState, RoomData } from '../../../types/encounterMap';
+import { TokenState, RoomData, GridRoom } from '../../../types/encounterMap';
 import { Token } from './Token';
 import { screenToSVG, snapToGrid } from '@/utils/svgCoordinates';
 
@@ -26,7 +26,7 @@ interface TokenLayerProps {
   onTokenMove?: (id: string, x: number, y: number) => void;
   selectedTokenId?: string | null;
   onTokenSelect?: (id: string | null) => void;
-  mapRooms?: RoomData[];
+  mapRooms?: (RoomData | GridRoom)[];
 }
 
 export function TokenLayer({
@@ -89,11 +89,23 @@ export function TokenLayer({
     return roomVisibility[token.room_id] === true;
   });
 
-  const findRoomAtCell = (gridX: number, gridY: number): RoomData | null => {
+  const findRoomAtCell = (gridX: number, gridY: number): RoomData | GridRoom | null => {
+    if (!mapRoomsRef.current) return null;
     for (const room of mapRoomsRef.current) {
-      if (gridX >= room.x && gridX < room.x + room.width &&
-          gridY >= room.y && gridY < room.y + room.height) {
-        return room;
+      // New format: GridRoom has rects array
+      if ('rects' in room && Array.isArray(room.rects)) {
+        const hit = room.rects.some(r =>
+          gridX >= r.x && gridX < r.x + r.w &&
+          gridY >= r.y && gridY < r.y + r.h
+        );
+        if (hit) return room;
+      } else {
+        // Old format: RoomData has x, y, width, height
+        const r = room as RoomData;
+        if (gridX >= r.x && gridX < r.x + r.width &&
+            gridY >= r.y && gridY < r.y + r.height) {
+          return r;
+        }
       }
     }
     return null;

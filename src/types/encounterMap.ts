@@ -232,3 +232,63 @@ export interface TooltipState {
   y: number;
   content: TooltipContent;
 }
+
+// ============================================================
+// Grid-based encounter map types (Phase 7)
+// ============================================================
+
+/** A single axis-aligned rectangle in grid cell units */
+export interface GridRect {
+  x: number;  // grid cell X (left edge, 0-based)
+  y: number;  // grid cell Y (top edge, 0-based)
+  w: number;  // width in cells
+  h: number;  // height in cells
+}
+
+/** Cardinal wall sides for door attachment */
+export type WallSide = 'north' | 'south' | 'east' | 'west';
+
+/** A door attached to a specific wall of a room */
+export interface DoorDef {
+  wall: WallSide;
+  position: number;     // 0-based cell index along the wall (counts only cells with an actual wall segment)
+  type: DoorType;       // standard | airlock | blast_door | emergency
+  status: DoorStatus;   // OPEN | CLOSED | LOCKED | SEALED
+}
+
+/** A room composed of one or more grid rectangles */
+export interface GridRoom {
+  id: string;
+  name: string;         // empty string = corridor/hallway (no label rendered)
+  rects: GridRect[];    // list of axis-aligned rectangles that make up this room
+  doors?: DoorDef[];
+  description?: string;
+  type?: string;        // optional tag: corridor | bridge | cargo | medical | etc.
+}
+
+/** Complete grid-based encounter map (new format) */
+export interface GridEncounterMapData {
+  name: string;
+  deck_id?: string;
+  location_name?: string;
+  description?: string;
+  unit_size?: number;   // pixels per cell — default 40 if omitted
+  rooms: GridRoom[];
+  terminals?: TerminalData[];
+  poi?: PoiData[];
+  metadata?: MapMetadata;
+}
+
+/**
+ * Type guard: identifies grid-based maps by presence of rects on first room.
+ * Used by EncounterMapDisplay to route to the new renderer.
+ */
+export function isGridEncounterMap(mapData: unknown): mapData is GridEncounterMapData {
+  if (!mapData || typeof mapData !== 'object') return false;
+  const m = mapData as Record<string, unknown>;
+  return (
+    Array.isArray(m.rooms) &&
+    m.rooms.length > 0 &&
+    Array.isArray((m.rooms[0] as Record<string, unknown>).rects)
+  );
+}

@@ -2,169 +2,151 @@ deck_id: "deck_1"
 name: "USCSS Morrigan - Main Deck"
 location_name: "USCSS Morrigan"
 description: "Main deck layout showing bridge, engineering, and crew quarters"
+unit_size: 40
 
-grid:
-  width: 28
-  height: 18
-  unit_size: 40
-  show_grid: false
-
-# Node-graph style: rooms are separate boxes, not touching
 rooms:
   - id: bridge
     name: "BRIDGE"
-    x: 1
-    y: 1
-    width: 5
-    height: 3
+    rects:
+      - {x: 0, y: 0, w: 5, h: 3}
+    doors:
+      - {wall: east, position: 1, type: standard, status: OPEN}
+      - {wall: south, position: 2, type: blast_door, status: CLOSED}
     description: "Primary flight control and navigation center"
-    status: "OPERATIONAL"
+    type: bridge
+
+  - id: corridor_bridge_crew
+    name: ""
+    rects:
+      - {x: 5, y: 1, w: 3, h: 1}
+    type: corridor
 
   - id: crew_quarters
     name: "CREW QUARTERS"
-    x: 11
-    y: 1
-    width: 5
-    height: 3
+    rects:
+      - {x: 8, y: 0, w: 5, h: 3}
+    doors:
+      - {wall: west, position: 1, type: standard, status: OPEN}
+      - {wall: east, position: 1, type: standard, status: CLOSED}
     description: "Crew sleeping pods and personal storage"
-    status: "OPERATIONAL"
+    type: crew
+
+  - id: corridor_crew_medical
+    name: ""
+    rects:
+      - {x: 13, y: 1, w: 3, h: 1}
+    type: corridor
 
   - id: medical
     name: "MEDICAL BAY"
-    x: 21
-    y: 1
-    width: 5
-    height: 3
+    rects:
+      - {x: 16, y: 0, w: 5, h: 3}
+    doors:
+      - {wall: west, position: 1, type: standard, status: CLOSED}
     description: "Medical treatment and quarantine facility"
-    status: "OPERATIONAL"
+    type: medical
+
+  - id: corridor_bridge_eng
+    name: ""
+    rects:
+      - {x: 2, y: 3, w: 1, h: 2}
+    type: corridor
 
   - id: engineering
     name: "ENGINEERING"
-    x: 1
-    y: 7
-    width: 5
-    height: 4
+    rects:
+      - {x: 0, y: 5, w: 5, h: 4}
+    doors:
+      - {wall: north, position: 2, type: blast_door, status: CLOSED}
+      - {wall: east, position: 1, type: standard, status: OPEN}
+      - {wall: south, position: 2, type: emergency, status: LOCKED}
     description: "Main reactor and engine systems"
-    status: "WARNING"
+    type: engineering
+
+  - id: corridor_eng_cargo
+    name: ""
+    rects:
+      - {x: 5, y: 6, w: 1, h: 1}
+    type: corridor
 
   - id: cargo_bay
     name: "CARGO BAY"
-    x: 11
-    y: 7
-    width: 6
-    height: 4
+    rects:
+      - {x: 6, y: 5, w: 6, h: 4}
+    doors:
+      - {wall: west, position: 1, type: standard, status: OPEN}
+      - {wall: east, position: 1, type: airlock, status: SEALED}
     description: "Primary cargo storage area"
-    status: "HAZARD"
+    type: cargo
+
+  - id: corridor_cargo_airlock
+    name: ""
+    rects:
+      - {x: 12, y: 6, w: 1, h: 1}
+    type: corridor
 
   - id: airlock_bay
     name: "AIRLOCK BAY"
-    x: 21
-    y: 7
-    width: 5
-    height: 4
+    rects:
+      - {x: 13, y: 5, w: 5, h: 4}
+    doors:
+      - {wall: west, position: 1, type: airlock, status: SEALED}
     description: "EVA preparation and external access"
-    status: "OPERATIONAL"
+    type: airlock
+
+  - id: corridor_eng_lifesupport
+    name: ""
+    rects:
+      - {x: 2, y: 9, w: 1, h: 1}
+    type: corridor
 
   - id: life_support
     name: "LIFE SUPPORT"
-    x: 1
-    y: 14
-    width: 5
-    height: 3
+    rects:
+      - {x: 0, y: 10, w: 5, h: 3}
+    doors:
+      - {wall: north, position: 2, type: emergency, status: LOCKED}
     description: "Atmospheric recycling and water reclamation"
-    status: "OPERATIONAL"
-
-# Connections define paths between rooms (node-graph style)
-connections:
-  - id: conn_bridge_crew
-    from: bridge
-    to: crew_quarters
-    door_type: standard
-    door_status: OPEN
-
-  - id: conn_crew_medical
-    from: crew_quarters
-    to: medical
-    door_type: standard
-    door_status: CLOSED
-
-  - id: conn_bridge_eng
-    from: bridge
-    to: engineering
-    door_type: blast_door
-    door_status: CLOSED
-
-  - id: conn_crew_cargo
-    from: crew_quarters
-    to: cargo_bay
-    door_type: standard
-    door_status: OPEN
-
-  - id: conn_eng_cargo
-    from: engineering
-    to: cargo_bay
-    door_type: standard
-    door_status: OPEN
-
-  - id: conn_cargo_airlock
-    from: cargo_bay
-    to: airlock_bay
-    door_type: airlock
-    door_status: SEALED
-
-  - id: conn_eng_lifesupport
-    from: engineering
-    to: life_support
-    door_type: emergency
-    door_status: LOCKED
-
-# Inter-deck connection (to lower deck)
-inter_deck_connections:
-  - id: ladder_eng_maint
-    from_room: engineering
-    to_deck: "deck_2"
-    to_room: maintenance
-    type: ladder
-    status: OPEN
+    type: life_support
 
 terminals:
   - id: bridge_nav
     room: bridge
     position:
       x: 2.5
-      y: 2
+      y: 1.5
     terminal_slug: "nav-console"
     name: "NAV CONSOLE"
 
   - id: bridge_comm
     room: bridge
     position:
-      x: 4.5
-      y: 2
+      x: 4.0
+      y: 1.5
     terminal_slug: "comm-console"
     name: "COMM CONSOLE"
 
   - id: eng_reactor
     room: engineering
     position:
-      x: 3
-      y: 8.5
+      x: 2.5
+      y: 7.5
     terminal_slug: "reactor-control"
     name: "REACTOR CONTROL"
 
   - id: med_terminal
     room: medical
     position:
-      x: 23.5
-      y: 2
+      x: 18.0
+      y: 1.5
     terminal_slug: "medical-console"
     name: "MEDICAL CONSOLE"
 
   - id: cargo_manifest
     room: cargo_bay
     position:
-      x: 14
-      y: 8.5
+      x: 9.0
+      y: 7.5
     terminal_slug: "cargo-manifest"
     name: "CARGO MANIFEST"
 
@@ -173,8 +155,8 @@ poi:
     type: "objective"
     room: airlock_bay
     position:
-      x: 23
-      y: 8
+      x: 14.5
+      y: 6.0
     name: "ESCAPE POD A"
     icon: "pod"
     status: "READY"
@@ -184,8 +166,8 @@ poi:
     type: "objective"
     room: airlock_bay
     position:
-      x: 23
-      y: 10
+      x: 14.5
+      y: 8.0
     name: "ESCAPE POD B"
     icon: "pod"
     status: "READY"
@@ -195,8 +177,8 @@ poi:
     type: "hazard"
     room: cargo_bay
     position:
-      x: 15
-      y: 10
+      x: 10.0
+      y: 8.5
     name: "HULL BREACH"
     icon: "warning"
     status: "CRITICAL"
@@ -206,8 +188,8 @@ poi:
     type: "item"
     room: cargo_bay
     position:
-      x: 12
-      y: 8
+      x: 7.0
+      y: 7.0
     name: "SUPPLY CRATE"
     icon: "crate"
     description: "Medical supplies and rations"
@@ -216,8 +198,8 @@ poi:
     type: "hazard"
     room: engineering
     position:
-      x: 4
-      y: 9.5
+      x: 2.5
+      y: 6.5
     name: "REACTOR CORE"
     icon: "warning"
     status: "WARNING"

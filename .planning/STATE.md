@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 5 - Real-Time Push Architecture
+**Current focus:** Phase 7 - Grid-Based Encounter Map Redesign
 
 ## Current Position
 
-Phase: 5 of 6 (Real-Time Push Architecture)
-Plan: 3 of 4 completed
+Phase: 7 of 7 (Grid-Based Encounter Map Redesign)
+Plan: 1 of 4 completed
 Status: In Progress
-Last activity: 2026-02-22 — Completed 05-03-PLAN.md (frontend SSE layer: useSSE hook, SSEConnectionToast, SharedConsole + GMConsole wired)
+Last activity: 2026-02-23 — Completed 07-01-PLAN.md (grid-based TypeScript types + YAML map files rebuilt in rects format)
 
-Progress: [█████████░] 88% (Phase 5: 3/4 plans)
+Progress: [█░░░░░░░░░] 10% (Phase 7: 1/4 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 18.9 minutes
-- Total execution time: 3.11 hours
+- Total plans completed: 9
+- Average duration: 17.4 minutes
+- Total execution time: 3.13 hours
 
 **By Phase:**
 
@@ -31,12 +31,12 @@ Progress: [█████████░] 88% (Phase 5: 3/4 plans)
 | 02-ship-status-dashboard | 3 | 1167s | 389s |
 | 03-encounter-tokens | 4 | 9899s | 2475s |
 | 04-npc-portrait-system | 3/4 | 1074s (04-01+04-02+04-03) | — |
+| 05-real-time-push-architecture | 3/4 | 1083s (05-01+05-02+05-03) | — |
+| 07-grid-based-encounter-map-redesign | 1/4 | 118s (07-01) | 118s |
 
 **Recent Trend:**
-- Last 5 plans: 231s, 292s, 9252s, 124s, 79s
-- Trend: Phase 04-02 TypeScript types plan was very fast (79s) - pure type additions to 3 files
-
-| 05-real-time-push-architecture | 3/4 | 1083s (05-01+05-02+05-03) | — |
+- Last 5 plans: 292s, 9252s, 124s, 79s, 118s
+- Trend: Phase 07-01 TypeScript types + YAML was very fast (118s) - pure type additions and data file rewrites
 
 *Updated after each plan completion*
 
@@ -108,6 +108,11 @@ Recent decisions affecting current work:
 - [Phase 05-03]: SharedConsole failureThreshold 5 (tolerant), GMConsole failureThreshold 2 (warns sooner)
 - [Phase 05-03]: All post-write getActiveView() + setActiveView() removed from GMConsole callbacks — SSE push is authoritative
 - [Phase 05-03]: Initial load getActiveView() retained in GMConsole for locations bootstrap before SSE connects
+- [Phase 07-01]: Grid rooms use rects array (not x/y/w/h scalars) to support L-shapes, T-shapes, corridors as first-class rooms
+- [Phase 07-01]: Doors attached to room walls (wall: north/south/east/west, position: N) — no separate connections array
+- [Phase 07-01]: unit_size: 40 at top level replaces grid: {width, height} block — canvas dimensions computed from room geometry
+- [Phase 07-01]: Corridors are GridRoom entries with name: '' and type: corridor — renderer skips label for empty names
+- [Phase 07-01]: isGridEncounterMap() guard uses rooms[0].rects presence — checked before isEncounterMap() in routing
 
 ### Roadmap Evolution
 
@@ -123,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-22 — Reached checkpoint in 05-04-PLAN.md (human verification of end-to-end SSE push architecture)
-Stopped at: Checkpoint 05-04 — awaiting human verification of 7 manual tests (SSE stream, token latency, portrait latency, toast behavior, DB integrity, messages polling, server restart)
+Last session: 2026-02-23 — Completed 07-01-PLAN.md (grid-based TypeScript types + three YAML map files rebuilt in rects format)
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None

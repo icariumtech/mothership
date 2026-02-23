@@ -1,24 +1,21 @@
 /**
- * EncounterMapRenderer - SVG renderer for encounter maps
+ * EncounterMapRenderer - SVG renderer for grid-based encounter maps
  *
- * Renders node-graph style maps where rooms are separate boxes
- * connected by path lines. Supports doors on connections,
- * terminals, and points of interest.
+ * Renders GridEncounterMapData: rooms as touching wall-aligned rectangles,
+ * wall-segment algorithm for exterior walls, scanline floor texture,
+ * faint background grid, and GM click-to-reveal room visibility.
  */
 
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import {
-  EncounterMapData,
-  RoomData,
-  ConnectionData,
-  TooltipState,
+  GridEncounterMapData,
+  GridRoom,
+  GridRect,
+  DoorDef,
   RoomVisibilityState,
-  DoorStatusState,
-  DoorStatus,
   TokenState,
   TokenStatus,
 } from '../../../types/encounterMap';
-import { RoomTooltip } from './RoomTooltip';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
 import { TokenLayer, tokenTouchActive } from './TokenLayer';
@@ -26,9 +23,8 @@ import { TokenPopup } from './TokenPopup';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
-  mapData: EncounterMapData;
+  mapData: GridEncounterMapData;
   roomVisibility?: RoomVisibilityState;
-  doorStatus?: DoorStatusState;
   /** Current deck level (1-indexed) for multi-deck maps */
   currentLevel?: number;
   /** Total number of decks */
@@ -39,6 +35,8 @@ interface EncounterMapRendererProps {
   tokens?: TokenState;
   /** Is this a GM view? */
   isGM?: boolean;
+  /** Callback when GM clicks a room to toggle visibility */
+  onRoomToggle?: (roomId: string, visible: boolean) => void;
   /** Token callbacks */
   onTokenMove?: (id: string, x: number, y: number) => void;
   onTokenRemove?: (id: string) => void;
@@ -78,40 +76,134 @@ const CONNECTION_STYLES: Record<string, { stroke: string; doorFill: string }> = 
   open: { stroke: COLORS.pathLine, doorFill: COLORS.teal },
 };
 
-// POI icon paths
-const POI_ICONS: Record<string, string> = {
-  objective: 'M0,-6 L5,3 L-5,3 Z',
-  item: 'M-4,-4 L4,-4 L4,4 L-4,4 Z',
-  hazard: 'M0,-6 L6,3 L-6,3 Z',
-  npc: 'M0,-5 A5,5 0 1,1 0,5 A5,5 0 1,1 0,-5',
-  player: 'M0,-6 L6,0 L0,6 L-6,0 Z',
-  pod: 'M-3,-5 L3,-5 L5,0 L3,5 L-3,5 L-5,0 Z',
-  warning: 'M0,-6 L6,3 L-6,3 Z',
-  crate: 'M-4,-4 L4,-4 L4,4 L-4,4 Z',
-  terminal: 'M-5,-4 L5,-4 L5,3 L-5,3 Z',
-};
+// Zoom limits
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3;
+
+// -------------------------------------------------------------------
+// Wall-segment edge type
+// -------------------------------------------------------------------
+interface Edge { x1: number; y1: number; x2: number; y2: number; }
+
+// -------------------------------------------------------------------
+// computeBoundingBox — derive SVG canvas from room geometry
+// Always computed from ALL rooms (visible and hidden) so the canvas
+// doesn't shift when rooms are revealed/hidden.
+// -------------------------------------------------------------------
+function computeBoundingBox(rooms: GridRoom[], us: number, padding = 2) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const room of rooms) {
+    for (const rect of room.rects) {
+      minX = Math.min(minX, rect.x);
+      minY = Math.min(minY, rect.y);
+      maxX = Math.max(maxX, rect.x + rect.w);
+      maxY = Math.max(maxY, rect.y + rect.h);
+    }
+  }
+  if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 10; maxY = 10; }
+  return {
+    originX: (minX - padding) * us,
+    originY: (minY - padding) * us,
+    svgWidth: (maxX - minX + padding * 2) * us,
+    svgHeight: (maxY - minY + padding * 2) * us,
+  };
+}
+
+// -------------------------------------------------------------------
+// computeRoomWalls — wall-segment algorithm
+// Count cell-edge occurrences; edges that appear exactly once are
+// exterior wall segments (adjacent-room shared edges appear twice).
+// -------------------------------------------------------------------
+function computeRoomWalls(rects: GridRect[], us: number): Edge[] {
+  const edgeCounts = new Map<string, number>();
+  const addEdges = (rect: GridRect) => {
+    for (let cx = rect.x; cx < rect.x + rect.w; cx++) {
+      const top = `H:${cx}:${rect.y}`;
+      const bot = `H:${cx}:${rect.y + rect.h}`;
+      edgeCounts.set(top, (edgeCounts.get(top) || 0) + 1);
+      edgeCounts.set(bot, (edgeCounts.get(bot) || 0) + 1);
+    }
+    for (let cy = rect.y; cy < rect.y + rect.h; cy++) {
+      const left = `V:${rect.x}:${cy}`;
+      const right = `V:${rect.x + rect.w}:${cy}`;
+      edgeCounts.set(left, (edgeCounts.get(left) || 0) + 1);
+      edgeCounts.set(right, (edgeCounts.get(right) || 0) + 1);
+    }
+  };
+  for (const rect of rects) addEdges(rect);
+  const walls: Edge[] = [];
+  for (const [key, count] of edgeCounts) {
+    if (count !== 1) continue;
+    const [orient, gxStr, gyStr] = key.split(':');
+    const gx = parseInt(gxStr), gy = parseInt(gyStr);
+    if (orient === 'H') {
+      walls.push({ x1: gx * us, y1: gy * us, x2: (gx + 1) * us, y2: gy * us });
+    } else {
+      walls.push({ x1: gx * us, y1: gy * us, x2: gx * us, y2: (gy + 1) * us });
+    }
+  }
+  return walls;
+}
+
+// -------------------------------------------------------------------
+// getRoomLabelPosition — center of the bounding box of all room rects
+// -------------------------------------------------------------------
+function getRoomLabelPosition(rects: GridRect[], us: number): { x: number; y: number } {
+  const minX = Math.min(...rects.map(r => r.x));
+  const minY = Math.min(...rects.map(r => r.y));
+  const maxX = Math.max(...rects.map(r => r.x + r.w));
+  const maxY = Math.max(...rects.map(r => r.y + r.h));
+  return { x: ((minX + maxX) / 2) * us, y: ((minY + maxY) / 2) * us };
+}
+
+// -------------------------------------------------------------------
+// getDoorSVGPosition — map wall+position index to SVG coordinates
+// -------------------------------------------------------------------
+function getDoorSVGPosition(
+  rects: GridRect[], door: DoorDef, us: number
+): { x: number; y: number; orientation: 'horizontal' | 'vertical' } {
+  if (door.wall === 'north' || door.wall === 'south') {
+    const targetY = door.wall === 'north'
+      ? Math.min(...rects.map(r => r.y))
+      : Math.max(...rects.map(r => r.y + r.h));
+    const wallY = targetY * us;
+    const wallRects = rects.filter(r =>
+      door.wall === 'north' ? r.y === targetY : r.y + r.h === targetY
+    );
+    const cells = wallRects.flatMap(r =>
+      Array.from({ length: r.w }, (_, i) => r.x + i)
+    ).sort((a, b) => a - b);
+    const cellX = cells[door.position] ?? cells[0] ?? 0;
+    return { x: (cellX + 0.5) * us, y: wallY, orientation: 'horizontal' };
+  } else {
+    const targetX = door.wall === 'west'
+      ? Math.min(...rects.map(r => r.x))
+      : Math.max(...rects.map(r => r.x + r.w));
+    const wallX = targetX * us;
+    const wallRects = rects.filter(r =>
+      door.wall === 'west' ? r.x === targetX : r.x + r.w === targetX
+    );
+    const cells = wallRects.flatMap(r =>
+      Array.from({ length: r.h }, (_, i) => r.y + i)
+    ).sort((a, b) => a - b);
+    const cellY = cells[door.position] ?? cells[0] ?? 0;
+    return { x: wallX, y: (cellY + 0.5) * us, orientation: 'vertical' };
+  }
+}
 
 export function EncounterMapRenderer({
   mapData,
   roomVisibility,
-  doorStatus,
   currentLevel = 1,
   totalLevels = 1,
   deckName,
   tokens,
   isGM = false,
+  onRoomToggle,
   onTokenMove,
   onTokenRemove: _onTokenRemove,
   onTokenStatusToggle: _onTokenStatusToggle,
 }: EncounterMapRendererProps) {
-  const [tooltip, setTooltip] = useState<TooltipState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    content: { title: '' },
-  });
-
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
 
   // Pan and zoom state
@@ -131,15 +223,12 @@ export function EncounterMapRenderer({
   const lastTouchDistance = useRef<number | null>(null);
   const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
 
-  // Zoom limits
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 3;
-
-  // Calculate SVG dimensions
-  const grid = mapData.grid;
-  const unitSize = grid.unit_size || 40;
-  const svgWidth = grid.width * unitSize;
-  const svgHeight = grid.height * unitSize;
+  // SVG dimensions — always computed from ALL rooms (never filtered by visibility)
+  const unitSize = mapData.unit_size ?? 40;
+  const { originX, originY, svgWidth, svgHeight } = useMemo(
+    () => computeBoundingBox(mapData.rooms, unitSize),
+    [mapData.rooms, unitSize]
+  );
 
   // Check if a room is visible (default to true if no visibility state)
   const isRoomVisible = useCallback((roomId: string): boolean => {
@@ -147,391 +236,28 @@ export function EncounterMapRenderer({
     return roomVisibility[roomId] !== false;
   }, [roomVisibility]);
 
-  // Get effective door status (runtime override > YAML default)
-  const getEffectiveDoorStatus = useCallback((conn: ConnectionData): DoorStatus => {
-    if (doorStatus && doorStatus[conn.id]) {
-      return doorStatus[conn.id];
-    }
-    return conn.door_status || 'CLOSED';
-  }, [doorStatus]);
+  // -------------------------------------------------------------------
+  // GM click-to-reveal
+  // -------------------------------------------------------------------
+  const getRoomAtPoint = useCallback((svgX: number, svgY: number): GridRoom | null => {
+    const gridX = Math.floor(svgX / unitSize);
+    const gridY = Math.floor(svgY / unitSize);
+    return mapData.rooms.find(room =>
+      room.rects.some(r =>
+        gridX >= r.x && gridX < r.x + r.w &&
+        gridY >= r.y && gridY < r.y + r.h
+      )
+    ) ?? null;
+  }, [mapData.rooms, unitSize]);
 
-  // Filter rooms by visibility
-  const visibleRooms = useMemo(() => {
-    return mapData.rooms.filter(room => isRoomVisible(room.id));
-  }, [mapData.rooms, isRoomVisible]);
+  const handleRoomClick = useCallback((room: GridRoom) => {
+    if (!isGM || !onRoomToggle) return;
+    onRoomToggle(room.id, !isRoomVisible(room.id));
+  }, [isGM, onRoomToggle, isRoomVisible]);
 
-  // Build room lookup map for ALL rooms (used for door positioning)
-  const allRoomMap = useMemo(() => {
-    const map = new Map<string, RoomData>();
-    for (const room of mapData.rooms) {
-      map.set(room.id, room);
-    }
-    return map;
-  }, [mapData.rooms]);
-
-  // Build room lookup map for visible rooms only (used for connection lines)
-  const roomMap = useMemo(() => {
-    const map = new Map<string, RoomData>();
-    for (const room of visibleRooms) {
-      map.set(room.id, room);
-    }
-    return map;
-  }, [visibleRooms]);
-
-  // Get the best edge point for connecting two rooms (prefers cardinal directions)
-  const getConnectionEdge = useCallback((room: RoomData, otherRoom: RoomData): { x: number; y: number; side: 'top' | 'bottom' | 'left' | 'right' } => {
-    const roomLeft = room.x * unitSize;
-    const roomRight = (room.x + room.width) * unitSize;
-    const roomTop = room.y * unitSize;
-    const roomBottom = (room.y + room.height) * unitSize;
-    const roomCenterX = (room.x + room.width / 2) * unitSize;
-    const roomCenterY = (room.y + room.height / 2) * unitSize;
-
-    const otherCenterX = (otherRoom.x + otherRoom.width / 2) * unitSize;
-    const otherCenterY = (otherRoom.y + otherRoom.height / 2) * unitSize;
-
-    const dx = otherCenterX - roomCenterX;
-    const dy = otherCenterY - roomCenterY;
-
-    // Determine primary direction based on which axis has greater difference
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal connection
-      if (dx > 0) {
-        return { x: roomRight, y: roomCenterY, side: 'right' };
-      } else {
-        return { x: roomLeft, y: roomCenterY, side: 'left' };
-      }
-    } else {
-      // Vertical connection
-      if (dy > 0) {
-        return { x: roomCenterX, y: roomBottom, side: 'bottom' };
-      } else {
-        return { x: roomCenterX, y: roomTop, side: 'top' };
-      }
-    }
-  }, [unitSize]);
-
-  // Generate orthogonal path with 45-degree corners between two points
-  const generateOrthogonalPath = useCallback((
-    fromX: number, fromY: number, fromSide: string,
-    toX: number, toY: number, toSide: string
-  ): string => {
-    const points: { x: number; y: number }[] = [{ x: fromX, y: fromY }];
-
-    const dx = toX - fromX;
-    const dy = toY - fromY;
-
-    // Offset from room edge before turning
-    const edgeOffset = 15;
-
-    // Calculate intermediate points based on exit directions
-    if (fromSide === 'right' || fromSide === 'left') {
-      // Exiting horizontally
-      const exitX = fromSide === 'right' ? fromX + edgeOffset : fromX - edgeOffset;
-
-      if (toSide === 'left' || toSide === 'right') {
-        // Target also horizontal - need vertical segment
-        const entryX = toSide === 'left' ? toX - edgeOffset : toX + edgeOffset;
-        const midX = (exitX + entryX) / 2;
-
-        if (Math.abs(dy) > 0) {
-          // Use 45-degree angles for the turn
-          const turnLength = Math.min(Math.abs(dy) / 2, Math.abs(midX - exitX));
-
-          points.push({ x: exitX, y: fromY });
-          points.push({ x: midX - (dy > 0 ? turnLength : -turnLength), y: fromY });
-          points.push({ x: midX + (dy > 0 ? turnLength : -turnLength), y: toY });
-          points.push({ x: entryX, y: toY });
-        } else {
-          // Straight horizontal line
-          points.push({ x: entryX, y: toY });
-        }
-      } else {
-        // Target is vertical
-        if (Math.abs(dx) > edgeOffset * 2 && Math.abs(dy) > edgeOffset * 2) {
-          // 45-degree corner
-          const turnDist = Math.min(Math.abs(dx) - edgeOffset, Math.abs(dy) - edgeOffset) / 2;
-          points.push({ x: exitX, y: fromY });
-          points.push({ x: toX + (dx > 0 ? -turnDist : turnDist), y: fromY + (dy > 0 ? turnDist : -turnDist) });
-          points.push({ x: toX, y: toY + (toSide === 'top' ? -edgeOffset : edgeOffset) });
-        } else {
-          points.push({ x: exitX, y: fromY });
-          points.push({ x: toX, y: fromY });
-          points.push({ x: toX, y: toY + (toSide === 'top' ? -edgeOffset : edgeOffset) });
-        }
-      }
-    } else {
-      // Exiting vertically
-      const exitY = fromSide === 'bottom' ? fromY + edgeOffset : fromY - edgeOffset;
-
-      if (toSide === 'top' || toSide === 'bottom') {
-        // Target also vertical - need horizontal segment
-        const entryY = toSide === 'top' ? toY - edgeOffset : toY + edgeOffset;
-        const midY = (exitY + entryY) / 2;
-
-        if (Math.abs(dx) > 0) {
-          // Use 45-degree angles for the turn
-          const turnLength = Math.min(Math.abs(dx) / 2, Math.abs(midY - exitY));
-
-          points.push({ x: fromX, y: exitY });
-          points.push({ x: fromX, y: midY - (dx > 0 ? turnLength : -turnLength) });
-          points.push({ x: toX, y: midY + (dx > 0 ? turnLength : -turnLength) });
-          points.push({ x: toX, y: entryY });
-        } else {
-          // Straight vertical line
-          points.push({ x: toX, y: entryY });
-        }
-      } else {
-        // Target is horizontal
-        if (Math.abs(dx) > edgeOffset * 2 && Math.abs(dy) > edgeOffset * 2) {
-          // 45-degree corner
-          const turnDist = Math.min(Math.abs(dx) - edgeOffset, Math.abs(dy) - edgeOffset) / 2;
-          points.push({ x: fromX, y: exitY });
-          points.push({ x: fromX + (dx > 0 ? turnDist : -turnDist), y: toY + (dy > 0 ? -turnDist : turnDist) });
-          points.push({ x: toX + (toSide === 'left' ? -edgeOffset : edgeOffset), y: toY });
-        } else {
-          points.push({ x: fromX, y: exitY });
-          points.push({ x: fromX, y: toY });
-          points.push({ x: toX + (toSide === 'left' ? -edgeOffset : edgeOffset), y: toY });
-        }
-      }
-    }
-
-    points.push({ x: toX, y: toY });
-
-    // Build SVG path
-    return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  }, []);
-
-  // Wheel zoom handler — attached as native listener with { passive: false }
-  const handleWheel = useCallback((e: WheelEvent) => {
-    e.preventDefault();
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Get mouse position relative to container
-    const rect = container.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Calculate zoom change
-    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-
-    setViewState((prev) => {
-      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom * zoomDelta));
-      const zoomRatio = newZoom / prev.zoom;
-
-      // Adjust pan to zoom toward mouse position
-      const newPanX = mouseX - (mouseX - prev.panX) * zoomRatio;
-      const newPanY = mouseY - (mouseY - prev.panY) * zoomRatio;
-
-      return {
-        panX: newPanX,
-        panY: newPanY,
-        zoom: newZoom,
-      };
-    });
-  }, []);
-
-  // Mouse down handler for pan start
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only pan with left mouse button and not on interactive elements
-    if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest('.encounter-map__room') ||
-        target.closest('.encounter-map__terminal') ||
-        target.closest('.encounter-map__poi') ||
-        target.closest('.encounter-map__door') ||
-        target.closest('.encounter-map__token')) {
-      return;
-    }
-
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY };
-    viewStart.current = { panX: viewState.panX, panY: viewState.panY };
-
-    // Change cursor
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grabbing';
-    }
-  }, [viewState.panX, viewState.panY]);
-
-  // Mouse move handler for panning
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging.current) return;
-
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-
-    setViewState((prev) => ({
-      ...prev,
-      panX: viewStart.current.panX + dx,
-      panY: viewStart.current.panY + dy,
-    }));
-  }, []);
-
-  // Mouse up handler for pan end
-  const handleMouseUp = useCallback(() => {
-    isDragging.current = false;
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grab';
-    }
-  }, []);
-
-  // Effect to handle mouse up outside container
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      isDragging.current = false;
-      if (containerRef.current) {
-        containerRef.current.style.cursor = 'grab';
-      }
-    };
-
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
-
-  // Reset view handler
-  const handleResetView = useCallback(() => {
-    setViewState({ panX: 0, panY: 0, zoom: 1 });
-  }, []);
-
-  // Touch start handler
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    // Don't start map pan if a token touch drag is active
-    if (tokenTouchActive) return;
-
-    if (e.touches.length === 1) {
-      // Single finger - start panning
-      isDragging.current = true;
-      dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      viewStart.current = { panX: viewState.panX, panY: viewState.panY };
-    } else if (e.touches.length === 2) {
-      // Two fingers - prepare for pinch zoom
-      isDragging.current = false;
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
-      lastTouchCenter.current = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-      };
-    }
-  }, [viewState.panX, viewState.panY]);
-
-  // Touch move handler — attached as native event with { passive: false } to allow preventDefault
-  const touchMoveHandler = useCallback((e: TouchEvent) => {
-    // Don't interfere with token drag
-    if (tokenTouchActive) return;
-
-    e.preventDefault();
-
-    if (e.touches.length === 1 && isDragging.current) {
-      // Single finger pan
-      const dx = e.touches[0].clientX - dragStart.current.x;
-      const dy = e.touches[0].clientY - dragStart.current.y;
-
-      setViewState((prev) => ({
-        ...prev,
-        panX: viewStart.current.panX + dx,
-        panY: viewStart.current.panY + dy,
-      }));
-    } else if (e.touches.length === 2 && lastTouchDistance.current !== null) {
-      // Pinch zoom
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      const container = containerRef.current;
-      if (!container || !lastTouchCenter.current) return;
-
-      const rect = container.getBoundingClientRect();
-      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
-      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
-
-      const scale = distance / lastTouchDistance.current;
-
-      setViewState((prev) => {
-        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom * scale));
-        const zoomRatio = newZoom / prev.zoom;
-
-        // Adjust pan to zoom toward pinch center
-        const newPanX = centerX - (centerX - prev.panX) * zoomRatio;
-        const newPanY = centerY - (centerY - prev.panY) * zoomRatio;
-
-        return {
-          panX: newPanX,
-          panY: newPanY,
-          zoom: newZoom,
-        };
-      });
-
-      lastTouchDistance.current = distance;
-      lastTouchCenter.current = { x: centerX + rect.left, y: centerY + rect.top };
-    }
-  }, []);
-
-  // Attach touchmove as native event listener with { passive: false }
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('touchmove', touchMoveHandler, { passive: false });
-    return () => {
-      container.removeEventListener('touchmove', touchMoveHandler);
-    };
-  }, [touchMoveHandler]);
-
-  // Attach wheel as native event listener with { passive: false } so preventDefault works
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-    };
-  }, [handleWheel]);
-
-  // Touch end handler
-  const handleTouchEnd = useCallback(() => {
-    isDragging.current = false;
-    lastTouchDistance.current = null;
-    lastTouchCenter.current = null;
-  }, []);
-
-  // Room hover handlers
-  const handleRoomEnter = useCallback((room: RoomData, e: React.MouseEvent) => {
-    setTooltip({
-      visible: true,
-      x: e.clientX + 15,
-      y: e.clientY + 15,
-      content: {
-        title: room.name,
-        description: room.description,
-        status: room.status,
-      },
-    });
-  }, []);
-
-  const handleRoomMove = useCallback((e: React.MouseEvent) => {
-    setTooltip((prev) => ({
-      ...prev,
-      x: e.clientX + 15,
-      y: e.clientY + 15,
-    }));
-  }, []);
-
-  const handleRoomLeave = useCallback(() => {
-    setTooltip((prev) => ({ ...prev, visible: false }));
-  }, []);
-
-  const handleRoomClick = useCallback((room: RoomData) => {
-    setSelectedRoom((prev) => (prev === room.id ? null : room.id));
-  }, []);
-
-  // Render a door symbol at a specific position
+  // -------------------------------------------------------------------
+  // Render a door symbol at a specific SVG position
+  // -------------------------------------------------------------------
   const renderDoorSymbol = (
     x: number,
     y: number,
@@ -541,7 +267,6 @@ export function EncounterMapRenderer({
     orientation: 'horizontal' | 'vertical',
     key: string
   ) => {
-    // Larger door sizes for better visibility
     const doorWidth = orientation === 'horizontal' ? 20 : 12;
     const doorHeight = orientation === 'horizontal' ? 12 : 20;
     const isOpen = doorStatus === 'OPEN';
@@ -549,15 +274,10 @@ export function EncounterMapRenderer({
     const isLocked = doorStatus === 'LOCKED';
     const isSealed = doorStatus === 'SEALED';
 
-    // Build class name with door type and status
     const statusClass = doorStatus ? `encounter-map__door--${doorStatus.toLowerCase()}` : '';
 
-    // Calculate split offset for open doors (slides apart along the wall)
-    // For horizontal doors: slide left/right by half the door width + gap
-    // For vertical doors: slide up/down by half the door height + gap
     const splitOffset = orientation === 'horizontal' ? doorWidth * 0.55 : doorHeight * 0.55;
 
-    // Calculate the transform for open state
     const openTransformLeft = orientation === 'horizontal'
       ? `translateX(-${splitOffset}px)`
       : `translateY(-${splitOffset}px)`;
@@ -565,14 +285,13 @@ export function EncounterMapRenderer({
       ? `translateX(${splitOffset}px)`
       : `translateY(${splitOffset}px)`;
 
-    // Door colors based on status
     const doorFill = isDamaged ? COLORS.hazard : style.doorFill;
     const doorStroke = isLocked ? COLORS.amber : isSealed ? COLORS.hazard : COLORS.borderMain;
     const doorStrokeWidth = isLocked ? 2 : isSealed ? 2.5 : 1.5;
 
     return (
       <g key={key} className={`encounter-map__door encounter-map__door--${doorType} ${statusClass}`}>
-        {/* Opaque background to cover path lines behind door */}
+        {/* Opaque background to cover wall lines behind door */}
         <rect
           x={x - doorWidth / 2 + 1}
           y={y - doorHeight / 2 + 1}
@@ -595,7 +314,7 @@ export function EncounterMapRenderer({
           style={{ opacity: isOpen ? 1 : 0 }}
         />
 
-        {/* First door half - always rendered, slides when open */}
+        {/* First door half */}
         <rect
           x={x - doorWidth / 2}
           y={y - doorHeight / 2}
@@ -610,7 +329,7 @@ export function EncounterMapRenderer({
           }}
         />
 
-        {/* Second door half - always rendered, slides when open */}
+        {/* Second door half */}
         <rect
           x={orientation === 'horizontal' ? x : x - doorWidth / 2}
           y={orientation === 'horizontal' ? y - doorHeight / 2 : y}
@@ -628,7 +347,6 @@ export function EncounterMapRenderer({
         {/* DAMAGED: Crack lines overlay */}
         {isDamaged && !isOpen && (
           <g className="encounter-map__door-damage">
-            {/* Main diagonal crack */}
             <path
               d={orientation === 'horizontal'
                 ? `M${x - doorWidth / 2 + 2},${y - doorHeight / 2 + 2}
@@ -643,7 +361,6 @@ export function EncounterMapRenderer({
               strokeWidth={2}
               strokeLinecap="round"
             />
-            {/* Secondary crack */}
             <path
               d={orientation === 'horizontal'
                 ? `M${x + 3},${y - doorHeight / 2 + 1} L${x + 1},${y - 2}`
@@ -654,7 +371,6 @@ export function EncounterMapRenderer({
               strokeWidth={1.5}
               strokeLinecap="round"
             />
-            {/* Sparking effect dots */}
             <circle
               cx={x - 2}
               cy={y}
@@ -665,10 +381,9 @@ export function EncounterMapRenderer({
           </g>
         )}
 
-        {/* LOCKED: Lock indicator (keyhole) */}
+        {/* LOCKED: Lock indicator */}
         {isLocked && !isOpen && (
           <g className="encounter-map__door-lock">
-            {/* Background to cover door seam */}
             <rect
               x={orientation === 'horizontal' ? x - 4 : x - 5}
               y={y - 5}
@@ -697,10 +412,9 @@ export function EncounterMapRenderer({
           </g>
         )}
 
-        {/* SEALED: Heavy duty indicator (double border + hazard stripes) */}
+        {/* SEALED: Heavy duty indicator */}
         {isSealed && !isOpen && (
           <g className="encounter-map__door-seal">
-            {/* Inner border */}
             <rect
               x={x - doorWidth / 2 + 3}
               y={y - doorHeight / 2 + 3}
@@ -710,7 +424,6 @@ export function EncounterMapRenderer({
               stroke={COLORS.hazard}
               strokeWidth={1}
             />
-            {/* Hazard stripe */}
             <line
               x1={x - doorWidth / 2 + 2}
               y1={y}
@@ -764,226 +477,259 @@ export function EncounterMapRenderer({
     );
   };
 
-  // Render connection path line only (doors rendered separately above rooms)
-  const renderConnectionPath = (conn: ConnectionData) => {
-    const fromRoom = roomMap.get(conn.from);
-    const toRoom = roomMap.get(conn.to);
-
-    if (!fromRoom || !toRoom) return null;
-
-    const fromEdge = getConnectionEdge(fromRoom, toRoom);
-    const toEdge = getConnectionEdge(toRoom, fromRoom);
-
-    const style = CONNECTION_STYLES[conn.door_type || 'standard'] || CONNECTION_STYLES.standard;
-
-    // Generate orthogonal path
-    const pathD = generateOrthogonalPath(
-      fromEdge.x, fromEdge.y, fromEdge.side,
-      toEdge.x, toEdge.y, toEdge.side
-    );
+  // -------------------------------------------------------------------
+  // renderRoom — floor fill + exterior walls + GM click targets + label
+  // -------------------------------------------------------------------
+  const renderRoom = (room: GridRoom) => {
+    const visible = isRoomVisible(room.id);
+    // Players only see revealed rooms
+    if (!isGM && !visible) return null;
+    const roomOpacity = isGM && !visible ? 0.25 : 1.0;
+    const walls = computeRoomWalls(room.rects, unitSize);
+    const label = room.name ? getRoomLabelPosition(room.rects, unitSize) : null;
 
     return (
-      <path
-        key={conn.id}
-        d={pathD}
-        stroke={style.stroke}
-        strokeWidth={2}
-        fill="none"
-        className="encounter-map__path-line"
-      />
-    );
-  };
+      <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
+        {/* Floor fill — one scanline-textured rect per room rect */}
+        {room.rects.map((rect, i) => (
+          <rect
+            key={`floor-${i}`}
+            x={rect.x * unitSize}
+            y={rect.y * unitSize}
+            width={rect.w * unitSize}
+            height={rect.h * unitSize}
+            fill="url(#floor-scanline)"
+            className="encounter-map__floor"
+          />
+        ))}
 
-  // Render door symbols for a connection (rendered above rooms)
-  const renderConnectionDoors = (conn: ConnectionData) => {
-    // Use allRoomMap to get positions for ALL rooms (including hidden ones)
-    const fromRoom = allRoomMap.get(conn.from);
-    const toRoom = allRoomMap.get(conn.to);
+        {/* Exterior wall segments — amber lines */}
+        {walls.map((wall, i) => (
+          <line
+            key={`wall-${i}`}
+            x1={wall.x1} y1={wall.y1}
+            x2={wall.x2} y2={wall.y2}
+            stroke="#8b7355"
+            strokeWidth={1.5}
+            strokeLinecap="square"
+            className="encounter-map__wall"
+          />
+        ))}
 
-    if (!fromRoom || !toRoom || !conn.door_type) return null;
+        {/* Invisible click targets — GM only (transparent rects for reliable hit detection) */}
+        {isGM && room.rects.map((rect, i) => (
+          <rect
+            key={`hit-${i}`}
+            x={rect.x * unitSize}
+            y={rect.y * unitSize}
+            width={rect.w * unitSize}
+            height={rect.h * unitSize}
+            fill="transparent"
+            style={{ cursor: onRoomToggle ? 'pointer' : 'default' }}
+            onClick={() => handleRoomClick(room)}
+            className="encounter-map__room"
+          />
+        ))}
 
-    const fromEdge = getConnectionEdge(fromRoom, toRoom);
-    const toEdge = getConnectionEdge(toRoom, fromRoom);
-
-    const style = CONNECTION_STYLES[conn.door_type || 'standard'] || CONNECTION_STYLES.standard;
-
-    const fromOrientation = (fromEdge.side === 'left' || fromEdge.side === 'right') ? 'vertical' : 'horizontal';
-    const toOrientation = (toEdge.side === 'left' || toEdge.side === 'right') ? 'vertical' : 'horizontal';
-
-    // Only render doors on visible room edges
-    const fromVisible = isRoomVisible(conn.from);
-    const toVisible = isRoomVisible(conn.to);
-
-    // Get effective status (runtime override > YAML default)
-    const effectiveStatus = getEffectiveDoorStatus(conn);
-
-    return (
-      <g key={`doors-${conn.id}`}>
-        {fromVisible && renderDoorSymbol(
-          fromEdge.x, fromEdge.y,
-          conn.door_type, effectiveStatus,
-          style, fromOrientation,
-          `${conn.id}-from`
+        {/* Room label — centered, only for named rooms, only when visible */}
+        {label && visible && (
+          <text
+            x={label.x}
+            y={label.y}
+            className="encounter-map__room-label"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            {room.name}
+          </text>
         )}
-        {toVisible && renderDoorSymbol(
-          toEdge.x, toEdge.y,
-          conn.door_type, effectiveStatus,
-          style, toOrientation,
-          `${conn.id}-to`
-        )}
       </g>
     );
   };
 
-  // Render a room
-  const renderRoom = (room: RoomData) => {
-    const x = room.x * unitSize;
-    const y = room.y * unitSize;
-    const width = room.width * unitSize;
-    const height = room.height * unitSize;
-    const isSelected = selectedRoom === room.id;
+  // -------------------------------------------------------------------
+  // Pan/zoom handlers — unchanged from original renderer
+  // -------------------------------------------------------------------
 
-    const statusClass = room.status ? `encounter-map__room--${room.status.toLowerCase()}` : '';
+  // Wheel zoom handler — attached as native listener with { passive: false }
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
 
-    return (
-      <g key={room.id} className="encounter-map__room-group">
-        <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          className={`encounter-map__room ${statusClass} ${isSelected ? 'encounter-map__room--selected' : ''}`}
-          data-room-id={room.id}
-          onMouseEnter={(e) => handleRoomEnter(room, e)}
-          onMouseMove={handleRoomMove}
-          onMouseLeave={handleRoomLeave}
-          onClick={() => handleRoomClick(room)}
-        />
-        <text
-          x={x + width / 2}
-          y={y + height / 2}
-          className="encounter-map__room-label"
-        >
-          {room.name}
-        </text>
-      </g>
-    );
-  };
+    const container = containerRef.current;
+    if (!container) return;
 
-  // Render a terminal inside a room
-  const renderTerminal = (terminal: any) => {
-    const x = terminal.position.x * unitSize;
-    const y = terminal.position.y * unitSize;
+    const rect = container.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
-    return (
-      <g
-        key={terminal.id}
-        className="encounter-map__terminal"
-        transform={`translate(${x}, ${y})`}
-        onMouseEnter={(e) => {
-          setTooltip({
-            visible: true,
-            x: e.clientX + 15,
-            y: e.clientY + 15,
-            content: {
-              title: terminal.name,
-              type: 'Terminal',
-            },
-          });
-        }}
-        onMouseMove={handleRoomMove}
-        onMouseLeave={handleRoomLeave}
-      >
-        <rect x={-6} y={-5} width={12} height={10} rx={1} fill={COLORS.amber} />
-        <rect x={-4} y={-3} width={8} height={6} fill={COLORS.bgPrimary} />
-        <rect x={-2} y={5} width={4} height={2} fill={COLORS.amber} />
-      </g>
-    );
-  };
+    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
 
-  // Render a POI
-  const renderPoi = (poi: any) => {
-    const x = poi.position.x * unitSize;
-    const y = poi.position.y * unitSize;
-    const iconPath = POI_ICONS[poi.icon] || POI_ICONS[poi.type] || POI_ICONS.item;
+    setViewState((prev) => {
+      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom * zoomDelta));
+      const zoomRatio = newZoom / prev.zoom;
 
-    const poiColor = poi.type === 'hazard' ? COLORS.hazard :
-                     poi.type === 'objective' ? COLORS.amber :
-                     COLORS.teal;
+      const newPanX = mouseX - (mouseX - prev.panX) * zoomRatio;
+      const newPanY = mouseY - (mouseY - prev.panY) * zoomRatio;
 
-    return (
-      <g
-        key={poi.id}
-        className={`encounter-map__poi encounter-map__poi--${poi.type}`}
-        transform={`translate(${x}, ${y})`}
-        onMouseEnter={(e) => {
-          setTooltip({
-            visible: true,
-            x: e.clientX + 15,
-            y: e.clientY + 15,
-            content: {
-              title: poi.name,
-              description: poi.description,
-              status: poi.status,
-              type: poi.type,
-            },
-          });
-        }}
-        onMouseMove={handleRoomMove}
-        onMouseLeave={handleRoomLeave}
-      >
-        <path d={iconPath} fill={poiColor} stroke={COLORS.bgPrimary} strokeWidth={1} />
-      </g>
-    );
-  };
+      return { panX: newPanX, panY: newPanY, zoom: newZoom };
+    });
+  }, []);
 
-  // Get all connections from map data (support both 'connections' and 'doors' format)
-  const allConnections: ConnectionData[] = useMemo(() => {
-    // New format: explicit connections array
-    if (mapData.connections) {
-      return mapData.connections;
+  // Mouse down handler for pan start
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('.encounter-map__room') ||
+        target.closest('.encounter-map__door') ||
+        target.closest('.encounter-map__token')) {
+      return;
     }
-    // Legacy format: derive from doors with room_a/room_b
-    if (mapData.doors) {
-      return mapData.doors
-        .filter((d: any) => d.room_a && d.room_b)
-        .map((d: any) => ({
-          id: d.id,
-          from: d.room_a,
-          to: d.room_b,
-          door_type: d.type,
-          door_status: d.status,
-        }));
+
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    viewStart.current = { panX: viewState.panX, panY: viewState.panY };
+
+    if (containerRef.current) {
+      containerRef.current.style.cursor = 'grabbing';
     }
-    return [];
-  }, [mapData]);
+  }, [viewState.panX, viewState.panY]);
 
-  // Connection lines only show when BOTH rooms are visible
-  const visibleConnectionLines: ConnectionData[] = useMemo(() => {
-    return allConnections.filter(conn =>
-      isRoomVisible(conn.from) && isRoomVisible(conn.to)
-    );
-  }, [allConnections, isRoomVisible]);
+  // Mouse move handler for panning
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging.current) return;
 
-  // Doors show when AT LEAST ONE room is visible
-  const visibleDoors: ConnectionData[] = useMemo(() => {
-    return allConnections.filter(conn =>
-      isRoomVisible(conn.from) || isRoomVisible(conn.to)
-    );
-  }, [allConnections, isRoomVisible]);
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
 
-  // Filter terminals to only show those in visible rooms
-  const visibleTerminals = useMemo(() => {
-    if (!mapData.terminals) return [];
-    return mapData.terminals.filter(terminal => isRoomVisible(terminal.room));
-  }, [mapData.terminals, isRoomVisible]);
+    setViewState((prev) => ({
+      ...prev,
+      panX: viewStart.current.panX + dx,
+      panY: viewStart.current.panY + dy,
+    }));
+  }, []);
 
-  // Filter POIs to only show those in visible rooms
-  const visiblePois = useMemo(() => {
-    if (!mapData.poi) return [];
-    return mapData.poi.filter(poi => isRoomVisible(poi.room));
-  }, [mapData.poi, isRoomVisible]);
+  // Mouse up handler for pan end
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
+    if (containerRef.current) {
+      containerRef.current.style.cursor = 'grab';
+    }
+  }, []);
 
+  // Effect to handle mouse up outside container
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      isDragging.current = false;
+      if (containerRef.current) {
+        containerRef.current.style.cursor = 'grab';
+      }
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
+
+  // Reset view handler
+  const handleResetView = useCallback(() => {
+    setViewState({ panX: 0, panY: 0, zoom: 1 });
+  }, []);
+
+  // Touch start handler
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (tokenTouchActive) return;
+
+    if (e.touches.length === 1) {
+      isDragging.current = true;
+      dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      viewStart.current = { panX: viewState.panX, panY: viewState.panY };
+    } else if (e.touches.length === 2) {
+      isDragging.current = false;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
+      lastTouchCenter.current = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+    }
+  }, [viewState.panX, viewState.panY]);
+
+  // Touch move handler — attached as native event with { passive: false } to allow preventDefault
+  const touchMoveHandler = useCallback((e: TouchEvent) => {
+    if (tokenTouchActive) return;
+
+    e.preventDefault();
+
+    if (e.touches.length === 1 && isDragging.current) {
+      const dx = e.touches[0].clientX - dragStart.current.x;
+      const dy = e.touches[0].clientY - dragStart.current.y;
+
+      setViewState((prev) => ({
+        ...prev,
+        panX: viewStart.current.panX + dx,
+        panY: viewStart.current.panY + dy,
+      }));
+    } else if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      const container = containerRef.current;
+      if (!container || !lastTouchCenter.current) return;
+
+      const rect = container.getBoundingClientRect();
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+      const scale = distance / lastTouchDistance.current;
+
+      setViewState((prev) => {
+        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom * scale));
+        const zoomRatio = newZoom / prev.zoom;
+
+        const newPanX = centerX - (centerX - prev.panX) * zoomRatio;
+        const newPanY = centerY - (centerY - prev.panY) * zoomRatio;
+
+        return { panX: newPanX, panY: newPanY, zoom: newZoom };
+      });
+
+      lastTouchDistance.current = distance;
+      lastTouchCenter.current = { x: centerX + rect.left, y: centerY + rect.top };
+    }
+  }, []);
+
+  // Attach touchmove as native event listener with { passive: false }
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('touchmove', touchMoveHandler, { passive: false });
+    return () => {
+      container.removeEventListener('touchmove', touchMoveHandler);
+    };
+  }, [touchMoveHandler]);
+
+  // Attach wheel as native event listener with { passive: false } so preventDefault works
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
+
+  // Touch end handler
+  const handleTouchEnd = useCallback(() => {
+    isDragging.current = false;
+    lastTouchDistance.current = null;
+    lastTouchCenter.current = null;
+  }, []);
+
+  // -------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------
   return (
     <div
       ref={containerRef}
@@ -995,9 +741,9 @@ export function EncounterMapRenderer({
       onTouchEnd={handleTouchEnd}
       style={{ cursor: 'grab', touchAction: 'none' }}
     >
-      {/* SVG Map - fills the grid */}
+      {/* SVG Map */}
       <svg
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        viewBox={`${originX} ${originY} ${svgWidth} ${svgHeight}`}
         className="encounter-map-renderer__svg"
         preserveAspectRatio="xMidYMid meet"
         style={{
@@ -1005,32 +751,64 @@ export function EncounterMapRenderer({
           transformOrigin: '0 0',
         }}
       >
-        {/* Background */}
-        <rect x={0} y={0} width={svgWidth} height={svgHeight} fill={COLORS.bgPrimary} />
+        <defs>
+          {/* Background grid pattern for void areas */}
+          <pattern
+            id="map-bg-grid"
+            width={unitSize} height={unitSize}
+            patternUnits="userSpaceOnUse"
+            x={originX} y={originY}
+          >
+            <path
+              d={`M ${unitSize} 0 L 0 0 0 ${unitSize}`}
+              fill="none" stroke="#141e1e" strokeWidth={0.5}
+            />
+          </pattern>
+          {/* Floor scanline texture for room interiors */}
+          <pattern
+            id="floor-scanline"
+            width={unitSize} height={unitSize}
+            patternUnits="userSpaceOnUse"
+            x={originX} y={originY}
+          >
+            <line
+              x1={0} y1={Math.floor(unitSize / 2)}
+              x2={unitSize} y2={Math.floor(unitSize / 2)}
+              stroke="#182020" strokeWidth={0.5}
+            />
+          </pattern>
+        </defs>
 
-        {/* Connection path lines (rendered first, below rooms) - only when BOTH rooms visible */}
-        <g className="encounter-map__connection-paths">
-          {visibleConnectionLines.map(renderConnectionPath)}
-        </g>
+        {/* Background — fill entire viewBox with faint grid */}
+        <rect
+          x={originX} y={originY}
+          width={svgWidth} height={svgHeight}
+          fill={COLORS.bgPrimary}
+        />
+        <rect
+          x={originX} y={originY}
+          width={svgWidth} height={svgHeight}
+          fill="url(#map-bg-grid)"
+        />
 
-        {/* Rooms (filtered by visibility) */}
+        {/* Rooms (with walls, floor fill, click targets, labels) */}
         <g className="encounter-map__rooms">
-          {visibleRooms.map(renderRoom)}
+          {mapData.rooms.map(renderRoom)}
         </g>
 
-        {/* Doors (rendered above rooms) - shown when AT LEAST ONE room visible */}
+        {/* Door symbols — rendered above room floors and walls */}
         <g className="encounter-map__doors">
-          {visibleDoors.map(renderConnectionDoors)}
-        </g>
-
-        {/* Terminals (filtered by room visibility) */}
-        <g className="encounter-map__terminals">
-          {visibleTerminals.map(renderTerminal)}
-        </g>
-
-        {/* Points of Interest (filtered by room visibility) */}
-        <g className="encounter-map__pois">
-          {visiblePois.map(renderPoi)}
+          {mapData.rooms.flatMap(room =>
+            (room.doors || []).map((door, i) => {
+              if (!isGM && !isRoomVisible(room.id)) return null;
+              const pos = getDoorSVGPosition(room.rects, door, unitSize);
+              const style = CONNECTION_STYLES[door.type] || CONNECTION_STYLES.standard;
+              return renderDoorSymbol(
+                pos.x, pos.y, door.type, door.status, style, pos.orientation,
+                `door-${room.id}-${i}`
+              );
+            })
+          )}
         </g>
 
         {/* Token layer (rendered above all other elements) */}
@@ -1043,7 +821,7 @@ export function EncounterMapRenderer({
             onTokenMove={onTokenMove}
             selectedTokenId={selectedTokenId}
             onTokenSelect={setSelectedTokenId}
-            mapRooms={mapData.rooms}
+            mapRooms={mapData.rooms as unknown as import('../../../types/encounterMap').RoomData[]}
           />
         )}
       </svg>
@@ -1075,16 +853,6 @@ export function EncounterMapRenderer({
           <LegendPanel />
         </div>
       </div>
-
-      <RoomTooltip
-        visible={tooltip.visible}
-        x={tooltip.x}
-        y={tooltip.y}
-        title={tooltip.content.title}
-        description={tooltip.content.description}
-        status={tooltip.content.status}
-        type={tooltip.content.type}
-      />
 
       {/* Token popup — rendered outside SVG for proper styling */}
       {selectedTokenId && tokens && tokens[selectedTokenId] && (() => {

@@ -80,7 +80,7 @@ interface EncounterMapDisplayProps {
 export function EncounterMapDisplay({
   locationData,
   roomVisibility,
-  doorStatus,
+  doorStatus: _doorStatus,
   currentLevel = 1,
   totalLevels = 1,
   deckName,

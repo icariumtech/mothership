@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 7 of 7 (Grid-Based Encounter Map Redesign)
-Plan: 1 of 4 completed
-Status: In Progress
-Last activity: 2026-02-23 — Completed 07-01-PLAN.md (grid-based TypeScript types + YAML map files rebuilt in rects format)
+Plan: 3 of 4 completed
+Status: In Progress — wave 3 (human verification)
+Last activity: 2026-02-23 — Completed 07-02 (grid SVG renderer rewrite) and 07-03 (consumer component updates)
 
-Progress: [█░░░░░░░░░] 10% (Phase 7: 1/4 plans)
+Progress: [███░░░░░░░] 30% (Phase 7: 3/4 plans)
 
 ## Performance Metrics
 
@@ -113,6 +113,12 @@ Recent decisions affecting current work:
 - [Phase 07-01]: unit_size: 40 at top level replaces grid: {width, height} block — canvas dimensions computed from room geometry
 - [Phase 07-01]: Corridors are GridRoom entries with name: '' and type: corridor — renderer skips label for empty names
 - [Phase 07-01]: isGridEncounterMap() guard uses rooms[0].rects presence — checked before isEncounterMap() in routing
+- [Phase 07-02]: Wall-segment algorithm: edge-count exclusion — edges shared by 2+ rects are interior (not drawn), exactly 1 = exterior wall
+- [Phase 07-02]: SVG bounding box computed from ALL rooms regardless of visibility to prevent layout shift on reveal
+- [Phase 07-02]: computeRoomWalls() works per-room — each room group renders its own walls; doors positioned via getDoorSVGPosition()
+- [Phase 07-03]: TokenLayer uses duck-typing ('rects' in room) to distinguish GridRoom from legacy RoomData in findRoomAtCell
+- [Phase 07-03]: MapPreview early-returns for grid maps delegating to EncounterMapRenderer; onRoomToggle threaded through
+- [Phase 07-03]: EncounterPanel bulk buttons changed from icon+tooltip to labeled text (REVEAL ALL / HIDE ALL); status badge removed
 
 ### Roadmap Evolution
 
@@ -128,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-23 — Completed 07-01-PLAN.md (grid-based TypeScript types + three YAML map files rebuilt in rects format)
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-02-23 — Completed 07-02 (grid SVG renderer) and 07-03 (consumer component updates)
+Stopped at: Wave 2 complete, awaiting human verification (07-04 checkpoint)
 Resume file: None

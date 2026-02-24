@@ -6,14 +6,9 @@ import {
   Typography,
   Switch,
   message,
-  Tooltip,
   Empty,
   Card,
 } from 'antd';
-import {
-  EyeOutlined,
-  EyeInvisibleOutlined,
-} from '@ant-design/icons';
 import { encounterApi, type DeckWithRooms } from '@/services/encounterApi';
 import type { ActiveView } from '@/types/gmConsole';
 import type {
@@ -22,8 +17,9 @@ import type {
   DoorStatusState,
   DoorStatus,
   DeckInfo,
-  RoomData,
   EncounterMapData,
+  GridEncounterMapData,
+  GridRect,
   TokenState,
   TokenType,
   TokenStatus,
@@ -33,11 +29,19 @@ import { TokenPalette } from './TokenPalette';
 
 const { Text } = Typography;
 
-// Room with deck info for display
-interface RoomWithDeck extends RoomData {
+// Room with deck info for display (supports both legacy RoomData and new GridRoom shapes)
+interface RoomWithDeck {
+  id: string;
+  name: string;
   deckId: string;
   deckName: string;
   deckLevel: number;
+  // Grid format fields
+  rects?: GridRect[];
+  type?: string;
+  description?: string;
+  // Legacy format fields (may be absent in grid format)
+  status?: string;
 }
 
 interface EncounterPanelProps {
@@ -50,7 +54,7 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
   const [allDecks, setAllDecks] = useState<DeckWithRooms[]>([]);
   const [roomVisibility, setRoomVisibility] = useState<RoomVisibilityState>({});
   const [doorStatus, setDoorStatus] = useState<DoorStatusState>({});
-  const [currentDeckMapData, setCurrentDeckMapData] = useState<EncounterMapData | null>(null);
+  const [currentDeckMapData, setCurrentDeckMapData] = useState<EncounterMapData | GridEncounterMapData | null>(null);
   const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -434,6 +438,7 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
             onTokenMove={handleTokenMove}
             onTokenRemove={handleTokenRemove}
             onTokenStatusToggle={handleTokenStatusToggle}
+            onRoomToggle={handleRoomToggle}
           />
         ) : (
           <div style={{
@@ -475,20 +480,20 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ color: '#5a7a7a' }}>ROOM VISIBILITY</Text>
             <Space size="small">
-              <Tooltip title="Show all rooms">
-                <Button
-                  icon={<EyeOutlined />}
-                  size="small"
-                  onClick={handleShowAll}
-                />
-              </Tooltip>
-              <Tooltip title="Hide all rooms">
-                <Button
-                  icon={<EyeInvisibleOutlined />}
-                  size="small"
-                  onClick={handleHideAll}
-                />
-              </Tooltip>
+              <Button
+                size="small"
+                onClick={handleShowAll}
+                style={{ fontSize: 11, color: '#4a6b6b', borderColor: '#2a3a3a' }}
+              >
+                REVEAL ALL
+              </Button>
+              <Button
+                size="small"
+                onClick={handleHideAll}
+                style={{ fontSize: 11, color: '#8b5555', borderColor: '#2a3a3a' }}
+              >
+                HIDE ALL
+              </Button>
             </Space>
           </div>
         }
@@ -531,20 +536,12 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
                 >
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <Text style={{ fontSize: 12 }}>{room.name}</Text>
-                      {room.status && (
-                        <Text
-                          type="secondary"
-                          style={{
-                            fontSize: 10,
-                            marginLeft: 8,
-                            color: room.status === 'HAZARD' ? '#8b5555' :
-                                   room.status === 'WARNING' ? '#8b7355' :
-                                   room.status === 'OFFLINE' ? '#5a5a5a' : '#5a7a7a'
-                          }}
-                        >
-                          [{room.status}]
-                        </Text>
+                      <Text style={{ fontSize: 12 }}>{room.name || <em style={{ color: '#5a5a5a' }}>corridor</em>}</Text>
+                      {/* Show room type tag if present (grid format uses type field) */}
+                      {room.type && room.type !== 'corridor' && (
+                        <span style={{ fontSize: 10, color: '#3a5a5a', marginLeft: 4 }}>
+                          [{room.type}]
+                        </span>
                       )}
                     </div>
                     <Switch

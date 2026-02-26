@@ -116,18 +116,22 @@ export function EncounterMapDisplay({
     // Old-format multi-deck maps (if any exist) fall through to the old renderer.
     if (isGridEncounterMap(deckData)) {
       return (
-        <EncounterMapRenderer
-          mapData={deckData as GridEncounterMapData}
-          {...commonProps}
-        />
+        <div className="encounter-map-display">
+          <EncounterMapRenderer
+            mapData={deckData as GridEncounterMapData}
+            {...commonProps}
+          />
+        </div>
       );
     } else if (isEncounterMap(deckData)) {
       // Legacy EncounterMapData deck — cast to pass through until data is migrated to grid format
       return (
-        <EncounterMapRenderer
-          mapData={deckData as unknown as GridEncounterMapData}
-          {...commonProps}
-        />
+        <div className="encounter-map-display">
+          <EncounterMapRenderer
+            mapData={deckData as unknown as GridEncounterMapData}
+            {...commonProps}
+          />
+        </div>
       );
     }
     // If deck format is unrecognized, fall through to null/loading state below.
@@ -136,38 +140,42 @@ export function EncounterMapDisplay({
   // NEW: Grid-based encounter map (Phase 7 format)
   if (mapData && isGridEncounterMap(mapData)) {
     return (
-      <EncounterMapRenderer
-        mapData={mapData as GridEncounterMapData}
-        roomVisibility={roomVisibility}
-        currentLevel={currentLevel}
-        totalLevels={totalLevels}
-        deckName={deckName}
-        tokens={tokens}
-        isGM={isGM}
-        onRoomToggle={onRoomToggle}
-        onTokenMove={onTokenMove}
-        onTokenRemove={onTokenRemove}
-        onTokenStatusToggle={onTokenStatusToggle}
-      />
+      <div className="encounter-map-display">
+        <EncounterMapRenderer
+          mapData={mapData as GridEncounterMapData}
+          roomVisibility={roomVisibility}
+          currentLevel={currentLevel}
+          totalLevels={totalLevels}
+          deckName={deckName}
+          tokens={tokens}
+          isGM={isGM}
+          onRoomToggle={onRoomToggle}
+          onTokenMove={onTokenMove}
+          onTokenRemove={onTokenRemove}
+          onTokenStatusToggle={onTokenStatusToggle}
+        />
+      </div>
     );
   }
 
   // Legacy: interactive encounter map (node-graph format, has rooms + grid)
   if (mapData && isEncounterMap(mapData)) {
     return (
-      <EncounterMapRenderer
-        mapData={mapData as unknown as GridEncounterMapData}
-        roomVisibility={roomVisibility}
-        currentLevel={currentLevel}
-        totalLevels={totalLevels}
-        deckName={deckName}
-        tokens={tokens}
-        isGM={isGM}
-        onRoomToggle={onRoomToggle}
-        onTokenMove={onTokenMove}
-        onTokenRemove={onTokenRemove}
-        onTokenStatusToggle={onTokenStatusToggle}
-      />
+      <div className="encounter-map-display">
+        <EncounterMapRenderer
+          mapData={mapData as unknown as GridEncounterMapData}
+          roomVisibility={roomVisibility}
+          currentLevel={currentLevel}
+          totalLevels={totalLevels}
+          deckName={deckName}
+          tokens={tokens}
+          isGM={isGM}
+          onRoomToggle={onRoomToggle}
+          onTokenMove={onTokenMove}
+          onTokenRemove={onTokenRemove}
+          onTokenStatusToggle={onTokenStatusToggle}
+        />
+      </div>
     );
   }
 

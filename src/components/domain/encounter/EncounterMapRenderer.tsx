@@ -3,23 +3,30 @@
  *
  * Renders GridEncounterMapData: rooms as touching wall-aligned rectangles,
  * wall-segment algorithm for exterior walls, scanline floor texture,
- * faint background grid, and GM click-to-reveal room visibility.
+ * faint background grid, and GM right-click context menu for room visibility.
  */
 
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { message } from 'antd';
 import {
   GridEncounterMapData,
   GridRoom,
   GridRect,
   DoorDef,
+  DoorStatus,
+  DoorStatusState,
   RoomVisibilityState,
   TokenState,
   TokenStatus,
+  TokenType,
 } from '../../../types/encounterMap';
+import { getGridCell } from '../../../utils/svgCoordinates';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
 import { TokenLayer, tokenTouchActive } from './TokenLayer';
 import { TokenPopup } from './TokenPopup';
+import { RoomContextMenu } from './RoomContextMenu';
+import { DoorStatusPopup } from '../../gm/DoorStatusPopup';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
@@ -35,12 +42,19 @@ interface EncounterMapRendererProps {
   tokens?: TokenState;
   /** Is this a GM view? */
   isGM?: boolean;
-  /** Callback when GM clicks a room to toggle visibility */
+  /** Callback when GM toggles room visibility */
   onRoomToggle?: (roomId: string, visible: boolean) => void;
+  /** Door status overrides from GM */
+  doorStatus?: DoorStatusState;
+  /** Callback when GM changes door status */
+  onDoorStatusChange?: (doorId: string, status: DoorStatus) => void;
   /** Token callbacks */
+  onTokenPlace?: (type: TokenType, name: string, x: number, y: number, imageUrl: string, roomId: string) => void;
   onTokenMove?: (id: string, x: number, y: number) => void;
   onTokenRemove?: (id: string) => void;
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
+  /** Optional style override for the root container div (e.g. position:absolute when embedded in MapPreview) */
+  style?: React.CSSProperties;
 }
 
 // Pan and zoom state
@@ -200,11 +214,30 @@ export function EncounterMapRenderer({
   tokens,
   isGM = false,
   onRoomToggle,
+  doorStatus,
+  onDoorStatusChange,
+  onTokenPlace,
   onTokenMove,
-  onTokenRemove: _onTokenRemove,
-  onTokenStatusToggle: _onTokenStatusToggle,
+  onTokenRemove,
+  onTokenStatusToggle,
+  style,
 }: EncounterMapRendererProps) {
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+
+  // Door popup state
+  const [selectedDoor, setSelectedDoor] = useState<{
+    id: string;
+    x: number;
+    y: number;
+    status: DoorStatus;
+  } | null>(null);
+
+  // Room context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    room: GridRoom;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Pan and zoom state
   const [viewState, setViewState] = useState<ViewState>({
@@ -215,6 +248,7 @@ export function EncounterMapRenderer({
 
   // Refs for drag tracking
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const viewStart = useRef({ panX: 0, panY: 0 });
@@ -237,12 +271,116 @@ export function EncounterMapRenderer({
   }, [roomVisibility]);
 
   // -------------------------------------------------------------------
-  // GM click-to-reveal
+  // Get effective door status: runtime override > YAML default
   // -------------------------------------------------------------------
-  const handleRoomClick = useCallback((room: GridRoom) => {
-    if (!isGM || !onRoomToggle) return;
-    onRoomToggle(room.id, !isRoomVisible(room.id));
-  }, [isGM, onRoomToggle, isRoomVisible]);
+  const getEffectiveDoorStatus = useCallback((room: GridRoom, doorIndex: number): DoorStatus => {
+    const id = `${room.id}_door_${doorIndex}`;
+    return (doorStatus?.[id] as DoorStatus) || (room.doors?.[doorIndex]?.status as DoorStatus) || 'CLOSED';
+  }, [doorStatus]);
+
+  // -------------------------------------------------------------------
+  // Find room containing a grid cell
+  // -------------------------------------------------------------------
+  const findRoomAtCell = useCallback((gridX: number, gridY: number): GridRoom | null => {
+    return mapData.rooms.find(room =>
+      room.rects.some(r => gridX >= r.x && gridX < r.x + r.w && gridY >= r.y && gridY < r.y + r.h)
+    ) ?? null;
+  }, [mapData.rooms]);
+
+  // -------------------------------------------------------------------
+  // Check if a grid cell is occupied by a token
+  // -------------------------------------------------------------------
+  const isCellOccupied = useCallback((gridX: number, gridY: number): boolean => {
+    if (!tokens) return false;
+    return Object.values(tokens).some(t => t.x === gridX && t.y === gridY);
+  }, [tokens]);
+
+  // -------------------------------------------------------------------
+  // Door click handler — opens DoorStatusPopup
+  // -------------------------------------------------------------------
+  const handleDoorClick = useCallback((
+    e: React.MouseEvent,
+    room: GridRoom,
+    doorIndex: number,
+    doorPos: { x: number; y: number }
+  ) => {
+    if (!isGM || !onDoorStatusChange) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+
+    const viewBox = svg.viewBox.baseVal;
+    const svgRect = svg.getBoundingClientRect();
+    const scaleX = svgRect.width / viewBox.width;
+    const scaleY = svgRect.height / viewBox.height;
+    const scale = Math.min(scaleX, scaleY);
+    const offsetX = (svgRect.width - viewBox.width * scale) / 2;
+    const offsetY = (svgRect.height - viewBox.height * scale) / 2;
+
+    const popupX = offsetX + doorPos.x * scale * viewState.zoom + viewState.panX;
+    const popupY = offsetY + doorPos.y * scale * viewState.zoom + viewState.panY;
+
+    const id = `${room.id}_door_${doorIndex}`;
+    setSelectedDoor({ id, x: popupX, y: popupY, status: getEffectiveDoorStatus(room, doorIndex) });
+  }, [isGM, onDoorStatusChange, viewState, getEffectiveDoorStatus]);
+
+  // -------------------------------------------------------------------
+  // Room right-click handler — opens context menu
+  // -------------------------------------------------------------------
+  const handleRoomContextMenu = useCallback((e: React.MouseEvent, room: GridRoom) => {
+    if (!isGM) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const container = containerRef.current;
+    const rect = container?.getBoundingClientRect();
+    setContextMenu({
+      room,
+      x: e.clientX - (rect?.left || 0),
+      y: e.clientY - (rect?.top || 0),
+    });
+  }, [isGM]);
+
+  // -------------------------------------------------------------------
+  // Token drag-and-drop handlers
+  // -------------------------------------------------------------------
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!isGM || !onTokenPlace) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, [isGM, onTokenPlace]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    if (!isGM || !onTokenPlace || !svgRef.current) return;
+    e.preventDefault();
+
+    const dataStr = e.dataTransfer.getData('application/json');
+    if (!dataStr) return;
+
+    let template: { type: TokenType; name: string; imageUrl: string };
+    try {
+      template = JSON.parse(dataStr);
+    } catch {
+      return;
+    }
+
+    const { gridX, gridY } = getGridCell(svgRef.current, e.clientX, e.clientY, unitSize);
+
+    if (isCellOccupied(gridX, gridY)) {
+      message.warning('Cell is already occupied by another token');
+      return;
+    }
+
+    const room = findRoomAtCell(gridX, gridY);
+    if (!room) {
+      message.warning('Token can only be placed inside a room');
+      return;
+    }
+
+    onTokenPlace(template.type, template.name, gridX, gridY, template.imageUrl || '', room.id);
+  }, [isGM, onTokenPlace, unitSize, isCellOccupied, findRoomAtCell]);
 
   // -------------------------------------------------------------------
   // Render a door symbol at a specific SVG position
@@ -254,7 +392,8 @@ export function EncounterMapRenderer({
     doorStatus: string | undefined,
     style: { stroke: string; doorFill: string },
     orientation: 'horizontal' | 'vertical',
-    key: string
+    key: string,
+    onClickHandler?: (e: React.MouseEvent) => void
   ) => {
     const doorWidth = orientation === 'horizontal' ? 20 : 12;
     const doorHeight = orientation === 'horizontal' ? 12 : 20;
@@ -279,7 +418,12 @@ export function EncounterMapRenderer({
     const doorStrokeWidth = isLocked ? 2 : isSealed ? 2.5 : 1.5;
 
     return (
-      <g key={key} className={`encounter-map__door encounter-map__door--${doorType} ${statusClass}`}>
+      <g
+        key={key}
+        className={`encounter-map__door encounter-map__door--${doorType} ${statusClass}`}
+        onClick={onClickHandler}
+        style={{ cursor: onClickHandler ? 'pointer' : 'default' }}
+      >
         {/* Opaque background to cover wall lines behind door */}
         <rect
           x={x - doorWidth / 2 + 1}
@@ -467,7 +611,7 @@ export function EncounterMapRenderer({
   };
 
   // -------------------------------------------------------------------
-  // renderRoom — floor fill + exterior walls + GM click targets + label
+  // renderRoom — floor fill + exterior walls + GM context menu targets + label
   // -------------------------------------------------------------------
   const renderRoom = (room: GridRoom) => {
     const visible = isRoomVisible(room.id);
@@ -492,20 +636,20 @@ export function EncounterMapRenderer({
           />
         ))}
 
-        {/* Exterior wall segments — amber lines */}
+        {/* Exterior wall segments — teal lines */}
         {walls.map((wall, i) => (
           <line
             key={`wall-${i}`}
             x1={wall.x1} y1={wall.y1}
             x2={wall.x2} y2={wall.y2}
-            stroke="#8b7355"
+            stroke="#4a6b6b"
             strokeWidth={1.5}
             strokeLinecap="square"
             className="encounter-map__wall"
           />
         ))}
 
-        {/* Invisible click targets — GM only (transparent rects for reliable hit detection) */}
+        {/* Invisible hit targets — GM only, right-click for context menu */}
         {isGM && room.rects.map((rect, i) => (
           <rect
             key={`hit-${i}`}
@@ -514,18 +658,19 @@ export function EncounterMapRenderer({
             width={rect.w * unitSize}
             height={rect.h * unitSize}
             fill="transparent"
-            style={{ cursor: onRoomToggle ? 'pointer' : 'default' }}
-            onClick={() => handleRoomClick(room)}
+            style={{ cursor: isGM ? 'context-menu' : 'default' }}
+            onContextMenu={(e) => handleRoomContextMenu(e, room)}
             className="encounter-map__room"
           />
         ))}
 
-        {/* Room label — centered, only for named rooms, only when visible */}
-        {label && visible && (
+        {/* Room label — centered, only for named rooms; visible to players only when revealed */}
+        {label && (isGM || visible) && (
           <text
             x={label.x}
             y={label.y}
             className="encounter-map__room-label"
+            fill="#8b7355"
             textAnchor="middle"
             dominantBaseline="middle"
           >
@@ -537,7 +682,7 @@ export function EncounterMapRenderer({
   };
 
   // -------------------------------------------------------------------
-  // Pan/zoom handlers — unchanged from original renderer
+  // Pan/zoom handlers
   // -------------------------------------------------------------------
 
   // Wheel zoom handler — attached as native listener with { passive: false }
@@ -565,11 +710,11 @@ export function EncounterMapRenderer({
   }, []);
 
   // Mouse down handler for pan start
+  // Note: .encounter-map__room hit targets no longer block panning (left-click now pans)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.closest('.encounter-map__room') ||
-        target.closest('.encounter-map__door') ||
+    if (target.closest('.encounter-map__door') ||
         target.closest('.encounter-map__token')) {
       return;
     }
@@ -728,10 +873,25 @@ export function EncounterMapRenderer({
       onMouseUp={handleMouseUp}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      style={{ cursor: 'grab', touchAction: 'none' }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+        userSelect: 'none',
+        cursor: 'grab',
+        touchAction: 'none',
+        ...style,
+      }}
     >
       {/* SVG Map */}
       <svg
+        ref={svgRef}
         viewBox={`${originX} ${originY} ${svgWidth} ${svgHeight}`}
         className="encounter-map-renderer__svg"
         preserveAspectRatio="xMidYMid meet"
@@ -780,7 +940,7 @@ export function EncounterMapRenderer({
           fill="url(#map-bg-grid)"
         />
 
-        {/* Rooms (with walls, floor fill, click targets, labels) */}
+        {/* Rooms (with walls, floor fill, context menu targets, labels) */}
         <g className="encounter-map__rooms">
           {mapData.rooms.map(renderRoom)}
         </g>
@@ -792,9 +952,12 @@ export function EncounterMapRenderer({
               if (!isGM && !isRoomVisible(room.id)) return null;
               const pos = getDoorSVGPosition(room.rects, door, unitSize);
               const style = CONNECTION_STYLES[door.type] || CONNECTION_STYLES.standard;
+              const clickHandler = (isGM && onDoorStatusChange)
+                ? (e: React.MouseEvent) => handleDoorClick(e, room, i, pos)
+                : undefined;
               return renderDoorSymbol(
-                pos.x, pos.y, door.type, door.status, style, pos.orientation,
-                `door-${room.id}-${i}`
+                pos.x, pos.y, door.type, getEffectiveDoorStatus(room, i),
+                style, pos.orientation, `door-${room.id}-${i}`, clickHandler
               );
             })
           )}
@@ -816,20 +979,53 @@ export function EncounterMapRenderer({
       </svg>
 
       {/* Overlay panels - positioned by CSS Grid */}
-      <div className="encounter-map__overlays">
+      <div
+        className="encounter-map__overlays"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr auto',
+          gridTemplateRows: 'auto 1fr auto',
+          gridTemplateAreas: '"top-left . top-right" ". . ." "bottom-left . bottom-right"',
+          padding: '20px',
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      >
         {/* Reset view button - top left */}
         {(viewState.zoom !== 1 || viewState.panX !== 0 || viewState.panY !== 0) && (
           <button
             className="encounter-map__reset-btn"
             onClick={handleResetView}
             title="Reset view"
+            style={{
+              gridArea: 'top-left',
+              alignSelf: 'start',
+              justifySelf: 'start',
+              pointerEvents: 'auto',
+              background: 'rgba(15, 21, 21, 0.95)',
+              border: '1px solid #4a6b6b',
+              color: '#8b7355',
+              fontFamily: "'Cascadia Code', 'Courier New', monospace",
+              fontSize: '11px',
+              letterSpacing: '2px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+            }}
           >
             RESET VIEW
           </button>
         )}
 
         {/* Level indicator - top right */}
-        <div className="encounter-map__level-indicator">
+        <div
+          className="encounter-map__level-indicator"
+          style={{ gridArea: 'top-right', alignSelf: 'start', justifySelf: 'end' }}
+        >
           <LevelIndicator
             currentLevel={currentLevel}
             totalLevels={totalLevels}
@@ -838,7 +1034,10 @@ export function EncounterMapRenderer({
         </div>
 
         {/* Legend - bottom right */}
-        <div className="encounter-map__legend">
+        <div
+          className="encounter-map__legend"
+          style={{ gridArea: 'bottom-right', alignSelf: 'end', justifySelf: 'end' }}
+        >
           <LegendPanel />
         </div>
       </div>
@@ -869,10 +1068,41 @@ export function EncounterMapRenderer({
             x={popupX}
             y={popupY}
             onClose={() => setSelectedTokenId(null)}
+            onRemove={onTokenRemove}
+            onStatusToggle={onTokenStatusToggle}
             isGM={isGM}
           />
         );
       })()}
+
+      {/* Door status popup — rendered outside SVG */}
+      {selectedDoor && onDoorStatusChange && (
+        <DoorStatusPopup
+          x={selectedDoor.x}
+          y={selectedDoor.y}
+          currentStatus={selectedDoor.status}
+          onSelect={(status) => {
+            onDoorStatusChange(selectedDoor.id, status);
+            setSelectedDoor(null);
+          }}
+          onClose={() => setSelectedDoor(null)}
+        />
+      )}
+
+      {/* Room context menu — rendered outside SVG */}
+      {contextMenu && isGM && (
+        <RoomContextMenu
+          room={contextMenu.room}
+          isVisible={isRoomVisible(contextMenu.room.id)}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onToggleVisibility={() => {
+            onRoomToggle?.(contextMenu.room.id, !isRoomVisible(contextMenu.room.id));
+            setContextMenu(null);
+          }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

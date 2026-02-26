@@ -81,12 +81,15 @@ export function TokenLayer({
     }
   }, []);
 
-  // Filter tokens by visibility
+  // Filter tokens by visibility:
+  // - GM always sees all tokens (for setup/management)
+  // - Players see tokens only in visible rooms (roomVisibility[room] !== false)
+  // - Rooms not in the visibility dict are visible by default (same logic as isRoomVisible)
   const filteredTokens = Object.entries(tokens).filter(([_id, token]) => {
     if (isGM) return true;
     if (!token.room_id || token.room_id === '') return true;
     if (!roomVisibility) return true;
-    return roomVisibility[token.room_id] === true;
+    return roomVisibility[token.room_id] !== false;
   });
 
   const findRoomAtCell = (gridX: number, gridY: number): RoomData | GridRoom | null => {

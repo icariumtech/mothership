@@ -5,7 +5,7 @@
 
 .encounter-view {
   position: fixed;
-  top: 0;
+  top: 52px; /* below the 52px terminal header so overlay panels aren't hidden behind it */
   left: 0;
   right: 0;
   bottom: 0;

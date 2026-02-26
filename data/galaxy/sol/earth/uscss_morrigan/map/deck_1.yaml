@@ -1,56 +1,48 @@
 deck_id: "deck_1"
 name: "USCSS Morrigan - Main Deck"
 location_name: "USCSS Morrigan"
-description: "Main deck layout showing bridge, engineering, and crew quarters"
+description: "Main deck layout - central corridor with bridge, crew and medical above; engineering, cargo and airlock below"
 unit_size: 40
 
 rooms:
+  # === UPPER ROOMS (above main corridor) ===
+
   - id: bridge
     name: "BRIDGE"
     rects:
-      - {x: 0, y: 0, w: 5, h: 3}
+      - {x: 1, y: 0, w: 5, h: 3}
     doors:
-      - {wall: east, position: 1, type: standard, status: OPEN}
       - {wall: south, position: 2, type: blast_door, status: CLOSED}
     description: "Primary flight control and navigation center"
     type: bridge
-
-  - id: corridor_bridge_crew
-    name: ""
-    rects:
-      - {x: 5, y: 1, w: 3, h: 1}
-    type: corridor
 
   - id: crew_quarters
     name: "CREW QUARTERS"
     rects:
       - {x: 8, y: 0, w: 5, h: 3}
     doors:
-      - {wall: west, position: 1, type: standard, status: OPEN}
-      - {wall: east, position: 1, type: standard, status: CLOSED}
+      - {wall: south, position: 2, type: standard, status: OPEN}
     description: "Crew sleeping pods and personal storage"
     type: crew
-
-  - id: corridor_crew_medical
-    name: ""
-    rects:
-      - {x: 13, y: 1, w: 3, h: 1}
-    type: corridor
 
   - id: medical
     name: "MEDICAL BAY"
     rects:
-      - {x: 16, y: 0, w: 5, h: 3}
+      - {x: 15, y: 0, w: 5, h: 3}
     doors:
-      - {wall: west, position: 1, type: standard, status: CLOSED}
+      - {wall: south, position: 2, type: standard, status: CLOSED}
     description: "Medical treatment and quarantine facility"
     type: medical
 
-  - id: corridor_bridge_eng
+  # === MAIN CORRIDOR ===
+
+  - id: main_corridor
     name: ""
     rects:
-      - {x: 2, y: 3, w: 1, h: 2}
+      - {x: 0, y: 3, w: 20, h: 2}
     type: corridor
+
+  # === LOWER ROOMS (below main corridor) ===
 
   - id: engineering
     name: "ENGINEERING"
@@ -58,52 +50,35 @@ rooms:
       - {x: 0, y: 5, w: 5, h: 4}
     doors:
       - {wall: north, position: 2, type: blast_door, status: CLOSED}
-      - {wall: east, position: 1, type: standard, status: OPEN}
       - {wall: south, position: 2, type: emergency, status: LOCKED}
     description: "Main reactor and engine systems"
     type: engineering
 
-  - id: corridor_eng_cargo
-    name: ""
-    rects:
-      - {x: 5, y: 6, w: 1, h: 1}
-    type: corridor
-
   - id: cargo_bay
     name: "CARGO BAY"
     rects:
-      - {x: 6, y: 5, w: 6, h: 4}
+      - {x: 6, y: 5, w: 7, h: 4}
     doors:
-      - {wall: west, position: 1, type: standard, status: OPEN}
+      - {wall: north, position: 3, type: standard, status: OPEN}
       - {wall: east, position: 1, type: airlock, status: SEALED}
     description: "Primary cargo storage area"
     type: cargo
 
-  - id: corridor_cargo_airlock
-    name: ""
-    rects:
-      - {x: 12, y: 6, w: 1, h: 1}
-    type: corridor
-
   - id: airlock_bay
     name: "AIRLOCK BAY"
     rects:
-      - {x: 13, y: 5, w: 5, h: 4}
+      - {x: 14, y: 5, w: 5, h: 4}
     doors:
-      - {wall: west, position: 1, type: airlock, status: SEALED}
+      - {wall: north, position: 2, type: airlock, status: SEALED}
     description: "EVA preparation and external access"
     type: airlock
 
-  - id: corridor_eng_lifesupport
-    name: ""
-    rects:
-      - {x: 2, y: 9, w: 1, h: 1}
-    type: corridor
+  # === LOWER EXTENSION ===
 
   - id: life_support
     name: "LIFE SUPPORT"
     rects:
-      - {x: 0, y: 10, w: 5, h: 3}
+      - {x: 0, y: 9, w: 5, h: 3}
     doors:
       - {wall: north, position: 2, type: emergency, status: LOCKED}
     description: "Atmospheric recycling and water reclamation"
@@ -113,7 +88,7 @@ terminals:
   - id: bridge_nav
     room: bridge
     position:
-      x: 2.5
+      x: 3.5
       y: 1.5
     terminal_slug: "nav-console"
     name: "NAV CONSOLE"
@@ -121,7 +96,7 @@ terminals:
   - id: bridge_comm
     room: bridge
     position:
-      x: 4.0
+      x: 4.5
       y: 1.5
     terminal_slug: "comm-console"
     name: "COMM CONSOLE"
@@ -137,7 +112,7 @@ terminals:
   - id: med_terminal
     room: medical
     position:
-      x: 18.0
+      x: 17.0
       y: 1.5
     terminal_slug: "medical-console"
     name: "MEDICAL CONSOLE"
@@ -145,18 +120,26 @@ terminals:
   - id: cargo_manifest
     room: cargo_bay
     position:
-      x: 9.0
+      x: 9.5
       y: 7.5
     terminal_slug: "cargo-manifest"
     name: "CARGO MANIFEST"
+
+  - id: life_support_console
+    room: life_support
+    position:
+      x: 2.5
+      y: 10.5
+    terminal_slug: "life-support-console"
+    name: "LIFE SUPPORT CONSOLE"
 
 poi:
   - id: escape_pod_1
     type: "objective"
     room: airlock_bay
     position:
-      x: 14.5
-      y: 6.0
+      x: 16.5
+      y: 6.5
     name: "ESCAPE POD A"
     icon: "pod"
     status: "READY"
@@ -166,7 +149,7 @@ poi:
     type: "objective"
     room: airlock_bay
     position:
-      x: 14.5
+      x: 16.5
       y: 8.0
     name: "ESCAPE POD B"
     icon: "pod"
@@ -177,7 +160,7 @@ poi:
     type: "hazard"
     room: cargo_bay
     position:
-      x: 10.0
+      x: 11.5
       y: 8.5
     name: "HULL BREACH"
     icon: "warning"
@@ -188,7 +171,7 @@ poi:
     type: "item"
     room: cargo_bay
     position:
-      x: 7.0
+      x: 7.5
       y: 7.0
     name: "SUPPLY CRATE"
     icon: "crate"
@@ -208,5 +191,5 @@ poi:
 metadata:
   author: "GM"
   created: "2183-06-15"
-  version: 2
+  version: 3
   tags: ["ship", "exploration", "combat"]

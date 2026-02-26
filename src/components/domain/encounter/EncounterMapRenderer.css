@@ -4,16 +4,13 @@
  */
 
 .encounter-map-renderer {
-  position: fixed;
-  top: 52px; /* Below header bar */
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: #0a0a0a;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 0;
   overflow: hidden;
   user-select: none;
   touch-action: none; /* Prevent browser touch handling for pan/zoom */
@@ -41,6 +38,7 @@
     "bottom-left .      bottom-right";
   padding: 20px;
   pointer-events: none; /* Allow clicks to pass through to map */
+  z-index: 1; /* Paint above SVG transform stacking context */
 }
 
 /* Re-enable pointer events on overlay children */
@@ -103,7 +101,7 @@
 .encounter-map__room-label {
   font-family: 'Cascadia Code', 'Courier New', monospace;
   font-size: 9px;
-  fill: #4a6b6b;
+  fill: #8b7355;
   letter-spacing: 0.05em;
   pointer-events: none;
   user-select: none;

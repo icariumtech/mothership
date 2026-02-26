@@ -109,27 +109,63 @@ export function MapPreview({
   onTokenStatusToggle,
   onRoomToggle,
 }: MapPreviewProps) {
-  // Grid-format maps: delegate to EncounterMapRenderer with GM controls
+  // Grid-format maps: delegate to EncounterMapRenderer with GM controls.
+  //
+  // Sizing strategy — mirrors the terminal DOM structure exactly:
+  //   Terminal: encounter-view (fixed,definite-height)
+  //               └─ encounter-map-display (position:relative, height:100%, display:flex)
+  //                    └─ encounter-map-renderer (position:relative, height:100%, display:flex)
+  //                         └─ encounter-map__overlays (position:absolute, inset:0, display:grid)
+  //
+  //   MapPreview: outer-box (position:relative, aspect-ratio → definite height)
+  //               └─ inner-fill (position:absolute, inset:0, display:flex) ← mirrors encounter-map-display
+  //                    └─ encounter-map-renderer (position:relative, height:100%, display:flex) ← unchanged
+  //                         └─ encounter-map__overlays (position:absolute, inset:0, display:grid) ← works!
+  //
+  //   The renderer keeps position:relative (its CSS class default) so its overlay
+  //   uses it as containing block. height:100% resolves because inner-fill is a
+  //   flex container with definite height (from position:absolute + inset:0).
   if (isGridEncounterMap(mapData)) {
-    const containerStyle: React.CSSProperties = {
-      background: '#0a0a0a',
-      border: '1px solid #303030',
-      overflow: 'hidden',
-      position: 'relative',
-      ...(height ? { height } : {}),
-    };
+    const gridMap = mapData as GridEncounterMapData;
+    const us = gridMap.unit_size ?? 40;
+    const pad = 2;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const room of gridMap.rooms) {
+      for (const rect of room.rects) {
+        minX = Math.min(minX, rect.x); minY = Math.min(minY, rect.y);
+        maxX = Math.max(maxX, rect.x + rect.w); maxY = Math.max(maxY, rect.y + rect.h);
+      }
+    }
+    if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 10; maxY = 10; }
+    const naturalW = (maxX - minX + pad * 2) * us;
+    const naturalH = (maxY - minY + pad * 2) * us;
+
+    const outerStyle: React.CSSProperties = height
+      ? { position: 'relative', height, overflow: 'hidden', border: '1px solid #303030' }
+      : { position: 'relative', aspectRatio: `${naturalW} / ${naturalH}`, minHeight: 550, overflow: 'hidden', border: '1px solid #303030' };
+
     return (
-      <div style={containerStyle}>
-        <EncounterMapRenderer
-          mapData={mapData as GridEncounterMapData}
-          roomVisibility={roomVisibility}
-          tokens={tokens}
-          isGM={isGM ?? true}
-          onRoomToggle={onRoomToggle}
-          onTokenMove={onTokenMove}
-          onTokenRemove={onTokenRemove}
-          onTokenStatusToggle={onTokenStatusToggle}
-        />
+      <div style={outerStyle}>
+        {/* Mirrors encounter-map-display: fills outer box, provides definite-height flex context */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          background: '#0a0a0a',
+        }}>
+          <EncounterMapRenderer
+            mapData={gridMap}
+            roomVisibility={roomVisibility}
+            tokens={tokens}
+            isGM={isGM ?? true}
+            onRoomToggle={onRoomToggle}
+            doorStatus={doorStatus}
+            onDoorStatusChange={onDoorStatusChange}
+            onTokenPlace={onTokenPlace}
+            onTokenMove={onTokenMove}
+            onTokenRemove={onTokenRemove}
+            onTokenStatusToggle={onTokenStatusToggle}
+          />
+        </div>
       </div>
     );
   }
@@ -594,7 +630,7 @@ export function MapPreview({
             y={y + roomHeight / 2}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill={visible ? COLORS.textMuted : '#3a3a3a'}
+            fill={visible ? COLORS.amber : '#3a3a3a'}
             fontSize={12}
             fontFamily="monospace"
           >

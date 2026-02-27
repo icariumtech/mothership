@@ -88,7 +88,7 @@ poi:
       x: 16.0
       y: 2.0
     name: "HIDDEN CACHE"
-    icon: "crate"
+    icon: "supplies"
     description: "Concealed storage compartment"
 
   - id: fuel_leak
@@ -98,7 +98,7 @@ poi:
       x: 3.0
       y: 8.0
     name: "FUEL LEAK"
-    icon: "warning"
+    icon: "fuel"
     status: "WARNING"
     description: "Minor fuel leak detected - flammable atmosphere"
 

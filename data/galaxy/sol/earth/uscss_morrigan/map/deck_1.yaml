@@ -141,7 +141,7 @@ poi:
       x: 16.5
       y: 6.5
     name: "ESCAPE POD A"
-    icon: "pod"
+    icon: "emergency capsule"
     status: "READY"
     description: "Emergency escape pod (4 person capacity)"
 
@@ -152,7 +152,7 @@ poi:
       x: 16.5
       y: 8.0
     name: "ESCAPE POD B"
-    icon: "pod"
+    icon: "emergency capsule"
     status: "READY"
     description: "Emergency escape pod (4 person capacity)"
 
@@ -163,7 +163,7 @@ poi:
       x: 11.5
       y: 8.5
     name: "HULL BREACH"
-    icon: "warning"
+    icon: "airlock"
     status: "CRITICAL"
     description: "Structural damage - depressurization risk"
 
@@ -174,7 +174,7 @@ poi:
       x: 7.5
       y: 7.0
     name: "SUPPLY CRATE"
-    icon: "crate"
+    icon: "supplies"
     description: "Medical supplies and rations"
 
   - id: reactor_core
@@ -184,7 +184,7 @@ poi:
       x: 2.5
       y: 6.5
     name: "REACTOR CORE"
-    icon: "warning"
+    icon: "reactor core"
     status: "WARNING"
     description: "Elevated radiation levels - protective gear required"
 

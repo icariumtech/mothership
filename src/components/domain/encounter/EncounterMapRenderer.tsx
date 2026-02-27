@@ -21,6 +21,7 @@ import {
   TokenType,
 } from '../../../types/encounterMap';
 import { getGridCell } from '../../../utils/svgCoordinates';
+import { ENCOUNTER_ICONS, iconSymbolId } from './EncounterIcons';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
 import { TokenLayer, tokenTouchActive } from './TokenLayer';
@@ -171,6 +172,38 @@ function getRoomLabelPosition(rects: GridRect[], us: number): { x: number; y: nu
 }
 
 // -------------------------------------------------------------------
+// getAdjacentCellForDoor — returns the grid cell on the other side of a door
+// Used to determine if a door should be shown when the adjacent room is visible.
+// -------------------------------------------------------------------
+function getAdjacentCellForDoor(rects: GridRect[], door: DoorDef): { x: number; y: number } {
+  if (door.wall === 'north') {
+    const minY = Math.min(...rects.map(r => r.y));
+    const wallRects = rects.filter(r => r.y === minY);
+    const cells = wallRects.flatMap(r => Array.from({ length: r.w }, (_, i) => r.x + i)).sort((a, b) => a - b);
+    const cellX = cells[door.position] ?? cells[0] ?? 0;
+    return { x: cellX, y: minY - 1 };
+  } else if (door.wall === 'south') {
+    const maxY = Math.max(...rects.map(r => r.y + r.h));
+    const wallRects = rects.filter(r => r.y + r.h === maxY);
+    const cells = wallRects.flatMap(r => Array.from({ length: r.w }, (_, i) => r.x + i)).sort((a, b) => a - b);
+    const cellX = cells[door.position] ?? cells[0] ?? 0;
+    return { x: cellX, y: maxY };
+  } else if (door.wall === 'west') {
+    const minX = Math.min(...rects.map(r => r.x));
+    const wallRects = rects.filter(r => r.x === minX);
+    const cells = wallRects.flatMap(r => Array.from({ length: r.h }, (_, i) => r.y + i)).sort((a, b) => a - b);
+    const cellY = cells[door.position] ?? cells[0] ?? 0;
+    return { x: minX - 1, y: cellY };
+  } else { // east
+    const maxX = Math.max(...rects.map(r => r.x + r.w));
+    const wallRects = rects.filter(r => r.x + r.w === maxX);
+    const cells = wallRects.flatMap(r => Array.from({ length: r.h }, (_, i) => r.y + i)).sort((a, b) => a - b);
+    const cellY = cells[door.position] ?? cells[0] ?? 0;
+    return { x: maxX, y: cellY };
+  }
+}
+
+// -------------------------------------------------------------------
 // getDoorSVGPosition — map wall+position index to SVG coordinates
 // -------------------------------------------------------------------
 function getDoorSVGPosition(
@@ -223,6 +256,7 @@ export function EncounterMapRenderer({
   style,
 }: EncounterMapRendererProps) {
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const [selectedTokenPos, setSelectedTokenPos] = useState<{ x: number; y: number } | null>(null);
 
   // Door popup state
   const [selectedDoor, setSelectedDoor] = useState<{
@@ -230,6 +264,13 @@ export function EncounterMapRenderer({
     x: number;
     y: number;
     status: DoorStatus;
+  } | null>(null);
+
+  // POI hover popup state
+  const [poiPopup, setPoiPopup] = useState<{
+    poi: import('../../../types/encounterMap').PoiData;
+    x: number;
+    y: number;
   } | null>(null);
 
   // Room context menu state
@@ -296,36 +337,27 @@ export function EncounterMapRenderer({
   }, [tokens]);
 
   // -------------------------------------------------------------------
-  // Door click handler — opens DoorStatusPopup
+  // Door right-click handler — opens DoorStatusPopup at cursor position
   // -------------------------------------------------------------------
   const handleDoorClick = useCallback((
     e: React.MouseEvent,
     room: GridRoom,
     doorIndex: number,
-    doorPos: { x: number; y: number }
   ) => {
     if (!isGM || !onDoorStatusChange) return;
     e.stopPropagation();
     e.preventDefault();
     const container = containerRef.current;
     if (!container) return;
-    const svg = container.querySelector('svg');
-    if (!svg) return;
-
-    const viewBox = svg.viewBox.baseVal;
-    const svgRect = svg.getBoundingClientRect();
-    const scaleX = svgRect.width / viewBox.width;
-    const scaleY = svgRect.height / viewBox.height;
-    const scale = Math.min(scaleX, scaleY);
-    const offsetX = (svgRect.width - viewBox.width * scale) / 2;
-    const offsetY = (svgRect.height - viewBox.height * scale) / 2;
-
-    const popupX = offsetX + doorPos.x * scale * viewState.zoom + viewState.panX;
-    const popupY = offsetY + doorPos.y * scale * viewState.zoom + viewState.panY;
-
+    const rect = container.getBoundingClientRect();
     const id = `${room.id}_door_${doorIndex}`;
-    setSelectedDoor({ id, x: popupX, y: popupY, status: getEffectiveDoorStatus(room, doorIndex) });
-  }, [isGM, onDoorStatusChange, viewState, getEffectiveDoorStatus]);
+    setSelectedDoor({
+      id,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      status: getEffectiveDoorStatus(room, doorIndex),
+    });
+  }, [isGM, onDoorStatusChange, getEffectiveDoorStatus]);
 
   // -------------------------------------------------------------------
   // Room right-click handler — opens context menu
@@ -393,7 +425,7 @@ export function EncounterMapRenderer({
     style: { stroke: string; doorFill: string },
     orientation: 'horizontal' | 'vertical',
     key: string,
-    onClickHandler?: (e: React.MouseEvent) => void
+    onContextMenuHandler?: (e: React.MouseEvent) => void
   ) => {
     const doorWidth = orientation === 'horizontal' ? 20 : 12;
     const doorHeight = orientation === 'horizontal' ? 12 : 20;
@@ -421,8 +453,8 @@ export function EncounterMapRenderer({
       <g
         key={key}
         className={`encounter-map__door encounter-map__door--${doorType} ${statusClass}`}
-        onClick={onClickHandler}
-        style={{ cursor: onClickHandler ? 'pointer' : 'default' }}
+        onContextMenu={onContextMenuHandler}
+        style={{ cursor: onContextMenuHandler ? 'context-menu' : 'default' }}
       >
         {/* Opaque background to cover wall lines behind door */}
         <rect
@@ -623,7 +655,7 @@ export function EncounterMapRenderer({
 
     return (
       <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
-        {/* Floor fill — one scanline-textured rect per room rect */}
+        {/* Floor fill — solid dark teal matching old encounter map style */}
         {room.rects.map((rect, i) => (
           <rect
             key={`floor-${i}`}
@@ -631,7 +663,7 @@ export function EncounterMapRenderer({
             y={rect.y * unitSize}
             width={rect.w * unitSize}
             height={rect.h * unitSize}
-            fill="url(#floor-scanline)"
+            fill="#1a2525"
             className="encounter-map__floor"
           />
         ))}
@@ -677,6 +709,74 @@ export function EncounterMapRenderer({
             {room.name}
           </text>
         )}
+      </g>
+    );
+  };
+
+  // -------------------------------------------------------------------
+  // renderPoi — SVG vector icon + label for a point of interest
+  // Icons sourced from @ant-design/icons-svg, colorized via fill on <use>
+  // -------------------------------------------------------------------
+  const renderPoi = (poi: import('../../../types/encounterMap').PoiData) => {
+    if (!isGM && !isRoomVisible(poi.room)) return null;
+
+    const cx = poi.position.x * unitSize;
+    const cy = poi.position.y * unitSize;
+
+    // Resolve icon: prefer poi.icon name, fall back to poi.type
+    const iconName = ENCOUNTER_ICONS[poi.icon] ? poi.icon
+      : ENCOUNTER_ICONS[poi.type] ? poi.type
+      : null;
+
+    // Color by type; currentColor in symbols inherits this via CSS `color`
+    const poiColor =
+      poi.type === 'hazard'    ? COLORS.hazard :
+      poi.type === 'objective' ? COLORS.amber :
+      poi.type === 'item'      ? COLORS.tealBright :
+      COLORS.teal;
+
+    const opacity = isGM && !isRoomVisible(poi.room) ? 0.3 : 1.0;
+    const iconSize = 20;
+    const half = iconSize / 2;
+
+    const handlePoiHover = (e: React.MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPoiPopup({ poi, x: e.clientX - rect.left, y: e.clientY - rect.top });
+    };
+
+    return (
+      <g
+        key={poi.id}
+        className={`encounter-map__poi encounter-map__poi--${poi.type}`}
+        opacity={opacity}
+        style={{ color: poiColor, cursor: 'pointer' }}
+        onMouseEnter={handlePoiHover}
+        onMouseLeave={() => setPoiPopup(null)}
+        onClick={handlePoiHover}
+      >
+        {iconName ? (
+          <use
+            href={`#${iconSymbolId(iconName)}`}
+            x={cx - half}
+            y={cy - half}
+            width={iconSize}
+            height={iconSize}
+          />
+        ) : (
+          <path
+            d={`M${cx},${cy - half} L${cx + half},${cy} L${cx},${cy + half} L${cx - half},${cy} Z`}
+            fill={poiColor}
+          />
+        )}
+        {/* Transparent hit target so hover works on the full icon area */}
+        <rect
+          x={cx - half}
+          y={cy - half}
+          width={iconSize}
+          height={iconSize}
+          fill="transparent"
+        />
       </g>
     );
   };
@@ -901,6 +1001,16 @@ export function EncounterMapRenderer({
         }}
       >
         <defs>
+          {/* POI icon symbols — Mothership RPG Map Icons (MIT, László Varga) */}
+          {Object.entries(ENCOUNTER_ICONS).map(([name, content]) => (
+            <symbol
+              key={name}
+              id={iconSymbolId(name)}
+              viewBox="0 0 64 64"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          ))}
+
           {/* Background grid pattern for void areas */}
           <pattern
             id="map-bg-grid"
@@ -911,19 +1021,6 @@ export function EncounterMapRenderer({
             <path
               d={`M ${unitSize} 0 L 0 0 0 ${unitSize}`}
               fill="none" stroke="#141e1e" strokeWidth={0.5}
-            />
-          </pattern>
-          {/* Floor scanline texture for room interiors */}
-          <pattern
-            id="floor-scanline"
-            width={unitSize} height={unitSize}
-            patternUnits="userSpaceOnUse"
-            x={originX} y={originY}
-          >
-            <line
-              x1={0} y1={Math.floor(unitSize / 2)}
-              x2={unitSize} y2={Math.floor(unitSize / 2)}
-              stroke="#182020" strokeWidth={0.5}
             />
           </pattern>
         </defs>
@@ -949,19 +1046,31 @@ export function EncounterMapRenderer({
         <g className="encounter-map__doors">
           {mapData.rooms.flatMap(room =>
             (room.doors || []).map((door, i) => {
-              if (!isGM && !isRoomVisible(room.id)) return null;
+              if (!isGM) {
+                // Show door if either the owning room OR the adjacent room is visible
+                const adjCell = getAdjacentCellForDoor(room.rects, door);
+                const adjRoom = findRoomAtCell(adjCell.x, adjCell.y);
+                if (!isRoomVisible(room.id) && (!adjRoom || !isRoomVisible(adjRoom.id))) return null;
+              }
               const pos = getDoorSVGPosition(room.rects, door, unitSize);
               const style = CONNECTION_STYLES[door.type] || CONNECTION_STYLES.standard;
-              const clickHandler = (isGM && onDoorStatusChange)
-                ? (e: React.MouseEvent) => handleDoorClick(e, room, i, pos)
+              const contextMenuHandler = (isGM && onDoorStatusChange)
+                ? (e: React.MouseEvent) => handleDoorClick(e, room, i)
                 : undefined;
               return renderDoorSymbol(
                 pos.x, pos.y, door.type, getEffectiveDoorStatus(room, i),
-                style, pos.orientation, `door-${room.id}-${i}`, clickHandler
+                style, pos.orientation, `door-${room.id}-${i}`, contextMenuHandler
               );
             })
           )}
         </g>
+
+        {/* POI layer — rendered above doors */}
+        {mapData.poi && mapData.poi.length > 0 && (
+          <g className="encounter-map__pois">
+            {mapData.poi.map(renderPoi)}
+          </g>
+        )}
 
         {/* Token layer (rendered above all other elements) */}
         {tokens && Object.keys(tokens).length > 0 && (
@@ -972,7 +1081,37 @@ export function EncounterMapRenderer({
             isGM={isGM}
             onTokenMove={onTokenMove}
             selectedTokenId={selectedTokenId}
-            onTokenSelect={setSelectedTokenId}
+            onTokenSelect={(id, e) => {
+              if (id === null) {
+                setSelectedTokenId(null);
+                setSelectedTokenPos(null);
+              } else {
+                const token = tokens?.[id];
+                const container = containerRef.current;
+                const svg = svgRef.current;
+                if (token && container && svg) {
+                  // Token top-center in SVG (viewBox) coordinates
+                  const tokenTopSvgX = token.x * unitSize + unitSize / 2;
+                  const tokenTopSvgY = token.y * unitSize + unitSize / 2 - unitSize * 0.4;
+                  // getScreenCTM includes viewBox + preserveAspectRatio + CSS pan/zoom transform
+                  const ctm = svg.getScreenCTM();
+                  if (ctm) {
+                    const pt = svg.createSVGPoint();
+                    pt.x = tokenTopSvgX;
+                    pt.y = tokenTopSvgY;
+                    const screenPt = pt.matrixTransform(ctm);
+                    const rect = container.getBoundingClientRect();
+                    setSelectedTokenId(id);
+                    setSelectedTokenPos({ x: screenPt.x - rect.left, y: screenPt.y - rect.top });
+                    return;
+                  }
+                }
+                // Fallback: cursor position
+                const rect = containerRef.current?.getBoundingClientRect();
+                setSelectedTokenId(id);
+                setSelectedTokenPos({ x: e.clientX - (rect?.left || 0), y: e.clientY - (rect?.top || 0) });
+              }
+            }}
             mapRooms={mapData.rooms as unknown as import('../../../types/encounterMap').RoomData[]}
           />
         )}
@@ -1043,37 +1182,58 @@ export function EncounterMapRenderer({
       </div>
 
       {/* Token popup — rendered outside SVG for proper styling */}
-      {selectedTokenId && tokens && tokens[selectedTokenId] && (() => {
-        const token = tokens[selectedTokenId];
-        const svg = containerRef.current?.querySelector('svg');
-        if (!svg) return null;
+      {selectedTokenId && tokens?.[selectedTokenId] && selectedTokenPos && (
+        <TokenPopup
+          tokenId={selectedTokenId}
+          data={tokens[selectedTokenId]}
+          x={selectedTokenPos.x}
+          y={selectedTokenPos.y}
+          onClose={() => { setSelectedTokenId(null); setSelectedTokenPos(null); }}
+          onRemove={onTokenRemove}
+          onStatusToggle={onTokenStatusToggle}
+          isGM={isGM}
+        />
+      )}
 
-        const viewBox = svg.viewBox.baseVal;
-        const svgRect = svg.getBoundingClientRect();
-        const scaleX = svgRect.width / viewBox.width;
-        const scaleY = svgRect.height / viewBox.height;
-        const scale = Math.min(scaleX, scaleY);
-        const offsetX = (svgRect.width - viewBox.width * scale) / 2;
-        const offsetY = (svgRect.height - viewBox.height * scale) / 2;
-
-        const tokenSvgX = token.x * unitSize + unitSize / 2;
-        const tokenSvgY = token.y * unitSize + unitSize / 2;
-        const popupX = offsetX + tokenSvgX * scale * viewState.zoom + viewState.panX;
-        const popupY = offsetY + tokenSvgY * scale * viewState.zoom + viewState.panY;
-
-        return (
-          <TokenPopup
-            tokenId={selectedTokenId}
-            data={token}
-            x={popupX}
-            y={popupY}
-            onClose={() => setSelectedTokenId(null)}
-            onRemove={onTokenRemove}
-            onStatusToggle={onTokenStatusToggle}
-            isGM={isGM}
-          />
-        );
-      })()}
+      {/* POI info popup — shown on hover/click */}
+      {poiPopup && (
+        <div
+          style={{
+            position: 'absolute',
+            left: poiPopup.x + 14,
+            top: poiPopup.y - 10,
+            background: 'rgba(10, 10, 10, 0.97)',
+            border: `1px solid ${
+              poiPopup.poi.type === 'hazard'    ? COLORS.hazard :
+              poiPopup.poi.type === 'objective' ? COLORS.amber :
+              poiPopup.poi.type === 'item'      ? COLORS.tealBright :
+              COLORS.teal
+            }`,
+            padding: '8px 12px',
+            fontFamily: "'Cascadia Code', 'Courier New', monospace",
+            fontSize: '11px',
+            letterSpacing: '1px',
+            pointerEvents: 'none',
+            zIndex: 10,
+            maxWidth: '220px',
+            lineHeight: '1.5',
+          }}
+        >
+          <div style={{ color: COLORS.textPrimary, marginBottom: 2, fontWeight: 'bold' }}>
+            {poiPopup.poi.name}
+          </div>
+          {poiPopup.poi.status && (
+            <div style={{ color: poiPopup.poi.type === 'hazard' ? COLORS.hazard : COLORS.amber, fontSize: '10px' }}>
+              {poiPopup.poi.status}
+            </div>
+          )}
+          {poiPopup.poi.description && (
+            <div style={{ color: COLORS.textMuted, fontSize: '10px', marginTop: 4 }}>
+              {poiPopup.poi.description}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Door status popup — rendered outside SVG */}
       {selectedDoor && onDoorStatusChange && (

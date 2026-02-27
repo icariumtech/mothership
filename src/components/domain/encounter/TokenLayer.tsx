@@ -25,7 +25,7 @@ interface TokenLayerProps {
   isGM?: boolean;
   onTokenMove?: (id: string, x: number, y: number) => void;
   selectedTokenId?: string | null;
-  onTokenSelect?: (id: string | null) => void;
+  onTokenSelect?: (id: string | null, e: React.MouseEvent) => void;
   mapRooms?: (RoomData | GridRoom)[];
 }
 
@@ -238,9 +238,9 @@ export function TokenLayer({
 
   const canDrag = !!onTokenMove;
 
-  const handleTokenSelect = (id: string) => {
+  const handleTokenSelect = (id: string, e: React.MouseEvent) => {
     if (onTokenSelect) {
-      onTokenSelect(selectedTokenId === id ? null : id);
+      onTokenSelect(selectedTokenId === id ? null : id, e);
     }
   };
 

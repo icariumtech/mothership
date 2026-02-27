@@ -80,7 +80,7 @@ interface EncounterMapDisplayProps {
 export function EncounterMapDisplay({
   locationData,
   roomVisibility,
-  doorStatus: _doorStatus,
+  doorStatus,
   currentLevel = 1,
   totalLevels = 1,
   deckName,
@@ -100,6 +100,7 @@ export function EncounterMapDisplay({
     const effectiveVisibility = roomVisibility || multiDeckData.room_visibility || {};
     const commonProps = {
       roomVisibility: effectiveVisibility,
+      doorStatus,
       currentLevel,
       totalLevels,
       deckName,
@@ -144,6 +145,7 @@ export function EncounterMapDisplay({
         <EncounterMapRenderer
           mapData={mapData as GridEncounterMapData}
           roomVisibility={roomVisibility}
+          doorStatus={doorStatus}
           currentLevel={currentLevel}
           totalLevels={totalLevels}
           deckName={deckName}
@@ -165,6 +167,7 @@ export function EncounterMapDisplay({
         <EncounterMapRenderer
           mapData={mapData as unknown as GridEncounterMapData}
           roomVisibility={roomVisibility}
+          doorStatus={doorStatus}
           currentLevel={currentLevel}
           totalLevels={totalLevels}
           deckName={deckName}

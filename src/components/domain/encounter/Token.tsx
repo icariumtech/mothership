@@ -15,7 +15,7 @@ interface TokenProps {
   unitSize: number;
   draggable?: boolean;
   selected?: boolean;
-  onSelect?: (id: string) => void;
+  onSelect?: (id: string, e: React.MouseEvent) => void;
   onPointerDragStart?: (id: string, e: React.PointerEvent<Element>) => void;
 }
 
@@ -55,10 +55,11 @@ export function Token({
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleContextMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (onSelect) {
-      onSelect(id);
+      onSelect(id, e);
     }
   };
 
@@ -82,8 +83,8 @@ export function Token({
       data-token-id={id}
       data-draggable={draggable}
       onPointerDown={handlePointerDown}
-      onClick={handleClick}
-      style={{ cursor: draggable ? 'grab' : 'pointer', touchAction: draggable ? 'none' : 'auto' }}
+      onContextMenu={handleContextMenu}
+      style={{ cursor: draggable ? 'grab' : 'context-menu', touchAction: draggable ? 'none' : 'auto' }}
     >
       {/* Define filters for glow effect */}
       <defs>

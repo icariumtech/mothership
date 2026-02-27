@@ -88,7 +88,7 @@ export function TokenPopup({
         position: 'absolute',
         left: x,
         top: y,
-        transform: 'translate(8px, -50%)',
+        transform: 'translate(-50%, -100%) translateY(-8px)',
         background: COLORS.bg,
         border: `1px solid ${COLORS.border}`,
         padding: '6px',
@@ -103,6 +103,21 @@ export function TokenPopup({
       }}
       onClick={(e) => e.stopPropagation()}
     >
+      {/* Arrow pointing down */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: -6,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 0,
+          height: 0,
+          borderLeft: '6px solid transparent',
+          borderRight: '6px solid transparent',
+          borderTop: `6px solid ${COLORS.border}`,
+        }}
+      />
+
       {/* Header */}
       <div style={{ color: COLORS.tealBright, fontWeight: 'bold', fontSize: '11px', letterSpacing: '0.5px' }}>
         {data.name}

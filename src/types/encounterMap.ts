@@ -243,6 +243,7 @@ export interface GridRect {
   y: number;  // grid cell Y (top edge, 0-based)
   w: number;  // width in cells
   h: number;  // height in cells
+  chamfer?: number;  // diagonal corner cut in grid-cell units (0 = square corners, 1 = 1-cell cut)
 }
 
 /** Cardinal wall sides for door attachment */

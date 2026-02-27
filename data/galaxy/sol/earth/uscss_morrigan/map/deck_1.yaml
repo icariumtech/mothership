@@ -10,27 +10,27 @@ rooms:
   - id: bridge
     name: "BRIDGE"
     rects:
-      - {x: 1, y: 0, w: 5, h: 3}
+      - {x: 1, y: 0, w: 5, h: 3, chamfer: 1}
     doors:
-      - {wall: south, position: 2, type: blast_door, status: CLOSED}
+      - {wall: south, position: 1, type: blast_door, status: CLOSED}
     description: "Primary flight control and navigation center"
     type: bridge
 
   - id: crew_quarters
     name: "CREW QUARTERS"
     rects:
-      - {x: 8, y: 0, w: 5, h: 3}
+      - {x: 8, y: 0, w: 5, h: 3, chamfer: 1}
     doors:
-      - {wall: south, position: 2, type: standard, status: OPEN}
+      - {wall: south, position: 1, type: standard, status: OPEN}
     description: "Crew sleeping pods and personal storage"
     type: crew
 
   - id: medical
     name: "MEDICAL BAY"
     rects:
-      - {x: 15, y: 0, w: 5, h: 3}
+      - {x: 15, y: 0, w: 5, h: 3, chamfer: 1}
     doors:
-      - {wall: south, position: 2, type: standard, status: CLOSED}
+      - {wall: south, position: 1, type: standard, status: CLOSED}
     description: "Medical treatment and quarantine facility"
     type: medical
 
@@ -47,19 +47,19 @@ rooms:
   - id: engineering
     name: "ENGINEERING"
     rects:
-      - {x: 0, y: 5, w: 5, h: 4}
+      - {x: 0, y: 5, w: 5, h: 4, chamfer: 1}
     doors:
-      - {wall: north, position: 2, type: blast_door, status: CLOSED}
-      - {wall: south, position: 2, type: emergency, status: LOCKED}
+      - {wall: north, position: 1, type: blast_door, status: CLOSED}
+      - {wall: south, position: 1, type: emergency, status: LOCKED}
     description: "Main reactor and engine systems"
     type: engineering
 
   - id: cargo_bay
     name: "CARGO BAY"
     rects:
-      - {x: 6, y: 5, w: 7, h: 4}
+      - {x: 6, y: 5, w: 7, h: 4, chamfer: 1}
     doors:
-      - {wall: north, position: 3, type: standard, status: OPEN}
+      - {wall: north, position: 2, type: standard, status: OPEN}
       - {wall: east, position: 1, type: airlock, status: SEALED}
     description: "Primary cargo storage area"
     type: cargo
@@ -67,9 +67,9 @@ rooms:
   - id: airlock_bay
     name: "AIRLOCK BAY"
     rects:
-      - {x: 14, y: 5, w: 5, h: 4}
+      - {x: 14, y: 5, w: 5, h: 4, chamfer: 1}
     doors:
-      - {wall: north, position: 2, type: airlock, status: SEALED}
+      - {wall: north, position: 1, type: airlock, status: SEALED}
     description: "EVA preparation and external access"
     type: airlock
 
@@ -78,9 +78,9 @@ rooms:
   - id: life_support
     name: "LIFE SUPPORT"
     rects:
-      - {x: 0, y: 9, w: 5, h: 3}
+      - {x: 0, y: 9, w: 5, h: 3, chamfer: 1}
     doors:
-      - {wall: north, position: 2, type: emergency, status: LOCKED}
+      - {wall: north, position: 1, type: emergency, status: LOCKED}
     description: "Atmospheric recycling and water reclamation"
     type: life_support
 

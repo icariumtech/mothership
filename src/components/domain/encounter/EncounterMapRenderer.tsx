@@ -95,6 +95,37 @@ const CONNECTION_STYLES: Record<string, { stroke: string; doorFill: string }> = 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3;
 
+// Wall stroke thickness in pixels (creates the heavy-wall aesthetic)
+const WALL_THICKNESS = 5;
+
+// -------------------------------------------------------------------
+// getRectPolygonPoints — SVG polygon points for a GridRect with optional
+// diagonal chamfer (8-point octagon when chamfer > 0, plain 4-point rect otherwise)
+// -------------------------------------------------------------------
+function getRectPolygonPoints(rect: GridRect, us: number): string {
+  const rawChamfer = rect.chamfer ?? 0;
+  // Clamp: chamfer can be at most half the smaller dimension (leaving a flat face)
+  const c = Math.min(rawChamfer, rect.w / 2 - 0.01, rect.h / 2 - 0.01) * us;
+  const x  = rect.x * us;
+  const y  = rect.y * us;
+  const x2 = (rect.x + rect.w) * us;
+  const y2 = (rect.y + rect.h) * us;
+
+  if (c <= 0) {
+    return `${x},${y} ${x2},${y} ${x2},${y2} ${x},${y2}`;
+  }
+  return [
+    `${x + c},${y}`,      // top edge — left of top-right chamfer
+    `${x2 - c},${y}`,     // top edge — right of top-left chamfer
+    `${x2},${y + c}`,     // right edge — below top-right chamfer
+    `${x2},${y2 - c}`,    // right edge — above bottom-right chamfer
+    `${x2 - c},${y2}`,    // bottom edge — right of bottom-right chamfer
+    `${x + c},${y2}`,     // bottom edge — left of bottom-left chamfer
+    `${x},${y2 - c}`,     // left edge — above bottom-left chamfer
+    `${x},${y + c}`,      // left edge — below top-left chamfer
+  ].join(' ');
+}
+
 // -------------------------------------------------------------------
 // Wall-segment edge type
 // -------------------------------------------------------------------
@@ -179,25 +210,37 @@ function getAdjacentCellForDoor(rects: GridRect[], door: DoorDef): { x: number; 
   if (door.wall === 'north') {
     const minY = Math.min(...rects.map(r => r.y));
     const wallRects = rects.filter(r => r.y === minY);
-    const cells = wallRects.flatMap(r => Array.from({ length: r.w }, (_, i) => r.x + i)).sort((a, b) => a - b);
+    const cells = wallRects.flatMap(r => {
+      const c = Math.ceil(r.chamfer ?? 0);
+      return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
+    }).sort((a, b) => a - b);
     const cellX = cells[door.position] ?? cells[0] ?? 0;
     return { x: cellX, y: minY - 1 };
   } else if (door.wall === 'south') {
     const maxY = Math.max(...rects.map(r => r.y + r.h));
     const wallRects = rects.filter(r => r.y + r.h === maxY);
-    const cells = wallRects.flatMap(r => Array.from({ length: r.w }, (_, i) => r.x + i)).sort((a, b) => a - b);
+    const cells = wallRects.flatMap(r => {
+      const c = Math.ceil(r.chamfer ?? 0);
+      return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
+    }).sort((a, b) => a - b);
     const cellX = cells[door.position] ?? cells[0] ?? 0;
     return { x: cellX, y: maxY };
   } else if (door.wall === 'west') {
     const minX = Math.min(...rects.map(r => r.x));
     const wallRects = rects.filter(r => r.x === minX);
-    const cells = wallRects.flatMap(r => Array.from({ length: r.h }, (_, i) => r.y + i)).sort((a, b) => a - b);
+    const cells = wallRects.flatMap(r => {
+      const c = Math.ceil(r.chamfer ?? 0);
+      return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
+    }).sort((a, b) => a - b);
     const cellY = cells[door.position] ?? cells[0] ?? 0;
     return { x: minX - 1, y: cellY };
   } else { // east
     const maxX = Math.max(...rects.map(r => r.x + r.w));
     const wallRects = rects.filter(r => r.x + r.w === maxX);
-    const cells = wallRects.flatMap(r => Array.from({ length: r.h }, (_, i) => r.y + i)).sort((a, b) => a - b);
+    const cells = wallRects.flatMap(r => {
+      const c = Math.ceil(r.chamfer ?? 0);
+      return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
+    }).sort((a, b) => a - b);
     const cellY = cells[door.position] ?? cells[0] ?? 0;
     return { x: maxX, y: cellY };
   }
@@ -217,9 +260,11 @@ function getDoorSVGPosition(
     const wallRects = rects.filter(r =>
       door.wall === 'north' ? r.y === targetY : r.y + r.h === targetY
     );
-    const cells = wallRects.flatMap(r =>
-      Array.from({ length: r.w }, (_, i) => r.x + i)
-    ).sort((a, b) => a - b);
+    // Skip chamfered corner cells: leftmost and rightmost `ceil(chamfer)` columns
+    const cells = wallRects.flatMap(r => {
+      const c = Math.ceil(r.chamfer ?? 0);
+      return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
+    }).sort((a, b) => a - b);
     const cellX = cells[door.position] ?? cells[0] ?? 0;
     return { x: (cellX + 0.5) * us, y: wallY, orientation: 'horizontal' };
   } else {
@@ -230,9 +275,11 @@ function getDoorSVGPosition(
     const wallRects = rects.filter(r =>
       door.wall === 'west' ? r.x === targetX : r.x + r.w === targetX
     );
-    const cells = wallRects.flatMap(r =>
-      Array.from({ length: r.h }, (_, i) => r.y + i)
-    ).sort((a, b) => a - b);
+    // Skip chamfered corner cells: topmost and bottommost `ceil(chamfer)` rows
+    const cells = wallRects.flatMap(r => {
+      const c = Math.ceil(r.chamfer ?? 0);
+      return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
+    }).sort((a, b) => a - b);
     const cellY = cells[door.position] ?? cells[0] ?? 0;
     return { x: wallX, y: (cellY + 0.5) * us, orientation: 'vertical' };
   }
@@ -644,21 +691,31 @@ export function EncounterMapRenderer({
 
   // -------------------------------------------------------------------
   // renderRoom — floor fill + exterior walls + GM context menu targets + label
+  //
+  // Chamfered rects (chamfer > 0): rendered as octagons via <polygon>.
+  // Plain rects: rendered as <rect> with exterior wall segments from the
+  // wall-segment algorithm (shared edges cancel out, only exterior drawn).
+  // This hybrid approach keeps correct wall sharing for plain multi-rect rooms
+  // while giving chamfered rooms clean diagonal corners.
   // -------------------------------------------------------------------
   const renderRoom = (room: GridRoom) => {
     const visible = isRoomVisible(room.id);
     // Players only see revealed rooms
     if (!isGM && !visible) return null;
     const roomOpacity = isGM && !visible ? 0.25 : 1.0;
-    const walls = computeRoomWalls(room.rects, unitSize);
+
+    // Split rects so wall-segment algorithm runs only on non-chamfered rects
+    const plainRects = room.rects.filter(r => (r.chamfer ?? 0) === 0);
+    const chamferedRects = room.rects.filter(r => (r.chamfer ?? 0) > 0);
+    const walls = computeRoomWalls(plainRects, unitSize);
     const label = room.name ? getRoomLabelPosition(room.rects, unitSize) : null;
 
     return (
       <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
-        {/* Floor fill — solid dark teal matching old encounter map style */}
-        {room.rects.map((rect, i) => (
+        {/* Floor fill — plain rects */}
+        {plainRects.map((rect, i) => (
           <rect
-            key={`floor-${i}`}
+            key={`floor-p-${i}`}
             x={rect.x * unitSize}
             y={rect.y * unitSize}
             width={rect.w * unitSize}
@@ -668,29 +725,62 @@ export function EncounterMapRenderer({
           />
         ))}
 
-        {/* Exterior wall segments — teal lines */}
+        {/* Floor fill — chamfered rects (octagon polygon) */}
+        {chamferedRects.map((rect, i) => (
+          <polygon
+            key={`floor-c-${i}`}
+            points={getRectPolygonPoints(rect, unitSize)}
+            fill="#1a2525"
+            className="encounter-map__floor"
+          />
+        ))}
+
+        {/* Exterior wall segments — plain rects */}
         {walls.map((wall, i) => (
           <line
             key={`wall-${i}`}
             x1={wall.x1} y1={wall.y1}
             x2={wall.x2} y2={wall.y2}
             stroke="#4a6b6b"
-            strokeWidth={1.5}
+            strokeWidth={WALL_THICKNESS}
             strokeLinecap="square"
             className="encounter-map__wall"
           />
         ))}
 
+        {/* Wall outlines — chamfered rects (polygon stroke) */}
+        {chamferedRects.map((rect, i) => (
+          <polygon
+            key={`wall-c-${i}`}
+            points={getRectPolygonPoints(rect, unitSize)}
+            fill="none"
+            stroke="#4a6b6b"
+            strokeWidth={WALL_THICKNESS}
+            strokeLinejoin="miter"
+            className="encounter-map__wall"
+          />
+        ))}
+
         {/* Invisible hit targets — GM only, right-click for context menu */}
-        {isGM && room.rects.map((rect, i) => (
+        {isGM && plainRects.map((rect, i) => (
           <rect
-            key={`hit-${i}`}
+            key={`hit-p-${i}`}
             x={rect.x * unitSize}
             y={rect.y * unitSize}
             width={rect.w * unitSize}
             height={rect.h * unitSize}
             fill="transparent"
-            style={{ cursor: isGM ? 'context-menu' : 'default' }}
+            style={{ cursor: 'context-menu' }}
+            onContextMenu={(e) => handleRoomContextMenu(e, room)}
+            className="encounter-map__room"
+          />
+        ))}
+        {isGM && chamferedRects.map((rect, i) => (
+          <polygon
+            key={`hit-c-${i}`}
+            points={getRectPolygonPoints(rect, unitSize)}
+            fill="transparent"
+            style={{ cursor: 'context-menu' }}
             onContextMenu={(e) => handleRoomContextMenu(e, room)}
             className="encounter-map__room"
           />

@@ -723,7 +723,15 @@ decks:
 
 ### 5.3 Grid-Based Map Definition
 
-Maps use a **room-and-wall** format. Each room is composed of one or more axis-aligned rectangles (`rects`), and doors are defined inline on each room's walls. There is no separate `connections:` section — doors belong to rooms.
+Maps use a **room-and-wall** format. Each room is composed of one or more axis-aligned rectangles (`rects`), an optional `circle`, or an optional `polygon`. Doors are defined inline on each room. There is no separate `connections:` section — doors belong to rooms.
+
+Three room shape types are supported, and they are backward compatible — existing rect maps work unchanged:
+
+| Shape | Field | Description |
+|-------|-------|-------------|
+| Rectangles | `rects: [...]` | One or more axis-aligned rectangles joined into one room (can have chamfered corners) |
+| Circle | `circle: {cx, cy, r}` | A single circular room |
+| Polygon | `polygon: [[x,y], ...]` | A freeform polygon defined by grid-coordinate vertices |
 
 ```yaml
 deck_id: "deck_1"              # Must match manifest ID (omit for single-deck maps)
@@ -770,6 +778,34 @@ rooms:
       - {wall: north, position: 2, type: airlock, status: SEALED}
     description: "EVA preparation and external access"
     type: airlock
+
+  # Circular room — use `circle` instead of rects
+  - id: junction_hub
+    name: "JUNCTION HUB"
+    rects: []                        # Required field; empty for circle rooms
+    circle:
+      cx: 22.0                       # Center X in grid coordinates
+      cy: 4.0                        # Center Y in grid coordinates
+      r: 2.0                         # Radius in grid cells
+    doors:
+      - {angle: 180, type: standard, status: OPEN}     # West (180°)
+      - {angle: 270, type: blast_door, status: CLOSED} # North (270°)
+    description: "Circular junction hub"
+    type: hub
+
+  # Freeform polygon room — use `polygon` for wedges, tapered bays, angled corridors
+  - id: aft_section
+    name: "AFT SECTION"
+    rects: []                        # Required field; empty for polygon rooms
+    polygon:
+      - [24.5, 7.0]                  # Vertices in grid coordinates [x, y], in order
+      - [28.0, 7.0]
+      - [29.5, 10.0]
+      - [23.0, 10.0]
+    doors:
+      - {angle: 315, type: airlock, status: SEALED}    # NW corner (315°)
+    description: "Tapered aft engineering section"
+    type: engineering
 
 # Connections between decks (ladders, lifts, hatches)
 # NOTE: to_room must reference a valid room ID in the target deck's YAML file
@@ -824,17 +860,36 @@ metadata:
 
 ### 5.4 Door Definitions
 
-Doors are defined inline on rooms, attached to a specific wall:
+Doors are defined inline on rooms. For **rect rooms** use `wall` + `position`; for **circle/polygon rooms** use `angle`:
 
 ```yaml
+# Rect room door — wall + position
 doors:
   - wall: south      # north | south | east | west
     position: 2      # 0-based cell index along the wall (exterior cells only)
     type: standard   # standard | airlock | blast_door | emergency | open
     status: CLOSED   # OPEN | CLOSED | LOCKED | SEALED | DAMAGED
+
+# Circle or polygon room door — angle instead of wall + position
+doors:
+  - angle: 180       # Degrees clockwise from east: 0=east, 90=south, 180=west, 270=north
+    type: standard
+    status: OPEN
 ```
 
-**Wall and Position:** `wall` specifies which side of the room the door is on. `position` is the 0-based index counting from the left (for `north`/`south` walls) or from the top (for `east`/`west` walls), counting only cells that have an actual exterior wall segment. For simple rectangular rooms, position 0 = first cell, 1 = second cell, etc.
+**Rect room doors (`wall` + `position`):** `wall` specifies which side of the room the door is on. `position` is the 0-based index counting from the left (for `north`/`south` walls) or from the top (for `east`/`west` walls), counting only cells that have an actual exterior wall segment. For simple rectangular rooms, position 0 = first cell, 1 = second cell, etc.
+
+**Circle/polygon room doors (`angle`):** The door is placed on the room's perimeter at the given angle. Angle is in degrees, measured clockwise from east (right):
+
+| Angle | Direction |
+|-------|-----------|
+| `0` | East (right) |
+| `90` | South (down) |
+| `180` | West (left) |
+| `270` | North (up) |
+| `45`, `135`, `225`, `315` | Diagonals |
+
+You can also use `wall` on circle/polygon rooms as a shorthand — `wall: north` maps to 270°, `wall: east` to 0°, etc. — but `angle` gives finer control.
 
 **Door Types:**
 
@@ -1428,7 +1483,7 @@ python -c "import yaml; yaml.safe_load(open('data/galaxy/your-system/location.ya
 
 **Causes & Solutions:**
 1. **YAML syntax error** - Validate the YAML file
-2. **Missing `rects` field** - Each room must have a `rects:` list; the renderer identifies grid maps by this field
+2. **Missing shape field** - Each room must have `rects:` (can be `[]`), `circle:`, or `polygon:`; the renderer identifies grid maps by presence of one of these fields on the first room
 3. **Room rects out of bounds** - Ensure all rect `x`/`y`/`w`/`h` values fit within the expected area
 4. **Door position out of range** - `position` must be less than the wall's cell count
 

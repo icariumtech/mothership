@@ -127,6 +127,62 @@ function getRectPolygonPoints(rect: GridRect, us: number): string {
 }
 
 // -------------------------------------------------------------------
+// getDoorAngleRad — converts DoorDef wall or angle field to radians
+// Angle convention: 0=east, π/2=south (SVG Y-down), π=west, -π/2=north
+// -------------------------------------------------------------------
+function getDoorAngleRad(door: import('../../../types/encounterMap').DoorDef): number {
+  if (door.angle !== undefined) return (door.angle * Math.PI) / 180;
+  switch (door.wall) {
+    case 'east':  return 0;
+    case 'south': return Math.PI / 2;
+    case 'west':  return Math.PI;
+    case 'north': return -Math.PI / 2;
+    default:      return 0;
+  }
+}
+
+// -------------------------------------------------------------------
+// pointInPolygon — ray-casting test (grid coords)
+// -------------------------------------------------------------------
+function pointInPolygon(px: number, py: number, polygon: [number, number][]): boolean {
+  let inside = false;
+  const n = polygon.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// -------------------------------------------------------------------
+// getPolygonBoundaryPoint — ray from polygon centroid at `angle` radians,
+// returns intersection point with the nearest polygon edge (grid coords).
+// -------------------------------------------------------------------
+function getPolygonBoundaryPoint(polygon: [number, number][], angle: number): [number, number] {
+  const n = polygon.length;
+  const cx = polygon.reduce((s, [x]) => s + x, 0) / n;
+  const cy = polygon.reduce((s, [, y]) => s + y, 0) / n;
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  let minT = Infinity;
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = polygon[i];
+    const [x2, y2] = polygon[(i + 1) % n];
+    const ex = x2 - x1, ey = y2 - y1;
+    const denom = dx * ey - dy * ex;
+    if (Math.abs(denom) < 1e-10) continue;
+    const t = ((x1 - cx) * ey - (y1 - cy) * ex) / denom;
+    const s = ((x1 - cx) * dy - (y1 - cy) * dx) / denom;
+    if (t >= 0 && s >= -1e-10 && s <= 1 + 1e-10) minT = Math.min(minT, t);
+  }
+  if (!isFinite(minT)) minT = 2;
+  return [cx + minT * dx, cy + minT * dy];
+}
+
+// -------------------------------------------------------------------
 // Wall-segment edge type
 // -------------------------------------------------------------------
 interface Edge { x1: number; y1: number; x2: number; y2: number; }
@@ -144,6 +200,21 @@ function computeBoundingBox(rooms: GridRoom[], us: number, padding = 2) {
       minY = Math.min(minY, rect.y);
       maxX = Math.max(maxX, rect.x + rect.w);
       maxY = Math.max(maxY, rect.y + rect.h);
+    }
+    if (room.circle) {
+      const { cx, cy, r } = room.circle;
+      minX = Math.min(minX, cx - r);
+      minY = Math.min(minY, cy - r);
+      maxX = Math.max(maxX, cx + r);
+      maxY = Math.max(maxY, cy + r);
+    }
+    if (room.polygon) {
+      for (const [px, py] of room.polygon) {
+        minX = Math.min(minX, px);
+        minY = Math.min(minY, py);
+        maxX = Math.max(maxX, px);
+        maxY = Math.max(maxY, py);
+      }
     }
   }
   if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 10; maxY = 10; }
@@ -192,21 +263,53 @@ function computeRoomWalls(rects: GridRect[], us: number): Edge[] {
 }
 
 // -------------------------------------------------------------------
-// getRoomLabelPosition — center of the bounding box of all room rects
+// getRoomLabelPosition — visual center of the room, any shape type
 // -------------------------------------------------------------------
-function getRoomLabelPosition(rects: GridRect[], us: number): { x: number; y: number } {
-  const minX = Math.min(...rects.map(r => r.x));
-  const minY = Math.min(...rects.map(r => r.y));
-  const maxX = Math.max(...rects.map(r => r.x + r.w));
-  const maxY = Math.max(...rects.map(r => r.y + r.h));
-  return { x: ((minX + maxX) / 2) * us, y: ((minY + maxY) / 2) * us };
+function getRoomLabelPosition(room: GridRoom, us: number): { x: number; y: number } {
+  if (room.rects.length > 0) {
+    const minX = Math.min(...room.rects.map(r => r.x));
+    const minY = Math.min(...room.rects.map(r => r.y));
+    const maxX = Math.max(...room.rects.map(r => r.x + r.w));
+    const maxY = Math.max(...room.rects.map(r => r.y + r.h));
+    return { x: ((minX + maxX) / 2) * us, y: ((minY + maxY) / 2) * us };
+  }
+  if (room.circle) {
+    return { x: room.circle.cx * us, y: room.circle.cy * us };
+  }
+  if (room.polygon && room.polygon.length > 0) {
+    const n = room.polygon.length;
+    const cx = room.polygon.reduce((s, [x]) => s + x, 0) / n;
+    const cy = room.polygon.reduce((s, [, y]) => s + y, 0) / n;
+    return { x: cx * us, y: cy * us };
+  }
+  return { x: 0, y: 0 };
 }
 
 // -------------------------------------------------------------------
 // getAdjacentCellForDoor — returns the grid cell on the other side of a door
 // Used to determine if a door should be shown when the adjacent room is visible.
 // -------------------------------------------------------------------
-function getAdjacentCellForDoor(rects: GridRect[], door: DoorDef): { x: number; y: number } {
+function getAdjacentCellForDoor(room: GridRoom, door: DoorDef): { x: number; y: number } {
+  if (room.circle) {
+    const { cx, cy, r } = room.circle;
+    const angle = getDoorAngleRad(door);
+    return {
+      x: Math.round(cx + (r + 0.5) * Math.cos(angle)),
+      y: Math.round(cy + (r + 0.5) * Math.sin(angle)),
+    };
+  }
+  if (room.polygon && room.polygon.length > 0) {
+    const n = room.polygon.length;
+    const pcx = room.polygon.reduce((s, [x]) => s + x, 0) / n;
+    const pcy = room.polygon.reduce((s, [, y]) => s + y, 0) / n;
+    const angle = getDoorAngleRad(door);
+    const maxR = Math.max(...room.polygon.map(([x, y]) => Math.hypot(x - pcx, y - pcy)));
+    return {
+      x: Math.round(pcx + (maxR + 0.5) * Math.cos(angle)),
+      y: Math.round(pcy + (maxR + 0.5) * Math.sin(angle)),
+    };
+  }
+  const rects = room.rects;
   if (door.wall === 'north') {
     const minY = Math.min(...rects.map(r => r.y));
     const wallRects = rects.filter(r => r.y === minY);
@@ -214,7 +317,7 @@ function getAdjacentCellForDoor(rects: GridRect[], door: DoorDef): { x: number; 
       const c = Math.ceil(r.chamfer ?? 0);
       return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
     }).sort((a, b) => a - b);
-    const cellX = cells[door.position] ?? cells[0] ?? 0;
+    const cellX = cells[door.position ?? 0] ?? cells[0] ?? 0;
     return { x: cellX, y: minY - 1 };
   } else if (door.wall === 'south') {
     const maxY = Math.max(...rects.map(r => r.y + r.h));
@@ -223,7 +326,7 @@ function getAdjacentCellForDoor(rects: GridRect[], door: DoorDef): { x: number; 
       const c = Math.ceil(r.chamfer ?? 0);
       return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
     }).sort((a, b) => a - b);
-    const cellX = cells[door.position] ?? cells[0] ?? 0;
+    const cellX = cells[door.position ?? 0] ?? cells[0] ?? 0;
     return { x: cellX, y: maxY };
   } else if (door.wall === 'west') {
     const minX = Math.min(...rects.map(r => r.x));
@@ -232,7 +335,7 @@ function getAdjacentCellForDoor(rects: GridRect[], door: DoorDef): { x: number; 
       const c = Math.ceil(r.chamfer ?? 0);
       return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
     }).sort((a, b) => a - b);
-    const cellY = cells[door.position] ?? cells[0] ?? 0;
+    const cellY = cells[door.position ?? 0] ?? cells[0] ?? 0;
     return { x: minX - 1, y: cellY };
   } else { // east
     const maxX = Math.max(...rects.map(r => r.x + r.w));
@@ -241,17 +344,40 @@ function getAdjacentCellForDoor(rects: GridRect[], door: DoorDef): { x: number; 
       const c = Math.ceil(r.chamfer ?? 0);
       return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
     }).sort((a, b) => a - b);
-    const cellY = cells[door.position] ?? cells[0] ?? 0;
+    const cellY = cells[door.position ?? 0] ?? cells[0] ?? 0;
     return { x: maxX, y: cellY };
   }
 }
 
 // -------------------------------------------------------------------
-// getDoorSVGPosition — map wall+position index to SVG coordinates
+// getDoorSVGPosition — map wall+position or angle to SVG coordinates
 // -------------------------------------------------------------------
 function getDoorSVGPosition(
-  rects: GridRect[], door: DoorDef, us: number
+  room: GridRoom, door: DoorDef, us: number
 ): { x: number; y: number; orientation: 'horizontal' | 'vertical' } {
+  // Helper: angle → orientation (horizontal = top/bottom, vertical = left/right)
+  const angleToOrientation = (angle: number): 'horizontal' | 'vertical' => {
+    const a = Math.abs(angle % Math.PI);
+    return (a < Math.PI / 4 || a > (3 * Math.PI) / 4) ? 'vertical' : 'horizontal';
+  };
+
+  if (room.circle) {
+    const { cx, cy, r } = room.circle;
+    const angle = getDoorAngleRad(door);
+    return {
+      x: (cx + r * Math.cos(angle)) * us,
+      y: (cy + r * Math.sin(angle)) * us,
+      orientation: angleToOrientation(angle),
+    };
+  }
+
+  if (room.polygon && room.polygon.length > 0) {
+    const angle = getDoorAngleRad(door);
+    const [bx, by] = getPolygonBoundaryPoint(room.polygon, angle);
+    return { x: bx * us, y: by * us, orientation: angleToOrientation(angle) };
+  }
+
+  const rects = room.rects;
   if (door.wall === 'north' || door.wall === 'south') {
     const targetY = door.wall === 'north'
       ? Math.min(...rects.map(r => r.y))
@@ -265,7 +391,7 @@ function getDoorSVGPosition(
       const c = Math.ceil(r.chamfer ?? 0);
       return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
     }).sort((a, b) => a - b);
-    const cellX = cells[door.position] ?? cells[0] ?? 0;
+    const cellX = cells[door.position ?? 0] ?? cells[0] ?? 0;
     return { x: (cellX + 0.5) * us, y: wallY, orientation: 'horizontal' };
   } else {
     const targetX = door.wall === 'west'
@@ -280,7 +406,7 @@ function getDoorSVGPosition(
       const c = Math.ceil(r.chamfer ?? 0);
       return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
     }).sort((a, b) => a - b);
-    const cellY = cells[door.position] ?? cells[0] ?? 0;
+    const cellY = cells[door.position ?? 0] ?? cells[0] ?? 0;
     return { x: wallX, y: (cellY + 0.5) * us, orientation: 'vertical' };
   }
 }
@@ -370,9 +496,19 @@ export function EncounterMapRenderer({
   // Find room containing a grid cell
   // -------------------------------------------------------------------
   const findRoomAtCell = useCallback((gridX: number, gridY: number): GridRoom | null => {
-    return mapData.rooms.find(room =>
-      room.rects.some(r => gridX >= r.x && gridX < r.x + r.w && gridY >= r.y && gridY < r.y + r.h)
-    ) ?? null;
+    // Cell center point for circle/polygon containment tests
+    const px = gridX + 0.5;
+    const py = gridY + 0.5;
+    return mapData.rooms.find(room => {
+      if (room.circle) {
+        const { cx, cy, r } = room.circle;
+        return (px - cx) ** 2 + (py - cy) ** 2 <= r * r;
+      }
+      if (room.polygon && room.polygon.length > 0) {
+        return pointInPolygon(px, py, room.polygon);
+      }
+      return room.rects.some(r => gridX >= r.x && gridX < r.x + r.w && gridY >= r.y && gridY < r.y + r.h);
+    }) ?? null;
   }, [mapData.rooms]);
 
   // -------------------------------------------------------------------
@@ -704,11 +840,69 @@ export function EncounterMapRenderer({
     if (!isGM && !visible) return null;
     const roomOpacity = isGM && !visible ? 0.25 : 1.0;
 
-    // Split rects so wall-segment algorithm runs only on non-chamfered rects
+    const label = room.name ? getRoomLabelPosition(room, unitSize) : null;
+    const labelEl = label && (isGM || visible) ? (
+      <text
+        x={label.x}
+        y={label.y}
+        className="encounter-map__room-label"
+        fill="#8b7355"
+        textAnchor="middle"
+        dominantBaseline="middle"
+      >
+        {room.name}
+      </text>
+    ) : null;
+
+    // === Circular room ===
+    if (room.circle) {
+      const { cx, cy, r } = room.circle;
+      const svgCx = cx * unitSize;
+      const svgCy = cy * unitSize;
+      const svgR = r * unitSize;
+      return (
+        <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
+          <circle cx={svgCx} cy={svgCy} r={svgR} fill="#1a2525" className="encounter-map__floor" />
+          <circle cx={svgCx} cy={svgCy} r={svgR} fill="none" stroke="#4a6b6b" strokeWidth={WALL_THICKNESS} className="encounter-map__wall" />
+          {isGM && (
+            <circle
+              cx={svgCx} cy={svgCy} r={svgR}
+              fill="transparent"
+              style={{ cursor: 'context-menu' }}
+              onContextMenu={(e) => handleRoomContextMenu(e, room)}
+              className="encounter-map__room"
+            />
+          )}
+          {labelEl}
+        </g>
+      );
+    }
+
+    // === Freeform polygon room ===
+    if (room.polygon && room.polygon.length > 0) {
+      const points = room.polygon.map(([x, y]) => `${x * unitSize},${y * unitSize}`).join(' ');
+      return (
+        <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
+          <polygon points={points} fill="#1a2525" className="encounter-map__floor" />
+          <polygon points={points} fill="none" stroke="#4a6b6b" strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
+          {isGM && (
+            <polygon
+              points={points}
+              fill="transparent"
+              style={{ cursor: 'context-menu' }}
+              onContextMenu={(e) => handleRoomContextMenu(e, room)}
+              className="encounter-map__room"
+            />
+          )}
+          {labelEl}
+        </g>
+      );
+    }
+
+    // === Rect room (plain + chamfered) ===
     const plainRects = room.rects.filter(r => (r.chamfer ?? 0) === 0);
     const chamferedRects = room.rects.filter(r => (r.chamfer ?? 0) > 0);
     const walls = computeRoomWalls(plainRects, unitSize);
-    const label = room.name ? getRoomLabelPosition(room.rects, unitSize) : null;
 
     return (
       <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
@@ -786,19 +980,7 @@ export function EncounterMapRenderer({
           />
         ))}
 
-        {/* Room label — centered, only for named rooms; visible to players only when revealed */}
-        {label && (isGM || visible) && (
-          <text
-            x={label.x}
-            y={label.y}
-            className="encounter-map__room-label"
-            fill="#8b7355"
-            textAnchor="middle"
-            dominantBaseline="middle"
-          >
-            {room.name}
-          </text>
-        )}
+        {labelEl}
       </g>
     );
   };
@@ -1138,11 +1320,11 @@ export function EncounterMapRenderer({
             (room.doors || []).map((door, i) => {
               if (!isGM) {
                 // Show door if either the owning room OR the adjacent room is visible
-                const adjCell = getAdjacentCellForDoor(room.rects, door);
+                const adjCell = getAdjacentCellForDoor(room, door);
                 const adjRoom = findRoomAtCell(adjCell.x, adjCell.y);
                 if (!isRoomVisible(room.id) && (!adjRoom || !isRoomVisible(adjRoom.id))) return null;
               }
-              const pos = getDoorSVGPosition(room.rects, door, unitSize);
+              const pos = getDoorSVGPosition(room, door, unitSize);
               const style = CONNECTION_STYLES[door.type] || CONNECTION_STYLES.standard;
               const contextMenuHandler = (isGM && onDoorStatusChange)
                 ? (e: React.MouseEvent) => handleDoorClick(e, room, i)

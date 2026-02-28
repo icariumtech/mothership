@@ -251,17 +251,20 @@ export type WallSide = 'north' | 'south' | 'east' | 'west';
 
 /** A door attached to a specific wall of a room */
 export interface DoorDef {
-  wall: WallSide;
-  position: number;     // 0-based cell index along the wall (counts only cells with an actual wall segment)
+  wall?: WallSide;      // cardinal wall for rect rooms; optional for circle/polygon rooms
+  position?: number;    // 0-based cell index along the wall; optional for circle/polygon rooms
+  angle?: number;       // degrees clockwise from east (0=east, 90=south, 180=west, 270=north) — for circle/polygon rooms
   type: DoorType;       // standard | airlock | blast_door | emergency
   status: DoorStatus;   // OPEN | CLOSED | LOCKED | SEALED
 }
 
-/** A room composed of one or more grid rectangles */
+/** A room composed of one or more grid rectangles, a circle, or a freeform polygon */
 export interface GridRoom {
   id: string;
   name: string;         // empty string = corridor/hallway (no label rendered)
-  rects: GridRect[];    // list of axis-aligned rectangles that make up this room
+  rects: GridRect[];    // list of axis-aligned rectangles (may be empty for circle/polygon rooms)
+  circle?: { cx: number; cy: number; r: number };  // circular room (grid coords)
+  polygon?: [number, number][];                      // freeform polygon vertices (grid coords)
   doors?: DoorDef[];
   description?: string;
   type?: string;        // optional tag: corridor | bridge | cargo | medical | etc.
@@ -281,15 +284,17 @@ export interface GridEncounterMapData {
 }
 
 /**
- * Type guard: identifies grid-based maps by presence of rects on first room.
+ * Type guard: identifies grid-based maps by presence of rects/circle/polygon on first room.
  * Used by EncounterMapDisplay to route to the new renderer.
  */
 export function isGridEncounterMap(mapData: unknown): mapData is GridEncounterMapData {
   if (!mapData || typeof mapData !== 'object') return false;
   const m = mapData as Record<string, unknown>;
+  if (!Array.isArray(m.rooms) || m.rooms.length === 0) return false;
+  const firstRoom = m.rooms[0] as Record<string, unknown>;
   return (
-    Array.isArray(m.rooms) &&
-    m.rooms.length > 0 &&
-    Array.isArray((m.rooms[0] as Record<string, unknown>).rects)
+    Array.isArray(firstRoom.rects) ||
+    (typeof firstRoom.circle === 'object' && firstRoom.circle !== null) ||
+    Array.isArray(firstRoom.polygon)
   );
 }

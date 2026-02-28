@@ -84,6 +84,39 @@ rooms:
     description: "Atmospheric recycling and water reclamation"
     type: life_support
 
+  # === CIRCULAR ROOM EXAMPLE ===
+
+  - id: junction_hub
+    name: "JUNCTION HUB"
+    rects: []
+    circle:
+      cx: 22.0
+      cy: 4.0
+      r: 2.0
+    doors:
+      # west door connects to main corridor
+      - {angle: 180, type: standard, status: OPEN}
+      # north door
+      - {angle: 270, type: blast_door, status: CLOSED}
+    description: "Central junction hub — circular compartment for crew routing"
+    type: hub
+
+  # === POLYGON ROOM EXAMPLE ===
+
+  - id: aft_section
+    name: "AFT SECTION"
+    rects: []
+    polygon:
+      - [24.5, 7.0]
+      - [28.0, 7.0]
+      - [29.5, 10.0]
+      - [23.0, 10.0]
+    doors:
+      # north-west door — angle ~315° (just under the room)
+      - {angle: 315, type: airlock, status: SEALED}
+    description: "Aft engineering section — tapered hull compartment"
+    type: engineering
+
 terminals:
   - id: bridge_nav
     room: bridge

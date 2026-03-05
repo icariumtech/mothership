@@ -1,0 +1,123 @@
+deck_id: "main_deck"
+name: "Somnus — Main Deck"
+location_name: "Somnus"
+unit_size: 30
+
+rooms:
+
+  - id: engineering
+    name: "ENGINEERING"
+    polygon: [[7,10], [10,7], [13,7], [13,21], [7,21]]
+    doors:
+      - {x: 13, y: 13.5, angle: 90, type: standard, status: CLOSED}  # → corridor_1
+      - {x: 10.5, y: 21, angle: 0, type: standard, status: CLOSED}  # → corridor_1
+    # description: ""
+    # type: ""
+
+  - id: operations
+    name: "OPERATIONS"
+    polygon: [[16,7], [19,7], [24,12], [24,21], [16,21]]
+    doors:
+      - {x: 16, y: 13.5, angle: 90, type: standard, status: CLOSED}  # → corridor_1
+      - {x: 20.5, y: 21, angle: 0, type: standard, status: CLOSED}  # → corridor_1
+    # description: ""
+    # type: ""
+
+  - id: engine_core
+    name: "ENGINE CORE"
+    polygon: [[8,28], [9,27], [15,27], [16,28], [16,34], [15,35], [9,35], [8,34]]
+    doors:
+      - {x: 10.5, y: 27, angle: 0, type: standard, status: CLOSED}  # → corridor_1
+      - {x: 10.5, y: 35, angle: 0, type: standard, status: CLOSED}  # → corridor_5
+    # description: ""
+    # type: ""
+
+  - id: cargo
+    name: "CARGO"
+    polygon: [[3,38], [7,38], [10,41], [10,53], [9,54], [3,54]]
+    doors:
+      - {x: 5.5, y: 38, angle: 0, type: standard, status: CLOSED}  # → corridor_5
+      - {x: 10, y: 45.5, angle: 90, type: standard, status: CLOSED}  # → computer_core
+      - {x: 7.5, y: 54, angle: 0, type: standard, status: CLOSED}  # → corridor_2
+    # description: ""
+    # type: ""
+
+  - id: computer_core
+    name: "COMPUTER CORE"
+    polygon: [[11,38], [19,38], [19,51], [18,51], [18,47], [11,47], [11,46], [10,46], [10,45], [11,45]]
+    doors:
+      - {x: 10, y: 45.5, angle: 90, type: standard, status: CLOSED}  # → cargo
+      - {x: 18.5, y: 51, angle: 0, type: standard, status: CLOSED}  # → bridge
+    # description: ""
+    # type: ""
+
+  - id: cyropod_chamber
+    name: "CYROPOD CHAMBER"
+    polygon: [[11,48], [16,48], [16,56], [17,56], [17,62], [16,62], [16,63], [11,63], [11,62], [9,62], [9,56], [11,56]]
+    doors:
+      - {x: 13.5, y: 63, angle: 0, type: standard, status: CLOSED}  # → corridor_3
+      - {x: 15.5, y: 63, angle: 0, type: standard, status: CLOSED}  # → corridor_4
+    # description: ""
+    # type: ""
+
+  - id: barracks
+    name: "BARRACKS"
+    polygon: [[5,65], [6,64], [10,64], [11,65], [11,71], [12,71], [12,77], [11,77], [11,79], [9,81], [5,81], [5,77], [3,77], [3,72], [5,70]]
+    doors:
+      - {x: 7.5, y: 64, angle: 0, type: standard, status: CLOSED}  # → corridor_2
+      - {x: 11, y: 68.5, angle: 90, type: standard, status: CLOSED}  # → corridor_3
+      - {x: 12, y: 74, angle: 90, type: standard, status: CLOSED}  # → conference
+    # description: ""
+    # type: ""
+
+  - id: conference
+    name: "CONFERENCE"
+    polygon: [[13,70], [22,70], [22,77], [13,77], [13,75], [12,75], [12,73], [13,73]]
+    doors:
+      - {x: 15.5, y: 70, angle: 0, type: standard, status: CLOSED}  # → corridor_4
+      - {x: 12, y: 74, angle: 90, type: standard, status: CLOSED}  # → barracks
+    # description: ""
+    # type: ""
+
+  - id: bridge
+    name: "BRIDGE"
+    polygon: [[18,51], [22,51], [22,52], [25,55], [25,69], [18,69]]
+    doors:
+      - {x: 18.5, y: 51, angle: 0, type: standard, status: CLOSED}  # → computer_core
+      - {x: 21.5, y: 51, angle: 0, type: standard, status: CLOSED}  # → corridor_1
+    # description: ""
+    # type: ""
+
+  - id: airlock
+    name: "AIRLOCK"
+    polygon: [[13,4], [14,3], [14,2], [15,2], [15,3], [16,3], [16,6], [13,6]]
+    doors:
+      - {x: 14.5, y: 6, angle: 0, type: standard, status: CLOSED}  # → corridor_1
+    # description: ""
+    # type: ""
+
+  - id: corridor_1
+    name: ""
+    polygon: [[14,6], [15,6], [15,13], [16,13], [16,14], [15,14], [15,24], [18,24], [20,22], [20,21], [21,21], [21,24], [22,25], [22,51], [21,51], [21,26], [20,25], [11,25], [11,27], [10,27], [10,21], [11,21], [11,24], [14,24], [14,14], [13,14], [13,13], [14,13]]
+    type: corridor
+
+  - id: corridor_2
+    name: ""
+    polygon: [[7,54], [7,64], [8,64], [8,54]]
+    type: corridor
+
+  - id: corridor_3
+    name: ""
+    polygon: [[13,63], [13,68], [11,68], [11,69], [14,69], [14,63]]
+    type: corridor
+
+  - id: corridor_4
+    name: ""
+    polygon: [[15,63], [15,70], [16,70], [16,63]]
+    type: corridor
+
+  - id: corridor_5
+    name: ""
+    polygon: [[11,35], [11,37], [6,37], [6,38], [5,38], [5,36], [10,36], [10,35]]
+    type: corridor
+

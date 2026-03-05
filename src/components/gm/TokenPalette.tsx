@@ -14,7 +14,7 @@ import { Button, Input, Space, Typography, Modal, message as antdMessage } from 
 import { DeleteOutlined, PlusOutlined, UserOutlined, TeamOutlined, BugOutlined, BoxPlotOutlined } from '@ant-design/icons';
 import { encounterApi } from '@/services/encounterApi';
 import type { ActiveView } from '@/types/gmConsole';
-import type { TokenState, TokenType, TokenImage, EncounterMapData, RoomVisibilityState } from '@/types/encounterMap';
+import type { TokenState, TokenType, TokenImage, EncounterMapData, GridEncounterMapData, RoomVisibilityState } from '@/types/encounterMap';
 import { TokenImageGallery } from './TokenImageGallery';
 
 const { Text } = Typography;
@@ -30,7 +30,7 @@ interface TokenPaletteProps {
   tokens: TokenState;
   onTokensChange: (tokens: TokenState) => void;
   onViewUpdate: () => void;
-  mapData: EncounterMapData | null;
+  mapData: EncounterMapData | GridEncounterMapData | null;
   roomVisibility: RoomVisibilityState;
 }
 

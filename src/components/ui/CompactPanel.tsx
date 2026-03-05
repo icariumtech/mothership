@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, CSSProperties } from 'react';
 import { Panel, ChamferCorner } from './Panel';
 
 interface CompactPanelProps {
@@ -20,6 +20,8 @@ interface CompactPanelProps {
   scrollable?: boolean;
   /** Callback when header is clicked */
   onHeaderClick?: () => void;
+  /** Custom styles for the panel wrapper */
+  style?: CSSProperties;
 }
 
 /**
@@ -37,6 +39,7 @@ export function CompactPanel({
   footer,
   scrollable = true,
   onHeaderClick,
+  style,
 }: CompactPanelProps) {
   return (
     <Panel
@@ -49,6 +52,7 @@ export function CompactPanel({
       footer={footer}
       scrollable={scrollable}
       onHeaderClick={onHeaderClick}
+      style={style}
     >
       {children}
     </Panel>

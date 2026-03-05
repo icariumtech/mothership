@@ -677,13 +677,15 @@ planet:
 
 ## 5. Encounter Maps
 
-Maps for tactical encounters. Located in `map/` subdirectories.
+Maps for tactical encounters — rendered as SVG grid floor plans on the terminal display. Located in `map/` subdirectories.
 
 ### 5.1 Single-Deck Maps
 
-For simple facilities with one deck/level:
+For simple facilities with one deck:
 
-**Directory:** `{facility}/map/{map-name}.yaml`
+**Location:** `{facility}/map/{map-name}.yaml`
+
+The renderer auto-detects the grid format by the presence of `rects` on rooms.
 
 ### 5.2 Multi-Deck Maps
 
@@ -693,9 +695,8 @@ For facilities with multiple decks, use a manifest file:
 ```
 {facility}/map/
 ├── manifest.yaml      # Required: lists all decks
-├── deck_1.yaml        # Deck definitions
-├── deck_2.yaml
-└── deck_3.yaml
+├── deck_1.yaml
+└── deck_2.yaml
 ```
 
 #### Manifest File (`manifest.yaml`)
@@ -720,153 +721,252 @@ decks:
     description: "Storage, maintenance, and secondary systems"
 ```
 
-### 5.3 Deck/Map Definition
+### 5.3 Grid-Based Map Definition
+
+Maps use a **room-and-wall** format. Each room is composed of one or more axis-aligned rectangles (`rects`), an optional `circle`, or an optional `polygon`. Doors are defined inline on each room. There is no separate `connections:` section — doors belong to rooms.
+
+Three room shape types are supported, and they are backward compatible — existing rect maps work unchanged:
+
+| Shape | Field | Description |
+|-------|-------|-------------|
+| Rectangles | `rects: [...]` | One or more axis-aligned rectangles joined into one room (can have chamfered corners) |
+| Circle | `circle: {cx, cy, r}` | A single circular room |
+| Polygon | `polygon: [[x,y], ...]` | A freeform polygon defined by grid-coordinate vertices |
 
 ```yaml
-deck_id: "deck_1"              # Must match manifest
+deck_id: "deck_1"              # Must match manifest ID (omit for single-deck maps)
 name: "USCSS Morrigan - Main Deck"
 location_name: "USCSS Morrigan"
-description: "Main deck layout showing bridge, engineering, and crew quarters"
+description: "Main deck layout"
+unit_size: 40                  # Pixels per grid cell (optional, default 40)
 
-grid:
-  width: 28                    # Grid units (map width)
-  height: 18                   # Grid units (map height)
-  unit_size: 40                # Pixels per grid unit
-  show_grid: false             # Optional background grid
-
-# Rooms are separate rectangular boxes
 rooms:
+  # Simple rectangular room
   - id: bridge
     name: "BRIDGE"
-    x: 1                       # Grid position (top-left corner)
-    y: 1
-    width: 5                   # Grid units
-    height: 3
+    rects:
+      - {x: 1, y: 0, w: 5, h: 3}   # x, y = top-left cell (0-based); w, h = size in cells
+    doors:
+      - {wall: south, position: 2, type: blast_door, status: CLOSED}
     description: "Primary flight control and navigation center"
-    status: "OPERATIONAL"      # OPERATIONAL, WARNING, HAZARD, OFFLINE
+    type: bridge                     # Optional type tag — see Room Types below
 
+  # Corridor: empty name suppresses the room label
+  - id: main_corridor
+    name: ""
+    rects:
+      - {x: 0, y: 3, w: 20, h: 2}
+    type: corridor
+
+  # L-shaped room: multiple rects joined into one room
   - id: engineering
     name: "ENGINEERING"
-    x: 1
-    y: 7
-    width: 5
-    height: 4
+    rects:
+      - {x: 0, y: 5, w: 5, h: 4}
+      - {x: 5, y: 7, w: 3, h: 2}   # Extension joined to the right
+    doors:
+      - {wall: north, position: 2, type: blast_door, status: CLOSED}
+      - {wall: south, position: 2, type: emergency, status: LOCKED}
     description: "Main reactor and engine systems"
-    status: "WARNING"
+    type: engineering
 
-  - id: cargo_bay
-    name: "CARGO BAY"
-    x: 11
-    y: 7
-    width: 6
-    height: 4
-    description: "Primary cargo storage area"
-    status: "HAZARD"
+  - id: airlock_bay
+    name: "AIRLOCK BAY"
+    rects:
+      - {x: 14, y: 5, w: 5, h: 4}
+    doors:
+      - {wall: north, position: 2, type: airlock, status: SEALED}
+    description: "EVA preparation and external access"
+    type: airlock
 
-# Connections define paths between rooms with doors
-connections:
-  - id: conn_bridge_eng
-    from: bridge               # Room ID
-    to: engineering            # Room ID
-    door_type: blast_door      # standard, airlock, blast_door, emergency
-    door_status: CLOSED        # OPEN, CLOSED, LOCKED, SEALED, DAMAGED
+  # Circular room — use `circle` instead of rects
+  - id: junction_hub
+    name: "JUNCTION HUB"
+    rects: []                        # Required field; empty for circle rooms
+    circle:
+      cx: 22.0                       # Center X in grid coordinates
+      cy: 4.0                        # Center Y in grid coordinates
+      r: 2.0                         # Radius in grid cells
+    doors:
+      - {angle: 180, type: standard, status: OPEN}     # West (180°)
+      - {angle: 270, type: blast_door, status: CLOSED} # North (270°)
+    description: "Circular junction hub"
+    type: hub
 
-  - id: conn_cargo_airlock
-    from: cargo_bay
-    to: airlock_bay
-    door_type: airlock
-    door_status: SEALED
+  # Freeform polygon room — use `polygon` for wedges, tapered bays, angled corridors
+  - id: aft_section
+    name: "AFT SECTION"
+    rects: []                        # Required field; empty for polygon rooms
+    polygon:
+      - [24.5, 7.0]                  # Vertices in grid coordinates [x, y], in order
+      - [28.0, 7.0]
+      - [29.5, 10.0]
+      - [23.0, 10.0]
+    doors:
+      - {angle: 315, type: airlock, status: SEALED}    # NW corner (315°)
+    description: "Tapered aft engineering section"
+    type: engineering
 
-# Inter-deck connections (for multi-deck maps)
-# NOTE: to_room references a room ID in the target deck's YAML file
-# You must coordinate room IDs between deck files
+# Connections between decks (ladders, lifts, hatches)
+# NOTE: to_room must reference a valid room ID in the target deck's YAML file
 inter_deck_connections:
-  - id: ladder_eng_maint
+  - id: ladder_eng_lower
     from_room: engineering     # Room ID in THIS deck
     to_deck: "deck_2"          # Deck ID from manifest.yaml
     to_room: maintenance       # Room ID in deck_2.yaml (must exist there)
-    type: ladder               # ladder, elevator, stairs
-    status: OPEN
+    type: ladder               # ladder | lift | hatch | stairs
+    status: OPEN               # OPEN | CLOSED | LOCKED | DAMAGED
 
-# Terminals inside rooms
+# Terminals inside rooms (link to comms/ terminal directories)
 terminals:
   - id: bridge_nav
     room: bridge               # Room ID where terminal is located
     position:
-      x: 2.5                   # Grid position (decimals allowed)
-      y: 2
-    terminal_slug: "nav-console"
+      x: 3.5                   # Position within room (decimals allowed)
+      y: 1.5
+    terminal_slug: "nav-console"  # Must match a directory name under comms/
     name: "NAV CONSOLE"
 
-# Points of Interest
+# Points of Interest (icons from Open Spacecraft Icons)
 poi:
   - id: escape_pod_1
-    type: "objective"          # objective, item, hazard, npc, player
+    type: "objective"          # objective | item | hazard | npc | player
     room: airlock_bay
     position:
-      x: 23
-      y: 8
+      x: 16.5
+      y: 6.5
     name: "ESCAPE POD A"
-    icon: "pod"                # pod, warning, crate, or type name
+    icon: "emergency capsule"  # See Available Icons below
     status: "READY"
     description: "Emergency escape pod (4 person capacity)"
 
-  - id: breach_site
+  - id: reactor_hazard
     type: "hazard"
-    room: cargo_bay
+    room: engineering
     position:
-      x: 15
-      y: 10
-    name: "HULL BREACH"
-    icon: "warning"
-    status: "CRITICAL"
-    description: "Structural damage - depressurization risk"
-
-  - id: supply_cache
-    type: "item"
-    room: cargo_bay
-    position:
-      x: 12
-      y: 8
-    name: "SUPPLY CRATE"
-    icon: "crate"
-    description: "Medical supplies and rations"
+      x: 2.5
+      y: 6.5
+    name: "REACTOR CORE"
+    icon: "reactor core"
+    status: "WARNING"
+    description: "Elevated radiation levels — protective gear required"
 
 metadata:
   author: "GM"
   created: "2183-06-15"
-  version: 2
+  version: 1
   tags: ["ship", "exploration", "combat"]
 ```
 
+### 5.4 Door Definitions
+
+Doors are defined inline on rooms. For **rect rooms** use `wall` + `position`; for **circle/polygon rooms** use `angle`:
+
+```yaml
+# Rect room door — wall + position
+doors:
+  - wall: south      # north | south | east | west
+    position: 2      # 0-based cell index along the wall (exterior cells only)
+    type: standard   # standard | airlock | blast_door | emergency | open
+    status: CLOSED   # OPEN | CLOSED | LOCKED | SEALED | DAMAGED
+
+# Circle or polygon room door — angle instead of wall + position
+doors:
+  - angle: 180       # Degrees clockwise from east: 0=east, 90=south, 180=west, 270=north
+    type: standard
+    status: OPEN
+```
+
+**Rect room doors (`wall` + `position`):** `wall` specifies which side of the room the door is on. `position` is the 0-based index counting from the left (for `north`/`south` walls) or from the top (for `east`/`west` walls), counting only cells that have an actual exterior wall segment. For simple rectangular rooms, position 0 = first cell, 1 = second cell, etc.
+
+**Circle/polygon room doors (`angle`):** The door is placed on the room's perimeter at the given angle. Angle is in degrees, measured clockwise from east (right):
+
+| Angle | Direction |
+|-------|-----------|
+| `0` | East (right) |
+| `90` | South (down) |
+| `180` | West (left) |
+| `270` | North (up) |
+| `45`, `135`, `225`, `315` | Diagonals |
+
+You can also use `wall` on circle/polygon rooms as a shorthand — `wall: north` maps to 270°, `wall: east` to 0°, etc. — but `angle` gives finer control.
+
 **Door Types:**
 
-| Type | Description | Use Case |
-|------|-------------|----------|
-| `standard` | Normal interior door | Regular rooms |
-| `airlock` | Pressure-sealed door | EVA access, external areas |
-| `blast_door` | Heavy security door | Containment, security |
-| `emergency` | Emergency access | Usually locked, emergency use |
+| Type | Description |
+|------|-------------|
+| `standard` | Normal interior door |
+| `airlock` | Pressure-sealed door — double-line visual indicator |
+| `blast_door` | Heavy security door — thick-line visual indicator |
+| `emergency` | Emergency access hatch — dashed-line visual indicator |
+| `open` | Permanent opening, no door rendered |
 
 **Door Status:**
 
 | Status | Description |
 |--------|-------------|
-| `OPEN` | Door is open |
+| `OPEN` | Door is open, passable |
 | `CLOSED` | Door is closed but unlocked |
 | `LOCKED` | Door is locked |
 | `SEALED` | Pressure sealed (airlocks) |
-| `DAMAGED` | Door is damaged/broken |
+| `DAMAGED` | Door is damaged/jammed |
 
-**POI Types:**
+### 5.5 Room Types
 
-| Type | Icon | Use Case |
-|------|------|----------|
-| `objective` | Triangle | Mission goals, escape pods |
-| `item` | Square | Loot, supplies, equipment |
-| `hazard` | Warning triangle | Dangers, radiation, breaches |
-| `npc` | Circle | NPCs, crew members |
-| `player` | Diamond | Player positions |
+The `type` field is an optional freeform tag. Common values:
+
+| Type | Use Case |
+|------|----------|
+| `corridor` | Hallways — use `name: ""` to suppress the room label |
+| `bridge` | Command and navigation deck |
+| `crew` | Crew quarters and cabins |
+| `medical` | Medical bay, sickbay |
+| `engineering` | Reactors, engines, maintenance |
+| `cargo` | Storage and cargo areas |
+| `airlock` | EVA preparation and external access |
+| `life_support` | Atmospheric and water recycling |
+| `utility` | General utility and service rooms |
+
+Any string is accepted — the type tag is freeform.
+
+### 5.6 Points of Interest and Available Icons
+
+POI icons come from the **Open Spacecraft Icons** pack by László Varga (MIT license). Source: https://gm-lazarus.itch.io/open-spacecraft-icons. Icons are stored in `src/assets/icons/`.
+
+The `icon` field must exactly match a name from the list below (lowercase).
+
+**POI Colors by Type:**
+
+| Type | Color | Use Case |
+|------|-------|----------|
+| `hazard` | Red | Dangers, radiation, hull breaches |
+| `objective` | Amber | Mission goals, escape pods, objectives |
+| `item` | Teal | Loot, supplies, equipment |
+| `npc` | Amber | NPCs and crew members |
+| `player` | Teal | Player character positions |
+
+**Available Icons:**
+
+| Icon Name | Icon Name | Icon Name |
+|-----------|-----------|-----------|
+| `ai` | `galley` | `supplies` |
+| `airlock` | `intercom` | `toilet` |
+| `armory` | `jumpdrive` | `toilets 2` |
+| `automed` | `lab` | `vac suit` |
+| `cabin` | `ladder` | `vault` |
+| `cargo` | `ladder bottom` | `ventillation`* |
+| `command` | `ladder top` | `weapon system` |
+| `cryo` | `laser` | `workshop` |
+| `docking bay` | `medbay` | `elevator` |
+| `door` | `ramp` | `elevator to bottom` |
+| `duct access` | `reactor core` | `elevator to top` |
+| `emergency capsule` | `sensors` | `empty` |
+| `exit` | `shower` | `0` |
+| `fuel` | | |
+
+> \* `ventillation` — double-L spelling matches the source filename exactly.
+
+If `icon` is omitted or doesn't match any known icon, the POI renders without an icon symbol.
 
 ---
 
@@ -1237,53 +1337,36 @@ bodies:
 name: "Example Station Layout"
 location_name: "Example Station"
 description: "Simple station with three rooms"
-
-grid:
-  width: 20
-  height: 12
-  unit_size: 40
-  show_grid: false
+unit_size: 40
 
 rooms:
   - id: command
     name: "COMMAND"
-    x: 1
-    y: 1
-    width: 5
-    height: 3
+    rects:
+      - {x: 1, y: 1, w: 5, h: 3}
+    doors:
+      - {wall: east, position: 1, type: standard, status: OPEN}
+      - {wall: south, position: 2, type: standard, status: CLOSED}
     description: "Station command center"
-    status: "OPERATIONAL"
+    type: bridge
 
   - id: habitat
     name: "HABITAT"
-    x: 8
-    y: 1
-    width: 5
-    height: 3
+    rects:
+      - {x: 8, y: 1, w: 5, h: 3}
+    doors:
+      - {wall: west, position: 1, type: standard, status: OPEN}
     description: "Crew quarters"
-    status: "OPERATIONAL"
+    type: crew
 
   - id: lab
     name: "RESEARCH LAB"
-    x: 4
-    y: 7
-    width: 6
-    height: 4
+    rects:
+      - {x: 4, y: 7, w: 6, h: 4}
+    doors:
+      - {wall: north, position: 2, type: standard, status: CLOSED}
     description: "Primary research facility"
-    status: "OPERATIONAL"
-
-connections:
-  - id: conn_cmd_hab
-    from: command
-    to: habitat
-    door_type: standard
-    door_status: OPEN
-
-  - id: conn_cmd_lab
-    from: command
-    to: lab
-    door_type: standard
-    door_status: CLOSED
+    type: engineering
 
 terminals:
   - id: cmd_terminal
@@ -1347,8 +1430,8 @@ When adding new data, verify:
 - [ ] Message IDs are unique across all terminals
 - [ ] **Messages use central store (`comms/messages/`) OR legacy format with duplication**
 - [ ] Room IDs are unique within each deck
-- [ ] Connection `from`/`to` reference valid room IDs
-- [ ] Inter-deck connections reference valid room IDs in target deck files
+- [ ] Door `wall`/`position` values are within bounds for the room's rects
+- [ ] Inter-deck connections reference valid room IDs in both decks and a valid `to_deck` ID in manifest
 - [ ] Terminal slugs in map files match `comms/` directory names
 - [ ] System entries in star_map.yaml have matching location directories
 - [ ] Planet entries with `has_orbit_map: true` have corresponding orbit_map.yaml files
@@ -1400,9 +1483,9 @@ python -c "import yaml; yaml.safe_load(open('data/galaxy/your-system/location.ya
 
 **Causes & Solutions:**
 1. **YAML syntax error** - Validate the YAML file
-2. **Room position off grid** - Ensure room x/y/width/height are within grid boundaries
-3. **Invalid connection references** - Connection `from`/`to` must match room IDs exactly
-4. **Missing grid configuration** - Ensure `grid:` section exists with width, height, unit_size
+2. **Missing shape field** - Each room must have `rects:` (can be `[]`), `circle:`, or `polygon:`; the renderer identifies grid maps by presence of one of these fields on the first room
+3. **Room rects out of bounds** - Ensure all rect `x`/`y`/`w`/`h` values fit within the expected area
+4. **Door position out of range** - `position` must be less than the wall's cell count
 
 ### Terminal not loading messages
 

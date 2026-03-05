@@ -157,6 +157,7 @@ export interface EncounterManifest {
   facility_type?: string;
   total_decks: number;
   decks: DeckInfo[];
+  hull?: HullDef;  // optional ship hull polygon — same outline shown on every deck
 }
 
 // Room visibility state (GM-controlled)
@@ -231,4 +232,83 @@ export interface TooltipState {
   x: number;
   y: number;
   content: TooltipContent;
+}
+
+// ============================================================
+// Grid-based encounter map types (Phase 7)
+// ============================================================
+
+/** A single axis-aligned rectangle in grid cell units */
+export interface GridRect {
+  x: number;  // grid cell X (left edge, 0-based)
+  y: number;  // grid cell Y (top edge, 0-based)
+  w: number;  // width in cells
+  h: number;  // height in cells
+  chamfer?: number;  // diagonal corner cut in grid-cell units (0 = square corners, 1 = 1-cell cut)
+}
+
+/** Cardinal wall sides for door attachment */
+export type WallSide = 'north' | 'south' | 'east' | 'west';
+
+/** A door attached to a specific wall of a room */
+export interface DoorDef {
+  // Explicit position format (preferred for polygon/circle rooms):
+  x?: number;        // door center x in grid coords
+  y?: number;        // door center y in grid coords
+  angle?: number;    // when x/y present: door slot orientation — 0=horizontal (N/S wall), 90=vertical (E/W wall)
+                     // when x/y absent: legacy direction-from-centroid (deprecated)
+
+  // Rect-room format:
+  wall?: WallSide;      // cardinal wall
+  position?: number;    // 0-based cell index along the wall
+
+  type: DoorType;       // standard | airlock | blast_door | emergency
+  status: DoorStatus;   // OPEN | CLOSED | LOCKED | SEALED
+}
+
+/** A room composed of one or more grid rectangles, a circle, or a freeform polygon */
+export interface GridRoom {
+  id: string;
+  name: string;         // empty string = corridor/hallway (no label rendered)
+  rects: GridRect[];    // list of axis-aligned rectangles (may be empty for circle/polygon rooms)
+  circle?: { cx: number; cy: number; r: number };  // circular room (grid coords)
+  polygon?: [number, number][];                      // freeform polygon vertices (grid coords)
+  doors?: DoorDef[];
+  description?: string;
+  type?: string;        // optional tag: corridor | bridge | cargo | medical | etc.
+}
+
+/** Ship hull outline — optional outer frame polygon for the deck */
+export interface HullDef {
+  polygon: [number, number][];  // vertices in grid cell coords
+}
+
+/** Complete grid-based encounter map (new format) */
+export interface GridEncounterMapData {
+  name: string;
+  deck_id?: string;
+  location_name?: string;
+  description?: string;
+  unit_size?: number;   // pixels per cell — default 40 if omitted
+  hull?: HullDef;       // optional ship/structure outer frame polygon
+  rooms: GridRoom[];
+  terminals?: TerminalData[];
+  poi?: PoiData[];
+  metadata?: MapMetadata;
+}
+
+/**
+ * Type guard: identifies grid-based maps by presence of rects/circle/polygon on first room.
+ * Used by EncounterMapDisplay to route to the new renderer.
+ */
+export function isGridEncounterMap(mapData: unknown): mapData is GridEncounterMapData {
+  if (!mapData || typeof mapData !== 'object') return false;
+  const m = mapData as Record<string, unknown>;
+  if (!Array.isArray(m.rooms) || m.rooms.length === 0) return false;
+  const firstRoom = m.rooms[0] as Record<string, unknown>;
+  return (
+    Array.isArray(firstRoom.rects) ||
+    (typeof firstRoom.circle === 'object' && firstRoom.circle !== null) ||
+    Array.isArray(firstRoom.polygon)
+  );
 }

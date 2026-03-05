@@ -1,108 +1,82 @@
 deck_id: "deck_2"
 name: "USCSS Morrigan - Lower Deck"
 location_name: "USCSS Morrigan"
-description: "Lower deck with storage, maintenance access, and secondary systems"
-
-grid:
-  width: 28
-  height: 18
-  unit_size: 40
-  show_grid: false
+description: "Lower deck - central corridor with maintenance and storage above; fuel cells and waste processing below"
+unit_size: 40
 
 rooms:
+  # === UPPER ROOMS (above lower corridor) ===
+
   - id: maintenance
     name: "MAINTENANCE"
-    x: 1
-    y: 7
-    width: 5
-    height: 4
+    rects:
+      - {x: 0, y: 0, w: 5, h: 4}
+    doors:
+      - {wall: south, position: 2, type: standard, status: OPEN}
     description: "Ship maintenance and repair bay"
-    status: "OPERATIONAL"
+    type: engineering
 
   - id: storage_a
     name: "STORAGE A"
-    x: 11
-    y: 7
-    width: 4
-    height: 4
+    rects:
+      - {x: 7, y: 0, w: 5, h: 4}
+    doors:
+      - {wall: south, position: 2, type: standard, status: OPEN}
+      - {wall: east, position: 1, type: standard, status: LOCKED}
     description: "General storage compartment"
-    status: "OPERATIONAL"
+    type: cargo
 
   - id: storage_b
     name: "STORAGE B"
-    x: 18
-    y: 7
-    width: 4
-    height: 4
+    rects:
+      - {x: 14, y: 0, w: 5, h: 4}
+    doors:
+      - {wall: south, position: 2, type: standard, status: LOCKED}
     description: "Secure storage compartment"
-    status: "OFFLINE"
+    type: cargo
+
+  # === LOWER CORRIDOR ===
+
+  - id: lower_corridor
+    name: ""
+    rects:
+      - {x: 0, y: 4, w: 20, h: 2}
+    type: corridor
+
+  # === LOWER ROOMS (below lower corridor) ===
 
   - id: fuel_cells
     name: "FUEL CELLS"
-    x: 1
-    y: 14
-    width: 5
-    height: 3
+    rects:
+      - {x: 0, y: 6, w: 5, h: 3}
+    doors:
+      - {wall: north, position: 2, type: emergency, status: CLOSED}
     description: "Fuel cell storage and management"
-    status: "WARNING"
+    type: engineering
 
   - id: waste_processing
     name: "WASTE PROC"
-    x: 11
-    y: 14
-    width: 5
-    height: 3
+    rects:
+      - {x: 6, y: 6, w: 7, h: 3}
+    doors:
+      - {wall: north, position: 3, type: standard, status: OPEN}
     description: "Waste processing and recycling"
-    status: "OPERATIONAL"
-
-connections:
-  - id: conn_maint_storage_a
-    from: maintenance
-    to: storage_a
-    door_type: standard
-    door_status: OPEN
-
-  - id: conn_storage_a_b
-    from: storage_a
-    to: storage_b
-    door_type: standard
-    door_status: LOCKED
-
-  - id: conn_maint_fuel
-    from: maintenance
-    to: fuel_cells
-    door_type: emergency
-    door_status: CLOSED
-
-  - id: conn_storage_waste
-    from: storage_a
-    to: waste_processing
-    door_type: standard
-    door_status: OPEN
-
-# Inter-deck connection (to main deck)
-inter_deck_connections:
-  - id: ladder_maint_eng
-    from_room: maintenance
-    to_deck: "deck_1"
-    to_room: engineering
-    type: ladder
-    status: OPEN
+    type: utility
 
 terminals:
   - id: maint_console
     room: maintenance
     position:
-      x: 3
-      y: 8.5
+      x: 2.5
+      y: 2.0
     terminal_slug: "maintenance-console"
     name: "MAINT CONSOLE"
 
   - id: fuel_monitor
     room: fuel_cells
     position:
-      x: 3
-      y: 15
+      x: 2.5
+      y: 7.5
     terminal_slug: "fuel-monitor"
     name: "FUEL MONITOR"
 
@@ -111,25 +85,25 @@ poi:
     type: "item"
     room: storage_b
     position:
-      x: 20
-      y: 9
+      x: 16.0
+      y: 2.0
     name: "HIDDEN CACHE"
-    icon: "crate"
+    icon: "supplies"
     description: "Concealed storage compartment"
 
   - id: fuel_leak
     type: "hazard"
     room: fuel_cells
     position:
-      x: 4
-      y: 16
+      x: 3.0
+      y: 8.0
     name: "FUEL LEAK"
-    icon: "warning"
+    icon: "fuel"
     status: "WARNING"
     description: "Minor fuel leak detected - flammable atmosphere"
 
 metadata:
   author: "GM"
   created: "2183-06-15"
-  version: 1
+  version: 2
   tags: ["ship", "exploration"]

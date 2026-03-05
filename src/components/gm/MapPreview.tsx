@@ -11,16 +11,20 @@ import type {
   EncounterMapData,
   RoomData,
   ConnectionData,
+  HullDef,
   RoomVisibilityState,
   DoorStatusState,
   DoorStatus,
   TokenState,
   TokenType,
   TokenStatus,
+  GridEncounterMapData,
 } from '@/types/encounterMap';
+import { isGridEncounterMap } from '@/types/encounterMap';
 import { DoorStatusPopup } from './DoorStatusPopup';
 import { TokenLayer } from '@/components/domain/encounter/TokenLayer';
 import { TokenPopup } from '@/components/domain/encounter/TokenPopup';
+import { EncounterMapRenderer } from '@/components/domain/encounter/EncounterMapRenderer';
 import { getGridCell } from '@/utils/svgCoordinates';
 import { message } from 'antd';
 
@@ -40,7 +44,7 @@ interface SelectedDoor {
 }
 
 interface MapPreviewProps {
-  mapData: EncounterMapData;
+  mapData: EncounterMapData | GridEncounterMapData;
   roomVisibility: RoomVisibilityState;
   /** Door status overrides from GM */
   doorStatus?: DoorStatusState;
@@ -59,11 +63,15 @@ interface MapPreviewProps {
   /** Callback when GM places a new token */
   onTokenPlace?: (type: TokenType, name: string, x: number, y: number, imageUrl: string, roomId: string) => void;
   /** Callback when GM moves an existing token */
-  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   /** Callback when GM removes a token */
   onTokenRemove?: (id: string) => void;
   /** Callback when GM toggles token status */
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
+  /** Callback when GM clicks a room on the map to toggle reveal/hide */
+  onRoomToggle?: (roomId: string, visible: boolean) => void;
+  /** Hull polygon from manifest — same silhouette on every deck */
+  hull?: HullDef;
 }
 
 // V2-1 Color palette (simplified for preview)
@@ -102,8 +110,92 @@ export function MapPreview({
   onTokenMove,
   onTokenRemove,
   onTokenStatusToggle,
+  onRoomToggle,
+  hull,
 }: MapPreviewProps) {
-  const grid = mapData.grid;
+  // Grid-format maps: delegate to EncounterMapRenderer with GM controls.
+  //
+  // Sizing strategy — mirrors the terminal DOM structure exactly:
+  //   Terminal: encounter-view (fixed,definite-height)
+  //               └─ encounter-map-display (position:relative, height:100%, display:flex)
+  //                    └─ encounter-map-renderer (position:relative, height:100%, display:flex)
+  //                         └─ encounter-map__overlays (position:absolute, inset:0, display:grid)
+  //
+  //   MapPreview: outer-box (position:relative, aspect-ratio → definite height)
+  //               └─ inner-fill (position:absolute, inset:0, display:flex) ← mirrors encounter-map-display
+  //                    └─ encounter-map-renderer (position:relative, height:100%, display:flex) ← unchanged
+  //                         └─ encounter-map__overlays (position:absolute, inset:0, display:grid) ← works!
+  //
+  //   The renderer keeps position:relative (its CSS class default) so its overlay
+  //   uses it as containing block. height:100% resolves because inner-fill is a
+  //   flex container with definite height (from position:absolute + inset:0).
+  if (isGridEncounterMap(mapData)) {
+    const gridMap = mapData as GridEncounterMapData;
+    const effectiveHull = hull ?? gridMap.hull;
+    const us = gridMap.unit_size ?? 40;
+    const pad = 2;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const room of gridMap.rooms) {
+      for (const rect of room.rects ?? []) {
+        minX = Math.min(minX, rect.x); minY = Math.min(minY, rect.y);
+        maxX = Math.max(maxX, rect.x + rect.w); maxY = Math.max(maxY, rect.y + rect.h);
+      }
+      if (room.polygon) {
+        for (const [px, py] of room.polygon) {
+          minX = Math.min(minX, px); minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+        }
+      }
+      if (room.circle) {
+        const { cx, cy, r } = room.circle;
+        minX = Math.min(minX, cx - r); minY = Math.min(minY, cy - r);
+        maxX = Math.max(maxX, cx + r); maxY = Math.max(maxY, cy + r);
+      }
+    }
+    // Include hull polygon in bounding box so aspect ratio accounts for full ship silhouette
+    if (effectiveHull) {
+      for (const [px, py] of effectiveHull.polygon) {
+        minX = Math.min(minX, px); minY = Math.min(minY, py);
+        maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+      }
+    }
+    if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 10; maxY = 10; }
+    const naturalW = (maxX - minX + pad * 2) * us;
+    const naturalH = (maxY - minY + pad * 2) * us;
+
+    const outerStyle: React.CSSProperties = height
+      ? { position: 'relative', height, overflow: 'hidden', border: '1px solid #303030' }
+      : { position: 'relative', aspectRatio: `${naturalW} / ${naturalH}`, minHeight: 550, overflow: 'hidden', border: '1px solid #303030' };
+
+    return (
+      <div style={outerStyle}>
+        {/* Mirrors encounter-map-display: fills outer box, provides definite-height flex context */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          background: '#0a0a0a',
+        }}>
+          <EncounterMapRenderer
+            mapData={gridMap}
+            hull={effectiveHull}
+            roomVisibility={roomVisibility}
+            tokens={tokens}
+            isGM={isGM ?? true}
+            onRoomToggle={onRoomToggle}
+            doorStatus={doorStatus}
+            onDoorStatusChange={onDoorStatusChange}
+            onTokenPlace={onTokenPlace}
+            onTokenMove={onTokenMove}
+            onTokenRemove={onTokenRemove}
+            onTokenStatusToggle={onTokenStatusToggle}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const legacyMapData = mapData as EncounterMapData;
+  const grid = legacyMapData.grid;
   const unitSize = grid.unit_size || 40;
   const svgWidth = grid.width * unitSize;
   const svgHeight = grid.height * unitSize;
@@ -212,7 +304,7 @@ export function MapPreview({
 
   // Helper: Find which room contains a grid cell
   const findRoomAtCell = useCallback((gridX: number, gridY: number): RoomData | null => {
-    for (const room of mapData.rooms) {
+    for (const room of legacyMapData.rooms) {
       if (
         gridX >= room.x &&
         gridX < room.x + room.width &&
@@ -223,7 +315,7 @@ export function MapPreview({
       }
     }
     return null;
-  }, [mapData.rooms]);
+  }, [legacyMapData.rooms]);
 
   // Helper: Check if a cell is occupied by a token
   const isCellOccupied = useCallback((gridX: number, gridY: number): boolean => {
@@ -286,15 +378,15 @@ export function MapPreview({
   // Get rooms to display - all rooms if showAllRooms, otherwise only visible
   const displayRooms = useMemo(() => {
     if (showAllRooms) {
-      return mapData.rooms;
+      return legacyMapData.rooms;
     }
-    return mapData.rooms.filter(room => isRoomVisible(room.id));
-  }, [mapData.rooms, roomVisibility, showAllRooms]);
+    return legacyMapData.rooms.filter(room => isRoomVisible(room.id));
+  }, [legacyMapData.rooms, roomVisibility, showAllRooms]);
 
   // Visible rooms only (for connection lines)
   const visibleRooms = useMemo(() => {
-    return mapData.rooms.filter(room => isRoomVisible(room.id));
-  }, [mapData.rooms, roomVisibility]);
+    return legacyMapData.rooms.filter(room => isRoomVisible(room.id));
+  }, [legacyMapData.rooms, roomVisibility]);
 
   // Build room lookup for visible rooms
   const roomMap = useMemo(() => {
@@ -308,11 +400,11 @@ export function MapPreview({
   // Build room lookup for ALL rooms (for door positions)
   const allRoomMap = useMemo(() => {
     const map = new Map<string, RoomData>();
-    for (const room of mapData.rooms) {
+    for (const room of legacyMapData.rooms) {
       map.set(room.id, room);
     }
     return map;
-  }, [mapData.rooms]);
+  }, [legacyMapData.rooms]);
 
   // Get connection edge point
   const getConnectionEdge = (room: RoomData, otherRoom: RoomData): { x: number; y: number; side: string } => {
@@ -341,11 +433,11 @@ export function MapPreview({
 
   // Get connections
   const allConnections: ConnectionData[] = useMemo(() => {
-    if (mapData.connections) {
-      return mapData.connections;
+    if (legacyMapData.connections) {
+      return legacyMapData.connections;
     }
-    if (mapData.doors) {
-      return mapData.doors
+    if (legacyMapData.doors) {
+      return legacyMapData.doors
         .filter((d: any) => d.room_a && d.room_b)
         .map((d: any) => ({
           id: d.id,
@@ -356,7 +448,7 @@ export function MapPreview({
         }));
     }
     return [];
-  }, [mapData]);
+  }, [legacyMapData]);
 
   // Only show connections where both rooms are visible
   const visibleConnections = useMemo(() => {
@@ -562,7 +654,7 @@ export function MapPreview({
             y={y + roomHeight / 2}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill={visible ? COLORS.textMuted : '#3a3a3a'}
+            fill={visible ? COLORS.amber : '#3a3a3a'}
             fontSize={12}
             fontFamily="monospace"
           >
@@ -662,7 +754,7 @@ export function MapPreview({
             onTokenMove={onTokenMove}
             selectedTokenId={selectedTokenId}
             onTokenSelect={setSelectedTokenId}
-            mapRooms={mapData.rooms}
+            mapRooms={legacyMapData.rooms}
           />
         )}
       </svg>
@@ -702,7 +794,7 @@ export function MapPreview({
           opacity: 0.7,
         }}
       >
-        {mapData.name || mapData.deck_id || 'Map Preview'}
+        {legacyMapData.name || legacyMapData.deck_id || 'Map Preview'}
       </div>
 
       {/* Door status popup */}

@@ -1,19 +1,16 @@
 /**
  * EncounterMapRenderer styles
- * Interactive SVG map display with V2-1 retro terminal aesthetic
+ * Grid-based SVG map display with V2-1 retro terminal aesthetic
  */
 
 .encounter-map-renderer {
-  position: fixed;
-  top: 52px; /* Below header bar */
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
   background: #0a0a0a;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 0;
   overflow: hidden;
   user-select: none;
   touch-action: none; /* Prevent browser touch handling for pan/zoom */
@@ -41,6 +38,7 @@
     "bottom-left .      bottom-right";
   padding: 20px;
   pointer-events: none; /* Allow clicks to pass through to map */
+  z-index: 1; /* Paint above SVG transform stacking context */
 }
 
 /* Re-enable pointer events on overlay children */
@@ -84,84 +82,33 @@
   justify-self: end;
 }
 
-/* Grid lines */
-.encounter-map__grid-line {
-  stroke: #2a3a3a;
-  stroke-width: 0.5;
-  opacity: 0.3;
+/* Room wall lines — amber blueprint aesthetic */
+.encounter-map__wall {
+  shape-rendering: crispEdges;
 }
 
-/* Rooms */
+/* Room floor fill — dark floor distinct from void */
+.encounter-map__floor {
+  /* fill is set inline via url(#floor-scanline) */
+}
+
+/* GM hit target overlay — transparent, cursor pointer handled inline */
 .encounter-map__room {
-  fill: #1a2525;
-  stroke: #4a6b6b;
-  stroke-width: 2;
-  cursor: pointer;
-  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+  /* Keep existing class — used for mousedown exemption check */
 }
 
-.encounter-map__room:hover {
-  stroke: #5a7a7a;
-  stroke-width: 3;
-}
-
-.encounter-map__room--selected {
-  stroke: #8b7355;
-  stroke-width: 3;
-}
-
-/* Room status colors */
-.encounter-map__room--operational {
-  stroke: #4a6b6b;
-}
-
-.encounter-map__room--warning {
-  stroke: #8b7355;
-}
-
-.encounter-map__room--hazard {
-  stroke: #8b5555;
-  animation: pulse-hazard 2s infinite;
-}
-
-.encounter-map__room--offline {
-  stroke: #5a5a5a;
-  fill: #0f1515;
-}
-
-@keyframes pulse-hazard {
-  0%, 100% { stroke-opacity: 1; }
-  50% { stroke-opacity: 0.5; }
-}
-
-/* Room labels */
+/* Room label text — font-size set inline (unitSize * 0.3) so it scales with the map */
 .encounter-map__room-label {
-  fill: #9a9a9a;
   font-family: 'Cascadia Code', 'Courier New', monospace;
-  font-size: 11px;
-  letter-spacing: 1px;
-  text-anchor: middle;
-  dominant-baseline: middle;
+  fill: #8b7355;
+  letter-spacing: 0.05em;
   pointer-events: none;
-  text-transform: uppercase;
+  user-select: none;
 }
 
-/* Connection path lines */
-.encounter-map__path-line {
-  stroke-linecap: round;
-  opacity: 0.8;
-}
-
-.encounter-map__connection:hover .encounter-map__path-line {
-  stroke: #5a7a7a;
-  opacity: 1;
-}
-
-/* Corridors (legacy) */
-.encounter-map__corridor {
-  fill: #1a2525;
-  stroke: #2a3a3a;
-  stroke-width: 1;
+/* Room group — opacity applied inline for GM dim effect */
+.encounter-map__room-group {
+  transition: opacity 0.2s ease;
 }
 
 /* Doors */
@@ -275,39 +222,6 @@
   50% {
     fill: #7a4545;
   }
-}
-
-/* Terminals */
-.encounter-map__terminal {
-  cursor: pointer;
-  transition: filter 0.15s ease;
-}
-
-.encounter-map__terminal:hover {
-  filter: drop-shadow(0 0 8px rgba(139, 115, 85, 0.6)) brightness(1.2);
-}
-
-/* Points of Interest */
-.encounter-map__poi {
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.encounter-map__poi:hover {
-  filter: brightness(1.3);
-}
-
-.encounter-map__poi--hazard {
-  animation: pulse-poi-hazard 2s infinite;
-}
-
-@keyframes pulse-poi-hazard {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.encounter-map__poi--objective path {
-  filter: drop-shadow(0 0 4px rgba(139, 115, 85, 0.5));
 }
 
 /* Legend - now uses LegendPanel component */

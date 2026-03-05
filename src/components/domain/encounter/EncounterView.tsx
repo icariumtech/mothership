@@ -71,7 +71,7 @@ interface EncounterViewProps {
   /** Is this a GM view? */
   isGM?: boolean;
   /** Token callbacks */
-  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   onTokenRemove?: (id: string) => void;
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
 }

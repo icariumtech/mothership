@@ -14,6 +14,7 @@ import './EncounterMapDisplay.css';
 import { EncounterMapRenderer } from './EncounterMapRenderer';
 import {
   GridEncounterMapData,
+  HullDef,
   RoomVisibilityState,
   DoorStatusState,
   TokenState,
@@ -72,7 +73,7 @@ interface EncounterMapDisplayProps {
   /** Callback when GM clicks a room to toggle visibility */
   onRoomToggle?: (roomId: string, visible: boolean) => void;
   /** Token callbacks */
-  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   onTokenRemove?: (id: string) => void;
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
 }
@@ -98,6 +99,8 @@ export function EncounterMapDisplay({
     const multiDeckData = mapData as MultiDeckMapData;
     const deckData = multiDeckData.current_deck;
     const effectiveVisibility = roomVisibility || multiDeckData.room_visibility || {};
+    // Hull defined at manifest level applies to every deck — same silhouette on all levels
+    const manifestHull = multiDeckData.manifest?.hull as HullDef | undefined;
     const commonProps = {
       roomVisibility: effectiveVisibility,
       doorStatus,
@@ -110,6 +113,7 @@ export function EncounterMapDisplay({
       onTokenMove,
       onTokenRemove,
       onTokenStatusToggle,
+      hull: manifestHull,
     };
 
     // IMPORTANT: check the deck's own format before choosing a renderer.

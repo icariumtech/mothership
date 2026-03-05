@@ -15,6 +15,7 @@ import {
   DoorDef,
   DoorStatus,
   DoorStatusState,
+  HullDef,
   RoomVisibilityState,
   TokenState,
   TokenStatus,
@@ -51,9 +52,13 @@ interface EncounterMapRendererProps {
   onDoorStatusChange?: (doorId: string, status: DoorStatus) => void;
   /** Token callbacks */
   onTokenPlace?: (type: TokenType, name: string, x: number, y: number, imageUrl: string, roomId: string) => void;
-  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   onTokenRemove?: (id: string) => void;
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
+  /** Hull polygon override — takes precedence over mapData.hull.
+   *  For multi-deck maps, pass the manifest hull here so every deck shows
+   *  the same ship silhouette regardless of which level is active. */
+  hull?: HullDef;
   /** Optional style override for the root container div (e.g. position:absolute when embedded in MapPreview) */
   style?: React.CSSProperties;
 }
@@ -68,7 +73,7 @@ interface ViewState {
 // V2-1 Color palette
 const COLORS = {
   bgPrimary: '#0a0a0a',
-  bgRoom: '#0f1515',
+  bgRoom: '#0a1010',
   borderMain: '#4a6b6b',
   borderSubtle: '#2a3a3a',
   teal: '#4a6b6b',
@@ -80,6 +85,7 @@ const COLORS = {
   hazard: '#8b5555',
   warning: '#8b7355',
   pathLine: '#3a5a5a',
+  hullFill: '#142020',
 };
 
 // Connection/door type styles
@@ -188,14 +194,16 @@ function getPolygonBoundaryPoint(polygon: [number, number][], angle: number): [n
 interface Edge { x1: number; y1: number; x2: number; y2: number; }
 
 // -------------------------------------------------------------------
-// computeBoundingBox — derive SVG canvas from room geometry
+// computeBoundingBox — derive SVG canvas from room geometry + optional hull
 // Always computed from ALL rooms (visible and hidden) so the canvas
 // doesn't shift when rooms are revealed/hidden.
+// When a hull polygon is provided its coordinates are included so the
+// hull is never clipped by the viewport.
 // -------------------------------------------------------------------
-function computeBoundingBox(rooms: GridRoom[], us: number, padding = 2) {
+function computeBoundingBox(rooms: GridRoom[], us: number, padding = 2, hull?: HullDef) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const room of rooms) {
-    for (const rect of room.rects) {
+    for (const rect of room.rects ?? []) {
       minX = Math.min(minX, rect.x);
       minY = Math.min(minY, rect.y);
       maxX = Math.max(maxX, rect.x + rect.w);
@@ -215,6 +223,14 @@ function computeBoundingBox(rooms: GridRoom[], us: number, padding = 2) {
         maxX = Math.max(maxX, px);
         maxY = Math.max(maxY, py);
       }
+    }
+  }
+  if (hull) {
+    for (const [px, py] of hull.polygon) {
+      minX = Math.min(minX, px);
+      minY = Math.min(minY, py);
+      maxX = Math.max(maxX, px);
+      maxY = Math.max(maxY, py);
     }
   }
   if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 10; maxY = 10; }
@@ -263,10 +279,33 @@ function computeRoomWalls(rects: GridRect[], us: number): Edge[] {
 }
 
 // -------------------------------------------------------------------
+// polygonAreaCentroid — area-weighted centroid via shoelace formula.
+// More accurate than vertex average for irregular/concave polygons.
+// -------------------------------------------------------------------
+function polygonAreaCentroid(pts: [number, number][]): { cx: number; cy: number } {
+  let area = 0;
+  let cx = 0;
+  let cy = 0;
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[(i + 1) % n];
+    const cross = x0 * y1 - x1 * y0;
+    area += cross;
+    cx += (x0 + x1) * cross;
+    cy += (y0 + y1) * cross;
+  }
+  area /= 2;
+  cx /= 6 * area;
+  cy /= 6 * area;
+  return { cx, cy };
+}
+
+// -------------------------------------------------------------------
 // getRoomLabelPosition — visual center of the room, any shape type
 // -------------------------------------------------------------------
 function getRoomLabelPosition(room: GridRoom, us: number): { x: number; y: number } {
-  if (room.rects.length > 0) {
+  if ((room.rects ?? []).length > 0) {
     const minX = Math.min(...room.rects.map(r => r.x));
     const minY = Math.min(...room.rects.map(r => r.y));
     const maxX = Math.max(...room.rects.map(r => r.x + r.w));
@@ -277,9 +316,7 @@ function getRoomLabelPosition(room: GridRoom, us: number): { x: number; y: numbe
     return { x: room.circle.cx * us, y: room.circle.cy * us };
   }
   if (room.polygon && room.polygon.length > 0) {
-    const n = room.polygon.length;
-    const cx = room.polygon.reduce((s, [x]) => s + x, 0) / n;
-    const cy = room.polygon.reduce((s, [, y]) => s + y, 0) / n;
+    const { cx, cy } = polygonAreaCentroid(room.polygon);
     return { x: cx * us, y: cy * us };
   }
   return { x: 0, y: 0 };
@@ -290,6 +327,22 @@ function getRoomLabelPosition(room: GridRoom, us: number): { x: number; y: numbe
 // Used to determine if a door should be shown when the adjacent room is visible.
 // -------------------------------------------------------------------
 function getAdjacentCellForDoor(room: GridRoom, door: DoorDef): { x: number; y: number } {
+  // New explicit-position format: push one cell outward from centroid through door
+  if (door.x !== undefined && door.y !== undefined) {
+    let cx = door.x, cy = door.y;
+    if (room.polygon && room.polygon.length > 0) {
+      const c = polygonAreaCentroid(room.polygon); cx = c.cx; cy = c.cy;
+    } else if (room.circle) {
+      cx = room.circle.cx; cy = room.circle.cy;
+    } else {
+      const rects = room.rects ?? [];
+      cx = (Math.min(...rects.map(r => r.x)) + Math.max(...rects.map(r => r.x + r.w))) / 2;
+      cy = (Math.min(...rects.map(r => r.y)) + Math.max(...rects.map(r => r.y + r.h))) / 2;
+    }
+    const dx = door.x - cx, dy = door.y - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: Math.round(door.x + dx / len), y: Math.round(door.y + dy / len) };
+  }
   if (room.circle) {
     const { cx, cy, r } = room.circle;
     const angle = getDoorAngleRad(door);
@@ -299,9 +352,7 @@ function getAdjacentCellForDoor(room: GridRoom, door: DoorDef): { x: number; y: 
     };
   }
   if (room.polygon && room.polygon.length > 0) {
-    const n = room.polygon.length;
-    const pcx = room.polygon.reduce((s, [x]) => s + x, 0) / n;
-    const pcy = room.polygon.reduce((s, [, y]) => s + y, 0) / n;
+    const { cx: pcx, cy: pcy } = polygonAreaCentroid(room.polygon);
     const angle = getDoorAngleRad(door);
     const maxR = Math.max(...room.polygon.map(([x, y]) => Math.hypot(x - pcx, y - pcy)));
     return {
@@ -309,7 +360,7 @@ function getAdjacentCellForDoor(room: GridRoom, door: DoorDef): { x: number; y: 
       y: Math.round(pcy + (maxR + 0.5) * Math.sin(angle)),
     };
   }
-  const rects = room.rects;
+  const rects = room.rects ?? [];
   if (door.wall === 'north') {
     const minY = Math.min(...rects.map(r => r.y));
     const wallRects = rects.filter(r => r.y === minY);
@@ -361,6 +412,12 @@ function getDoorSVGPosition(
     return (a < Math.PI / 4 || a > (3 * Math.PI) / 4) ? 'vertical' : 'horizontal';
   };
 
+  // New explicit-position format: x/y in grid coords, angle=0 horizontal, 90 vertical
+  if (door.x !== undefined && door.y !== undefined) {
+    const orientation = Math.abs((door.angle ?? 0) % 180) > 45 ? 'vertical' : 'horizontal';
+    return { x: door.x * us, y: door.y * us, orientation };
+  }
+
   if (room.circle) {
     const { cx, cy, r } = room.circle;
     const angle = getDoorAngleRad(door);
@@ -377,7 +434,7 @@ function getDoorSVGPosition(
     return { x: bx * us, y: by * us, orientation: angleToOrientation(angle) };
   }
 
-  const rects = room.rects;
+  const rects = room.rects ?? [];
   if (door.wall === 'north' || door.wall === 'south') {
     const targetY = door.wall === 'north'
       ? Math.min(...rects.map(r => r.y))
@@ -426,8 +483,11 @@ export function EncounterMapRenderer({
   onTokenMove,
   onTokenRemove,
   onTokenStatusToggle,
+  hull: hullProp,
   style,
 }: EncounterMapRendererProps) {
+  // Hull override (manifest-level) takes precedence over per-deck hull
+  const effectiveHull = hullProp ?? mapData.hull;
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
   const [selectedTokenPos, setSelectedTokenPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -471,12 +531,18 @@ export function EncounterMapRenderer({
   const lastTouchDistance = useRef<number | null>(null);
   const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
 
-  // SVG dimensions — always computed from ALL rooms (never filtered by visibility)
+  // SVG dimensions — always computed from ALL rooms + hull (never filtered by visibility)
   const unitSize = mapData.unit_size ?? 40;
   const { originX, originY, svgWidth, svgHeight } = useMemo(
-    () => computeBoundingBox(mapData.rooms, unitSize),
-    [mapData.rooms, unitSize]
+    () => computeBoundingBox(mapData.rooms, unitSize, 2, effectiveHull),
+    [mapData.rooms, effectiveHull, unitSize]
   );
+
+  // Hull SVG polygon points string (grid coords → pixel coords)
+  const hullSvgPoints = useMemo(() => {
+    if (!effectiveHull) return null;
+    return effectiveHull.polygon.map(([x, y]) => `${x * unitSize},${y * unitSize}`).join(' ');
+  }, [effectiveHull, unitSize]);
 
   // Check if a room is visible (default to true if no visibility state)
   const isRoomVisible = useCallback((roomId: string): boolean => {
@@ -507,7 +573,7 @@ export function EncounterMapRenderer({
       if (room.polygon && room.polygon.length > 0) {
         return pointInPolygon(px, py, room.polygon);
       }
-      return room.rects.some(r => gridX >= r.x && gridX < r.x + r.w && gridY >= r.y && gridY < r.y + r.h);
+      return (room.rects ?? []).some(r => gridX >= r.x && gridX < r.x + r.w && gridY >= r.y && gridY < r.y + r.h);
     }) ?? null;
   }, [mapData.rooms]);
 
@@ -846,6 +912,7 @@ export function EncounterMapRenderer({
         x={label.x}
         y={label.y}
         className="encounter-map__room-label"
+        fontSize={unitSize * 0.3}
         fill="#8b7355"
         textAnchor="middle"
         dominantBaseline="middle"
@@ -862,8 +929,8 @@ export function EncounterMapRenderer({
       const svgR = r * unitSize;
       return (
         <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
-          <circle cx={svgCx} cy={svgCy} r={svgR} fill="#1a2525" className="encounter-map__floor" />
-          <circle cx={svgCx} cy={svgCy} r={svgR} fill="none" stroke="#4a6b6b" strokeWidth={WALL_THICKNESS} className="encounter-map__wall" />
+          <circle cx={svgCx} cy={svgCy} r={svgR} fill={COLORS.bgRoom} className="encounter-map__floor" />
+          <circle cx={svgCx} cy={svgCy} r={svgR} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} className="encounter-map__wall" />
           {isGM && (
             <circle
               cx={svgCx} cy={svgCy} r={svgR}
@@ -883,8 +950,8 @@ export function EncounterMapRenderer({
       const points = room.polygon.map(([x, y]) => `${x * unitSize},${y * unitSize}`).join(' ');
       return (
         <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
-          <polygon points={points} fill="#1a2525" className="encounter-map__floor" />
-          <polygon points={points} fill="none" stroke="#4a6b6b" strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
+          <polygon points={points} fill={COLORS.bgRoom} className="encounter-map__floor" />
+          <polygon points={points} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
           {isGM && (
             <polygon
               points={points}
@@ -900,8 +967,8 @@ export function EncounterMapRenderer({
     }
 
     // === Rect room (plain + chamfered) ===
-    const plainRects = room.rects.filter(r => (r.chamfer ?? 0) === 0);
-    const chamferedRects = room.rects.filter(r => (r.chamfer ?? 0) > 0);
+    const plainRects = (room.rects ?? []).filter(r => (r.chamfer ?? 0) === 0);
+    const chamferedRects = (room.rects ?? []).filter(r => (r.chamfer ?? 0) > 0);
     const walls = computeRoomWalls(plainRects, unitSize);
 
     return (
@@ -914,7 +981,7 @@ export function EncounterMapRenderer({
             y={rect.y * unitSize}
             width={rect.w * unitSize}
             height={rect.h * unitSize}
-            fill="#1a2525"
+            fill={COLORS.bgRoom}
             className="encounter-map__floor"
           />
         ))}
@@ -924,7 +991,7 @@ export function EncounterMapRenderer({
           <polygon
             key={`floor-c-${i}`}
             points={getRectPolygonPoints(rect, unitSize)}
-            fill="#1a2525"
+            fill={COLORS.bgRoom}
             className="encounter-map__floor"
           />
         ))}
@@ -935,7 +1002,7 @@ export function EncounterMapRenderer({
             key={`wall-${i}`}
             x1={wall.x1} y1={wall.y1}
             x2={wall.x2} y2={wall.y2}
-            stroke="#4a6b6b"
+            stroke={COLORS.hullFill}
             strokeWidth={WALL_THICKNESS}
             strokeLinecap="square"
             className="encounter-map__wall"
@@ -948,7 +1015,7 @@ export function EncounterMapRenderer({
             key={`wall-c-${i}`}
             points={getRectPolygonPoints(rect, unitSize)}
             fill="none"
-            stroke="#4a6b6b"
+            stroke={COLORS.hullFill}
             strokeWidth={WALL_THICKNESS}
             strokeLinejoin="miter"
             className="encounter-map__wall"
@@ -1308,6 +1375,28 @@ export function EncounterMapRenderer({
           width={svgWidth} height={svgHeight}
           fill="url(#map-bg-grid)"
         />
+
+        {/* Hull polygon — ship/structure outer frame.
+            Filled with hull-interior color so the space between rooms
+            reads as solid hull material rather than empty void.
+            Rendered above the background grid but below room floors. */}
+        {hullSvgPoints && (
+          <g className="encounter-map__hull">
+            <polygon
+              points={hullSvgPoints}
+              fill={COLORS.hullFill}
+              className="encounter-map__hull-fill"
+            />
+            <polygon
+              points={hullSvgPoints}
+              fill="none"
+              stroke={COLORS.hullFill}
+              strokeWidth={4}
+              strokeLinejoin="miter"
+              className="encounter-map__hull-outline"
+            />
+          </g>
+        )}
 
         {/* Rooms (with walls, floor fill, context menu targets, labels) */}
         <g className="encounter-map__rooms">

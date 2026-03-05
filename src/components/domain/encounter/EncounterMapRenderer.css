@@ -97,10 +97,9 @@
   /* Keep existing class — used for mousedown exemption check */
 }
 
-/* Room label text */
+/* Room label text — font-size set inline (unitSize * 0.3) so it scales with the map */
 .encounter-map__room-label {
   font-family: 'Cascadia Code', 'Courier New', monospace;
-  font-size: 9px;
   fill: #8b7355;
   letter-spacing: 0.05em;
   pointer-events: none;

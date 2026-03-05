@@ -157,6 +157,7 @@ export interface EncounterManifest {
   facility_type?: string;
   total_decks: number;
   decks: DeckInfo[];
+  hull?: HullDef;  // optional ship hull polygon — same outline shown on every deck
 }
 
 // Room visibility state (GM-controlled)
@@ -251,9 +252,16 @@ export type WallSide = 'north' | 'south' | 'east' | 'west';
 
 /** A door attached to a specific wall of a room */
 export interface DoorDef {
-  wall?: WallSide;      // cardinal wall for rect rooms; optional for circle/polygon rooms
-  position?: number;    // 0-based cell index along the wall; optional for circle/polygon rooms
-  angle?: number;       // degrees clockwise from east (0=east, 90=south, 180=west, 270=north) — for circle/polygon rooms
+  // Explicit position format (preferred for polygon/circle rooms):
+  x?: number;        // door center x in grid coords
+  y?: number;        // door center y in grid coords
+  angle?: number;    // when x/y present: door slot orientation — 0=horizontal (N/S wall), 90=vertical (E/W wall)
+                     // when x/y absent: legacy direction-from-centroid (deprecated)
+
+  // Rect-room format:
+  wall?: WallSide;      // cardinal wall
+  position?: number;    // 0-based cell index along the wall
+
   type: DoorType;       // standard | airlock | blast_door | emergency
   status: DoorStatus;   // OPEN | CLOSED | LOCKED | SEALED
 }
@@ -270,6 +278,11 @@ export interface GridRoom {
   type?: string;        // optional tag: corridor | bridge | cargo | medical | etc.
 }
 
+/** Ship hull outline — optional outer frame polygon for the deck */
+export interface HullDef {
+  polygon: [number, number][];  // vertices in grid cell coords
+}
+
 /** Complete grid-based encounter map (new format) */
 export interface GridEncounterMapData {
   name: string;
@@ -277,6 +290,7 @@ export interface GridEncounterMapData {
   location_name?: string;
   description?: string;
   unit_size?: number;   // pixels per cell — default 40 if omitted
+  hull?: HullDef;       // optional ship/structure outer frame polygon
   rooms: GridRoom[];
   terminals?: TerminalData[];
   poi?: PoiData[];

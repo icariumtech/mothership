@@ -10,6 +10,20 @@ import { TokenState, RoomData, GridRoom } from '../../../types/encounterMap';
 import { Token } from './Token';
 import { screenToSVG, snapToGrid } from '@/utils/svgCoordinates';
 
+// Ray-casting point-in-polygon test (grid coords)
+function pointInPolygon(px: number, py: number, polygon: [number, number][]): boolean {
+  let inside = false;
+  const n = polygon.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
 interface RoomVisibilityState {
   [roomId: string]: boolean;
 }
@@ -23,7 +37,7 @@ interface TokenLayerProps {
   unitSize: number;
   roomVisibility?: RoomVisibilityState;
   isGM?: boolean;
-  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   selectedTokenId?: string | null;
   onTokenSelect?: (id: string | null, e: React.MouseEvent) => void;
   mapRooms?: (RoomData | GridRoom)[];
@@ -94,16 +108,24 @@ export function TokenLayer({
 
   const findRoomAtCell = (gridX: number, gridY: number): RoomData | GridRoom | null => {
     if (!mapRoomsRef.current) return null;
+    // Cell center for circle/polygon containment tests
+    const px = gridX + 0.5;
+    const py = gridY + 0.5;
     for (const room of mapRoomsRef.current) {
-      // New format: GridRoom has rects array
-      if ('rects' in room && Array.isArray(room.rects)) {
-        const hit = room.rects.some(r =>
+      const gr = room as GridRoom;
+      if (gr.circle) {
+        const { cx, cy, r } = gr.circle;
+        if ((px - cx) ** 2 + (py - cy) ** 2 <= r * r) return room;
+      } else if (gr.polygon && gr.polygon.length > 0) {
+        if (pointInPolygon(px, py, gr.polygon)) return room;
+      } else if ('rects' in room) {
+        const hit = (gr.rects ?? []).some(r =>
           gridX >= r.x && gridX < r.x + r.w &&
           gridY >= r.y && gridY < r.y + r.h
         );
         if (hit) return room;
       } else {
-        // Old format: RoomData has x, y, width, height
+        // Legacy RoomData format (x, y, width, height)
         const r = room as RoomData;
         if (gridX >= r.x && gridX < r.x + r.width &&
             gridY >= r.y && gridY < r.y + r.height) {
@@ -203,7 +225,7 @@ export function TokenLayer({
       return;
     }
 
-    onTokenMoveRef.current(tokenId, gridX, gridY);
+    onTokenMoveRef.current(tokenId, gridX, gridY, room.id);
     stopDrag();
   }, []); // stable — reads all values from refs
 

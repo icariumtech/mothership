@@ -111,16 +111,16 @@ function SharedConsole() {
   const tokenMoveInFlight = useRef(false);
 
   // Player token move handler — optimistic update to prevent poll snap-back
-  const handleTokenMove = useCallback(async (id: string, x: number, y: number) => {
+  const handleTokenMove = useCallback(async (id: string, x: number, y: number, roomId: string) => {
     // Optimistic update: move token locally before API responds
     setEncounterTokens(prev => {
       if (!prev[id]) return prev;
-      return { ...prev, [id]: { ...prev[id], x, y } };
+      return { ...prev, [id]: { ...prev[id], x, y, room_id: roomId } };
     });
 
     tokenMoveInFlight.current = true;
     try {
-      const result = await encounterApi.moveToken(id, x, y);
+      const result = await encounterApi.moveToken(id, x, y, roomId);
       setEncounterTokens(result.tokens);
     } catch (err) {
       console.error('Error moving token:', err);

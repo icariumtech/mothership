@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Button,
   Space,
@@ -13,6 +13,7 @@ import { encounterApi, type DeckWithRooms } from '@/services/encounterApi';
 import type { ActiveView } from '@/types/gmConsole';
 import type {
   EncounterManifest,
+  HullDef,
   RoomVisibilityState,
   DoorStatusState,
   DoorStatus,
@@ -56,6 +57,7 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
   const [doorStatus, setDoorStatus] = useState<DoorStatusState>({});
   const [currentDeckMapData, setCurrentDeckMapData] = useState<EncounterMapData | GridEncounterMapData | null>(null);
   const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
+  const tokenMoveInFlight = useRef(false);
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -161,8 +163,9 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
     }
   }, [activeView?.encounter_door_status]);
 
-  // Sync token state from activeView
+  // Sync token state from activeView (skip during in-flight moves to prevent snap-back)
   useEffect(() => {
+    if (tokenMoveInFlight.current) return;
     if (activeView?.encounter_tokens) {
       setEncounterTokens(activeView.encounter_tokens);
     } else {
@@ -258,16 +261,23 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
     }
   }, [onViewUpdate, messageApi]);
 
-  const handleTokenMove = useCallback(async (id: string, x: number, y: number) => {
+  const handleTokenMove = useCallback(async (id: string, x: number, y: number, roomId: string) => {
+    // Optimistic update: move token locally before API responds
+    setEncounterTokens(prev => {
+      if (!prev[id]) return prev;
+      return { ...prev, [id]: { ...prev[id], x, y, room_id: roomId } };
+    });
+    tokenMoveInFlight.current = true;
     try {
-      const result = await encounterApi.moveToken(id, x, y);
+      const result = await encounterApi.moveToken(id, x, y, roomId);
       setEncounterTokens(result.tokens);
-      onViewUpdate();
     } catch (err) {
       console.error('Error moving token:', err);
       messageApi.error('Failed to move token');
+    } finally {
+      tokenMoveInFlight.current = false;
     }
-  }, [onViewUpdate, messageApi]);
+  }, [messageApi]);
 
   const handleTokenRemove = useCallback(async (id: string) => {
     try {
@@ -439,6 +449,7 @@ export function EncounterPanel({ activeView, onViewUpdate }: EncounterPanelProps
             onTokenRemove={handleTokenRemove}
             onTokenStatusToggle={handleTokenStatusToggle}
             onRoomToggle={handleRoomToggle}
+            hull={manifest?.hull as HullDef | undefined}
           />
         ) : (
           <div style={{

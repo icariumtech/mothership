@@ -1,5 +1,5 @@
 /**
- * LegendPanel - Shows door types and POI icons for encounter maps
+ * LegendPanel - Shows door types for encounter maps
  *
  * Rendered entirely with inline styles to remain immune to Ant Design
  * CSS overrides in the GM console context.
@@ -85,10 +85,6 @@ const styles = {
     lineHeight: '1.4',
   } satisfies CSSProperties,
 
-  section: {
-    marginBottom: '10px',
-  } satisfies CSSProperties,
-
   sectionLast: {
     marginBottom: 0,
   } satisfies CSSProperties,
@@ -141,7 +137,7 @@ export function LegendPanel() {
       {/* Content */}
       <div style={styles.content}>
         {/* Doors section */}
-        <div style={styles.section}>
+        <div style={styles.sectionLast}>
           <span style={styles.sectionHeader}>DOORS</span>
 
           <div style={styles.item}>
@@ -173,40 +169,6 @@ export function LegendPanel() {
               <rect x="2" y="2" width="20" height="12" fill={COLORS.hazard} stroke={COLORS.borderMain} strokeWidth="1.5" />
             </svg>
             <span style={styles.label}>Emergency</span>
-          </div>
-        </div>
-
-        {/* POI section */}
-        <div style={styles.sectionLast}>
-          <span style={styles.sectionHeader}>POINTS OF INTEREST</span>
-
-          <div style={styles.item}>
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <path d="M10,2 L15,10 L5,10 Z" fill={COLORS.amber} stroke={COLORS.bgPrimary} strokeWidth="1" />
-            </svg>
-            <span style={styles.label}>Objective</span>
-          </div>
-
-          <div style={styles.item}>
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <rect x="6" y="3" width="8" height="8" fill={COLORS.teal} stroke={COLORS.bgPrimary} strokeWidth="1" />
-            </svg>
-            <span style={styles.label}>Item</span>
-          </div>
-
-          <div style={styles.item}>
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <path d="M10,2 L16,10 L4,10 Z" fill={COLORS.hazard} stroke={COLORS.bgPrimary} strokeWidth="1" />
-            </svg>
-            <span style={styles.label}>Hazard</span>
-          </div>
-
-          <div style={styles.itemLast}>
-            <svg width="20" height="14" viewBox="0 0 20 14">
-              <rect x="4" y="2" width="12" height="10" rx="1" fill={COLORS.amber} stroke={COLORS.bgPrimary} strokeWidth="1" />
-              <rect x="6" y="4" width="8" height="6" fill={COLORS.bgPrimary} />
-            </svg>
-            <span style={styles.label}>Terminal</span>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import type {
   EncounterMapData,
   RoomData,
   ConnectionData,
+  HullDef,
   RoomVisibilityState,
   DoorStatusState,
   DoorStatus,
@@ -62,13 +63,15 @@ interface MapPreviewProps {
   /** Callback when GM places a new token */
   onTokenPlace?: (type: TokenType, name: string, x: number, y: number, imageUrl: string, roomId: string) => void;
   /** Callback when GM moves an existing token */
-  onTokenMove?: (id: string, x: number, y: number) => void;
+  onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   /** Callback when GM removes a token */
   onTokenRemove?: (id: string) => void;
   /** Callback when GM toggles token status */
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
   /** Callback when GM clicks a room on the map to toggle reveal/hide */
   onRoomToggle?: (roomId: string, visible: boolean) => void;
+  /** Hull polygon from manifest — same silhouette on every deck */
+  hull?: HullDef;
 }
 
 // V2-1 Color palette (simplified for preview)
@@ -108,6 +111,7 @@ export function MapPreview({
   onTokenRemove,
   onTokenStatusToggle,
   onRoomToggle,
+  hull,
 }: MapPreviewProps) {
   // Grid-format maps: delegate to EncounterMapRenderer with GM controls.
   //
@@ -127,13 +131,32 @@ export function MapPreview({
   //   flex container with definite height (from position:absolute + inset:0).
   if (isGridEncounterMap(mapData)) {
     const gridMap = mapData as GridEncounterMapData;
+    const effectiveHull = hull ?? gridMap.hull;
     const us = gridMap.unit_size ?? 40;
     const pad = 2;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const room of gridMap.rooms) {
-      for (const rect of room.rects) {
+      for (const rect of room.rects ?? []) {
         minX = Math.min(minX, rect.x); minY = Math.min(minY, rect.y);
         maxX = Math.max(maxX, rect.x + rect.w); maxY = Math.max(maxY, rect.y + rect.h);
+      }
+      if (room.polygon) {
+        for (const [px, py] of room.polygon) {
+          minX = Math.min(minX, px); minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+        }
+      }
+      if (room.circle) {
+        const { cx, cy, r } = room.circle;
+        minX = Math.min(minX, cx - r); minY = Math.min(minY, cy - r);
+        maxX = Math.max(maxX, cx + r); maxY = Math.max(maxY, cy + r);
+      }
+    }
+    // Include hull polygon in bounding box so aspect ratio accounts for full ship silhouette
+    if (effectiveHull) {
+      for (const [px, py] of effectiveHull.polygon) {
+        minX = Math.min(minX, px); minY = Math.min(minY, py);
+        maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
       }
     }
     if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 10; maxY = 10; }
@@ -154,6 +177,7 @@ export function MapPreview({
         }}>
           <EncounterMapRenderer
             mapData={gridMap}
+            hull={effectiveHull}
             roomVisibility={roomVisibility}
             tokens={tokens}
             isGM={isGM ?? true}

@@ -39,11 +39,13 @@ export function Token({
   const centerX = data.x * unitSize + unitSize / 2;
   const centerY = data.y * unitSize + unitSize / 2;
 
-  // Token radius: 80% of cell (per user decision)
-  const tokenRadius = unitSize * 0.4;
+  // Token radius: 90% of cell diameter
+  const tokenRadius = unitSize * 0.45;
 
-  // Glow radius (slightly larger for glow effect)
-  const glowRadius = tokenRadius + 4;
+  // Glow and stroke sizes proportional to unitSize
+  const glowRadius = tokenRadius * 1.4;
+  const strokeWidth = Math.max(0.5, unitSize * 0.06);
+  const glowBlur = Math.max(1, unitSize * 0.12);
 
   const handlePointerDown = (e: React.PointerEvent<Element>) => {
     if (draggable && onPointerDragStart) {
@@ -89,7 +91,7 @@ export function Token({
       {/* Define filters for glow effect */}
       <defs>
         <filter id={`token-glow-${data.type}`} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation={glowBlur} />
         </filter>
 
         {/* Clip path for circular image */}
@@ -131,7 +133,7 @@ export function Token({
             r={tokenRadius}
             fill="none"
             stroke={glowColor}
-            strokeWidth={2}
+            strokeWidth={strokeWidth}
           />
         </>
       ) : (
@@ -143,7 +145,7 @@ export function Token({
             r={tokenRadius}
             fill={fallbackColor}
             stroke={glowColor}
-            strokeWidth={2}
+            strokeWidth={strokeWidth}
           />
           <text
             x={0}

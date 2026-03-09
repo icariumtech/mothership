@@ -144,7 +144,7 @@ Plans:
 **Goal:** Redesign the GM console from a flat-tab sidebar layout to a view-driven architecture with a left icon rail, full-content main area, and right-side slide-out tool panels for better usability and screen real estate.
 **Depends on:** Phase 7
 **Requirements:** GMUI-LAYOUT, GMUI-VIEWRAIL, GMUI-TOOLRAIL, GMUI-SLIDEOUT, GMUI-ENCOUNTER, GMUI-TOOLPANELS, GMUI-MAPFULLSCREEN, GMUI-BRIDGE, GMUI-CHARON, GMUI-STANDBY, GMUI-DISPLAY
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 08-01-PLAN.md — Layout shell: ViewRail, ToolRail, SlideOutPanel components + GMConsole flexbox restructure with view routing

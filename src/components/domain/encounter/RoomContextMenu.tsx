@@ -10,10 +10,10 @@ import type { GridRoom } from '../../../types/encounterMap';
 
 interface RoomContextMenuProps {
   room: GridRoom;
-  isVisible: boolean;
+  isVisible?: boolean;
   x: number;
   y: number;
-  onToggleVisibility: () => void;
+  onToggleVisibility?: () => void;
   onClose: () => void;
 }
 
@@ -121,8 +121,8 @@ export function RoomContextMenu({
         </div>
       )}
 
-      {/* Reveal/Hide button */}
-      <button
+      {/* Reveal/Hide button — GM only */}
+      {onToggleVisibility && <button
         onClick={onToggleVisibility}
         style={{
           background: '#1a1a1a',
@@ -148,7 +148,7 @@ export function RoomContextMenu({
         }}
       >
         {isVisible ? 'HIDE ROOM' : 'REVEAL ROOM'}
-      </button>
+      </button>}
     </div>
   );
 }

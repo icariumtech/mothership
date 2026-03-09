@@ -609,11 +609,40 @@ export function EncounterMapRenderer({
   }, [isGM, onDoorStatusChange, getEffectiveDoorStatus]);
 
   // -------------------------------------------------------------------
-  // Room right-click handler — opens context menu
+  // Room right-click handler — opens context menu (GM only)
   // -------------------------------------------------------------------
   const handleRoomContextMenu = useCallback((e: React.MouseEvent, room: GridRoom) => {
     if (!isGM) return;
     e.preventDefault();
+    e.stopPropagation();
+    const container = containerRef.current;
+    const rect = container?.getBoundingClientRect();
+    setContextMenu({
+      room,
+      x: e.clientX - (rect?.left || 0),
+      y: e.clientY - (rect?.top || 0),
+    });
+  }, [isGM]);
+
+  // -------------------------------------------------------------------
+  // Room tap handler — shows info popup (player terminal only)
+  // Uses pointerdown+pointerup for reliable touch+mouse support.
+  // -------------------------------------------------------------------
+  const roomTapStart = useRef<{ x: number; y: number } | null>(null);
+
+  const handleRoomPointerDown = useCallback((e: React.PointerEvent) => {
+    if (isGM) return;
+    roomTapStart.current = { x: e.clientX, y: e.clientY };
+  }, [isGM]);
+
+  const handleRoomPointerUp = useCallback((e: React.PointerEvent, room: GridRoom) => {
+    if (isGM) return;
+    const start = roomTapStart.current;
+    roomTapStart.current = null;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 8) return; // was a drag, not a tap
     e.stopPropagation();
     const container = containerRef.current;
     const rect = container?.getBoundingClientRect();
@@ -931,12 +960,22 @@ export function EncounterMapRenderer({
         <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
           <circle cx={svgCx} cy={svgCy} r={svgR} fill={COLORS.bgRoom} className="encounter-map__floor" />
           <circle cx={svgCx} cy={svgCy} r={svgR} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} className="encounter-map__wall" />
-          {isGM && (
+          {isGM ? (
             <circle
               cx={svgCx} cy={svgCy} r={svgR}
               fill="transparent"
               style={{ cursor: 'context-menu' }}
               onContextMenu={(e) => handleRoomContextMenu(e, room)}
+              className="encounter-map__room"
+            />
+          ) : room.name && (
+            <circle
+              cx={svgCx} cy={svgCy} r={svgR}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: 'pointer' }}
+              onPointerDown={handleRoomPointerDown}
+              onPointerUp={(e) => handleRoomPointerUp(e, room)}
               className="encounter-map__room"
             />
           )}
@@ -952,12 +991,22 @@ export function EncounterMapRenderer({
         <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
           <polygon points={points} fill={COLORS.bgRoom} className="encounter-map__floor" />
           <polygon points={points} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
-          {isGM && (
+          {isGM ? (
             <polygon
               points={points}
               fill="transparent"
               style={{ cursor: 'context-menu' }}
               onContextMenu={(e) => handleRoomContextMenu(e, room)}
+              className="encounter-map__room"
+            />
+          ) : room.name && (
+            <polygon
+              points={points}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: 'pointer' }}
+              onPointerDown={handleRoomPointerDown}
+              onPointerUp={(e) => handleRoomPointerUp(e, room)}
               className="encounter-map__room"
             />
           )}
@@ -1022,7 +1071,7 @@ export function EncounterMapRenderer({
           />
         ))}
 
-        {/* Invisible hit targets — GM only, right-click for context menu */}
+        {/* Invisible hit targets — GM right-click, player tap (only if description) */}
         {isGM && plainRects.map((rect, i) => (
           <rect
             key={`hit-p-${i}`}
@@ -1043,6 +1092,33 @@ export function EncounterMapRenderer({
             fill="transparent"
             style={{ cursor: 'context-menu' }}
             onContextMenu={(e) => handleRoomContextMenu(e, room)}
+            className="encounter-map__room"
+          />
+        ))}
+        {!isGM && room.name && plainRects.map((rect, i) => (
+          <rect
+            key={`hit-p-${i}`}
+            x={rect.x * unitSize}
+            y={rect.y * unitSize}
+            width={rect.w * unitSize}
+            height={rect.h * unitSize}
+            fill="transparent"
+            pointerEvents="all"
+            style={{ cursor: 'pointer' }}
+            onPointerDown={handleRoomPointerDown}
+            onPointerUp={(e) => handleRoomPointerUp(e, room)}
+            className="encounter-map__room"
+          />
+        ))}
+        {!isGM && room.name && chamferedRects.map((rect, i) => (
+          <polygon
+            key={`hit-c-${i}`}
+            points={getRectPolygonPoints(rect, unitSize)}
+            fill="transparent"
+            pointerEvents="all"
+            style={{ cursor: 'pointer' }}
+            onPointerDown={handleRoomPointerDown}
+            onPointerUp={(e) => handleRoomPointerUp(e, room)}
             className="encounter-map__room"
           />
         ))}
@@ -1613,17 +1689,17 @@ export function EncounterMapRenderer({
         />
       )}
 
-      {/* Room context menu — rendered outside SVG */}
-      {contextMenu && isGM && (
+      {/* Room context menu — GM right-click (with toggle) or player tap (info only) */}
+      {contextMenu && (
         <RoomContextMenu
           room={contextMenu.room}
-          isVisible={isRoomVisible(contextMenu.room.id)}
+          isVisible={isGM ? isRoomVisible(contextMenu.room.id) : undefined}
           x={contextMenu.x}
           y={contextMenu.y}
-          onToggleVisibility={() => {
+          onToggleVisibility={isGM ? () => {
             onRoomToggle?.(contextMenu.room.id, !isRoomVisible(contextMenu.room.id));
             setContextMenu(null);
-          }}
+          } : undefined}
           onClose={() => setContextMenu(null)}
         />
       )}

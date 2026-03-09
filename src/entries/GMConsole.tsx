@@ -1,21 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ConfigProvider, theme, Layout, message, Tabs } from 'antd';
-import { RobotOutlined, NotificationOutlined, RadarChartOutlined, DashboardOutlined } from '@ant-design/icons';
-import { Location, ActiveView, BroadcastMessage } from '@/types/gmConsole';
+import { ConfigProvider, theme, message } from 'antd';
+import { Location, ActiveView } from '@/types/gmConsole';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { useTreeState } from '@/hooks/useTreeState';
-import { LocationTree } from '@/components/gm/LocationTree';
-import { BroadcastForm } from '@/components/gm/BroadcastForm';
-import { ViewControls } from '@/components/gm/ViewControls';
-import { CharonPanel } from '@/components/gm/CharonPanel';
-import { EncounterPanel } from '@/components/gm/EncounterPanel';
-import { ShipStatusPanel } from '@/components/gm/ShipStatusPanel';
+import { ViewRail, GMViewType } from '@/components/gm/layout/ViewRail';
 import { charonApi } from '@/services/charonApi';
 import { useSSE } from '@/hooks/useSSE';
 import { SSEConnectionToast } from '@/components/ui/SSEConnectionToast';
-
-const { Content, Sider } = Layout;
+import './GMConsole.css';
 
 function GMConsole() {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -25,24 +18,22 @@ function GMConsole() {
   const [messageApi, contextHolder] = message.useMessage();
   const [channelUnreads, setChannelUnreads] = useState<Record<string, number>>({});
 
+  // GM's local view state -- independent from what players see (activeView.view_type)
+  const [gmView, setGmView] = useState<GMViewType>('STANDBY');
+
   const { expandedNodes, toggleNode } = useTreeState('gm-console-tree');
 
-  // Derive active CHARON channel from view state
+  // Derive active CHARON channel from GM's local view (not player view)
   const activeCharonChannel = useMemo(() => {
-    const viewType = activeView?.view_type || 'STANDBY';
-    if (viewType === 'CHARON_TERMINAL') return 'story';
-    if (viewType === 'BRIDGE') return 'bridge';
-    if (viewType === 'ENCOUNTER' && activeView?.location_slug) {
+    if (gmView === 'CHARON') return 'story';
+    if (gmView === 'BRIDGE') return 'bridge';
+    if (gmView === 'ENCOUNTER' && activeView?.location_slug) {
       return `encounter-${activeView.location_slug}`;
     }
-    // Fallback: use whatever the server says, or 'story'
     return activeView?.charon_active_channel || 'story';
-  }, [activeView?.view_type, activeView?.location_slug, activeView?.charon_active_channel]);
+  }, [gmView, activeView?.location_slug, activeView?.charon_active_channel]);
 
   // Load initial data (locations + one-time active-view bootstrap)
-  // One-time initial load: SSE first-event will also deliver active-view state,
-  // but this ensures state is set and loading=false if the SSE connection is slow to open.
-  // Locations data is only available via REST (no SSE channel for it).
   useEffect(() => {
     async function loadData() {
       try {
@@ -63,8 +54,7 @@ function GMConsole() {
     loadData();
   }, []);
 
-  // SSE subscription — replaces 5s active-view polling
-  // failureThreshold: 2 — GM console warns sooner (2 failed reconnects)
+  // SSE subscription -- replaces 5s active-view polling
   const { connectionLost } = useSSE({
     url: '/api/active-view/stream/',
     onEvent: useCallback((rawData: unknown) => {
@@ -99,9 +89,9 @@ function GMConsole() {
 
   // Compute aggregate unread counts by category
   const unreadCounts = useMemo(() => {
-    let bridge = channelUnreads['bridge'] || 0;
-    let story = channelUnreads['story'] || 0;
-    let encounter = Object.entries(channelUnreads)
+    const bridge = channelUnreads['bridge'] || 0;
+    const story = channelUnreads['story'] || 0;
+    const encounter = Object.entries(channelUnreads)
       .filter(([key]) => key.startsWith('encounter-'))
       .reduce((sum, [, count]) => sum + count, 0);
     return { bridge, story, encounter };
@@ -111,13 +101,37 @@ function GMConsole() {
     messageApi.open({ type, content: msg });
   }, [messageApi]);
 
+  // Handle DISPLAY button -- push current gmView to player terminal
+  const handleDisplay = useCallback(async () => {
+    try {
+      switch (gmView) {
+        case 'STANDBY':
+          await gmConsoleApi.switchToStandby();
+          break;
+        case 'BRIDGE':
+          await gmConsoleApi.switchToBridge();
+          break;
+        case 'ENCOUNTER':
+          await gmConsoleApi.switchView('ENCOUNTER', activeView?.location_slug || '');
+          break;
+        case 'CHARON':
+          await charonApi.switchToCharon();
+          break;
+      }
+      showStatus(`Pushed ${gmView} to player terminal`);
+    } catch (err) {
+      console.error('Error pushing view to player terminal:', err);
+      showStatus('Failed to push view', 'error');
+    }
+  }, [gmView, activeView?.location_slug, showStatus]);
+
+  // -- Handlers kept for Plan 02/03 wiring --
+
   // Handle location selection for ENCOUNTER view
   const handleSelectLocation = useCallback(async (slug: string | null) => {
     try {
-      // Only update location if we're in ENCOUNTER view
       if (activeView?.view_type === 'ENCOUNTER') {
         await gmConsoleApi.switchView('ENCOUNTER', slug || '');
-        // SSE will deliver updated state automatically after write
         if (slug) {
           showStatus(`Selected ${slug}`);
         } else {
@@ -130,33 +144,16 @@ function GMConsole() {
     }
   }, [activeView?.view_type, showStatus]);
 
-  // Switch to ENCOUNTER view
-  const handleEncounter = useCallback(async () => {
-    try {
-      await gmConsoleApi.switchView('ENCOUNTER', activeView?.location_slug || '');
-      // SSE will deliver updated state automatically after write
-      showStatus('Switched to encounter');
-    } catch (err) {
-      console.error('Error switching to encounter:', err);
-      showStatus('Failed to switch to encounter', 'error');
-    }
-  }, [activeView?.location_slug, showStatus]);
-
   const handleShowTerminal = useCallback(async (locationSlug: string, terminalSlug: string) => {
     try {
-      // Toggle: if clicking the same terminal that's already shown, hide it
       const isAlreadyShown = activeView?.overlay_location_slug === locationSlug &&
                              activeView?.overlay_terminal_slug === terminalSlug;
 
       if (isAlreadyShown) {
-        // Hide the terminal by sending empty values
         await gmConsoleApi.showTerminal('', '');
-        // SSE will deliver updated state automatically after write
         showStatus('Terminal hidden');
       } else {
-        // Show the new terminal (this automatically replaces any existing overlay)
         await gmConsoleApi.showTerminal(locationSlug, terminalSlug);
-        // SSE will deliver updated state automatically after write
         showStatus(`Showing terminal ${terminalSlug}`);
       }
     } catch (err) {
@@ -165,54 +162,9 @@ function GMConsole() {
     }
   }, [showStatus, activeView?.overlay_location_slug, activeView?.overlay_terminal_slug]);
 
-  const handleStandby = useCallback(async () => {
-    try {
-      await gmConsoleApi.switchToStandby();
-      // SSE will deliver updated state automatically after write
-      showStatus('Switched to standby');
-    } catch (err) {
-      console.error('Error switching to standby:', err);
-      showStatus('Failed to switch to standby', 'error');
-    }
-  }, [showStatus]);
-
-  const handleBridge = useCallback(async () => {
-    try {
-      await gmConsoleApi.switchToBridge();
-      // SSE will deliver updated state automatically after write
-      showStatus('Switched to bridge');
-    } catch (err) {
-      console.error('Error switching to bridge:', err);
-      showStatus('Failed to switch to bridge', 'error');
-    }
-  }, [showStatus]);
-
-  const handleBroadcast = useCallback(async (msg: BroadcastMessage) => {
-    try {
-      await gmConsoleApi.sendBroadcast(msg);
-      showStatus('Message transmitted');
-    } catch (err) {
-      console.error('Error sending broadcast:', err);
-      showStatus('Failed to send message', 'error');
-      throw err;
-    }
-  }, [showStatus]);
-
-  const handleCharonActivate = useCallback(async () => {
-    try {
-      await charonApi.switchToCharon();
-      // SSE will deliver updated state automatically after write
-      showStatus('CHARON Terminal activated');
-    } catch (err) {
-      console.error('Error activating CHARON:', err);
-      showStatus('Failed to activate CHARON', 'error');
-    }
-  }, [showStatus]);
-
   const handleToggleCharonDialog = useCallback(async () => {
     try {
       const result = await charonApi.toggleDialog();
-      // SSE will deliver updated state automatically after write
       showStatus(result.charon_dialog_open ? 'CHARON dialog shown' : 'CHARON dialog hidden');
     } catch (err) {
       console.error('Error toggling CHARON dialog:', err);
@@ -220,11 +172,22 @@ function GMConsole() {
     }
   }, [showStatus]);
 
-  // Callback for EncounterPanel — SSE delivers state automatically after writes,
-  // so this is now a no-op kept for interface compatibility with EncounterPanel prop.
+  // Callback for EncounterPanel -- SSE delivers state automatically after writes
   const handleEncounterViewUpdate = useCallback(() => {
     // SSE will deliver updated active view state automatically after any write operation
   }, []);
+
+  // Expose retained state/handlers for Plan 02/03 view components.
+  // This block ensures TS does not flag them as unused during the layout-shell phase.
+  void locations;
+  void expandedNodes;
+  void toggleNode;
+  void activeCharonChannel;
+  void unreadCounts;
+  void handleSelectLocation;
+  void handleShowTerminal;
+  void handleToggleCharonDialog;
+  void handleEncounterViewUpdate;
 
   if (loading) {
     return (
@@ -243,137 +206,22 @@ function GMConsole() {
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      {/* SSE connection lost warning — shown after 2 failed reconnects (GM warns sooner) */}
+    <div className="gm-console">
       {connectionLost && <SSEConnectionToast />}
       {contextHolder}
-      <Sider width={400} style={{ background: '#141414', padding: 16, overflow: 'auto' }}>
-        <h2 style={{ color: '#fff', marginBottom: 16, fontSize: 16 }}>LOCATIONS</h2>
-        <LocationTree
-          locations={locations}
-          selectedLocationSlug={activeView?.view_type === 'ENCOUNTER' ? (activeView?.location_slug || null) : null}
-          activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
-          activeTerminalSlug={activeView?.overlay_terminal_slug || null}
-          expandedNodes={expandedNodes}
-          onToggle={toggleNode}
-          onSelectLocation={handleSelectLocation}
-          onShowTerminal={handleShowTerminal}
-          selectionEnabled={activeView?.view_type === 'ENCOUNTER'}
-        />
-      </Sider>
-      <Content style={{ padding: 24, background: '#000' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <ViewControls
-            currentView={activeView?.view_type || 'STANDBY'}
-            onStandby={handleStandby}
-            onBridge={handleBridge}
-            onEncounter={handleEncounter}
-            onCharon={handleCharonActivate}
-            unreadCounts={unreadCounts}
-          />
-          <Tabs
-            defaultActiveKey="charon"
-            type="card"
-            items={[
-              {
-                key: 'charon',
-                label: (
-                  <span>
-                    <RobotOutlined style={{ marginRight: 8 }} />
-                    CHARON {activeCharonChannel === 'bridge' ? '// BRIDGE' :
-                            activeCharonChannel === 'story' ? '// STORY' :
-                            activeCharonChannel.startsWith('encounter-') ? '// ENCOUNTER' : ''}
-                  </span>
-                ),
-                children: (
-                  <div style={{
-                    padding: 16,
-                    background: '#141414',
-                    border: '1px solid #303030',
-                    borderTop: 'none',
-                    borderRadius: '0 0 8px 8px',
-                    marginTop: -16
-                  }}>
-                    <CharonPanel
-                      channel={activeCharonChannel}
-                      currentViewType={activeView?.view_type || 'STANDBY'}
-                      charonDialogOpen={activeView?.charon_dialog_open || false}
-                      onDialogToggle={handleToggleCharonDialog}
-                    />
-                  </div>
-                ),
-              },
-              {
-                key: 'encounter',
-                label: (
-                  <span>
-                    <RadarChartOutlined style={{ marginRight: 8 }} />
-                    ENCOUNTER
-                  </span>
-                ),
-                children: (
-                  <div style={{
-                    padding: 16,
-                    background: '#141414',
-                    border: '1px solid #303030',
-                    borderTop: 'none',
-                    borderRadius: '0 0 8px 8px',
-                    marginTop: -16
-                  }}>
-                    <EncounterPanel
-                      activeView={activeView}
-                      onViewUpdate={handleEncounterViewUpdate}
-                    />
-                  </div>
-                ),
-              },
-              {
-                key: 'ship-status',
-                label: (
-                  <span>
-                    <DashboardOutlined style={{ marginRight: 8 }} />
-                    SHIP STATUS
-                  </span>
-                ),
-                children: (
-                  <div style={{
-                    padding: 16,
-                    background: '#141414',
-                    border: '1px solid #303030',
-                    borderTop: 'none',
-                    borderRadius: '0 0 8px 8px',
-                    marginTop: -16
-                  }}>
-                    <ShipStatusPanel />
-                  </div>
-                ),
-              },
-              {
-                key: 'broadcast',
-                label: (
-                  <span>
-                    <NotificationOutlined style={{ marginRight: 8 }} />
-                    BROADCAST MESSAGE
-                  </span>
-                ),
-                children: (
-                  <div style={{
-                    padding: 16,
-                    background: '#141414',
-                    border: '1px solid #303030',
-                    borderTop: 'none',
-                    borderRadius: '0 0 8px 8px',
-                    marginTop: -16
-                  }}>
-                    <BroadcastForm onSubmit={handleBroadcast} />
-                  </div>
-                ),
-              },
-            ]}
-          />
-        </div>
-      </Content>
-    </Layout>
+      <ViewRail
+        gmView={gmView}
+        playerView={activeView?.view_type || 'STANDBY'}
+        onViewChange={setGmView}
+        onDisplay={handleDisplay}
+      />
+      <main className="gm-console__content">
+        {gmView === 'STANDBY' && <div className="gm-console__placeholder">STANDBY</div>}
+        {gmView === 'BRIDGE' && <div className="gm-console__placeholder">BRIDGE VIEW (Plan 03)</div>}
+        {gmView === 'ENCOUNTER' && <div className="gm-console__placeholder">ENCOUNTER VIEW (Plan 02)</div>}
+        {gmView === 'CHARON' && <div className="gm-console__placeholder">CHARON VIEW (Plan 03)</div>}
+      </main>
+    </div>
   );
 }
 

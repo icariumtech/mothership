@@ -1,0 +1,22 @@
+.gm-console {
+  display: flex;
+  min-height: 100vh;
+  background: #000;
+}
+
+.gm-console__content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.gm-console__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #555;
+  font-size: 18px;
+  font-family: 'Cascadia Code', monospace;
+  letter-spacing: 2px;
+}

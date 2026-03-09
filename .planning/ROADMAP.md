@@ -138,3 +138,16 @@ Plans:
 - [ ] 07-02-PLAN.md — EncounterMapRenderer rewrite (wall-segment algorithm, floor texture, GM click-to-reveal) + EncounterMapDisplay routing
 - [ ] 07-03-PLAN.md — TokenLayer multi-rect update + MapPreview/EncounterPanel grid support + bulk reveal/hide
 - [ ] 07-04-PLAN.md — Human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect
+
+### Phase 8: Rework GM console UI
+
+**Goal:** Redesign the GM console from a flat-tab sidebar layout to a view-driven architecture with a left icon rail, full-content main area, and right-side slide-out tool panels for better usability and screen real estate.
+**Depends on:** Phase 7
+**Requirements:** GMUI-LAYOUT, GMUI-VIEWRAIL, GMUI-TOOLRAIL, GMUI-SLIDEOUT, GMUI-ENCOUNTER, GMUI-TOOLPANELS, GMUI-MAPFULLSCREEN, GMUI-BRIDGE, GMUI-CHARON, GMUI-STANDBY, GMUI-DISPLAY
+**Plans:** 4 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Layout shell: ViewRail, ToolRail, SlideOutPanel components + GMConsole flexbox restructure with view routing
+- [ ] 08-02-PLAN.md — EncounterView: full-screen map with floating controls + 4 slide-out tool panels (tokens, portraits, locations, terminals)
+- [ ] 08-03-PLAN.md — BridgeView dashboard, CharonView full-screen, StandbyView, DISPLAY button wiring
+- [ ] 08-04-PLAN.md — Human verification: all views, navigation, tool panels, map interactions, DISPLAY button, tablet layout

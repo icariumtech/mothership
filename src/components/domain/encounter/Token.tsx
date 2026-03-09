@@ -15,7 +15,7 @@ interface TokenProps {
   unitSize: number;
   draggable?: boolean;
   selected?: boolean;
-  onSelect?: (id: string, e: React.MouseEvent) => void;
+  onSelect?: (id: string, e?: React.MouseEvent) => void;
   onPointerDragStart?: (id: string, e: React.PointerEvent<Element>) => void;
 }
 
@@ -65,6 +65,13 @@ export function Token({
     }
   };
 
+  // On non-draggable tokens (player terminal), a tap/click should open the popup.
+  // On draggable tokens (GM view), right-click (contextMenu) handles it instead.
+  const handleClick = !draggable ? (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSelect) onSelect(id, e);
+  } : undefined;
+
   const glowColor = GLOW_COLORS[data.type];
   const hasImage = data.image_url && data.image_url.trim() !== '';
 
@@ -86,7 +93,8 @@ export function Token({
       data-draggable={draggable}
       onPointerDown={handlePointerDown}
       onContextMenu={handleContextMenu}
-      style={{ cursor: draggable ? 'grab' : 'context-menu', touchAction: draggable ? 'none' : 'auto' }}
+      onClick={handleClick}
+      style={{ cursor: draggable ? 'grab' : (onSelect ? 'pointer' : 'default'), touchAction: draggable ? 'none' : 'auto' }}
     >
       {/* Define filters for glow effect */}
       <defs>

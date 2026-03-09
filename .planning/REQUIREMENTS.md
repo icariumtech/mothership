@@ -9,26 +9,26 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Logs
 
-- [ ] **LOGS-01**: GM can view campaign session log entries in the LOGS bridge tab (renamed from NOTES)
-- [ ] **LOGS-02**: Log entries display in chronological order with session date and number
-- [ ] **LOGS-03**: Log data loaded from YAML files in campaign data directory
+- [x] **LOGS-01**: GM can view campaign session log entries in the LOGS bridge tab (renamed from NOTES)
+- [x] **LOGS-02**: Log entries display in chronological order with session date and number
+- [x] **LOGS-03**: Log data loaded from YAML files in campaign data directory
 
 ### Ship Status
 
-- [ ] **STAT-01**: STATUS bridge tab displays ship name, class, and overall status
-- [ ] **STAT-02**: Hull integrity and armor values are visible
-- [ ] **STAT-03**: System status panels show operational state for life support, engines, weapons, and comms
-- [ ] **STAT-04**: Crew count and capacity displayed
-- [ ] **STAT-05**: System status changes animate visually (e.g., OPERATIONAL to WARNING transition)
-- [ ] **STAT-06**: GM can toggle system states from the GM Console
+- [x] **STAT-01**: STATUS bridge tab displays ship name, class, and overall status
+- [x] **STAT-02**: Hull integrity and armor values are visible
+- [x] **STAT-03**: System status panels show operational state for life support, engines, weapons, and comms
+- [x] **STAT-04**: Crew count and capacity displayed
+- [x] **STAT-05**: System status changes animate visually (e.g., OPERATIONAL to WARNING transition)
+- [x] **STAT-06**: GM can toggle system states from the GM Console
 
 ### Encounter Tokens
 
-- [ ] **TOKN-01**: GM can place tokens on the encounter map grid
-- [ ] **TOKN-02**: Tokens snap to grid cells
-- [ ] **TOKN-03**: Tokens visually distinguish between types (player, NPC, creature, object)
-- [ ] **TOKN-04**: GM can move tokens and players see updates via polling/push
-- [ ] **TOKN-05**: Tokens display status indicators (wounded, dead, panicked)
+- [x] **TOKN-01**: GM can place tokens on the encounter map grid
+- [x] **TOKN-02**: Tokens snap to grid cells
+- [x] **TOKN-03**: Tokens visually distinguish between types (player, NPC, creature, object)
+- [x] **TOKN-04**: GM can move tokens and players see updates via polling/push
+- [x] **TOKN-05**: Tokens display status indicators (wounded, dead, panicked)
 
 ### NPC Portraits
 

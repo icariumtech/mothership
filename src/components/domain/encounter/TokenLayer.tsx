@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { TokenState, RoomData, GridRoom } from '../../../types/encounterMap';
+import { TokenState, TokenData, RoomData, GridRoom } from '../../../types/encounterMap';
 import { Token } from './Token';
 import { screenToSVG, snapToGrid } from '@/utils/svgCoordinates';
 
@@ -39,7 +39,7 @@ interface TokenLayerProps {
   isGM?: boolean;
   onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   selectedTokenId?: string | null;
-  onTokenSelect?: (id: string | null, e: React.MouseEvent) => void;
+  onTokenSelect?: (id: string | null, e?: React.MouseEvent) => void;
   mapRooms?: (RoomData | GridRoom)[];
 }
 
@@ -71,6 +71,8 @@ export function TokenLayer({
   // Stable refs for props that event handlers need
   const tokensRef = useRef(tokens);
   const onTokenMoveRef = useRef(onTokenMove);
+  const onTokenSelectRef = useRef(onTokenSelect);
+  const selectedTokenIdRef = useRef(selectedTokenId);
   const mapRoomsRef = useRef(mapRooms);
   const roomVisibilityRef = useRef(roomVisibility);
   const isGMRef = useRef(isGM);
@@ -78,6 +80,8 @@ export function TokenLayer({
 
   useEffect(() => { tokensRef.current = tokens; }, [tokens]);
   useEffect(() => { onTokenMoveRef.current = onTokenMove; }, [onTokenMove]);
+  useEffect(() => { onTokenSelectRef.current = onTokenSelect; }, [onTokenSelect]);
+  useEffect(() => { selectedTokenIdRef.current = selectedTokenId; }, [selectedTokenId]);
   useEffect(() => { mapRoomsRef.current = mapRooms; }, [mapRooms]);
   useEffect(() => { roomVisibilityRef.current = roomVisibility; }, [roomVisibility]);
   useEffect(() => { isGMRef.current = isGM; }, [isGM]);
@@ -186,9 +190,13 @@ export function TokenLayer({
   const handlePointerUp = useCallback(() => {
     tokenTouchActive = false;
 
-    // Tap without movement — click will handle selection
+    // Tap without movement — trigger token selection popup (player terminal only; GM uses right-click)
     if (pendingDrag.current) {
+      const tapId = pendingDrag.current.id;
       pendingDrag.current = null;
+      if (onTokenSelectRef.current && !isGMRef.current) {
+        onTokenSelectRef.current(selectedTokenIdRef.current === tapId ? null : tapId);
+      }
       return;
     }
 
@@ -219,7 +227,7 @@ export function TokenLayer({
       return;
     }
 
-    if (!isGMRef.current && roomVisibilityRef.current && roomVisibilityRef.current[room.id] !== true) {
+    if (!isGMRef.current && roomVisibilityRef.current && roomVisibilityRef.current[room.id] === false) {
       console.warn('Cannot move token: room is not revealed');
       stopDrag();
       return;
@@ -259,8 +267,10 @@ export function TokenLayer({
   }, []); // stable — never re-attaches
 
   const canDrag = !!onTokenMove;
+  // GMs can drag all tokens; players can only drag player-type tokens
+  const isTokenDraggable = (token: TokenData) => canDrag && (isGM || token.type === 'player');
 
-  const handleTokenSelect = (id: string, e: React.MouseEvent) => {
+  const handleTokenSelect = (id: string, e?: React.MouseEvent) => {
     if (onTokenSelect) {
       onTokenSelect(selectedTokenId === id ? null : id, e);
     }
@@ -277,6 +287,7 @@ export function TokenLayer({
     <g className="encounter-map__token-layer">
       {filteredTokens.map(([id, tokenData]) => {
         const isActiveDrag = isDragging && id === dragTokenId;
+        const tokenDraggable = !isActiveDrag && isTokenDraggable(tokenData);
 
         // Always wrap Token in <g key={id}> so key always corresponds to the same element type.
         // This preserves the inner Token's <g> DOM node (and its pointer capture) across the
@@ -287,10 +298,10 @@ export function TokenLayer({
               id={id}
               data={tokenData}
               unitSize={unitSize}
-              draggable={!isActiveDrag && canDrag}
+              draggable={tokenDraggable}
               selected={!isActiveDrag && selectedTokenId === id}
               onSelect={isActiveDrag ? undefined : handleTokenSelect}
-              onPointerDragStart={isActiveDrag ? undefined : handleTokenPointerDragStart}
+              onPointerDragStart={isActiveDrag || !tokenDraggable ? undefined : handleTokenPointerDragStart}
             />
           </g>
         );

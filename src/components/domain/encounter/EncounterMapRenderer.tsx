@@ -1467,10 +1467,13 @@ export function EncounterMapRenderer({
                     return;
                   }
                 }
-                // Fallback: cursor position
+                // Fallback: center of container
                 const rect = containerRef.current?.getBoundingClientRect();
                 setSelectedTokenId(id);
-                setSelectedTokenPos({ x: e.clientX - (rect?.left || 0), y: e.clientY - (rect?.top || 0) });
+                setSelectedTokenPos({
+                  x: e ? e.clientX - (rect?.left || 0) : (rect?.width || 0) / 2,
+                  y: e ? e.clientY - (rect?.top || 0) : (rect?.height || 0) / 3,
+                });
               }
             }}
             mapRooms={mapData.rooms as unknown as import('../../../types/encounterMap').RoomData[]}

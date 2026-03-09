@@ -8,6 +8,10 @@ import { ViewRail, GMViewType } from '@/components/gm/layout/ViewRail';
 import { charonApi } from '@/services/charonApi';
 import { useSSE } from '@/hooks/useSSE';
 import { SSEConnectionToast } from '@/components/ui/SSEConnectionToast';
+import { StandbyView } from '@/components/gm/views/StandbyView';
+import { BridgeView } from '@/components/gm/views/BridgeView';
+import { CharonView } from '@/components/gm/views/CharonView';
+import { EncounterView } from '@/components/gm/views/EncounterView';
 import './GMConsole.css';
 
 function GMConsole() {
@@ -130,19 +134,17 @@ function GMConsole() {
   // Handle location selection for ENCOUNTER view
   const handleSelectLocation = useCallback(async (slug: string | null) => {
     try {
-      if (activeView?.view_type === 'ENCOUNTER') {
-        await gmConsoleApi.switchView('ENCOUNTER', slug || '');
-        if (slug) {
-          showStatus(`Selected ${slug}`);
-        } else {
-          showStatus('Cleared selection');
-        }
+      await gmConsoleApi.switchView('ENCOUNTER', slug || '');
+      if (slug) {
+        showStatus(`Selected ${slug}`);
+      } else {
+        showStatus('Cleared selection');
       }
     } catch (err) {
       console.error('Error selecting location:', err);
       showStatus('Failed to select location', 'error');
     }
-  }, [activeView?.view_type, showStatus]);
+  }, [showStatus]);
 
   const handleShowTerminal = useCallback(async (locationSlug: string, terminalSlug: string) => {
     try {
@@ -172,22 +174,8 @@ function GMConsole() {
     }
   }, [showStatus]);
 
-  // Callback for EncounterPanel -- SSE delivers state automatically after writes
-  const handleEncounterViewUpdate = useCallback(() => {
-    // SSE will deliver updated active view state automatically after any write operation
-  }, []);
-
-  // Expose retained state/handlers for Plan 02/03 view components.
-  // This block ensures TS does not flag them as unused during the layout-shell phase.
-  void locations;
-  void expandedNodes;
-  void toggleNode;
-  void activeCharonChannel;
+  // Expose retained state/handlers not yet wired to views.
   void unreadCounts;
-  void handleSelectLocation;
-  void handleShowTerminal;
-  void handleToggleCharonDialog;
-  void handleEncounterViewUpdate;
 
   if (loading) {
     return (
@@ -216,10 +204,33 @@ function GMConsole() {
         onDisplay={handleDisplay}
       />
       <main className="gm-console__content">
-        {gmView === 'STANDBY' && <div className="gm-console__placeholder">STANDBY</div>}
-        {gmView === 'BRIDGE' && <div className="gm-console__placeholder">BRIDGE VIEW (Plan 03)</div>}
-        {gmView === 'ENCOUNTER' && <div className="gm-console__placeholder">ENCOUNTER VIEW (Plan 02)</div>}
-        {gmView === 'CHARON' && <div className="gm-console__placeholder">CHARON VIEW (Plan 03)</div>}
+        {gmView === 'STANDBY' && <StandbyView />}
+        {gmView === 'BRIDGE' && (
+          <BridgeView
+            activeView={activeView}
+            charonChannel={activeCharonChannel}
+            charonDialogOpen={activeView?.charon_dialog_open || false}
+            onDialogToggle={handleToggleCharonDialog}
+          />
+        )}
+        {gmView === 'ENCOUNTER' && (
+          <EncounterView
+            activeView={activeView}
+            locations={locations}
+            expandedNodes={expandedNodes}
+            onToggleNode={toggleNode}
+            onSelectLocation={handleSelectLocation}
+            onShowTerminal={handleShowTerminal}
+          />
+        )}
+        {gmView === 'CHARON' && (
+          <CharonView
+            channel={activeCharonChannel}
+            currentViewType="CHARON_TERMINAL"
+            charonDialogOpen={activeView?.charon_dialog_open || false}
+            onDialogToggle={handleToggleCharonDialog}
+          />
+        )}
       </main>
     </div>
   );

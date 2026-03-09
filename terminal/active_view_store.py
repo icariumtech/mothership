@@ -17,7 +17,7 @@ _state: dict = {
     'encounter_deck_id': '',
     'encounter_room_visibility': {},
     'encounter_door_status': {},
-    'encounter_tokens': {},
+    'encounter_tokens_by_location': {},
     'encounter_active_portraits': [],
     'ship_system_overrides': {},
 }

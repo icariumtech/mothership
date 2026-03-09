@@ -203,7 +203,7 @@ def build_active_view_payload(state: dict) -> dict:
         'encounter_deck_id': state.get('encounter_deck_id', ''),
         'encounter_room_visibility': state.get('encounter_room_visibility', {}),
         'encounter_door_status': state.get('encounter_door_status', {}),
-        'encounter_tokens': state.get('encounter_tokens', {}),
+        'encounter_tokens': state.get('encounter_tokens_by_location', {}).get(state.get('location_slug', ''), {}),
         'encounter_active_portraits': list(state.get('encounter_active_portraits', [])),
         'ship_system_overrides': state.get('ship_system_overrides', {}),
     }
@@ -1204,10 +1204,13 @@ def api_encounter_place_token(request):
 
     # Store token
     current = get_state()
-    tokens = dict(current.get('encounter_tokens') or {})
+    slug = current.get('location_slug', '')
+    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
+    tokens = dict(tokens_by_loc.get(slug) or {})
     tokens[token_id] = token_data
 
-    new_state = update_state(encounter_tokens=tokens)
+    tokens_by_loc[slug] = tokens
+    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
@@ -1246,7 +1249,9 @@ def api_encounter_move_token(request):
 
     # Update token
     current = get_state()
-    tokens = dict(current.get('encounter_tokens') or {})
+    slug = current.get('location_slug', '')
+    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
+    tokens = dict(tokens_by_loc.get(slug) or {})
 
     if token_id not in tokens:
         return JsonResponse({'error': 'Token not found'}, status=404)
@@ -1256,7 +1261,8 @@ def api_encounter_move_token(request):
     tokens[token_id]['y'] = y
     tokens[token_id]['room_id'] = room_id
 
-    new_state = update_state(encounter_tokens=tokens)
+    tokens_by_loc[slug] = tokens
+    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
@@ -1288,14 +1294,17 @@ def api_encounter_remove_token(request):
 
     # Remove token
     current = get_state()
-    tokens = dict(current.get('encounter_tokens') or {})
+    slug = current.get('location_slug', '')
+    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
+    tokens = dict(tokens_by_loc.get(slug) or {})
 
     if token_id not in tokens:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
     del tokens[token_id]
 
-    new_state = update_state(encounter_tokens=tokens)
+    tokens_by_loc[slug] = tokens
+    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
@@ -1330,7 +1339,9 @@ def api_encounter_update_token_status(request):
 
     # Update token status
     current = get_state()
-    tokens = dict(current.get('encounter_tokens') or {})
+    slug = current.get('location_slug', '')
+    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
+    tokens = dict(tokens_by_loc.get(slug) or {})
 
     if token_id not in tokens:
         return JsonResponse({'error': 'Token not found'}, status=404)
@@ -1338,7 +1349,8 @@ def api_encounter_update_token_status(request):
     tokens[token_id] = dict(tokens[token_id])
     tokens[token_id]['status'] = status
 
-    new_state = update_state(encounter_tokens=tokens)
+    tokens_by_loc[slug] = tokens
+    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
@@ -1358,8 +1370,12 @@ def api_encounter_clear_tokens(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    # Clear all tokens
-    new_state = update_state(encounter_tokens={})
+    # Clear tokens for current location
+    current = get_state()
+    slug = current.get('location_slug', '')
+    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
+    tokens_by_loc[slug] = {}
+    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-03-09T21:38:42Z"
-last_activity: 2026-03-09 — Completed 08-01 layout shell (ViewRail, ToolRail, SlideOutPanel, GMConsole restructure)
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-03-09T21:46:56.148Z"
+last_activity: 2026-03-09 — Completed 08-03 views and dashboard
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 25
   completed_plans: 23
-  percent: 88
+  percent: 92
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 8 of 8 (Rework GM Console UI)
-Plan: 1 of 4 completed
-Status: Executing — Plan 01 layout shell complete
-Last activity: 2026-03-09 — Completed 08-01 layout shell
+Plan: 3 of 4 completed
+Status: Executing — Plan 03 views and dashboard complete
+Last activity: 2026-03-09 — Completed 08-03 views and dashboard
 
-Progress: [█████████░] 88% (Phase 8: 1/4 plans)
+Progress: [█████████░] 92% (Phase 8: 3/4 plans)
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████████░] 88% (Phase 8: 1/4 plans)
 - Trend: Phase 08-01 layout shell (257s) — flexbox restructure of GMConsole + 3 new layout components
 
 *Updated after each plan completion*
+| Phase 08 P03 | 198 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,10 @@ Recent decisions affecting current work:
 - [Phase 08-01]: DISPLAY button pushes gmView to player terminal via appropriate API call
 - [Phase 08-01]: activeCharonChannel derived from gmView (not activeView.view_type) so CHARON channel follows GM's local view
 - [Phase 08-01]: Player view indicator uses green dot (6px) on the icon matching activeView.view_type
+- [Phase 08]: BridgeView uses plain dark cards (#141414) for utilitarian dashboard, not CRT-styled panels
+- [Phase 08]: ShipStatusToolPanel is thin wrapper around existing ShipStatusPanel (no logic duplication)
+- [Phase 08]: CharonQuickSend uses channel-aware sendChannelMessage for correct channel routing
+- [Phase 08]: CharonView passes currentViewType='CHARON_TERMINAL' to CharonPanel for correct isActive detection
 
 ### Roadmap Evolution
 
@@ -156,6 +161,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T21:38:42Z
-Stopped at: Completed 08-01-PLAN.md
-Resume file: .planning/phases/08-rework-gm-console-ui/08-01-SUMMARY.md
+Last session: 2026-03-09T21:46:56.145Z
+Stopped at: Completed 08-03-PLAN.md
+Resume file: None

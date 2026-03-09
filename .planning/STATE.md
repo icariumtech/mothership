@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-09T18:54:00.820Z"
-last_activity: 2026-03-05 — Completed 07-04 human verification (all 6 tests passed)
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-09T21:38:42Z"
+last_activity: 2026-03-09 — Completed 08-01 layout shell (ViewRail, ToolRail, SlideOutPanel, GMConsole restructure)
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
+  total_plans: 25
+  completed_plans: 23
+  percent: 88
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 7 - Grid-Based Encounter Map Redesign — COMPLETE
+**Current focus:** Phase 8 - Rework GM Console UI
 
 ## Current Position
 
-Phase: 7 of 7 (Grid-Based Encounter Map Redesign) — COMPLETE
-Plan: 4 of 4 completed
-Status: Complete — all plans and human verification done
-Last activity: 2026-03-05 — Completed 07-04 human verification (all 6 tests passed)
+Phase: 8 of 8 (Rework GM Console UI)
+Plan: 1 of 4 completed
+Status: Executing — Plan 01 layout shell complete
+Last activity: 2026-03-09 — Completed 08-01 layout shell
 
-Progress: [██████████] 100% (Phase 7: 4/4 plans)
+Progress: [█████████░] 88% (Phase 8: 1/4 plans)
 
 ## Performance Metrics
 
@@ -49,10 +49,11 @@ Progress: [██████████] 100% (Phase 7: 4/4 plans)
 | 04-npc-portrait-system | 3/4 | 1074s (04-01+04-02+04-03) | — |
 | 05-real-time-push-architecture | 3/4 | 1083s (05-01+05-02+05-03) | — |
 | 07-grid-based-encounter-map-redesign | 1/4 | 118s (07-01) | 118s |
+| 08-rework-gm-console-ui | 1/4 | 257s (08-01) | 257s |
 
 **Recent Trend:**
-- Last 5 plans: 292s, 9252s, 124s, 79s, 118s
-- Trend: Phase 07-01 TypeScript types + YAML was very fast (118s) - pure type additions and data file rewrites
+- Last 5 plans: 9252s, 124s, 79s, 118s, 257s
+- Trend: Phase 08-01 layout shell (257s) — flexbox restructure of GMConsole + 3 new layout components
 
 *Updated after each plan completion*
 
@@ -135,6 +136,10 @@ Recent decisions affecting current work:
 - [Phase 07-03]: TokenLayer uses duck-typing ('rects' in room) to distinguish GridRoom from legacy RoomData in findRoomAtCell
 - [Phase 07-03]: MapPreview early-returns for grid maps delegating to EncounterMapRenderer; onRoomToggle threaded through
 - [Phase 07-03]: EncounterPanel bulk buttons changed from icon+tooltip to labeled text (REVEAL ALL / HIDE ALL); status badge removed
+- [Phase 08-01]: GMViewType is purely local state — clicking view icons does not call any API
+- [Phase 08-01]: DISPLAY button pushes gmView to player terminal via appropriate API call
+- [Phase 08-01]: activeCharonChannel derived from gmView (not activeView.view_type) so CHARON channel follows GM's local view
+- [Phase 08-01]: Player view indicator uses green dot (6px) on the icon matching activeView.view_type
 
 ### Roadmap Evolution
 
@@ -151,6 +156,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T18:54:00.811Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-rework-gm-console-ui/08-CONTEXT.md
+Last session: 2026-03-09T21:38:42Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: .planning/phases/08-rework-gm-console-ui/08-01-SUMMARY.md

@@ -78,12 +78,12 @@ export function BridgeView({ activeView, charonChannel, charonDialogOpen, onDial
   const armorColor = armorPct < 30 ? '#ff4d4f' : armorPct < 60 ? '#faad14' : '#1668dc';
 
   return (
-    <div className="bridge-view">
-      <div className="bridge-view__dashboard">
+    <div className="gm-bridge-view">
+      <div className="gm-bridge-view__dashboard">
         {/* Location Context */}
-        <div className="bridge-view__card">
-          <div className="bridge-view__card-title">Location</div>
-          <div className="bridge-view__card-value">
+        <div className="gm-bridge-view__card">
+          <div className="gm-bridge-view__card-title">Location</div>
+          <div className="gm-bridge-view__card-value">
             {activeView?.location_name || activeView?.location_slug || 'No location'}
           </div>
           {activeView?.location_type && (
@@ -99,20 +99,20 @@ export function BridgeView({ activeView, charonChannel, charonDialogOpen, onDial
         </div>
 
         {/* Ship Status */}
-        <div className="bridge-view__card">
-          <div className="bridge-view__card-title">Ship</div>
+        <div className="gm-bridge-view__card">
+          <div className="gm-bridge-view__card-title">Ship</div>
           {ship ? (
             <>
-              <div className="bridge-view__card-value">{ship.name}</div>
+              <div className="gm-bridge-view__card-value">{ship.name}</div>
               <div style={{ color: '#666', fontSize: 11, marginTop: 2 }}>{ship.class}</div>
               <div style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
                   <span style={{ color: '#888' }}>HULL</span>
                   <span style={{ color: '#aaa' }}>{ship.hull.current}/{ship.hull.max}</span>
                 </div>
-                <div className="bridge-view__bar-track">
+                <div className="gm-bridge-view__bar-track">
                   <div
-                    className="bridge-view__bar-fill"
+                    className="gm-bridge-view__bar-fill"
                     style={{ width: `${hullPct}%`, background: hullColor }}
                   />
                 </div>
@@ -122,9 +122,9 @@ export function BridgeView({ activeView, charonChannel, charonDialogOpen, onDial
                   <span style={{ color: '#888' }}>ARMOR</span>
                   <span style={{ color: '#aaa' }}>{ship.armor.current}/{ship.armor.max}</span>
                 </div>
-                <div className="bridge-view__bar-track">
+                <div className="gm-bridge-view__bar-track">
                   <div
-                    className="bridge-view__bar-fill"
+                    className="gm-bridge-view__bar-fill"
                     style={{ width: `${armorPct}%`, background: armorColor }}
                   />
                 </div>
@@ -136,10 +136,10 @@ export function BridgeView({ activeView, charonChannel, charonDialogOpen, onDial
         </div>
 
         {/* Crew */}
-        <div className="bridge-view__card">
-          <div className="bridge-view__card-title">Crew</div>
+        <div className="gm-bridge-view__card">
+          <div className="gm-bridge-view__card-title">Crew</div>
           {ship ? (
-            <div className="bridge-view__card-value">
+            <div className="gm-bridge-view__card-value">
               <span style={{ fontSize: 24 }}>{ship.crew_count}</span>
               <span style={{ color: '#666', fontSize: 14 }}> / {ship.crew_capacity}</span>
             </div>
@@ -149,15 +149,15 @@ export function BridgeView({ activeView, charonChannel, charonDialogOpen, onDial
         </div>
 
         {/* Systems Overview */}
-        <div className="bridge-view__card">
-          <div className="bridge-view__card-title">Systems</div>
+        <div className="gm-bridge-view__card">
+          <div className="gm-bridge-view__card-title">Systems</div>
           {ship ? (
-            <div className="bridge-view__system-grid">
+            <div className="gm-bridge-view__system-grid">
               {Object.entries(ship.systems).map(([key, sys]) => (
-                <div key={key} className="bridge-view__system-badge">
-                  <span className="bridge-view__system-name">{SYSTEM_LABELS[key] || key}</span>
+                <div key={key} className="gm-bridge-view__system-badge">
+                  <span className="gm-bridge-view__system-name">{SYSTEM_LABELS[key] || key}</span>
                   <span
-                    className="bridge-view__system-status"
+                    className="gm-bridge-view__system-status"
                     style={{ color: STATUS_COLORS[sys.status] }}
                   >
                     {sys.status}
@@ -171,23 +171,25 @@ export function BridgeView({ activeView, charonChannel, charonDialogOpen, onDial
         </div>
       </div>
 
-      <ToolRail tools={tools} activePanel={activePanel} onToggle={handleToolToggle} />
+      <div className="gm-bridge-view__right">
+        <ToolRail tools={tools} activePanel={activePanel} onToggle={handleToolToggle} />
 
-      <SlideOutPanel
-        open={activePanel === 'ship-status'}
-        title="Ship Status"
-        onClose={() => setActivePanel(null)}
-      >
-        <ShipStatusToolPanel />
-      </SlideOutPanel>
+        <SlideOutPanel
+          open={activePanel === 'ship-status'}
+          title="Ship Status"
+          onClose={() => setActivePanel(null)}
+        >
+          <ShipStatusToolPanel />
+        </SlideOutPanel>
 
-      <SlideOutPanel
-        open={activePanel === 'charon-send'}
-        title="CHARON Quick-Send"
-        onClose={() => setActivePanel(null)}
-      >
-        <CharonQuickSend channel={charonChannel} />
-      </SlideOutPanel>
+        <SlideOutPanel
+          open={activePanel === 'charon-send'}
+          title="CHARON Quick-Send"
+          onClose={() => setActivePanel(null)}
+        >
+          <CharonQuickSend channel={charonChannel} />
+        </SlideOutPanel>
+      </div>
     </div>
   );
 }

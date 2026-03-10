@@ -1,79 +1,100 @@
 .view-rail {
   display: flex;
   flex-direction: column;
-  width: 60px;
-  min-height: 100vh;
+  align-items: center;
+  width: 52px;
+  height: 100%;
   background: #141414;
   border-right: 1px solid #303030;
   flex-shrink: 0;
+  padding: 12px 0;
+}
+
+.view-rail__separator {
+  width: 28px;
+  height: 1px;
+  background: #303030;
+  margin: 10px 0;
 }
 
 .view-rail__views {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 0;
+  align-items: center;
+  gap: 6px;
 }
 
-.view-rail__item {
+/* Wrapper to keep Badge from breaking flex layout */
+.view-rail__slot {
+  display: flex;
+  justify-content: center;
+}
+
+/* View buttons — small round icons matching the old gmconsole style */
+.view-rail__btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin: 0 auto;
-  border: none;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 50%;
   background: transparent;
-  color: #888;
-  font-size: 24px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 16px;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
 
-.view-rail__item:hover {
-  background: #1f1f1f;
-  color: #d9d9d9;
+.view-rail__btn:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.view-rail__item--active {
+/* Active = highlighted with primary blue */
+.view-rail__btn--active {
+  color: #fff;
   background: #1668dc;
+  border-color: #1668dc;
+}
+
+.view-rail__btn--active:hover {
+  background: #1b7aed;
+  border-color: #1b7aed;
   color: #fff;
 }
 
-.view-rail__item--active:hover {
-  background: #1668dc;
-  color: #fff;
-}
-
-.view-rail__indicator {
+/* Green dot — shows which view the player terminal is displaying */
+.view-rail__dot {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
-  width: 6px;
-  height: 6px;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #52c41a;
+  border: 2px solid #141414;
+  box-shadow: 0 0 4px rgba(82, 196, 26, 0.6);
 }
 
+/* DISPLAY button — teal accent, same round style */
 .view-rail__display {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin: auto auto 12px;
-  border: none;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 50%;
   background: transparent;
-  color: #888;
-  font-size: 20px;
+  color: #4a6b6b;
+  font-size: 16px;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition: color 0.2s, background 0.2s;
 }
 
 .view-rail__display:hover {
-  background: #1f1f1f;
-  color: #8b7355;
+  color: #6a9b9b;
+  background: rgba(74, 107, 107, 0.15);
 }

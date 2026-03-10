@@ -350,11 +350,11 @@ export function EncounterView({
   const noLocationSelected = !locationSlug;
 
   return (
-    <div className="encounter-view">
+    <div className="gm-encounter-view">
       {contextHolder}
 
       {/* Full-screen map */}
-      <div className="encounter-view__map">
+      <div className="gm-encounter-view__map">
         {currentDeckMapData ? (
           <MapPreview
             mapData={currentDeckMapData}
@@ -364,6 +364,7 @@ export function EncounterView({
             showAllRooms={true}
             tokens={encounterTokens}
             isGM={true}
+            fill={true}
             onTokenPlace={handleTokenPlace}
             onTokenMove={handleTokenMove}
             onTokenRemove={handleTokenRemove}
@@ -372,86 +373,88 @@ export function EncounterView({
             hull={manifest?.hull as HullDef | undefined}
           />
         ) : noLocationSelected ? (
-          <div className="encounter-view__empty">
+          <div className="gm-encounter-view__empty">
             Select a location to view the encounter map
             <Button onClick={() => setActivePanel('locations')}>Open Locations</Button>
           </div>
         ) : loading ? (
-          <div className="encounter-view__loading">Loading map data...</div>
+          <div className="gm-encounter-view__loading">Loading map data...</div>
         ) : !hasEncounterMap ? (
-          <div className="encounter-view__empty">
+          <div className="gm-encounter-view__empty">
             {locationType === 'system' ? '3D system view' :
              locationType === 'planet' || locationType === 'moon' ? '3D orbit view' : '3D view'}
             {' '}for {activeView?.location_name || locationType}
           </div>
         ) : (
-          <div className="encounter-view__loading">Loading...</div>
+          <div className="gm-encounter-view__loading">Loading...</div>
+        )}
+
+        {/* Floating top-left controls (only when map is loaded) */}
+        {currentDeckMapData && (
+          <div className="gm-encounter-view__floating-controls">
+            {manifest && manifest.decks.length > 1 && (
+              <Select
+                value={currentDeckId}
+                onChange={handleDeckSelect}
+                options={deckOptions}
+                size="small"
+                style={{ minWidth: 140 }}
+              />
+            )}
+            <Button size="small" onClick={handleShowAll} style={{ color: '#4a6b6b', borderColor: '#2a3a3a' }}>
+              REVEAL ALL
+            </Button>
+            <Button size="small" onClick={handleHideAll} style={{ color: '#8b5555', borderColor: '#2a3a3a' }}>
+              HIDE ALL
+            </Button>
+          </div>
         )}
       </div>
 
-      {/* Floating top-left controls (only when map is loaded) */}
-      {currentDeckMapData && (
-        <div className="encounter-view__floating-controls">
-          {manifest && manifest.decks.length > 1 && (
-            <Select
-              value={currentDeckId}
-              onChange={handleDeckSelect}
-              options={deckOptions}
-              size="small"
-              style={{ minWidth: 140 }}
-            />
-          )}
-          <Button size="small" onClick={handleShowAll} style={{ color: '#4a6b6b', borderColor: '#2a3a3a' }}>
-            REVEAL ALL
-          </Button>
-          <Button size="small" onClick={handleHideAll} style={{ color: '#8b5555', borderColor: '#2a3a3a' }}>
-            HIDE ALL
-          </Button>
-        </div>
-      )}
-
       {/* Right tool rail + slide-out panels */}
-      <ToolRail tools={ENCOUNTER_TOOLS} activePanel={activePanel} onToggle={handlePanelToggle} />
+      <div className="gm-encounter-view__right">
+        <ToolRail tools={ENCOUNTER_TOOLS} activePanel={activePanel} onToggle={handlePanelToggle} />
 
-      <SlideOutPanel open={activePanel === 'tokens'} title="Token Palette" onClose={closePanel}>
-        <TokenPalettePanel
-          activeView={activeView}
-          tokens={encounterTokens}
-          onTokensChange={setEncounterTokens}
-          mapData={currentDeckMapData}
-          roomVisibility={roomVisibility}
-        />
-      </SlideOutPanel>
+        <SlideOutPanel open={activePanel === 'tokens'} title="Token Palette" onClose={closePanel}>
+          <TokenPalettePanel
+            activeView={activeView}
+            tokens={encounterTokens}
+            onTokensChange={setEncounterTokens}
+            mapData={currentDeckMapData}
+            roomVisibility={roomVisibility}
+          />
+        </SlideOutPanel>
 
-      <SlideOutPanel open={activePanel === 'portraits'} title="NPC Portraits" onClose={closePanel}>
-        <NpcPortraitsPanel
-          npcs={npcs}
-          activePortraits={activePortraits}
-          onToggle={handleTogglePortrait}
-        />
-      </SlideOutPanel>
+        <SlideOutPanel open={activePanel === 'portraits'} title="NPC Portraits" onClose={closePanel}>
+          <NpcPortraitsPanel
+            npcs={npcs}
+            activePortraits={activePortraits}
+            onToggle={handleTogglePortrait}
+          />
+        </SlideOutPanel>
 
-      <SlideOutPanel open={activePanel === 'locations'} title="Locations" onClose={closePanel}>
-        <LocationTreePanel
-          locations={locations}
-          selectedLocationSlug={locationSlug || null}
-          activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
-          activeTerminalSlug={activeView?.overlay_terminal_slug || null}
-          expandedNodes={expandedNodes}
-          onToggleNode={onToggleNode}
-          onSelectLocation={onSelectLocation}
-          onShowTerminal={onShowTerminal}
-        />
-      </SlideOutPanel>
+        <SlideOutPanel open={activePanel === 'locations'} title="Locations" onClose={closePanel}>
+          <LocationTreePanel
+            locations={locations}
+            selectedLocationSlug={locationSlug || null}
+            activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
+            activeTerminalSlug={activeView?.overlay_terminal_slug || null}
+            expandedNodes={expandedNodes}
+            onToggleNode={onToggleNode}
+            onSelectLocation={onSelectLocation}
+            onShowTerminal={onShowTerminal}
+          />
+        </SlideOutPanel>
 
-      <SlideOutPanel open={activePanel === 'terminals'} title="Terminals" onClose={closePanel}>
-        <TerminalsPanel
-          locations={locations}
-          activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
-          activeTerminalSlug={activeView?.overlay_terminal_slug || null}
-          onShowTerminal={onShowTerminal}
-        />
-      </SlideOutPanel>
+        <SlideOutPanel open={activePanel === 'terminals'} title="Terminals" onClose={closePanel}>
+          <TerminalsPanel
+            locations={locations}
+            activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
+            activeTerminalSlug={activeView?.overlay_terminal_slug || null}
+            onShowTerminal={onShowTerminal}
+          />
+        </SlideOutPanel>
+      </div>
     </div>
   );
 }

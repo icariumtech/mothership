@@ -175,7 +175,6 @@ function GMConsole() {
   }, [showStatus]);
 
   // Expose retained state/handlers not yet wired to views.
-  void unreadCounts;
 
   if (loading) {
     return (
@@ -202,6 +201,7 @@ function GMConsole() {
         playerView={activeView?.view_type || 'STANDBY'}
         onViewChange={setGmView}
         onDisplay={handleDisplay}
+        unreadCounts={unreadCounts}
       />
       <main className="gm-console__content">
         {gmView === 'STANDBY' && <StandbyView />}

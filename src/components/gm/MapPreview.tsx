@@ -52,6 +52,8 @@ interface MapPreviewProps {
   onDoorStatusChange?: (connectionId: string, status: DoorStatus) => void;
   /** Fixed height in pixels. If not set, uses aspectRatio. */
   height?: number;
+  /** Fill the parent container instead of using aspect ratio. Use in full-screen GM views. */
+  fill?: boolean;
   /** Aspect ratio (width/height). E.g., 1 = square, 16/9 = widescreen. Defaults to map's natural ratio. */
   aspectRatio?: number;
   /** If true, show all rooms but dim hidden ones. If false, only show visible rooms. */
@@ -112,6 +114,7 @@ export function MapPreview({
   onTokenStatusToggle,
   onRoomToggle,
   hull,
+  fill,
 }: MapPreviewProps) {
   // Grid-format maps: delegate to EncounterMapRenderer with GM controls.
   //
@@ -163,7 +166,9 @@ export function MapPreview({
     const naturalW = (maxX - minX + pad * 2) * us;
     const naturalH = (maxY - minY + pad * 2) * us;
 
-    const outerStyle: React.CSSProperties = height
+    const outerStyle: React.CSSProperties = fill
+      ? { position: 'absolute', inset: 0, overflow: 'hidden' }
+      : height
       ? { position: 'relative', height, overflow: 'hidden', border: '1px solid #303030' }
       : { position: 'relative', aspectRatio: `${naturalW} / ${naturalH}`, minHeight: 550, overflow: 'hidden', border: '1px solid #303030' };
 

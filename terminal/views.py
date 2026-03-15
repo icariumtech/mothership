@@ -2026,3 +2026,30 @@ def api_charon_channel_clear(request, channel):
 
     CharonSessionManager.clear_conversation(channel)
     return JsonResponse({'success': True, 'channel': channel})
+
+
+@login_required
+def api_crew(request):
+    """
+    GM endpoint — returns crew roster and all NPCs.
+    GET: Returns { crew: [...], npcs: [...] }
+    """
+    from terminal.data_loader import DataLoader
+
+    loader = DataLoader()
+    crew = loader.load_crew()
+    npcs = loader.load_npcs()
+    return JsonResponse({'crew': crew, 'npcs': npcs})
+
+
+@login_required
+def api_sessions(request):
+    """
+    GM endpoint — returns session logs from data/campaign/sessions/.
+    GET: Returns sessions list sorted newest-first with frontmatter + body.
+    """
+    from terminal.data_loader import DataLoader
+
+    loader = DataLoader()
+    sessions = loader.load_sessions()
+    return JsonResponse({'sessions': sessions})

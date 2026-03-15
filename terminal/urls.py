@@ -17,6 +17,8 @@ urlpatterns = [
     path('api/gm/ship-status/toggle/', views.api_ship_toggle_system, name='ship_toggle_system'),
     # GM Console React API endpoints
     path('api/gm/locations/', views.api_locations, name='api_locations'),
+    path('api/gm/crew/', views.api_crew, name='api_crew'),
+    path('api/gm/sessions/', views.api_sessions, name='api_sessions'),
     path('api/gm/switch-view/', views.api_switch_view, name='api_switch_view'),
     path('api/gm/show-terminal/', views.api_show_terminal, name='api_show_terminal'),
     path('api/gm/broadcast/', views.api_broadcast, name='api_broadcast'),

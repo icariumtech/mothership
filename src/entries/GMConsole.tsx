@@ -221,6 +221,9 @@ function GMConsole() {
             onToggleNode={toggleNode}
             onSelectLocation={handleSelectLocation}
             onShowTerminal={handleShowTerminal}
+            charonChannel={activeCharonChannel}
+            charonDialogOpen={activeView?.charon_dialog_open || false}
+            onDialogToggle={handleToggleCharonDialog}
           />
         )}
         {gmView === 'CHARON' && (

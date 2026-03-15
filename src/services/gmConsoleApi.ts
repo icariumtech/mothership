@@ -2,6 +2,35 @@ import { api } from './api';
 import { Location, ActiveView, BroadcastMessage } from '@/types/gmConsole';
 import { ShipStatusData } from '@/types/shipStatus';
 
+export interface CrewMember {
+  id: string;
+  name: string;
+  role?: string;
+  class?: string;
+  callsign?: string;
+  faction?: string;
+  location?: string;  // present on NPCs, absent on crew
+  status?: string;
+  stress?: number;
+  health?: { current: number; max: number };
+  wounds?: number;
+  armor?: number;
+  stats?: { strength: number; speed: number; intellect: number; combat: number };
+  saves?: { sanity: number; fear: number; body: number };
+  description?: string;
+  portrait?: string;
+}
+
+export interface SessionLog {
+  filename: string;
+  session_number?: number;
+  title?: string;
+  date?: string;
+  location?: string;
+  npcs?: string[];
+  body?: string;
+}
+
 async function getLocations(): Promise<Location[]> {
   const response = await api.get<{ locations: Location[] }>('/gm/locations/');
   return response.data.locations;
@@ -42,6 +71,16 @@ async function toggleShipSystem(system: string, status: string, condition?: numb
   return response.data;
 }
 
+async function getCrew(): Promise<{ crew: CrewMember[]; npcs: CrewMember[] }> {
+  const response = await api.get<{ crew: CrewMember[]; npcs: CrewMember[] }>('/gm/crew/');
+  return response.data;
+}
+
+async function getSessions(): Promise<SessionLog[]> {
+  const response = await api.get<{ sessions: SessionLog[] }>('/gm/sessions/');
+  return response.data.sessions;
+}
+
 export const gmConsoleApi = {
   getLocations,
   getActiveView,
@@ -51,5 +90,7 @@ export const gmConsoleApi = {
   switchToStandby,
   switchToBridge,
   getShipStatus,
-  toggleShipSystem
+  toggleShipSystem,
+  getCrew,
+  getSessions,
 };

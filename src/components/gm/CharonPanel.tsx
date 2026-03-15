@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Button,
   Input,
-  Space,
   List,
   Typography,
   Divider,
@@ -48,17 +47,6 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
   // CHARON panel is active when the terminal view is displayed, the dialog is open,
   // or we're in a view that has a CHARON channel (bridge, encounter)
   const isActive = currentViewType === 'CHARON_TERMINAL' || currentViewType === 'BRIDGE' || currentViewType === 'ENCOUNTER' || charonDialogOpen;
-
-  // Channel label for display
-  const channelLabel = useMemo(() => {
-    if (channel === 'story') return 'STORY';
-    if (channel === 'bridge') return 'BRIDGE';
-    if (channel.startsWith('encounter-')) {
-      const slug = channel.slice('encounter-'.length);
-      return `ENCOUNTER: ${slug.toUpperCase().replace(/_/g, ' ')}`;
-    }
-    return channel.toUpperCase();
-  }, [channel]);
 
   // Show visibility toggle only for story and encounter channels, not when CHARON_TERMINAL is the active view (always showing)
   const showVisibilityToggle = useMemo(() => {
@@ -219,46 +207,41 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
   return (
     <>
       {contextHolder}
-      {/* Channel Header */}
-      <div style={{ marginBottom: 16, padding: '8px 12px', background: '#0f1515', border: '1px solid #4a6b6b' }}>
-        <Text strong style={{ color: '#8b7355', fontSize: 13 }}>
-          CHARON TERMINAL // {channelLabel} {unreadCount > 0 && `(${unreadCount} unread)`}
-        </Text>
+      {/* Mode Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Text>Mode:</Text>
+        <Button.Group>
+          <Button
+            type={mode === 'DISPLAY' ? 'primary' : 'default'}
+            onClick={() => handleModeChange('DISPLAY')}
+            disabled={!isActive}
+            size="small"
+          >
+            DISPLAY
+          </Button>
+          <Button
+            type={mode === 'QUERY' ? 'primary' : 'default'}
+            onClick={() => handleModeChange('QUERY')}
+            disabled={!isActive}
+            size="small"
+          >
+            QUERY
+          </Button>
+        </Button.Group>
       </div>
 
-      {/* Mode Toggle and Dialog */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Space>
-          <Text>Mode:</Text>
-          <Button.Group>
-            <Button
-              type={mode === 'DISPLAY' ? 'primary' : 'default'}
-              onClick={() => handleModeChange('DISPLAY')}
-              disabled={!isActive}
-              size="small"
-            >
-              DISPLAY
-            </Button>
-            <Button
-              type={mode === 'QUERY' ? 'primary' : 'default'}
-              onClick={() => handleModeChange('QUERY')}
-              disabled={!isActive}
-              size="small"
-            >
-              QUERY
-            </Button>
-          </Button.Group>
-          <Tooltip title="Clear all messages">
-            <Button
-              icon={<ClearOutlined />}
-              onClick={handleClear}
-              disabled={!isActive}
-              size="small"
-            >
-              Clear
-            </Button>
-          </Tooltip>
-        </Space>
+      {/* Clear + Visibility row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Tooltip title="Clear all messages">
+          <Button
+            icon={<ClearOutlined />}
+            onClick={handleClear}
+            disabled={!isActive}
+            size="small"
+          >
+            Clear
+          </Button>
+        </Tooltip>
         {showVisibilityToggle && (
           <Button
             type={charonDialogOpen ? 'primary' : 'default'}
@@ -269,10 +252,15 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
             SHOWING
           </Button>
         )}
+        {unreadCount > 0 && (
+          <Text type="secondary" style={{ fontSize: 11, marginLeft: 'auto' }}>
+            {unreadCount} pending
+          </Text>
+        )}
       </div>
 
       {/* Send Message */}
-      <div style={{ marginBottom: 24 }}>
+      <div>
         <Text strong style={{ display: 'block', marginBottom: 8 }}>
           Send Message
         </Text>
@@ -296,10 +284,10 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
         </Button>
       </div>
 
-      <Divider />
+      <Divider style={{ marginTop: 12, marginBottom: 6 }} />
 
       {/* Generate AI Response */}
-      <div style={{ marginBottom: 24 }}>
+      <div>
         <Text strong style={{ display: 'block', marginBottom: 8 }}>
           Generate AI Response
         </Text>
@@ -333,8 +321,8 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
       {/* Pending Responses */}
       {pendingResponses.length > 0 && (
         <>
-          <Divider />
-          <div style={{ marginBottom: 24 }}>
+          <Divider style={{ marginTop: 12, marginBottom: 6 }} />
+          <div>
             <Badge count={pendingResponses.length}>
               <Text strong style={{ marginRight: 8 }}>
                 Pending Responses
@@ -414,7 +402,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
       </Modal>
 
       {/* Conversation Display */}
-      <Divider />
+      <Divider style={{ marginTop: 12, marginBottom: 6 }} />
       <div>
         <Text strong style={{ display: 'block', marginBottom: 8 }}>
           Conversation ({conversation.length} messages)

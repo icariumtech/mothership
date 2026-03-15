@@ -1,27 +1,26 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ToolOutlined, RobotOutlined } from '@ant-design/icons';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Modal, Typography, Tag, Progress } from 'antd';
+import {
+  ToolOutlined,
+  RobotOutlined,
+  TeamOutlined,
+  ReadOutlined,
+} from '@ant-design/icons';
 import { ActiveView } from '@/types/gmConsole';
-import { ShipStatusData, SystemStatus } from '@/types/shipStatus';
-import { gmConsoleApi } from '@/services/gmConsoleApi';
+import { gmConsoleApi, type CrewMember, type SessionLog } from '@/services/gmConsoleApi';
 import { ToolRail, ToolRailButton } from '@/components/gm/layout/ToolRail';
 import { SlideOutPanel } from '@/components/gm/layout/SlideOutPanel';
 import { ShipStatusToolPanel } from '@/components/gm/panels/ShipStatusToolPanel';
-import { CharonQuickSend } from '@/components/gm/panels/CharonQuickSend';
+import { CharonPanel } from '@/components/gm/CharonPanel';
 import './BridgeView.css';
 
-const STATUS_COLORS: Record<SystemStatus, string> = {
-  ONLINE: '#52c41a',
-  STRESSED: '#faad14',
-  DAMAGED: '#fa8c16',
-  CRITICAL: '#ff4d4f',
-  OFFLINE: '#888',
-};
+const { Text } = Typography;
 
-const SYSTEM_LABELS: Record<string, string> = {
-  life_support: 'Life Support',
-  engines: 'Engines',
-  weapons: 'Weapons',
-  comms: 'Comms',
+const STATUS_COLOR: Record<string, string> = {
+  ACTIVE: '#4a6b6b',
+  INJURED: '#faad14',
+  INCAPACITATED: '#ff4d4f',
+  DEAD: '#888',
 };
 
 interface BridgeViewProps {
@@ -31,165 +30,376 @@ interface BridgeViewProps {
   onDialogToggle: () => void;
 }
 
-export function BridgeView({ activeView, charonChannel, charonDialogOpen, onDialogToggle }: BridgeViewProps) {
-  const [shipStatus, setShipStatus] = useState<ShipStatusData | null>(null);
+export function BridgeView({ charonChannel, charonDialogOpen, onDialogToggle }: BridgeViewProps) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
-  // Suppress unused warnings for props reserved for future use
-  void charonDialogOpen;
-  void onDialogToggle;
+  // Personnel
+  const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [npcs, setNpcs] = useState<CrewMember[]>([]);
+  const [loadingCrew, setLoadingCrew] = useState(false);
+  const [selectedCrew, setSelectedCrew] = useState<CrewMember | null>(null);
 
-  const fetchShipStatus = useCallback(async () => {
-    try {
-      const data = await gmConsoleApi.getShipStatus();
-      setShipStatus(data);
-    } catch (err) {
-      console.error('Error fetching ship status:', err);
-    }
-  }, []);
-
-  // Fetch on mount
-  useEffect(() => {
-    fetchShipStatus();
-  }, [fetchShipStatus]);
-
-  // Re-fetch when activeView updates (SSE push)
-  useEffect(() => {
-    if (activeView?.updated_at) {
-      fetchShipStatus();
-    }
-  }, [activeView?.updated_at, fetchShipStatus]);
+  // Sessions
+  const [sessions, setSessions] = useState<SessionLog[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<SessionLog | null>(null);
 
   const tools: ToolRailButton[] = useMemo(() => [
     { key: 'ship-status', icon: <ToolOutlined />, tooltip: 'Ship Status' },
-    { key: 'charon-send', icon: <RobotOutlined />, tooltip: 'CHARON Quick-Send' },
+    { key: 'personnel', icon: <TeamOutlined />, tooltip: 'Personnel' },
+    { key: 'sessions', icon: <ReadOutlined />, tooltip: 'Session Logs' },
+    { key: 'charon', icon: <RobotOutlined />, tooltip: 'CHARON' },
   ], []);
 
   const handleToolToggle = useCallback((key: string) => {
-    setActivePanel((prev) => (prev === key ? null : key));
+    setActivePanel(prev => prev === key ? null : key);
   }, []);
 
-  const ship = shipStatus?.ship;
+  // Load crew + NPCs when personnel panel opens
+  useEffect(() => {
+    if (activePanel === 'personnel' && crew.length === 0 && npcs.length === 0 && !loadingCrew) {
+      setLoadingCrew(true);
+      gmConsoleApi.getCrew()
+        .then(data => { setCrew(data.crew); setNpcs(data.npcs); })
+        .catch(err => console.error('Failed to load crew:', err))
+        .finally(() => setLoadingCrew(false));
+    }
+  }, [activePanel, crew.length, npcs.length, loadingCrew]);
 
-  const hullPct = ship ? (ship.hull.current / ship.hull.max) * 100 : 0;
-  const armorPct = ship ? (ship.armor.current / ship.armor.max) * 100 : 0;
-
-  const hullColor = hullPct < 30 ? '#ff4d4f' : hullPct < 60 ? '#faad14' : '#52c41a';
-  const armorColor = armorPct < 30 ? '#ff4d4f' : armorPct < 60 ? '#faad14' : '#1668dc';
+  // Load sessions when sessions panel opens
+  useEffect(() => {
+    if (activePanel === 'sessions' && sessions.length === 0 && !loadingSessions) {
+      setLoadingSessions(true);
+      gmConsoleApi.getSessions()
+        .then(setSessions)
+        .catch(err => console.error('Failed to load sessions:', err))
+        .finally(() => setLoadingSessions(false));
+    }
+  }, [activePanel, sessions.length, loadingSessions]);
 
   return (
     <div className="gm-bridge-view">
-      <div className="gm-bridge-view__dashboard">
-        {/* Location Context */}
-        <div className="gm-bridge-view__card">
-          <div className="gm-bridge-view__card-title">Location</div>
-          <div className="gm-bridge-view__card-value">
-            {activeView?.location_name || activeView?.location_slug || 'No location'}
-          </div>
-          {activeView?.location_type && (
-            <div style={{ color: '#666', fontSize: 11, marginTop: 4 }}>
-              {activeView.location_type.toUpperCase()}
-            </div>
-          )}
-          {activeView?.location_slug && (
-            <div style={{ color: '#555', fontSize: 10, marginTop: 2, fontFamily: 'monospace' }}>
-              {activeView.location_slug}
-            </div>
-          )}
-        </div>
-
-        {/* Ship Status */}
-        <div className="gm-bridge-view__card">
-          <div className="gm-bridge-view__card-title">Ship</div>
-          {ship ? (
-            <>
-              <div className="gm-bridge-view__card-value">{ship.name}</div>
-              <div style={{ color: '#666', fontSize: 11, marginTop: 2 }}>{ship.class}</div>
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                  <span style={{ color: '#888' }}>HULL</span>
-                  <span style={{ color: '#aaa' }}>{ship.hull.current}/{ship.hull.max}</span>
-                </div>
-                <div className="gm-bridge-view__bar-track">
-                  <div
-                    className="gm-bridge-view__bar-fill"
-                    style={{ width: `${hullPct}%`, background: hullColor }}
-                  />
-                </div>
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                  <span style={{ color: '#888' }}>ARMOR</span>
-                  <span style={{ color: '#aaa' }}>{ship.armor.current}/{ship.armor.max}</span>
-                </div>
-                <div className="gm-bridge-view__bar-track">
-                  <div
-                    className="gm-bridge-view__bar-fill"
-                    style={{ width: `${armorPct}%`, background: armorColor }}
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div style={{ color: '#555', fontSize: 12 }}>Loading...</div>
-          )}
-        </div>
-
-        {/* Crew */}
-        <div className="gm-bridge-view__card">
-          <div className="gm-bridge-view__card-title">Crew</div>
-          {ship ? (
-            <div className="gm-bridge-view__card-value">
-              <span style={{ fontSize: 24 }}>{ship.crew_count}</span>
-              <span style={{ color: '#666', fontSize: 14 }}> / {ship.crew_capacity}</span>
-            </div>
-          ) : (
-            <div style={{ color: '#555', fontSize: 12 }}>Loading...</div>
-          )}
-        </div>
-
-        {/* Systems Overview */}
-        <div className="gm-bridge-view__card">
-          <div className="gm-bridge-view__card-title">Systems</div>
-          {ship ? (
-            <div className="gm-bridge-view__system-grid">
-              {Object.entries(ship.systems).map(([key, sys]) => (
-                <div key={key} className="gm-bridge-view__system-badge">
-                  <span className="gm-bridge-view__system-name">{SYSTEM_LABELS[key] || key}</span>
-                  <span
-                    className="gm-bridge-view__system-status"
-                    style={{ color: STATUS_COLORS[sys.status] }}
-                  >
-                    {sys.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ color: '#555', fontSize: 12 }}>Loading...</div>
-          )}
-        </div>
-      </div>
+      {/* Main area intentionally empty */}
 
       <div className="gm-bridge-view__right">
         <ToolRail tools={tools} activePanel={activePanel} onToggle={handleToolToggle} />
 
-        <SlideOutPanel
-          open={activePanel === 'ship-status'}
-          title="Ship Status"
-          onClose={() => setActivePanel(null)}
-        >
+        <SlideOutPanel open={activePanel === 'ship-status'} title="Ship Status" onClose={() => setActivePanel(null)}>
           <ShipStatusToolPanel />
         </SlideOutPanel>
 
-        <SlideOutPanel
-          open={activePanel === 'charon-send'}
-          title="CHARON Quick-Send"
-          onClose={() => setActivePanel(null)}
-        >
-          <CharonQuickSend channel={charonChannel} />
+        {/* Personnel list panel */}
+        <SlideOutPanel open={activePanel === 'personnel'} title="Personnel" onClose={() => setActivePanel(null)}>
+          {loadingCrew ? (
+            <Text type="secondary" style={{ fontSize: 11 }}>Loading...</Text>
+          ) : crew.length === 0 && npcs.length === 0 ? (
+            <Text type="secondary" style={{ fontSize: 11 }}>No personnel data found.</Text>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Crew section */}
+              {crew.length > 0 && (
+                <>
+                  <PersonnelSectionHeader label="Crew" />
+                  {crew.map(member => <PersonnelCard key={member.id} member={member} onClick={setSelectedCrew} />)}
+                </>
+              )}
+
+              {/* NPCs grouped by location */}
+              {(() => {
+                const byLocation: Record<string, CrewMember[]> = {};
+                for (const npc of npcs) {
+                  const loc = npc.location || 'Unknown';
+                  if (!byLocation[loc]) byLocation[loc] = [];
+                  byLocation[loc].push(npc);
+                }
+                return Object.entries(byLocation).map(([loc, members]) => (
+                  <div key={loc}>
+                    <PersonnelSectionHeader label={loc} />
+                    {members.map(member => <PersonnelCard key={member.id} member={member} onClick={setSelectedCrew} />)}
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+        </SlideOutPanel>
+
+        {/* Session logs list panel */}
+        <SlideOutPanel open={activePanel === 'sessions'} title="Session Logs" onClose={() => setActivePanel(null)}>
+          {loadingSessions ? (
+            <Text type="secondary" style={{ fontSize: 11 }}>Loading...</Text>
+          ) : sessions.length === 0 ? (
+            <Text type="secondary" style={{ fontSize: 11 }}>No session logs found.</Text>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {sessions.map(session => (
+                <div
+                  key={session.filename}
+                  onClick={() => setSelectedSession(session)}
+                  style={{
+                    padding: '8px 10px',
+                    background: '#0f1515',
+                    border: '1px solid #252525',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#4a6b6b')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#252525')}
+                >
+                  {session.session_number !== undefined && (
+                    <div style={{ color: '#8b7355', fontSize: 10, marginBottom: 2 }}>
+                      SESSION {session.session_number}
+                    </div>
+                  )}
+                  <div style={{ color: '#d0d0d0', fontSize: 12, fontWeight: 500, marginBottom: 3 }}>
+                    {session.title || session.filename}
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, fontSize: 10 }}>
+                    {session.date && <span style={{ color: '#555' }}>{session.date}</span>}
+                    {session.location && <span style={{ color: '#4a6b6b' }}>{session.location}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SlideOutPanel>
+
+        <SlideOutPanel open={activePanel === 'charon'} title="CHARON" onClose={() => setActivePanel(null)}>
+          <CharonPanel
+            channel={charonChannel}
+            currentViewType="BRIDGE"
+            charonDialogOpen={charonDialogOpen}
+            onDialogToggle={onDialogToggle}
+          />
         </SlideOutPanel>
       </div>
+
+      {/* Crew detail modal */}
+      {selectedCrew && (
+        <Modal
+          title={selectedCrew.name}
+          open={true}
+          onCancel={() => setSelectedCrew(null)}
+          footer={null}
+          width={520}
+        >
+          <CrewDetailView member={selectedCrew} />
+        </Modal>
+      )}
+
+      {/* Session detail modal */}
+      {selectedSession && (
+        <Modal
+          title={selectedSession.title || selectedSession.filename}
+          open={true}
+          onCancel={() => setSelectedSession(null)}
+          footer={null}
+          width={620}
+        >
+          <SessionDetailView session={selectedSession} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// --- List sub-components ---
+
+function PersonnelSectionHeader({ label }: { label: string }) {
+  return (
+    <div style={{
+      color: '#555',
+      fontSize: 10,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      padding: '6px 2px 2px',
+      borderBottom: '1px solid #1f1f1f',
+      marginTop: 4,
+    }}>
+      {label}
+    </div>
+  );
+}
+
+function PersonnelCard({ member, onClick }: { member: CrewMember; onClick: (m: CrewMember) => void }) {
+  const hullPct = member.health ? (member.health.current / member.health.max) * 100 : 100;
+  const hullColor = hullPct < 30 ? '#ff4d4f' : hullPct < 60 ? '#faad14' : '#52c41a';
+  const statusColor = STATUS_COLOR[member.status || 'ACTIVE'] || '#4a6b6b';
+  return (
+    <div
+      onClick={() => onClick(member)}
+      style={{
+        padding: '8px 10px',
+        background: '#0f1515',
+        border: '1px solid #252525',
+        borderRadius: 4,
+        cursor: 'pointer',
+        transition: 'border-color 0.15s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = '#4a6b6b')}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = '#252525')}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <Text style={{ color: '#d0d0d0', fontSize: 12, fontWeight: 500 }}>
+          {member.name}
+          {member.callsign && <span style={{ color: '#555', fontWeight: 400 }}> "{member.callsign}"</span>}
+        </Text>
+        <span style={{ fontSize: 10, color: statusColor }}>{member.status || 'ACTIVE'}</span>
+      </div>
+      <div style={{ color: '#666', fontSize: 11, marginBottom: member.health ? 5 : 0 }}>
+        {member.role}{member.class && member.class !== member.role ? ` — ${member.class}` : ''}
+        {member.faction && <span style={{ color: '#4a4a4a' }}> · {member.faction}</span>}
+      </div>
+      {member.health && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#555', marginBottom: 2 }}>
+            <span>HEALTH</span>
+            <span>{member.health.current}/{member.health.max}</span>
+          </div>
+          <Progress percent={hullPct} showInfo={false} size={['100%', 3]} strokeColor={hullColor} />
+        </div>
+      )}
+      {member.stress !== undefined && (
+        <div style={{ marginTop: 4, fontSize: 10, color: member.stress > 3 ? '#faad14' : '#555' }}>
+          STRESS {member.stress}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Detail sub-components ---
+
+function CrewDetailView({ member }: { member: CrewMember }) {
+  const hullPct = member.health ? (member.health.current / member.health.max) * 100 : 100;
+  const hullColor = hullPct < 30 ? '#ff4d4f' : hullPct < 60 ? '#faad14' : '#52c41a';
+  const statusColor = STATUS_COLOR[member.status || 'ACTIVE'] || '#4a6b6b';
+
+  return (
+    <div style={{ paddingTop: 4 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div>
+          <div style={{ color: '#8b7355', fontSize: 12 }}>
+            {member.role}{member.class && member.class !== member.role ? ` — ${member.class}` : ''}
+          </div>
+          {member.callsign && (
+            <div style={{ color: '#555', fontSize: 11, marginTop: 2 }}>Callsign: "{member.callsign}"</div>
+          )}
+        </div>
+        <Tag style={{ borderColor: statusColor, color: statusColor, background: 'transparent' }}>
+          {member.status || 'ACTIVE'}
+        </Tag>
+      </div>
+
+      {/* Health + Condition */}
+      <div style={{ marginBottom: 16 }}>
+        {member.health && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#888', marginBottom: 4 }}>
+              <span>HEALTH</span>
+              <span style={{ color: '#aaa' }}>{member.health.current} / {member.health.max}</span>
+            </div>
+            <Progress percent={hullPct} showInfo={false} size={['100%', 6]} strokeColor={hullColor} />
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 20, fontSize: 12 }}>
+          {member.stress !== undefined && (
+            <span>
+              <span style={{ color: '#666', fontSize: 11 }}>STRESS </span>
+              <span style={{ color: member.stress > 3 ? '#faad14' : '#aaa' }}>{member.stress}</span>
+            </span>
+          )}
+          {member.wounds !== undefined && (
+            <span>
+              <span style={{ color: '#666', fontSize: 11 }}>WOUNDS </span>
+              <span style={{ color: member.wounds > 0 ? '#ff4d4f' : '#aaa' }}>{member.wounds}</span>
+            </span>
+          )}
+          {member.armor !== undefined && (
+            <span>
+              <span style={{ color: '#666', fontSize: 11 }}>ARMOR </span>
+              <span style={{ color: '#aaa' }}>{member.armor}</span>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Stats */}
+      {member.stats && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ color: '#555', fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>STATS</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+            {Object.entries(member.stats).map(([key, val]) => (
+              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: '#666', textTransform: 'uppercase', fontSize: 11 }}>{key}</span>
+                <span style={{ color: '#d0d0d0' }}>{val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Saves */}
+      {member.saves && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ color: '#555', fontSize: 10, letterSpacing: 1, marginBottom: 8 }}>SAVES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px 8px' }}>
+            {Object.entries(member.saves).map(([key, val]) => (
+              <div key={key} style={{ textAlign: 'center' }}>
+                <div style={{ color: '#666', fontSize: 10, textTransform: 'uppercase' }}>{key}</div>
+                <div style={{ color: '#d0d0d0', fontSize: 14 }}>{val}%</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Description */}
+      {member.description && (
+        <div style={{ borderTop: '1px solid #1f1f1f', paddingTop: 12, color: '#888', fontSize: 12, lineHeight: 1.6 }}>
+          {member.description}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SessionDetailView({ session }: { session: SessionLog }) {
+  return (
+    <div style={{ paddingTop: 4 }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 12 }}>
+        {session.session_number !== undefined && (
+          <span style={{ color: '#8b7355' }}>Session {session.session_number}</span>
+        )}
+        {session.date && <span style={{ color: '#555' }}>{session.date}</span>}
+        {session.location && <span style={{ color: '#4a6b6b' }}>{session.location}</span>}
+      </div>
+      {session.npcs && session.npcs.length > 0 && (
+        <div style={{ marginBottom: 12, fontSize: 11, color: '#555' }}>
+          NPCs: <span style={{ color: '#666' }}>{session.npcs.join(', ')}</span>
+        </div>
+      )}
+      {session.body ? (
+        <div
+          style={{
+            background: '#0a0a0a',
+            border: '1px solid #1f1f1f',
+            borderRadius: 4,
+            padding: 12,
+            fontSize: 12,
+            color: '#aaa',
+            whiteSpace: 'pre-wrap',
+            lineHeight: 1.7,
+            maxHeight: 420,
+            overflowY: 'auto',
+          }}
+        >
+          {session.body}
+        </div>
+      ) : (
+        <Text type="secondary" style={{ fontSize: 12 }}>No content.</Text>
+      )}
     </div>
   );
 }

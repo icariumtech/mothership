@@ -2,6 +2,7 @@
  * TokenPalette - Token management palette for GM
  *
  * Features:
+ * - Tabs for filtering by token type (Player, NPC, Creature, Object)
  * - Pre-configured templates from crew roster and NPCs
  * - Custom token creator with image gallery
  * - Clear All Tokens button with confirmation
@@ -10,7 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Button, Input, Space, Typography, Modal, message as antdMessage } from 'antd';
+import { Button, Input, Space, Typography, Modal, Badge, Tooltip, message as antdMessage } from 'antd';
 import { DeleteOutlined, PlusOutlined, UserOutlined, TeamOutlined, BugOutlined, BoxPlotOutlined } from '@ant-design/icons';
 import { encounterApi } from '@/services/encounterApi';
 import type { ActiveView } from '@/types/gmConsole';
@@ -50,12 +51,20 @@ const TYPE_COLORS = {
   object: '#5a5a5a',
 };
 
+const TYPE_LABELS: Record<TokenType, string> = {
+  player: 'Players',
+  npc: 'NPCs',
+  creature: 'Creatures',
+  object: 'Objects',
+};
+
 export function TokenPalette({
   tokens,
   onTokensChange,
   onViewUpdate,
 }: TokenPaletteProps) {
   const [templates, setTemplates] = useState<TokenTemplate[]>([]);
+  const [activeTab, setActiveTab] = useState<TokenType>('player');
   const [selectedTemplate, setSelectedTemplate] = useState<TokenTemplate | null>(null);
   const [customName, setCustomName] = useState('');
   const [customType, setCustomType] = useState<TokenType>('npc');
@@ -82,7 +91,6 @@ export function TokenPalette({
       try {
         const images = await encounterApi.getTokenImages();
 
-        // Convert images to templates
         const templateList: TokenTemplate[] = images.map(img => ({
           type: img.type,
           name: img.name,
@@ -90,8 +98,6 @@ export function TokenPalette({
         }));
 
         setTemplates(templateList);
-
-        // Pre-load all template images for synchronous drag preview
         templateList.forEach(t => { if (t.imageUrl) preloadImage(t.imageUrl); });
       } catch (err) {
         console.error('Error loading token templates:', err);
@@ -104,12 +110,10 @@ export function TokenPalette({
     loadTemplates();
   }, [messageApi, preloadImage]);
 
-  // Handle template selection
   const handleTemplateClick = useCallback((template: TokenTemplate) => {
     setSelectedTemplate(template);
   }, []);
 
-  // Handle custom token creation
   const handleCreateCustom = useCallback(() => {
     if (!customName.trim()) {
       messageApi.warning('Enter a name for the custom token');
@@ -122,35 +126,26 @@ export function TokenPalette({
       imageUrl: customImageUrl,
     };
 
-    // Add custom token to the templates grid so it can be dragged and reused
     setTemplates(prev => [...prev, customTemplate]);
-
-    // Pre-load image for drag preview if provided
     if (customImageUrl) preloadImage(customImageUrl);
-
-    // Auto-select the new template
     setSelectedTemplate(customTemplate);
-
-    // Clear form fields so it's ready for another custom token
+    setActiveTab(customType);
     setCustomName('');
     setCustomImageUrl('');
 
     messageApi.success(`Custom token "${customTemplate.name}" ready to place`);
   }, [customName, customType, customImageUrl, messageApi, preloadImage]);
 
-  // Handle image selection from gallery
   const handleImageSelect = useCallback((image: TokenImage) => {
     setCustomImageUrl(image.url);
-    setCustomName(image.name); // Pre-fill name with image name
-    setCustomType(image.type); // Pre-fill type with image type
+    setCustomName(image.name);
+    setCustomType(image.type);
   }, []);
 
-  // Handle drag start for templates - creates a 40x40 circular canvas drag preview
   const handleDragStart = useCallback((e: React.DragEvent, template: TokenTemplate) => {
     e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('application/json', JSON.stringify(template));
 
-    // Create a 40x40 canvas for the drag preview (matches rendered token size)
     const canvas = document.createElement('canvas');
     canvas.width = 40;
     canvas.height = 40;
@@ -160,19 +155,16 @@ export function TokenPalette({
     const cachedImg = template.imageUrl ? imageCache.current.get(template.imageUrl) : null;
 
     if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
-      // Draw circular clipped image
       ctx.beginPath();
       ctx.arc(20, 20, 20, 0, Math.PI * 2);
       ctx.clip();
       ctx.drawImage(cachedImg, 0, 0, 40, 40);
     } else {
-      // Fall back to a solid colored circle matching token type
       const color = TYPE_COLORS[template.type] || '#5a5a5a';
       ctx.beginPath();
       ctx.arc(20, 20, 20, 0, Math.PI * 2);
       ctx.fillStyle = color;
       ctx.fill();
-      // Draw initial letter in center
       ctx.fillStyle = '#d0d0d0';
       ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
@@ -180,7 +172,6 @@ export function TokenPalette({
       ctx.fillText(template.name.charAt(0).toUpperCase(), 20, 20);
     }
 
-    // Append off-screen, set as drag image with center hotspot, then remove
     canvas.style.position = 'fixed';
     canvas.style.top = '-100px';
     document.body.appendChild(canvas);
@@ -188,7 +179,6 @@ export function TokenPalette({
     requestAnimationFrame(() => document.body.removeChild(canvas));
   }, [imageCache]);
 
-  // Handle Clear All Tokens
   const handleClearAll = useCallback(() => {
     Modal.confirm({
       title: 'Clear All Tokens',
@@ -202,7 +192,7 @@ export function TokenPalette({
           onTokensChange(result.tokens);
           onViewUpdate();
           messageApi.success('All tokens cleared');
-          setSelectedTemplate(null); // Deselect template after clearing
+          setSelectedTemplate(null);
         } catch (err) {
           console.error('Error clearing tokens:', err);
           messageApi.error('Failed to clear tokens');
@@ -212,43 +202,66 @@ export function TokenPalette({
   }, [onTokensChange, onViewUpdate, messageApi]);
 
   const tokenCount = Object.keys(tokens).length;
+  const visibleTemplates = templates.filter(t => t.type === activeTab);
 
   return (
     <>
       {contextHolder}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Pre-configured Templates */}
-        <div>
-          <Text
-            style={{
-              display: 'block',
-              color: '#5a7a7a',
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: 1,
-              marginBottom: 6,
-            }}
-          >
-            TEMPLATES {templates.length > 0 && `(${templates.length})`}
-          </Text>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, gap: 8 }}>
+
+        {/* Token grid — fills available space */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginBottom: 8 }}>
+            {(['player', 'npc', 'creature', 'object'] as TokenType[]).map(type => {
+              const count = templates.filter(t => t.type === type).length;
+              const isActive = activeTab === type;
+              return (
+                <Tooltip key={type} title={TYPE_LABELS[type]} placement="bottom">
+                  <Badge count={count} size="small" color={TYPE_COLORS[type]}>
+                    <button
+                      onClick={() => setActiveTab(type)}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 6,
+                        border: `1px solid ${isActive ? TYPE_COLORS[type] : '#303030'}`,
+                        background: isActive ? `${TYPE_COLORS[type]}22` : '#0f1515',
+                        color: isActive ? TYPE_COLORS[type] : '#666',
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {TYPE_ICONS[type]}
+                    </button>
+                  </Badge>
+                </Tooltip>
+              );
+            })}
+          </div>
 
           {loading ? (
             <Text type="secondary" style={{ fontSize: 11 }}>Loading templates...</Text>
-          ) : templates.length === 0 ? (
-            <Text type="secondary" style={{ fontSize: 11 }}>No templates available</Text>
+          ) : visibleTemplates.length === 0 ? (
+            <Text type="secondary" style={{ fontSize: 11 }}>No {activeTab} tokens</Text>
           ) : (
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))',
                 gap: 6,
-                maxHeight: 180,
                 overflowY: 'auto',
                 padding: 4,
+                flex: 1,
+                minHeight: 0,
+                alignContent: 'start',
               }}
             >
-              {templates.map((template, idx) => {
+              {visibleTemplates.map((template, idx) => {
                 const isSelected = selectedTemplate?.name === template.name && selectedTemplate?.type === template.type;
                 return (
                   <div
@@ -268,17 +281,12 @@ export function TokenPalette({
                       transition: 'all 0.2s',
                     }}
                     onMouseEnter={e => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = '#4a6b6b';
-                      }
+                      if (!isSelected) e.currentTarget.style.borderColor = '#4a6b6b';
                     }}
                     onMouseLeave={e => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = '#303030';
-                      }
+                      if (!isSelected) e.currentTarget.style.borderColor = '#303030';
                     }}
                   >
-                    {/* Circular thumbnail */}
                     {template.imageUrl ? (
                       <div
                         style={{
@@ -293,11 +301,7 @@ export function TokenPalette({
                         <img
                           src={template.imageUrl}
                           alt={template.name}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       </div>
                     ) : (
@@ -320,7 +324,6 @@ export function TokenPalette({
                       </div>
                     )}
 
-                    {/* Name and type badge */}
                     <Text
                       style={{
                         fontSize: 9,
@@ -332,126 +335,11 @@ export function TokenPalette({
                     >
                       {template.name.length > 12 ? template.name.substring(0, 10) + '...' : template.name}
                     </Text>
-                    <div
-                      style={{
-                        fontSize: 8,
-                        color: TYPE_COLORS[template.type],
-                        marginTop: 2,
-                      }}
-                    >
-                      {TYPE_ICONS[template.type]}
-                    </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
-
-        {/* Custom Token Creator */}
-        <div
-          style={{
-            padding: 8,
-            background: '#0f1515',
-            border: '1px solid #303030',
-            borderRadius: 4,
-          }}
-        >
-          <Text
-            style={{
-              display: 'block',
-              color: '#5a7a7a',
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: 1,
-              marginBottom: 6,
-            }}
-          >
-            CUSTOM TOKEN
-          </Text>
-
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            {/* Name input */}
-            <Input
-              placeholder="Token name"
-              size="small"
-              value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
-              style={{ fontSize: 11 }}
-            />
-
-            {/* Type selector */}
-            <Space wrap style={{ width: '100%' }}>
-              {(['player', 'npc', 'creature', 'object'] as TokenType[]).map(type => (
-                <Button
-                  key={type}
-                  size="small"
-                  type={customType === type ? 'primary' : 'default'}
-                  icon={TYPE_ICONS[type]}
-                  onClick={() => setCustomType(type)}
-                  style={{
-                    fontSize: 10,
-                    ...(customType === type ? {
-                      background: TYPE_COLORS[type],
-                      borderColor: TYPE_COLORS[type],
-                    } : {}),
-                  }}
-                >
-                  {type.toUpperCase()}
-                </Button>
-              ))}
-            </Space>
-
-            {/* Image selector */}
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <Button
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={() => setGalleryVisible(true)}
-                style={{ fontSize: 10 }}
-              >
-                Select Image
-              </Button>
-
-              {customImageUrl && (
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: '1px solid #4a6b6b',
-                  }}
-                >
-                  <img
-                    src={customImageUrl}
-                    alt="Selected"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Create button */}
-            <Button
-              size="small"
-              type="primary"
-              block
-              onClick={handleCreateCustom}
-              disabled={!customName.trim()}
-              style={{
-                fontSize: 10,
-                background: '#8b7355',
-                borderColor: '#8b7355',
-              }}
-            >
-              CREATE
-            </Button>
-          </Space>
         </div>
 
         {/* Selected template indicator */}
@@ -462,7 +350,7 @@ export function TokenPalette({
               background: '#1a2020',
               border: '1px solid #8b7355',
               borderRadius: 4,
-              fontSize: 10,
+              flexShrink: 0,
             }}
           >
             <Text style={{ color: '#8b7355', fontSize: 10 }}>
@@ -475,21 +363,126 @@ export function TokenPalette({
           </div>
         )}
 
-        {/* Clear All Tokens */}
-        <Button
-          size="small"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={handleClearAll}
-          disabled={tokenCount === 0}
-          block
-          style={{ fontSize: 10 }}
+        {/* Bottom section — custom token + clear all */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            paddingTop: 8,
+            borderTop: '1px solid #303030',
+          }}
         >
-          CLEAR ALL TOKENS ({tokenCount})
-        </Button>
+          {/* Custom Token Creator */}
+          <div
+            style={{
+              padding: 8,
+              background: '#0f1515',
+              border: '1px solid #303030',
+              borderRadius: 4,
+            }}
+          >
+            <Text
+              style={{
+                display: 'block',
+                color: '#5a7a7a',
+                fontSize: 10,
+                fontWeight: 500,
+                letterSpacing: 1,
+                marginBottom: 6,
+              }}
+            >
+              CUSTOM TOKEN
+            </Text>
+
+            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              <Input
+                placeholder="Token name"
+                size="small"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                style={{ fontSize: 11 }}
+              />
+
+              <Space wrap style={{ width: '100%' }}>
+                {(['player', 'npc', 'creature', 'object'] as TokenType[]).map(type => (
+                  <Button
+                    key={type}
+                    size="small"
+                    type={customType === type ? 'primary' : 'default'}
+                    icon={TYPE_ICONS[type]}
+                    onClick={() => setCustomType(type)}
+                    style={{
+                      fontSize: 10,
+                      ...(customType === type ? {
+                        background: TYPE_COLORS[type],
+                        borderColor: TYPE_COLORS[type],
+                      } : {}),
+                    }}
+                  >
+                    {type.toUpperCase()}
+                  </Button>
+                ))}
+              </Space>
+
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <Button
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => setGalleryVisible(true)}
+                  style={{ fontSize: 10 }}
+                >
+                  Select Image
+                </Button>
+
+                {customImageUrl && (
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      border: '1px solid #4a6b6b',
+                    }}
+                  >
+                    <img
+                      src={customImageUrl}
+                      alt="Selected"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <Button
+                size="small"
+                type="primary"
+                block
+                onClick={handleCreateCustom}
+                disabled={!customName.trim()}
+                style={{ fontSize: 10, background: '#8b7355', borderColor: '#8b7355' }}
+              >
+                CREATE
+              </Button>
+            </Space>
+          </div>
+
+          {/* Clear All Tokens */}
+          <Button
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={handleClearAll}
+            disabled={tokenCount === 0}
+            block
+            style={{ fontSize: 10 }}
+          >
+            CLEAR ALL TOKENS ({tokenCount})
+          </Button>
+        </div>
       </div>
 
-      {/* Token Image Gallery Modal */}
       <TokenImageGallery
         visible={galleryVisible}
         onSelect={handleImageSelect}

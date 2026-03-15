@@ -5,6 +5,7 @@ import {
   UserOutlined,
   ApartmentOutlined,
   MessageOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { encounterApi, type DeckWithRooms } from '@/services/encounterApi';
 import type { ActiveView, Location } from '@/types/gmConsole';
@@ -28,6 +29,7 @@ import { TokenPalettePanel } from '../panels/TokenPalettePanel';
 import { NpcPortraitsPanel } from '../panels/NpcPortraitsPanel';
 import { LocationTreePanel } from '../panels/LocationTreePanel';
 import { TerminalsPanel } from '../panels/TerminalsPanel';
+import { CharonPanel } from '../CharonPanel';
 import './EncounterView.css';
 
 // Room with deck info for display (supports both legacy and grid formats)
@@ -50,13 +52,17 @@ interface EncounterViewProps {
   onToggleNode: (key: string) => void;
   onSelectLocation: (slug: string | null) => void;
   onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
+  charonChannel: string;
+  charonDialogOpen: boolean;
+  onDialogToggle: () => void;
 }
 
 const ENCOUNTER_TOOLS: ToolRailButton[] = [
+  { key: 'locations', icon: <ApartmentOutlined />, tooltip: 'Locations' },
   { key: 'tokens', icon: <TeamOutlined />, tooltip: 'Token Palette' },
   { key: 'portraits', icon: <UserOutlined />, tooltip: 'NPC Portraits' },
-  { key: 'locations', icon: <ApartmentOutlined />, tooltip: 'Locations' },
   { key: 'terminals', icon: <MessageOutlined />, tooltip: 'Terminals' },
+  { key: 'charon', icon: <RobotOutlined />, tooltip: 'CHARON' },
 ];
 
 export function EncounterView({
@@ -66,6 +72,9 @@ export function EncounterView({
   onToggleNode,
   onSelectLocation,
   onShowTerminal,
+  charonChannel,
+  charonDialogOpen,
+  onDialogToggle,
 }: EncounterViewProps) {
   const [manifest, setManifest] = useState<EncounterManifest | null>(null);
   const [allDecks, setAllDecks] = useState<DeckWithRooms[]>([]);
@@ -349,6 +358,19 @@ export function EncounterView({
 
   const noLocationSelected = !locationSlug;
 
+  // Find the current location node in the tree
+  const currentLocation = useMemo(() => {
+    function findLocation(locs: Location[], slug: string): Location | null {
+      for (const loc of locs) {
+        if (loc.slug === slug) return loc;
+        const found = findLocation(loc.children, slug);
+        if (found) return found;
+      }
+      return null;
+    }
+    return locationSlug ? findLocation(locations, locationSlug) : null;
+  }, [locations, locationSlug]);
+
   return (
     <div className="gm-encounter-view">
       {contextHolder}
@@ -389,9 +411,17 @@ export function EncounterView({
           <div className="gm-encounter-view__loading">Loading...</div>
         )}
 
-        {/* Floating top-left controls (only when map is loaded) */}
+        {/* Floating centered top controls (only when map is loaded) */}
         {currentDeckMapData && (
           <div className="gm-encounter-view__floating-controls">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button size="small" onClick={handleShowAll} style={{ color: '#4a6b6b', borderColor: '#2a3a3a' }}>
+                REVEAL ALL
+              </Button>
+              <Button size="small" onClick={handleHideAll} style={{ color: '#8b5555', borderColor: '#2a3a3a' }}>
+                HIDE ALL
+              </Button>
+            </div>
             {manifest && manifest.decks.length > 1 && (
               <Select
                 value={currentDeckId}
@@ -401,12 +431,6 @@ export function EncounterView({
                 style={{ minWidth: 140 }}
               />
             )}
-            <Button size="small" onClick={handleShowAll} style={{ color: '#4a6b6b', borderColor: '#2a3a3a' }}>
-              REVEAL ALL
-            </Button>
-            <Button size="small" onClick={handleHideAll} style={{ color: '#8b5555', borderColor: '#2a3a3a' }}>
-              HIDE ALL
-            </Button>
           </div>
         )}
       </div>
@@ -448,10 +472,19 @@ export function EncounterView({
 
         <SlideOutPanel open={activePanel === 'terminals'} title="Terminals" onClose={closePanel}>
           <TerminalsPanel
-            locations={locations}
+            locations={currentLocation ? [currentLocation] : []}
             activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
             activeTerminalSlug={activeView?.overlay_terminal_slug || null}
             onShowTerminal={onShowTerminal}
+          />
+        </SlideOutPanel>
+
+        <SlideOutPanel open={activePanel === 'charon'} title="CHARON" onClose={closePanel}>
+          <CharonPanel
+            channel={charonChannel}
+            currentViewType="ENCOUNTER"
+            charonDialogOpen={charonDialogOpen}
+            onDialogToggle={onDialogToggle}
           />
         </SlideOutPanel>
       </div>

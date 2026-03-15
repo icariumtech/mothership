@@ -15,11 +15,18 @@
 .gm-encounter-view__floating-controls {
   position: absolute;
   top: 12px;
-  left: 12px;
+  left: 0;
+  right: 48px; /* match map right edge */
   z-index: 5;
   display: flex;
-  gap: 8px;
+  flex-direction: column;
   align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.gm-encounter-view__floating-controls > * {
+  pointer-events: all;
 }
 
 .gm-encounter-view__right {

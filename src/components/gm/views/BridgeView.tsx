@@ -5,12 +5,14 @@ import {
   RobotOutlined,
   TeamOutlined,
   ReadOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
-import { ActiveView } from '@/types/gmConsole';
+import { ActiveView, Location } from '@/types/gmConsole';
 import { gmConsoleApi, type CrewMember, type SessionLog } from '@/services/gmConsoleApi';
 import { ToolRail, ToolRailButton } from '@/components/gm/layout/ToolRail';
 import { SlideOutPanel } from '@/components/gm/layout/SlideOutPanel';
 import { ShipStatusToolPanel } from '@/components/gm/panels/ShipStatusToolPanel';
+import { LocationTreePanel } from '@/components/gm/panels/LocationTreePanel';
 import { CharonPanel } from '@/components/gm/CharonPanel';
 import './BridgeView.css';
 
@@ -25,12 +27,25 @@ const STATUS_COLOR: Record<string, string> = {
 
 interface BridgeViewProps {
   activeView: ActiveView | null;
+  locations: Location[];
+  expandedNodes: Set<string>;
+  onToggleNode: (key: string) => void;
+  onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
   charonChannel: string;
   charonDialogOpen: boolean;
   onDialogToggle: () => void;
 }
 
-export function BridgeView({ charonChannel, charonDialogOpen, onDialogToggle }: BridgeViewProps) {
+export function BridgeView({
+  activeView,
+  locations,
+  expandedNodes,
+  onToggleNode,
+  onShowTerminal,
+  charonChannel,
+  charonDialogOpen,
+  onDialogToggle,
+}: BridgeViewProps) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
   // Personnel
@@ -45,6 +60,7 @@ export function BridgeView({ charonChannel, charonDialogOpen, onDialogToggle }: 
   const [selectedSession, setSelectedSession] = useState<SessionLog | null>(null);
 
   const tools: ToolRailButton[] = useMemo(() => [
+    { key: 'locations', icon: <ApartmentOutlined />, tooltip: 'Locations' },
     { key: 'ship-status', icon: <ToolOutlined />, tooltip: 'Ship Status' },
     { key: 'personnel', icon: <TeamOutlined />, tooltip: 'Personnel' },
     { key: 'sessions', icon: <ReadOutlined />, tooltip: 'Session Logs' },
@@ -54,6 +70,28 @@ export function BridgeView({ charonChannel, charonDialogOpen, onDialogToggle }: 
   const handleToolToggle = useCallback((key: string) => {
     setActivePanel(prev => prev === key ? null : key);
   }, []);
+
+  // Auto-expand tree to reveal the player's selected location
+  useEffect(() => {
+    const slug = activeView?.view_slug;
+    if (!slug || !locations.length) return;
+
+    function findAncestors(locs: Location[], target: string, path: string[] = []): string[] | null {
+      for (const loc of locs) {
+        if (loc.slug === target) return path;
+        const found = findAncestors(loc.children, target, [...path, loc.slug]);
+        if (found !== null) return found;
+      }
+      return null;
+    }
+
+    const ancestors = findAncestors(locations, slug);
+    if (ancestors) {
+      for (const ancestor of ancestors) {
+        if (!expandedNodes.has(ancestor)) onToggleNode(ancestor);
+      }
+    }
+  }, [activeView?.view_slug, locations, activePanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load crew + NPCs when personnel panel opens
   useEffect(() => {
@@ -79,10 +117,56 @@ export function BridgeView({ charonChannel, charonDialogOpen, onDialogToggle }: 
 
   return (
     <div className="gm-bridge-view">
-      {/* Main area intentionally empty */}
+      {/* Player tab indicator */}
+      {activeView?.view_type === 'BRIDGE' && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: 2,
+          background: '#0a0f0f',
+          border: '1px solid #1f2f2f',
+          borderRadius: 4,
+          padding: '3px 4px',
+          pointerEvents: 'none',
+          zIndex: 5,
+        }}>
+          {(['map', 'personnel', 'logs', 'status', 'charon'] as const).map(tab => {
+            const active = activeView.bridge_tab === tab;
+            return (
+              <div key={tab} style={{
+                padding: '5px 14px',
+                borderRadius: 3,
+                fontSize: 13,
+                letterSpacing: 1.5,
+                textTransform: 'uppercase',
+                background: active ? '#4a6b6b' : 'transparent',
+                color: active ? '#e8e8e8' : '#666',
+              }}>
+                {tab}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="gm-bridge-view__right">
         <ToolRail tools={tools} activePanel={activePanel} onToggle={handleToolToggle} />
+
+        <SlideOutPanel open={activePanel === 'locations'} title="Locations" onClose={() => setActivePanel(null)}>
+          <LocationTreePanel
+            locations={locations}
+            selectedLocationSlug={activeView?.view_slug || null}
+            activeTerminalLocationSlug={activeView?.overlay_location_slug || null}
+            activeTerminalSlug={activeView?.overlay_terminal_slug || null}
+            expandedNodes={expandedNodes}
+            onToggleNode={onToggleNode}
+            onSelectLocation={() => {}}
+            onShowTerminal={onShowTerminal}
+          />
+        </SlideOutPanel>
 
         <SlideOutPanel open={activePanel === 'ship-status'} title="Ship Status" onClose={() => setActivePanel(null)}>
           <ShipStatusToolPanel />

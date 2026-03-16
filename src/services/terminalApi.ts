@@ -60,8 +60,21 @@ async function hideTerminal(): Promise<{ success: boolean }> {
   return response.data;
 }
 
+/**
+ * Update bridge map selection (public - called by player terminal when navigating)
+ */
+async function updateBridgeSelection(locationSlug: string): Promise<void> {
+  await api.post('/bridge-selection/', { location_slug: locationSlug });
+}
+
+async function updateBridgeTab(tab: string): Promise<void> {
+  await api.post('/bridge-selection/', { tab });
+}
+
 export const terminalApi = {
   getTerminalData,
   showTerminal,
   hideTerminal,
+  updateBridgeSelection,
+  updateBridgeTab,
 };

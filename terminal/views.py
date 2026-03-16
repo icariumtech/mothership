@@ -193,6 +193,7 @@ def build_active_view_payload(state: dict) -> dict:
         'location_slug': state.get('location_slug', ''),
         'view_type': state.get('view_type', 'STANDBY'),
         'view_slug': state.get('view_slug', ''),
+        'bridge_tab': state.get('bridge_tab', ''),
         'overlay_location_slug': state.get('overlay_location_slug', ''),
         'overlay_terminal_slug': state.get('overlay_terminal_slug', ''),
         'charon_mode': state.get('charon_mode', 'DISPLAY'),
@@ -623,6 +624,34 @@ def api_show_terminal(request):
         'success': True,
         'overlay_terminal_slug': new_state['overlay_terminal_slug']
     })
+
+
+@csrf_exempt
+def api_bridge_selection(request):
+    """
+    Public API endpoint to update the player's current bridge map selection.
+    Called by the player terminal when navigating the bridge galaxy/system/orbit map.
+    POST: { location_slug?: string, tab?: string }
+    """
+    import json
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    kwargs = {}
+    if 'location_slug' in data:
+        kwargs['view_slug'] = data['location_slug']
+    if 'tab' in data:
+        kwargs['bridge_tab'] = data['tab']
+    new_state = update_state(**kwargs)
+    broadcaster.announce(build_active_view_payload(new_state))
+
+    return JsonResponse({'success': True})
 
 
 @csrf_exempt

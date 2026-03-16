@@ -7,6 +7,7 @@ _state: dict = {
     'view_type': 'STANDBY',
     'location_slug': '',
     'view_slug': '',
+    'bridge_tab': '',
     'overlay_location_slug': '',
     'overlay_terminal_slug': '',
     'charon_mode': 'DISPLAY',

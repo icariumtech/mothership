@@ -62,4 +62,5 @@ urlpatterns = [
     # Terminal API endpoints
     path('api/terminal/<str:location_slug>/<str:terminal_slug>/', views.api_terminal_data, name='terminal_data'),
     path('api/terminal/hide/', views.api_hide_terminal, name='api_hide_terminal'),
+    path('api/bridge-selection/', views.api_bridge_selection, name='api_bridge_selection'),
 ]

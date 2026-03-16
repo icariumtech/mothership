@@ -606,6 +606,33 @@ function SharedConsole() {
     setOrbitMapData(data);
   }, []);
 
+  // Sync bridge tab to backend so GM console can track it
+  useEffect(() => {
+    if (viewType !== 'BRIDGE') return;
+    terminalApi.updateBridgeTab(activeTab).catch(() => {});
+  }, [viewType, activeTab]);
+
+  // Sync bridge map selection to backend so GM console can track it
+  useEffect(() => {
+    if (viewType !== 'BRIDGE') return;
+
+    let slug = '';
+    if (mapViewMode === 'orbit') {
+      slug = (selectedOrbitElementData as { location_slug?: string } | null)?.location_slug
+        || currentBodySlug
+        || '';
+    } else if (mapViewMode === 'system') {
+      slug = selectedPlanet?.location_slug || currentSystemSlug || '';
+    } else {
+      slug = selectedSystemData?.location_slug || '';
+    }
+
+    const timer = setTimeout(() => {
+      terminalApi.updateBridgeSelection(slug).catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [viewType, mapViewMode, selectedSystemData, currentSystemSlug, selectedPlanet, currentBodySlug, selectedOrbitElementData]);
+
   const handleOrbitElementSelect = useCallback((elementType: string | null, elementData: MoonData | StationData | SurfaceMarkerData | null) => {
     if (elementType && elementData) {
       setSelectedOrbitElement(elementData.name);

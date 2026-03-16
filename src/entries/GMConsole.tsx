@@ -208,6 +208,10 @@ function GMConsole() {
         {gmView === 'BRIDGE' && (
           <BridgeView
             activeView={activeView}
+            locations={locations}
+            expandedNodes={expandedNodes}
+            onToggleNode={toggleNode}
+            onShowTerminal={handleShowTerminal}
             charonChannel={activeCharonChannel}
             charonDialogOpen={activeView?.charon_dialog_open || false}
             onDialogToggle={handleToggleCharonDialog}

@@ -28,6 +28,7 @@ export interface ActiveView {
   location_slug: string;
   view_type: string;
   view_slug: string;
+  bridge_tab?: string;
   overlay_location_slug: string;
   overlay_terminal_slug: string;
   charon_mode: 'DISPLAY' | 'QUERY';

@@ -10,6 +10,7 @@ interface LocationTreePanelProps {
   onToggleNode: (key: string) => void;
   onSelectLocation: (slug: string | null) => void;
   onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
+  selectionEnabled?: boolean;
 }
 
 export function LocationTreePanel({
@@ -21,6 +22,7 @@ export function LocationTreePanel({
   onToggleNode,
   onSelectLocation,
   onShowTerminal,
+  selectionEnabled = true,
 }: LocationTreePanelProps) {
   return (
     <LocationTree
@@ -32,7 +34,7 @@ export function LocationTreePanel({
       onToggle={onToggleNode}
       onSelectLocation={onSelectLocation}
       onShowTerminal={onShowTerminal}
-      selectionEnabled={true}
+      selectionEnabled={selectionEnabled}
     />
   );
 }

@@ -103,17 +103,30 @@ Plans:
 - [ ] 05-04-PLAN.md — Human verification: end-to-end latency, connection resilience, database integrity
 
 ### Phase 6: UI Audio System
-**Goal**: Add atmospheric audio feedback for UI interactions and view transitions
-**Depends on**: Phase 5
-**Requirements**: AUDI-01, AUDI-02, AUDI-03
+
+**Status: DEFERRED to v2**
+
+Audio requirements (AUDI-01, AUDI-02, AUDI-03) moved to v2 scope. Phase directory was never created.
+
+### Phase 9: Integration + GM Bridge Polish
+
+**Goal:** Close integration gaps from the v1.0 milestone audit and build out the GM BridgeView main content area.
+**Depends on:** Phase 8
+**Requirements:** RTMA-01 (integration fix), PORT-03 (integration fix), LOGS-02 (GM side fix)
+**Gap Closure:** Closes gaps from v1.0-MILESTONE-AUDIT.md
+
 **Success Criteria** (what must be TRUE):
-  1. UI plays click/interaction sounds on buttons and controls
-  2. Transition sounds play when switching views and tabs
-  3. User can mute/unmute all audio via toggle in UI
-**Plans**: TBD
+  1. StatusSection.tsx receives ship status via SSE instead of 3s polling — no latency on system toggles
+  2. GM EncounterView renders NPCPortraitOverlay so GM can preview what players see
+  3. GM BridgeView SessionDetailView renders markdown correctly (react-markdown)
+  4. GM BridgeView main area has functional LOGS and STATUS tabs with real data
+  5. GM STATUS tab shows ship status panels and system toggle controls
+
+**Plans:** TBD
 
 Plans:
-- [ ] 06-01: TBD
+- [ ] 09-01-PLAN.md — SSE fix for StatusSection + NPCPortraitOverlay in GM EncounterView + react-markdown for GM SessionDetailView
+- [ ] 09-02-PLAN.md — GM BridgeView LOGS tab (session list + detail) and STATUS tab (ship status panels + toggle controls)
 
 ## Progress
 
@@ -124,7 +137,10 @@ Plans:
 | 3. Encounter Tokens | 0/4 | In Progress | - |
 | 4. NPC Portrait System | 3/4 | In Progress|  |
 | 5. Real-Time Push Architecture | 3/4 | In Progress|  |
-| 6. UI Audio System | 0/TBD | Not started | - |
+| 6. UI Audio System | — | Deferred to v2 | - |
+| 7. Grid-Based Encounter Map | 4/4 | ✓ Complete | 2026-03-16 |
+| 8. Rework GM Console UI | 3/4 | ✓ Complete | 2026-03-16 |
+| 9. Integration + GM Bridge Polish | 0/2 | Not started | - |
 
 ### Phase 7: Grid-based encounter map redesign
 

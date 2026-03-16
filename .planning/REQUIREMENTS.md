@@ -34,19 +34,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [x] **PORT-01**: GM can trigger an NPC portrait display on the terminal
 - [x] **PORT-02**: Portrait panel shows NPC name and basic info with CRT/amber styling
-- [x] **PORT-03**: Portrait appears as overlay during encounter view
+- [ ] **PORT-03**: Portrait appears as overlay during encounter view (GM EncounterView — Phase 9)
 - [x] **PORT-04**: Multiple portraits can display simultaneously for group conversations
 - [x] **PORT-05**: Portrait reveal uses animated typewriter name and fade-in effect
 
-### UI Audio
-
-- [ ] **AUDI-01**: UI plays click/interaction sounds on buttons and controls
-- [ ] **AUDI-02**: Transition sounds play when switching views and tabs
-- [ ] **AUDI-03**: User can mute/unmute all audio via toggle
-
 ### Real-Time Architecture
 
-- [x] **RTMA-01**: Server-Sent Events replace 2-second polling for terminal state updates
+- [ ] **RTMA-01**: Server-Sent Events replace 2-second polling for terminal state updates (StatusSection — Phase 9)
 - [x] **RTMA-02**: ActiveView ephemeral state moved out of SQLite (in-memory or cache-backed)
 - [x] **RTMA-03**: Messages remain in SQLite as persistent data
 - [x] **RTMA-04**: Database retained and prepared for future auth/credentials use
@@ -67,6 +61,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 ## v2 Requirements
 
 Deferred to future milestone. Tracked but not in current roadmap.
+
+### UI Audio
+
+- **AUDI-01**: UI plays click/interaction sounds on buttons and controls
+- **AUDI-02**: Transition sounds play when switching views and tabs
+- **AUDI-03**: User can mute/unmute all audio via toggle
 
 ### Logs
 
@@ -138,9 +138,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RTMA-02 | Phase 5 | Complete |
 | RTMA-03 | Phase 5 | Complete |
 | RTMA-04 | Phase 5 | Complete |
-| AUDI-01 | Phase 6 | Pending |
-| AUDI-02 | Phase 6 | Pending |
-| AUDI-03 | Phase 6 | Pending |
 | GRID-01 | Phase 7 | Pending |
 | GRID-02 | Phase 7 | Pending |
 | GRID-03 | Phase 7 | Pending |
@@ -153,9 +150,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GRID-10 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 32 total
-- Mapped to phases: 32
+- v1 requirements: 29 total (AUDI-01..03 moved to v2)
+- Mapped to phases: 29
 - Unmapped: 0
+
+**Phase 09 gap closures (integration fixes):**
+
+| Requirement | Phase | Status | Note |
+|-------------|-------|--------|------|
+| RTMA-01 | Phase 9 | Pending | StatusSection SSE migration |
+| PORT-03 | Phase 9 | Pending | NPCPortraitOverlay in GM EncounterView |
+| LOGS-02 | Phase 9 | Pending | react-markdown in GM SessionDetailView |
 
 ---
 *Requirements defined: 2026-02-11*

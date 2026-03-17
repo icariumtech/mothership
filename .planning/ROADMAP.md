@@ -117,16 +117,16 @@ Audio requirements (AUDI-01, AUDI-02, AUDI-03) moved to v2 scope. Phase director
 
 **Success Criteria** (what must be TRUE):
   1. StatusSection.tsx receives ship status via SSE instead of 3s polling — no latency on system toggles
-  2. GM EncounterView renders NPCPortraitOverlay so GM can preview what players see
+  2. NPC portrait hover tooltip in NpcPortraitsPanel lets GM preview portrait before showing to players
   3. GM BridgeView SessionDetailView renders markdown correctly (react-markdown)
-  4. GM BridgeView main area has functional LOGS and STATUS tabs with real data
-  5. GM STATUS tab shows ship status panels and system toggle controls
+  4. GM BridgeView main area has fixed two-panel dashboard: left 3D map mirror + right ship status panel
+  5. GM ship status toggle controls inline in BridgeView — ship-status slide-out removed
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — SSE fix for StatusSection + NPCPortraitOverlay in GM EncounterView + react-markdown for GM SessionDetailView
-- [ ] 09-02-PLAN.md — GM BridgeView LOGS tab (session list + detail) and STATUS tab (ship status panels + toggle controls)
+- [ ] 09-01-PLAN.md — SSE shipstatus event + StatusSection polling removal + NPC portrait tooltip + SessionDetailView react-markdown
+- [ ] 09-02-PLAN.md — GM BridgeView main dashboard: breadcrumb bar + 3D map mirror + inline ship status panel + remove ship-status slide-out
 
 ## Progress
 

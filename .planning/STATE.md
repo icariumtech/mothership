@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-18T15:36:28.967Z"
+stopped_at: "Checkpoint: 09-02 Task 1 complete, awaiting human verification"
+last_updated: "2026-03-18T15:41:34.242Z"
 last_activity: 2026-03-09 — Completed 08-03 views and dashboard
 progress:
   total_phases: 9
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 27
-  completed_plans: 25
+  completed_plans: 26
   percent: 92
 ---
 
@@ -153,6 +153,8 @@ Recent decisions affecting current work:
 - [Phase 09]: announce_ship_status() is non-fatal in api_ship_toggle_system — SSE failure logs warning but does not break REST response
 - [Phase 09]: fetchShipStatus removed (TS6133 dead code); changingFlags/previousStatusesRef preserved via void suppression for Plan 09-02 SSE wiring
 - [Phase 09]: Named SSE event pattern: announce_X() + es.addEventListener('X') + useSSE onXEvent mirrors existing activeview pattern
+- [Phase 09]: GmBridgeStatusPanel receives shipData from SSE prop (not internal polling) — SSE is authoritative for real-time updates
+- [Phase 09]: ship-status ToolRail entry removed from BridgeView — permanent dashboard panel replaces slide-out pattern
 
 ### Roadmap Evolution
 
@@ -169,6 +171,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T15:36:28.961Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-18T15:41:26.264Z
+Stopped at: Checkpoint: 09-02 Task 1 complete, awaiting human verification
 Resume file: None

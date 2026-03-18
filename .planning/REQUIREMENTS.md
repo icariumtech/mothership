@@ -34,13 +34,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [x] **PORT-01**: GM can trigger an NPC portrait display on the terminal
 - [x] **PORT-02**: Portrait panel shows NPC name and basic info with CRT/amber styling
-- [ ] **PORT-03**: Portrait appears as overlay during encounter view (GM EncounterView — Phase 9)
+- [x] **PORT-03**: Portrait appears as overlay during encounter view (GM EncounterView — Phase 9)
 - [x] **PORT-04**: Multiple portraits can display simultaneously for group conversations
 - [x] **PORT-05**: Portrait reveal uses animated typewriter name and fade-in effect
 
 ### Real-Time Architecture
 
-- [ ] **RTMA-01**: Server-Sent Events replace 2-second polling for terminal state updates (StatusSection — Phase 9)
+- [x] **RTMA-01**: Server-Sent Events replace 2-second polling for terminal state updates (StatusSection — Phase 9)
 - [x] **RTMA-02**: ActiveView ephemeral state moved out of SQLite (in-memory or cache-backed)
 - [x] **RTMA-03**: Messages remain in SQLite as persistent data
 - [x] **RTMA-04**: Database retained and prepared for future auth/credentials use
@@ -116,7 +116,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | LOGS-01 | Phase 1 | Pending |
-| LOGS-02 | Phase 1 | Pending |
+| LOGS-02 | Phase 1 | Complete |
 | LOGS-03 | Phase 1 | Pending |
 | STAT-01 | Phase 2 | Pending |
 | STAT-02 | Phase 2 | Pending |
@@ -158,9 +158,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status | Note |
 |-------------|-------|--------|------|
-| RTMA-01 | Phase 9 | Pending | StatusSection SSE migration |
-| PORT-03 | Phase 9 | Pending | NPCPortraitOverlay in GM EncounterView |
-| LOGS-02 | Phase 9 | Pending | react-markdown in GM SessionDetailView |
+| RTMA-01 | Phase 9 | Complete | StatusSection SSE migration |
+| PORT-03 | Phase 9 | Complete | NPCPortraitOverlay in GM EncounterView |
+| LOGS-02 | Phase 9 | Complete | react-markdown in GM SessionDetailView |
 
 ---
 *Requirements defined: 2026-02-11*

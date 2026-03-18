@@ -122,7 +122,7 @@ Audio requirements (AUDI-01, AUDI-02, AUDI-03) moved to v2 scope. Phase director
   4. GM BridgeView main area has fixed two-panel dashboard: left 3D map mirror + right ship status panel
   5. GM ship status toggle controls inline in BridgeView — ship-status slide-out removed
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 09-01-PLAN.md — SSE shipstatus event + StatusSection polling removal + NPC portrait tooltip + SessionDetailView react-markdown
@@ -140,7 +140,7 @@ Plans:
 | 6. UI Audio System | — | Deferred to v2 | - |
 | 7. Grid-Based Encounter Map | 4/4 | ✓ Complete | 2026-03-16 |
 | 8. Rework GM Console UI | 3/4 | ✓ Complete | 2026-03-16 |
-| 9. Integration + GM Bridge Polish | 0/2 | Not started | - |
+| 9. Integration + GM Bridge Polish | 1/2 | In Progress|  |
 
 ### Phase 7: Grid-based encounter map redesign
 

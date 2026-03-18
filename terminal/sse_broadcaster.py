@@ -33,6 +33,17 @@ class MessageAnnouncer:
                 # Listener not consuming — treat as dead connection, remove
                 self.unlisten(listeners[i])
 
+    def announce_ship_status(self, data: dict) -> None:
+        """Broadcast ship status update to all SSE clients on the 'shipstatus' named event."""
+        msg = format_sse(json.dumps(data, default=str), event='shipstatus')
+        with self._lock:
+            listeners = list(self.listeners)
+        for i in reversed(range(len(listeners))):
+            try:
+                listeners[i].put_nowait(msg)
+            except queue.Full:
+                self.unlisten(listeners[i])
+
 
 def format_sse(data: str, event: str | None = None) -> str:
     msg = f'data: {data}\n\n'

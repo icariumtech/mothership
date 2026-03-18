@@ -1695,6 +1695,22 @@ def api_ship_toggle_system(request):
     new_state = update_state(ship_system_overrides=overrides)
     broadcaster.announce(build_active_view_payload(new_state))
 
+    # Broadcast merged ship status on 'shipstatus' SSE channel
+    try:
+        from terminal.data_loader import DataLoader
+        loader = DataLoader()
+        ship_broadcast_data = loader.load_ship_status()
+        if ship_broadcast_data and ship_broadcast_data.get('ship'):
+            current_overrides = new_state.get('ship_system_overrides') or {}
+            for sys_name, sys_override in current_overrides.items():
+                if sys_name in ship_broadcast_data['ship'].get('systems', {}):
+                    ship_broadcast_data['ship']['systems'][sys_name].update(sys_override)
+            broadcaster.announce_ship_status(ship_broadcast_data)
+    except Exception as e:
+        # Non-fatal — SSE failure should not break the REST response
+        import logging
+        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+
     return JsonResponse({
         'success': True,
         'system': system_name,

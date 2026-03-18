@@ -2,6 +2,8 @@
   flex: 1;
   position: relative;
   min-height: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 .gm-bridge-view__right {
@@ -81,4 +83,85 @@
   border-radius: 2px;
   padding: 1px 4px;
   color: #8b7355;
+}
+
+/* GM Bridge Dashboard — main content area layout */
+.gm-bridge-view__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.gm-bridge-breadcrumb {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #0f1515;
+  border-bottom: 1px solid #1f2f2f;
+}
+
+.gm-bridge-breadcrumb__text {
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #4a6b6b;
+  text-transform: uppercase;
+}
+
+.gm-bridge-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+}
+
+.gm-bridge-map-panel {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  background: #0a0a0a;
+}
+
+.gm-bridge-map-panel--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gm-bridge-map-placeholder-text {
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  color: #444;
+  letter-spacing: 1px;
+}
+
+.gm-bridge-status-panel {
+  width: 360px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: #0f1515;
+  border-left: 1px solid #1f2f2f;
+}
+
+.gm-bridge-status-identity {
+  padding: 12px 14px;
+  border-bottom: 1px solid #1a2020;
+}
+
+.gm-bridge-status-systems {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gm-bridge-status-system-row {
+  padding: 10px 12px;
+  background: #0a1010;
+  border: 1px solid #1a2020;
+  border-radius: 3px;
 }

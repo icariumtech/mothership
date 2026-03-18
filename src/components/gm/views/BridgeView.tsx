@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Modal, Typography, Tag, Progress } from 'antd';
+import { Modal, Typography, Tag, Progress, Select, message } from 'antd';
 import {
-  ToolOutlined,
   RobotOutlined,
   TeamOutlined,
   ReadOutlined,
@@ -10,13 +9,16 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ActiveView, Location } from '@/types/gmConsole';
-import type { ShipStatusData } from '@/types/shipStatus';
+import type { ShipStatusData, SystemStatus } from '@/types/shipStatus';
 import { gmConsoleApi, type CrewMember, type SessionLog } from '@/services/gmConsoleApi';
 import { ToolRail, ToolRailButton } from '@/components/gm/layout/ToolRail';
 import { SlideOutPanel } from '@/components/gm/layout/SlideOutPanel';
-import { ShipStatusToolPanel } from '@/components/gm/panels/ShipStatusToolPanel';
 import { LocationTreePanel } from '@/components/gm/panels/LocationTreePanel';
 import { CharonPanel } from '@/components/gm/CharonPanel';
+import { GalaxyMap } from '@/components/domain/maps/GalaxyMap';
+import { SystemMap } from '@/components/domain/maps/SystemMap';
+import { OrbitMap } from '@/components/domain/maps/OrbitMap';
+import type { StarMapData } from '@/types/starMap';
 import './BridgeView.css';
 
 const { Text } = Typography;
@@ -49,7 +51,7 @@ export function BridgeView({
   charonChannel,
   charonDialogOpen,
   onDialogToggle,
-  shipData: _shipData,  // destructured but not yet used in JSX — Plan 09-02 will consume it
+  shipData,
 }: BridgeViewProps) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
@@ -64,9 +66,18 @@ export function BridgeView({
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [selectedSession, setSelectedSession] = useState<SessionLog | null>(null);
 
+  // Star map data for map mirror
+  const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
+
+  useEffect(() => {
+    fetch('/api/star-map/')
+      .then(r => r.json())
+      .then((data: StarMapData) => setStarMapData(data))
+      .catch(err => console.error('Failed to fetch star map data for GM mirror:', err));
+  }, []);
+
   const tools: ToolRailButton[] = useMemo(() => [
     { key: 'locations', icon: <ApartmentOutlined />, tooltip: 'Locations' },
-    { key: 'ship-status', icon: <ToolOutlined />, tooltip: 'Ship Status' },
     { key: 'personnel', icon: <TeamOutlined />, tooltip: 'Personnel' },
     { key: 'sessions', icon: <ReadOutlined />, tooltip: 'Session Logs' },
     { key: 'charon', icon: <RobotOutlined />, tooltip: 'CHARON' },
@@ -157,6 +168,14 @@ export function BridgeView({
         </div>
       )}
 
+      {/* Main dashboard area */}
+      <GmBridgeDashboard
+        activeView={activeView}
+        locations={locations}
+        starMapData={starMapData}
+        shipData={shipData}
+      />
+
       <div className="gm-bridge-view__right">
         <ToolRail tools={tools} activePanel={activePanel} onToggle={handleToolToggle} />
 
@@ -171,10 +190,6 @@ export function BridgeView({
             onSelectLocation={() => {}}
             onShowTerminal={onShowTerminal}
           />
-        </SlideOutPanel>
-
-        <SlideOutPanel open={activePanel === 'ship-status'} title="Ship Status" onClose={() => setActivePanel(null)}>
-          <ShipStatusToolPanel />
         </SlideOutPanel>
 
         {/* Personnel list panel */}
@@ -496,6 +511,241 @@ function SessionDetailView({ session }: { session: SessionLog }) {
       ) : (
         <Text type="secondary" style={{ fontSize: 12 }}>No content.</Text>
       )}
+    </div>
+  );
+}
+
+// --- GM Bridge Dashboard sub-components ---
+
+type BridgeMapMode = 'galaxy' | 'system' | 'orbit';
+
+interface BridgeMapState {
+  mode: BridgeMapMode;
+  systemSlug: string | null;
+  bodySlug: string | null;
+  locationName: string | null;
+}
+
+function findLocationBySlug(locations: Location[], slug: string): Location | null {
+  for (const loc of locations) {
+    if (loc.slug === slug) return loc;
+    const found = findLocationBySlug(loc.children, slug);
+    if (found) return found;
+  }
+  return null;
+}
+
+function findParentSystemSlug(locations: Location[], targetSlug: string): string | null {
+  for (const loc of locations) {
+    if (loc.type === 'system') {
+      const found = findLocationBySlug(loc.children, targetSlug);
+      if (found) return loc.slug;
+    }
+  }
+  return null;
+}
+
+function deriveBridgeMapMode(
+  activeView: ActiveView | null,
+  locations: Location[]
+): BridgeMapState {
+  if (!activeView || activeView.view_type !== 'BRIDGE' || activeView.bridge_tab !== 'map') {
+    return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: null };
+  }
+  const slug = activeView.view_slug;
+  if (!slug) {
+    return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: null };
+  }
+  const loc = findLocationBySlug(locations, slug);
+  if (!loc) {
+    return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: null };
+  }
+  if (loc.type === 'system') {
+    return { mode: 'system', systemSlug: slug, bodySlug: null, locationName: loc.name };
+  }
+  // Planet/station/moon — find parent system
+  const parentSystemSlug = findParentSystemSlug(locations, slug);
+  if (parentSystemSlug) {
+    return { mode: 'orbit', systemSlug: parentSystemSlug, bodySlug: slug, locationName: loc.name };
+  }
+  // Fallback
+  return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: slug };
+}
+
+function deriveBreadcrumb(activeView: ActiveView | null, locations: Location[]): string {
+  if (!activeView) return 'BRIDGE';
+  if (activeView.view_type !== 'BRIDGE') {
+    return `BRIDGE — PLAYER ON ${activeView.view_type}`;
+  }
+  const tab = (activeView.bridge_tab || 'map').toUpperCase();
+  if (tab !== 'MAP') return tab;
+  const slug = activeView.view_slug;
+  if (!slug) return 'MAP';
+  const loc = findLocationBySlug(locations, slug);
+  const displayName = loc ? loc.name.toUpperCase() : slug.toUpperCase();
+  return `MAP > ${displayName}`;
+}
+
+interface GmBridgeDashboardProps {
+  activeView: ActiveView | null;
+  locations: Location[];
+  starMapData: StarMapData | null;
+  shipData: ShipStatusData | null;
+}
+
+function GmBridgeDashboard({ activeView, locations, starMapData, shipData }: GmBridgeDashboardProps) {
+  return (
+    <div className="gm-bridge-view__main">
+      <GmBridgeBreadcrumb activeView={activeView} locations={locations} />
+      <div className="gm-bridge-content">
+        <GmBridgeMapPanel activeView={activeView} locations={locations} starMapData={starMapData} />
+        <GmBridgeStatusPanel shipData={shipData} />
+      </div>
+    </div>
+  );
+}
+
+function GmBridgeBreadcrumb({ activeView, locations }: { activeView: ActiveView | null; locations: Location[] }) {
+  const crumb = deriveBreadcrumb(activeView, locations);
+  return (
+    <div className="gm-bridge-breadcrumb">
+      <span className="gm-bridge-breadcrumb__text">{crumb}</span>
+    </div>
+  );
+}
+
+function GmBridgeMapPanel({
+  activeView,
+  locations,
+  starMapData,
+}: {
+  activeView: ActiveView | null;
+  locations: Location[];
+  starMapData: StarMapData | null;
+}) {
+  const mapState = deriveBridgeMapMode(activeView, locations);
+  const isMapTab = activeView?.view_type === 'BRIDGE' && activeView.bridge_tab === 'map';
+
+  if (!isMapTab) {
+    const label = activeView?.view_type !== 'BRIDGE'
+      ? 'PLAYER NOT ON BRIDGE'
+      : `PLAYER VIEWING: ${(activeView.bridge_tab || '').toUpperCase()}`;
+    return (
+      <div className="gm-bridge-map-panel gm-bridge-map-panel--placeholder">
+        <span className="gm-bridge-map-placeholder-text">{label}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="gm-bridge-map-panel">
+      <GalaxyMap
+        data={starMapData}
+        hidden={mapState.mode !== 'galaxy'}
+        paused={mapState.mode !== 'galaxy'}
+      />
+      {mapState.systemSlug && (
+        <SystemMap
+          systemSlug={mapState.systemSlug}
+          selectedPlanet={null}
+          hidden={mapState.mode !== 'system'}
+          paused={mapState.mode !== 'system'}
+        />
+      )}
+      {mapState.systemSlug && mapState.bodySlug && (
+        <OrbitMap
+          systemSlug={mapState.systemSlug}
+          bodySlug={mapState.bodySlug}
+          selectedElement={null}
+          selectedElementType={null}
+          hidden={mapState.mode !== 'orbit'}
+          paused={mapState.mode !== 'orbit'}
+        />
+      )}
+    </div>
+  );
+}
+
+const SYSTEM_STATUSES_GM: SystemStatus[] = ['ONLINE', 'STRESSED', 'DAMAGED', 'CRITICAL', 'OFFLINE'];
+const SYSTEM_LABELS_GM: Record<string, string> = {
+  life_support: 'Life Support',
+  engines: 'Engines',
+  weapons: 'Weapons',
+  comms: 'Communications',
+};
+const STATUS_COLORS_GM: Record<SystemStatus, string> = {
+  ONLINE: '#5a7a7a',
+  STRESSED: '#8b7355',
+  DAMAGED: '#8b6a55',
+  CRITICAL: '#8b5555',
+  OFFLINE: '#5a5a5a',
+};
+
+function GmBridgeStatusPanel({ shipData }: { shipData: ShipStatusData | null }) {
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleSystemChange = useCallback(async (systemName: string, newStatus: SystemStatus) => {
+    try {
+      await gmConsoleApi.toggleShipSystem(systemName, newStatus);
+      messageApi.success(`${SYSTEM_LABELS_GM[systemName]} → ${newStatus}`);
+      // SSE will push the updated ship status back — no manual re-fetch needed
+    } catch (err) {
+      console.error('Error toggling ship system:', err);
+      messageApi.error('Failed to update system status');
+    }
+  }, [messageApi]);
+
+  if (!shipData) {
+    return (
+      <div className="gm-bridge-status-panel">
+        {contextHolder}
+        <Text type="secondary" style={{ fontSize: 11, padding: 16, display: 'block' }}>
+          No ship data available
+        </Text>
+      </div>
+    );
+  }
+
+  const { ship } = shipData;
+
+  return (
+    <div className="gm-bridge-status-panel">
+      {contextHolder}
+
+      {/* Ship identity */}
+      <div className="gm-bridge-status-identity">
+        <div style={{ color: '#5a7a7a', fontSize: 13, fontWeight: 600 }}>{ship.name}</div>
+        <div style={{ color: '#555', fontSize: 11, marginTop: 2 }}>{ship.class}</div>
+        <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11 }}>
+          <span><span style={{ color: '#444' }}>CREW </span><span style={{ color: '#aaa' }}>{ship.crew_count}/{ship.crew_capacity}</span></span>
+          <span><span style={{ color: '#444' }}>HULL </span><span style={{ color: ship.hull.current < ship.hull.max * 0.3 ? '#8b5555' : '#aaa' }}>{ship.hull.current}/{ship.hull.max}</span></span>
+          <span><span style={{ color: '#444' }}>ARMOR </span><span style={{ color: ship.armor.current < ship.armor.max * 0.3 ? '#8b5555' : '#aaa' }}>{ship.armor.current}/{ship.armor.max}</span></span>
+        </div>
+      </div>
+
+      {/* System toggles */}
+      <div className="gm-bridge-status-systems">
+        {Object.entries(ship.systems).map(([systemKey, systemData]) => (
+          <div key={systemKey} className="gm-bridge-status-system-row">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <Text style={{ fontSize: 12 }}>{SYSTEM_LABELS_GM[systemKey]}</Text>
+              <Text style={{ fontSize: 10, color: STATUS_COLORS_GM[systemData.status], letterSpacing: 1 }}>
+                {systemData.status}
+              </Text>
+            </div>
+            <Select
+              value={systemData.status}
+              onChange={(value) => handleSystemChange(systemKey, value as SystemStatus)}
+              style={{ width: '100%' }}
+              size="small"
+              options={SYSTEM_STATUSES_GM.map(s => ({
+                value: s,
+                label: <span style={{ color: STATUS_COLORS_GM[s] }}>{s}</span>,
+              }))}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

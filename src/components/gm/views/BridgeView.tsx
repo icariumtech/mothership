@@ -7,6 +7,8 @@ import {
   ReadOutlined,
   ApartmentOutlined,
 } from '@ant-design/icons';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ActiveView, Location } from '@/types/gmConsole';
 import type { ShipStatusData } from '@/types/shipStatus';
 import { gmConsoleApi, type CrewMember, type SessionLog } from '@/services/gmConsoleApi';
@@ -453,6 +455,19 @@ function CrewDetailView({ member }: { member: CrewMember }) {
 }
 
 function SessionDetailView({ session }: { session: SessionLog }) {
+  const markdownComponents = {
+    h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h1 className="gm-md-h1" {...props}>{children}</h1>,
+    h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h2 className="gm-md-h2" {...props}>{children}</h2>,
+    h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h3 className="gm-md-h3" {...props}>{children}</h3>,
+    p:  ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => <p  className="gm-md-p"  {...props}>{children}</p>,
+    strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => <strong className="gm-md-strong" {...props}>{children}</strong>,
+    em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => <em className="gm-md-em" {...props}>{children}</em>,
+    ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => <ul className="gm-md-ul" {...props}>{children}</ul>,
+    ol: ({ children, ...props }: React.HTMLAttributes<HTMLOListElement>) => <ol className="gm-md-ol" {...props}>{children}</ol>,
+    li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => <li className="gm-md-li" {...props}>{children}</li>,
+    code: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => <code className="gm-md-code" {...props}>{children}</code>,
+  };
+
   return (
     <div style={{ paddingTop: 4 }}>
       <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 12 }}>
@@ -469,20 +484,14 @@ function SessionDetailView({ session }: { session: SessionLog }) {
       )}
       {session.body ? (
         <div
-          style={{
-            background: '#0a0a0a',
-            border: '1px solid #1f1f1f',
-            borderRadius: 4,
-            padding: 12,
-            fontSize: 12,
-            color: '#aaa',
-            whiteSpace: 'pre-wrap',
-            lineHeight: 1.7,
-            maxHeight: 420,
-            overflowY: 'auto',
-          }}
+          style={{ background: '#0a0a0a', border: '1px solid #1f1f1f', borderRadius: 4,
+            padding: 12, maxHeight: 420, overflowY: 'auto' }}
         >
-          {session.body}
+          <div className="gm-session-markdown">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {session.body}
+            </ReactMarkdown>
+          </div>
         </div>
       ) : (
         <Text type="secondary" style={{ fontSize: 12 }}>No content.</Text>

@@ -1,4 +1,4 @@
-import { Button, Typography } from 'antd';
+import { Button, Typography, Tooltip } from 'antd';
 import type { NpcPortraitData } from '@/types/gmConsole';
 
 const { Text } = Typography;
@@ -23,7 +23,17 @@ export function NpcPortraitsPanel({ npcs, activePortraits, onToggle }: NpcPortra
             key={npc.id}
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
-            <Text style={{ fontSize: 12 }}>{npc.name}</Text>
+            <Tooltip
+              title={
+                npc.portrait
+                  ? <img src={npc.portrait} alt={npc.name} style={{ width: 120, height: 160, objectFit: 'cover', borderRadius: 2 }} />
+                  : 'No portrait available'
+              }
+              placement="left"
+              overlayInnerStyle={{ padding: 4, background: '#0a0f0f', border: '1px solid #4a6b6b' }}
+            >
+              <Text style={{ fontSize: 12, cursor: 'default' }}>{npc.name}</Text>
+            </Tooltip>
             <Button
               size="small"
               type={isPortraitActive ? 'primary' : 'default'}

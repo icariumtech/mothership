@@ -12,3 +12,73 @@
   display: flex;
   z-index: 10;
 }
+
+/* GM Session Markdown — dark-themed markdown styles for SessionDetailView modal */
+.gm-session-markdown {
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #aaa;
+}
+
+.gm-session-markdown .gm-md-h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a6b6b;
+  margin: 16px 0 8px;
+  border-bottom: 1px solid #1f2f2f;
+  padding-bottom: 4px;
+}
+
+.gm-session-markdown .gm-md-h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a6b6b;
+  margin: 12px 0 6px;
+}
+
+.gm-session-markdown .gm-md-h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a6b6b;
+  margin: 10px 0 4px;
+}
+
+.gm-session-markdown .gm-md-p {
+  font-size: 12px;
+  color: #aaa;
+  line-height: 1.6;
+  margin: 6px 0;
+}
+
+.gm-session-markdown .gm-md-strong {
+  color: #8b7355;
+  font-weight: 600;
+}
+
+.gm-session-markdown .gm-md-em {
+  color: #999;
+  font-style: italic;
+}
+
+.gm-session-markdown .gm-md-ul,
+.gm-session-markdown .gm-md-ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.gm-session-markdown .gm-md-li {
+  font-size: 12px;
+  color: #aaa;
+  margin: 2px 0;
+}
+
+.gm-session-markdown .gm-md-code {
+  font-size: 11px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  background: #0f1515;
+  border: 1px solid #1f2f2f;
+  border-radius: 2px;
+  padding: 1px 4px;
+  color: #8b7355;
+}

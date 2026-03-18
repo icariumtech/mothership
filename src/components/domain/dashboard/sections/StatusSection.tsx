@@ -201,15 +201,19 @@ function IntegrityPanel({ label, current, max, variant, delay, staggerDone }: In
 }
 
 export function StatusSection() {
+  // shipData: Plan 09-02 will call setShipData on SSE shipstatus events (via prop from BridgeView)
   const [shipData, setShipData] = useState<ShipStatusData | null>(getShipStatusData());
+  void setShipData; // Plan 09-02 will wire this to SSE updates
   const [staggerComplete, setStaggerComplete] = useState(false);
   const previousStatusesRef = useRef<PreviousStatuses | null>(null);
+  // changingFlags: Plan 09-02 will call setChangingFlags when SSE events arrive
   const [changingFlags, setChangingFlags] = useState<ChangingFlags>({
     life_support: false,
     engines: false,
     weapons: false,
     comms: false,
   });
+  void setChangingFlags; // Plan 09-02 will wire this to SSE-triggered flicker logic
 
   // Mark stagger animation complete after longest delay + animation duration
   useEffect(() => {
@@ -229,58 +233,10 @@ export function StatusSection() {
     }
   }, [shipData]);
 
-  // Fetch fresh ship status from API
-  const fetchShipStatus = async (skipFlicker = false) => {
-    try {
-      const res = await fetch('/api/ship-status/');
-      if (!res.ok) {
-        console.error('Failed to fetch ship status:', res.statusText);
-        return;
-      }
-      const data: ShipStatusData = await res.json();
-
-      // Detect changes and set flicker flags (skip on initial fetch)
-      if (!skipFlicker && previousStatusesRef.current) {
-        const newChangingFlags: ChangingFlags = {
-          life_support: data.ship.systems.life_support.status !== previousStatusesRef.current.life_support,
-          engines: data.ship.systems.engines.status !== previousStatusesRef.current.engines,
-          weapons: data.ship.systems.weapons.status !== previousStatusesRef.current.weapons,
-          comms: data.ship.systems.comms.status !== previousStatusesRef.current.comms,
-        };
-
-        setChangingFlags(newChangingFlags);
-
-        // Clear flicker flags after 400ms
-        setTimeout(() => {
-          setChangingFlags({
-            life_support: false,
-            engines: false,
-            weapons: false,
-            comms: false,
-          });
-        }, 400);
-      }
-
-      // Update previous statuses
-      previousStatusesRef.current = {
-        life_support: data.ship.systems.life_support.status,
-        engines: data.ship.systems.engines.status,
-        weapons: data.ship.systems.weapons.status,
-        comms: data.ship.systems.comms.status,
-      };
-
-      setShipData(data);
-    } catch (err) {
-      console.error('Failed to poll ship status:', err);
-    }
-  };
-
-  // Fetch fresh data immediately on mount, then poll every 3 seconds
-  useEffect(() => {
-    fetchShipStatus(true);
-    const interval = setInterval(() => fetchShipStatus(), 3000);
-    return () => clearInterval(interval);
-  }, []);
+  // Note: polling removed (Plan 09-01) — StatusSection now initializes from window.INITIAL_DATA.shipStatus on mount.
+  // GM-side ship status will be driven by SSE shipstatus events via GMConsole → BridgeView (Plan 09-02).
+  // The changingFlags / previousStatusesRef logic is preserved for SSE-driven updates in Plan 09-02.
+  // Player-side StatusSection remains static from INITIAL_DATA until a future phase wires SSE to the player terminal.
 
   if (!shipData) {
     return (

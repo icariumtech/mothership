@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider, theme, message } from 'antd';
 import { Location, ActiveView } from '@/types/gmConsole';
+import type { ShipStatusData } from '@/types/shipStatus';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { useTreeState } from '@/hooks/useTreeState';
 import { ViewRail, GMViewType } from '@/components/gm/layout/ViewRail';
@@ -21,6 +22,13 @@ function GMConsole() {
   const [error, setError] = useState<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const [channelUnreads, setChannelUnreads] = useState<Record<string, number>>({});
+
+  // Ship status driven by SSE shipstatus events
+  const [shipData, setShipData] = useState<ShipStatusData | null>(
+    (window as unknown as { INITIAL_DATA?: { shipStatus?: ShipStatusData } }).INITIAL_DATA?.shipStatus || null
+  );
+  const shipDataRef = useRef<ShipStatusData | null>(null);
+  shipDataRef.current = shipData;
 
   // GM's local view state -- independent from what players see (activeView.view_type)
   const [gmView, setGmView] = useState<GMViewType>('STANDBY');
@@ -63,6 +71,9 @@ function GMConsole() {
     url: '/api/active-view/stream/',
     onEvent: useCallback((rawData: unknown) => {
       setActiveView(rawData as ActiveView);
+    }, []),
+    onShipStatusEvent: useCallback((rawData: unknown) => {
+      setShipData(rawData as ShipStatusData);
     }, []),
     failureThreshold: 2,
     retryDelayMs: 3000,
@@ -215,6 +226,7 @@ function GMConsole() {
             charonChannel={activeCharonChannel}
             charonDialogOpen={activeView?.charon_dialog_open || false}
             onDialogToggle={handleToggleCharonDialog}
+            shipData={shipData}
           />
         )}
         {gmView === 'ENCOUNTER' && (

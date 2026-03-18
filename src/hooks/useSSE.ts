@@ -3,6 +3,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 interface UseSSEOptions {
   url: string;
   onEvent: (data: unknown) => void;
+  onShipStatusEvent?: (data: unknown) => void;  // Optional handler for 'shipstatus' named events
   onConnect?: () => void;     // Called on (re)connect — optional state re-sync
   failureThreshold?: number;  // Consecutive failed reconnects before showing toast
   retryDelayMs?: number;      // Delay between manual reconnect attempts
@@ -11,6 +12,7 @@ interface UseSSEOptions {
 export function useSSE({
   url,
   onEvent,
+  onShipStatusEvent,
   onConnect,
   failureThreshold = 3,
   retryDelayMs = 3000,
@@ -49,6 +51,16 @@ export function useSSE({
       }
     });
 
+    if (onShipStatusEvent) {
+      es.addEventListener('shipstatus', (e: MessageEvent) => {
+        try {
+          onShipStatusEvent(JSON.parse(e.data));
+        } catch {
+          console.error('[SSE] Failed to parse shipstatus event data:', e.data);
+        }
+      });
+    }
+
     es.onerror = () => {
       // EventSource auto-reconnects, but we manage our own retry for toast tracking
       es.close();
@@ -59,7 +71,7 @@ export function useSSE({
       }
       retryTimer.current = setTimeout(connect, retryDelayMs);
     };
-  }, [url, onEvent, onConnect, failureThreshold, retryDelayMs]);
+  }, [url, onEvent, onShipStatusEvent, onConnect, failureThreshold, retryDelayMs]);
 
   useEffect(() => {
     connect();

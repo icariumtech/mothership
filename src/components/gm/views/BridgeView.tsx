@@ -8,6 +8,7 @@ import {
   ApartmentOutlined,
 } from '@ant-design/icons';
 import { ActiveView, Location } from '@/types/gmConsole';
+import type { ShipStatusData } from '@/types/shipStatus';
 import { gmConsoleApi, type CrewMember, type SessionLog } from '@/services/gmConsoleApi';
 import { ToolRail, ToolRailButton } from '@/components/gm/layout/ToolRail';
 import { SlideOutPanel } from '@/components/gm/layout/SlideOutPanel';
@@ -34,6 +35,7 @@ interface BridgeViewProps {
   charonChannel: string;
   charonDialogOpen: boolean;
   onDialogToggle: () => void;
+  shipData: ShipStatusData | null;
 }
 
 export function BridgeView({
@@ -45,6 +47,7 @@ export function BridgeView({
   charonChannel,
   charonDialogOpen,
   onDialogToggle,
+  shipData: _shipData,  // destructured but not yet used in JSX — Plan 09-02 will consume it
 }: BridgeViewProps) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
 

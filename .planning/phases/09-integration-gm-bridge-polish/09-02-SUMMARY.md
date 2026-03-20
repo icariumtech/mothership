@@ -40,6 +40,7 @@ key-decisions:
   - "All three map components mounted simultaneously with hidden/paused props — preserves WebGL context on tab switch"
   - "ship-status ToolRail entry removed — permanent dashboard replaces slide-out panel"
   - "findParentSystemSlug searches only system-type top-level locations for orbit mode derivation"
+  - "GmBridgeStatusPanel deferred: ship status panel will be superseded by a proper ship map view built on encounter map infrastructure (ship as a location with deck maps)"
 
 patterns-established:
   - "Prop-driven dashboard panels: receive data from SSE-aware parent instead of polling internally"
@@ -64,7 +65,7 @@ completed: 2026-03-18
 - **Duration:** 3 min
 - **Started:** 2026-03-18T16:17:37Z
 - **Completed:** 2026-03-18T16:20:57Z
-- **Tasks:** 1 of 2 (checkpoint pending human verification)
+- **Tasks:** 2 of 2 (checkpoint approved)
 - **Files modified:** 2
 
 ## Accomplishments
@@ -79,7 +80,9 @@ Each task was committed atomically:
 
 1. **Task 1: Build GmBridgeDashboard** - `b6ab204` (feat)
 
-**Plan metadata:** (pending — checkpoint not yet cleared)
+2. **Task 2: Checkpoint — Human verification** - approved
+
+**Plan metadata:** (see final commit below)
 
 ## Files Created/Modified
 - `src/components/gm/views/BridgeView.tsx` - Added GmBridgeDashboard, GmBridgeBreadcrumb, GmBridgeMapPanel, GmBridgeStatusPanel sub-components; deriveBridgeMapMode and deriveBreadcrumb helpers; star map fetch; removed ship-status tool entry
@@ -93,7 +96,17 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Post-approval deferral noted by user
+
+**GmBridgeStatusPanel — built but superseded in a future phase**
+- **Found during:** Human verification checkpoint
+- **Issue:** The ship status panel (identity + toggle dropdowns) was built as planned, but the user identified it will be replaced by a proper ship map view built on the encounter map infrastructure — the ship will be modeled as a location with deck maps, making the toggle-only panel obsolete.
+- **Impact:** GmBridgeStatusPanel code is present and functional, but is a placeholder. A future phase will replace the right panel with the ship-as-location map view using EncounterMapRenderer.
+- **Action taken:** No code change — deferral recorded here for future phase planning.
+
+---
+
+**Total deviations:** 0 auto-fixed (code executed exactly as planned). 1 scope note: ship status panel is a known placeholder pending future ship map phase.
 
 ## Issues Encountered
 None.
@@ -102,8 +115,9 @@ None.
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- Task 1 complete and committed. Awaiting human verification at checkpoint.
-- After checkpoint approval: SUMMARY.md and state updates will be finalized.
+- Phase 09 complete. All plans executed and verified.
+- Future phase opportunity: Replace GmBridgeStatusPanel right panel with a ship-as-location deck map view using EncounterMapRenderer — ship modeled as a location with deck maps in the data directory.
+- The layout infrastructure (gm-bridge-view__main, gm-bridge-content, gm-bridge-status-panel) is in place and sized correctly (360px) for the replacement panel.
 
 ---
 *Phase: 09-integration-gm-bridge-polish*

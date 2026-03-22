@@ -194,6 +194,8 @@ def build_active_view_payload(state: dict) -> dict:
         'view_type': state.get('view_type', 'STANDBY'),
         'view_slug': state.get('view_slug', ''),
         'bridge_tab': state.get('bridge_tab', ''),
+        'bridge_map_mode': state.get('bridge_map_mode', 'galaxy'),
+        'bridge_label': state.get('bridge_label', ''),
         'overlay_location_slug': state.get('overlay_location_slug', ''),
         'overlay_terminal_slug': state.get('overlay_terminal_slug', ''),
         'charon_mode': state.get('charon_mode', 'DISPLAY'),
@@ -269,6 +271,17 @@ def build_active_view_payload(state: dict) -> dict:
                             if deck.get('id') == current_deck_id:
                                 response['encounter_deck_name'] = deck.get('name', '')
                                 break
+
+    # BRIDGE view: include ship deck map data so frontend can render without a second call
+    if state.get('view_type') == 'BRIDGE':
+        loader = DataLoader()
+        ship_dir = loader.data_dir / "campaign" / "ship"
+        if ship_dir.exists():
+            ship_map = loader.load_map(ship_dir)
+            if ship_map:
+                response['ship_deck_data'] = ship_map
+                manifest = ship_map.get('manifest', {})
+                response['ship_deck_total_decks'] = manifest.get('total_decks', 1)
 
     return response
 
@@ -648,10 +661,41 @@ def api_bridge_selection(request):
         kwargs['view_slug'] = data['location_slug']
     if 'tab' in data:
         kwargs['bridge_tab'] = data['tab']
+        kwargs['bridge_label'] = ''  # clear label on tab change
+    if 'map_mode' in data:
+        kwargs['bridge_map_mode'] = data['map_mode']
+    if 'label' in data:
+        kwargs['bridge_label'] = data['label']
     new_state = update_state(**kwargs)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def api_set_ship_location(request):
+    """GM action: set the ship's current galactic position. Writes to ship.yaml + broadcasts SSE."""
+    import json
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    location_slug = data.get('location_slug', '')
+    loader = DataLoader()
+    loader.save_ship_location(location_slug)
+    # Broadcast updated ship status so all clients see the new location_slug
+    try:
+        ship_data = loader.load_ship_status()
+        if ship_data:
+            broadcaster.announce_ship_status(ship_data)
+    except Exception:
+        pass
+    return JsonResponse({'success': True, 'location_slug': location_slug})
 
 
 @csrf_exempt

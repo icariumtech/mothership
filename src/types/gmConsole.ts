@@ -18,6 +18,30 @@ export interface Location {
   has_map?: boolean;
 }
 
+export interface ShipDeckData {
+  is_multi_deck: boolean;
+  manifest: {
+    name: string;
+    facility_type: string;
+    total_decks: number;
+    decks: Array<{ id: string; name: string; file: string; level: number; default?: boolean }>;
+  };
+  current_deck: {
+    deck_id: string;
+    name: string;
+    unit_size: number;
+    rooms: Array<{
+      id: string;
+      name: string;
+      polygon?: number[][];
+      rects?: Array<{ x: number; y: number; w: number; h: number; chamfer?: number }>;
+      doors?: Array<{ x?: number; y?: number; angle?: number; wall?: string; position?: number; type?: string; status?: string }>;
+    }>;
+  } | null;
+  current_deck_id: string;
+  slug: string;
+}
+
 export interface NpcPortraitData {
   id: string;
   name: string;
@@ -29,6 +53,8 @@ export interface ActiveView {
   view_type: string;
   view_slug: string;
   bridge_tab?: string;
+  bridge_map_mode?: 'galaxy' | 'system' | 'orbit';
+  bridge_label?: string;
   overlay_location_slug: string;
   overlay_terminal_slug: string;
   charon_mode: 'DISPLAY' | 'QUERY';
@@ -45,6 +71,9 @@ export interface ActiveView {
   encounter_tokens: TokenState;
   encounter_active_portraits: string[];          // ordered list of NPC IDs
   encounter_npc_data: { [id: string]: NpcPortraitData };  // NPC lookup map
+  // Ship deck map data (populated when view_type == 'BRIDGE')
+  ship_deck_data?: ShipDeckData;
+  ship_deck_total_decks?: number;
   updated_at: string;
 }
 

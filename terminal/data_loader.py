@@ -384,6 +384,13 @@ class DataLoader:
         Find a location by slug anywhere in the hierarchy.
         Searches recursively through all locations and their children.
         """
+        # Special case: campaign ship lives outside the galaxy tree
+        if slug == 'campaign_ship':
+            ship_dir = self.data_dir / "campaign" / "ship"
+            if ship_dir.exists():
+                return self.load_location_recursive(ship_dir)
+            return None
+
         if locations is None:
             locations = self.load_all_locations()
 
@@ -567,6 +574,15 @@ class DataLoader:
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f)
         return ship_data
+
+    def save_ship_location(self, location_slug: str) -> None:
+        """Write the galactic location_slug back to data/campaign/ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        ship_data['location_slug'] = location_slug
+        with open(ship_file, 'w') as f:
+            yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True)
 
 
 def group_messages_by_conversation(messages: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:

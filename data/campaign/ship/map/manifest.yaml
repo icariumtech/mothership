@@ -1,0 +1,9 @@
+name: "USCSS Morrigan"
+facility_type: "ship"
+total_decks: 1
+decks:
+  - id: "morrigan_main"
+    name: "Main Deck"
+    file: "morrigan_main.yaml"
+    level: 1
+    default: true

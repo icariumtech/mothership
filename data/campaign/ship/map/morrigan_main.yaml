@@ -1,0 +1,46 @@
+deck_id: "morrigan_main"
+name: "USCSS Morrigan — Main Deck"
+location_name: "USCSS Morrigan"
+unit_size: 30
+
+rooms:
+
+  - id: bridge
+    name: "BRIDGE"
+    polygon: [[4,0],[10,0],[10,5],[4,5]]
+    doors:
+      - {x: 7.0, y: 5.0, angle: 0, type: standard, status: CLOSED}
+
+  - id: medical_bay
+    name: "MEDICAL BAY"
+    polygon: [[0,2],[4,2],[4,5],[0,5]]
+    doors:
+      - {x: 4.0, y: 3.5, angle: 90, type: standard, status: CLOSED}
+
+  - id: cargo_bay
+    name: "CARGO BAY"
+    polygon: [[0,5],[10,5],[10,11],[0,11]]
+    doors:
+      - {x: 7.0, y: 5.0, angle: 0, type: standard, status: CLOSED}
+      - {x: 4.0, y: 3.5, angle: 90, type: standard, status: CLOSED}
+      - {x: 10.0, y: 8.0, angle: 90, type: standard, status: CLOSED}
+      - {x: 5.0, y: 11.0, angle: 0, type: standard, status: CLOSED}
+      - {x: 7.0, y: 11.0, angle: 0, type: standard, status: CLOSED}
+
+  - id: airlock
+    name: "AIRLOCK"
+    polygon: [[10,5],[13,5],[13,11],[10,11]]
+    doors:
+      - {x: 10.0, y: 8.0, angle: 90, type: standard, status: CLOSED}
+
+  - id: crew_quarters
+    name: "CREW QUARTERS"
+    polygon: [[0,11],[5,11],[5,16],[0,16]]
+    doors:
+      - {x: 5.0, y: 11.0, angle: 0, type: standard, status: CLOSED}
+
+  - id: engineering
+    name: "ENGINEERING"
+    polygon: [[5,11],[10,11],[10,16],[5,16]]
+    doors:
+      - {x: 7.0, y: 11.0, angle: 0, type: standard, status: CLOSED}

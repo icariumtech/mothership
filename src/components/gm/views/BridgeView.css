@@ -92,23 +92,31 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  position: relative;
 }
 
 .gm-bridge-breadcrumb {
-  height: 36px;
-  flex-shrink: 0;
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75%;
+  z-index: 5;
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  background: #0f1515;
-  border-bottom: 1px solid #1f2f2f;
+  justify-content: center;
+  background: #0a0f0f;
+  border: 1px solid #1f2f2f;
+  border-radius: 4px;
+  padding: 6px 16px;
+  pointer-events: none;
 }
 
 .gm-bridge-breadcrumb__text {
   font-family: 'Cascadia Code', 'Courier New', monospace;
   font-size: 11px;
   letter-spacing: 2px;
-  color: #4a6b6b;
+  color: #8b7355;
   text-transform: uppercase;
 }
 
@@ -140,8 +148,8 @@
 }
 
 .gm-bridge-status-panel {
-  width: 360px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
   background: #0f1515;
   border-left: 1px solid #1f2f2f;
@@ -164,4 +172,13 @@
   background: #0a1010;
   border: 1px solid #1a2020;
   border-radius: 3px;
+}
+
+.gm-bridge-ship-deck-map {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #1a2525;
+  min-height: 220px;
+  flex: 1;
+  position: relative;
 }

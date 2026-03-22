@@ -8,7 +8,9 @@ import {
 } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { EncounterMapDisplay } from '@/components/domain/encounter/EncounterMapDisplay';
 import { ActiveView, Location } from '@/types/gmConsole';
+import type { ShipDeckData } from '@/types/gmConsole';
 import type { ShipStatusData, SystemStatus } from '@/types/shipStatus';
 import { gmConsoleApi, type CrewMember, type SessionLog } from '@/services/gmConsoleApi';
 import { ToolRail, ToolRailButton } from '@/components/gm/layout/ToolRail';
@@ -40,6 +42,8 @@ interface BridgeViewProps {
   charonDialogOpen: boolean;
   onDialogToggle: () => void;
   shipData: ShipStatusData | null;
+  shipDeckData?: ShipDeckData;
+  shipDeckTotalDecks?: number;
 }
 
 export function BridgeView({
@@ -52,6 +56,8 @@ export function BridgeView({
   charonDialogOpen,
   onDialogToggle,
   shipData,
+  shipDeckData,
+  shipDeckTotalDecks,
 }: BridgeViewProps) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
@@ -133,47 +139,14 @@ export function BridgeView({
 
   return (
     <div className="gm-bridge-view">
-      {/* Player tab indicator */}
-      {activeView?.view_type === 'BRIDGE' && (
-        <div style={{
-          position: 'absolute',
-          top: 12,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: 2,
-          background: '#0a0f0f',
-          border: '1px solid #1f2f2f',
-          borderRadius: 4,
-          padding: '3px 4px',
-          pointerEvents: 'none',
-          zIndex: 5,
-        }}>
-          {(['map', 'personnel', 'logs', 'status', 'charon'] as const).map(tab => {
-            const active = activeView.bridge_tab === tab;
-            return (
-              <div key={tab} style={{
-                padding: '5px 14px',
-                borderRadius: 3,
-                fontSize: 13,
-                letterSpacing: 1.5,
-                textTransform: 'uppercase',
-                background: active ? '#4a6b6b' : 'transparent',
-                color: active ? '#e8e8e8' : '#666',
-              }}>
-                {tab}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Main dashboard area */}
       <GmBridgeDashboard
         activeView={activeView}
         locations={locations}
         starMapData={starMapData}
         shipData={shipData}
+        shipDeckData={shipDeckData}
+        shipDeckTotalDecks={shipDeckTotalDecks}
       />
 
       <div className="gm-bridge-view__right">
@@ -552,24 +525,38 @@ function deriveBridgeMapMode(
   if (!activeView || activeView.view_type !== 'BRIDGE' || activeView.bridge_tab !== 'map') {
     return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: null };
   }
+  const mapMode = activeView.bridge_map_mode ?? 'galaxy';
   const slug = activeView.view_slug;
-  if (!slug) {
+
+  if (mapMode === 'galaxy' || !slug) {
     return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: null };
   }
+
   const loc = findLocationBySlug(locations, slug);
-  if (!loc) {
+
+  if (mapMode === 'system') {
+    // slug is the selected planet or the system itself
+    if (loc?.type === 'system') {
+      return { mode: 'system', systemSlug: slug, bodySlug: null, locationName: loc.name };
+    }
+    const parentSystemSlug = findParentSystemSlug(locations, slug);
+    if (parentSystemSlug) {
+      const parentLoc = findLocationBySlug(locations, parentSystemSlug);
+      return { mode: 'system', systemSlug: parentSystemSlug, bodySlug: slug, locationName: parentLoc?.name ?? parentSystemSlug };
+    }
+    return { mode: 'system', systemSlug: slug, bodySlug: null, locationName: loc?.name ?? slug };
+  }
+
+  if (mapMode === 'orbit') {
+    const parentSystemSlug = findParentSystemSlug(locations, slug);
+    if (parentSystemSlug) {
+      const parentLoc = findLocationBySlug(locations, parentSystemSlug);
+      return { mode: 'orbit', systemSlug: parentSystemSlug, bodySlug: slug, locationName: parentLoc?.name ?? parentSystemSlug };
+    }
     return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: null };
   }
-  if (loc.type === 'system') {
-    return { mode: 'system', systemSlug: slug, bodySlug: null, locationName: loc.name };
-  }
-  // Planet/station/moon — find parent system
-  const parentSystemSlug = findParentSystemSlug(locations, slug);
-  if (parentSystemSlug) {
-    return { mode: 'orbit', systemSlug: parentSystemSlug, bodySlug: slug, locationName: loc.name };
-  }
-  // Fallback
-  return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: slug };
+
+  return { mode: 'galaxy', systemSlug: null, bodySlug: null, locationName: null };
 }
 
 function deriveBreadcrumb(activeView: ActiveView | null, locations: Location[]): string {
@@ -578,12 +565,24 @@ function deriveBreadcrumb(activeView: ActiveView | null, locations: Location[]):
     return `BRIDGE — PLAYER ON ${activeView.view_type}`;
   }
   const tab = (activeView.bridge_tab || 'map').toUpperCase();
-  if (tab !== 'MAP') return tab;
+  if (tab !== 'MAP') {
+    const label = activeView.bridge_label?.trim();
+    return label ? `${tab} > ${label.toUpperCase()}` : tab;
+  }
   const slug = activeView.view_slug;
   if (!slug) return 'MAP';
   const loc = findLocationBySlug(locations, slug);
-  const displayName = loc ? loc.name.toUpperCase() : slug.toUpperCase();
-  return `MAP > ${displayName}`;
+  if (!loc) return `MAP > ${slug.toUpperCase()}`;
+  if (loc.type === 'system') {
+    return `MAP > ${loc.name.toUpperCase()}`;
+  }
+  // For planets/bodies, show full path: MAP > SYSTEM > BODY
+  const parentSystemSlug = findParentSystemSlug(locations, slug);
+  if (parentSystemSlug) {
+    const parentLoc = findLocationBySlug(locations, parentSystemSlug);
+    return `MAP > ${(parentLoc?.name ?? parentSystemSlug).toUpperCase()} > ${loc.name.toUpperCase()}`;
+  }
+  return `MAP > ${loc.name.toUpperCase()}`;
 }
 
 interface GmBridgeDashboardProps {
@@ -591,15 +590,17 @@ interface GmBridgeDashboardProps {
   locations: Location[];
   starMapData: StarMapData | null;
   shipData: ShipStatusData | null;
+  shipDeckData?: ShipDeckData;
+  shipDeckTotalDecks?: number;
 }
 
-function GmBridgeDashboard({ activeView, locations, starMapData, shipData }: GmBridgeDashboardProps) {
+function GmBridgeDashboard({ activeView, locations, starMapData, shipData, shipDeckData, shipDeckTotalDecks }: GmBridgeDashboardProps) {
   return (
     <div className="gm-bridge-view__main">
       <GmBridgeBreadcrumb activeView={activeView} locations={locations} />
       <div className="gm-bridge-content">
         <GmBridgeMapPanel activeView={activeView} locations={locations} starMapData={starMapData} />
-        <GmBridgeStatusPanel shipData={shipData} />
+        <GmBridgeShipPanel shipData={shipData} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />
       </div>
     </div>
   );
@@ -681,8 +682,15 @@ const STATUS_COLORS_GM: Record<SystemStatus, string> = {
   OFFLINE: '#5a5a5a',
 };
 
-function GmBridgeStatusPanel({ shipData }: { shipData: ShipStatusData | null }) {
+interface GmBridgeShipPanelProps {
+  shipData: ShipStatusData | null;
+  shipDeckData?: ShipDeckData;
+  shipDeckTotalDecks?: number;
+}
+
+function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBridgeShipPanelProps) {
   const [messageApi, contextHolder] = message.useMessage();
+  const [currentDeckLevel] = useState(1);
 
   const handleSystemChange = useCallback(async (systemName: string, newStatus: SystemStatus) => {
     try {
@@ -745,6 +753,27 @@ function GmBridgeStatusPanel({ shipData }: { shipData: ShipStatusData | null }) 
             />
           </div>
         ))}
+      </div>
+
+      {/* Deck map section */}
+      <div className="gm-bridge-ship-deck-map">
+        {shipDeckData ? (
+          <EncounterMapDisplay
+            locationData={{
+              slug: 'campaign_ship',
+              name: ship.name || 'USCSS Morrigan',
+              type: 'ship',
+              map: shipDeckData,
+            }}
+            isGM={false}
+            currentLevel={currentDeckLevel}
+            totalLevels={shipDeckTotalDecks || 1}
+          />
+        ) : (
+          <div style={{ color: '#444', fontSize: 11, padding: 12, textAlign: 'center' }}>
+            DECK MAP UNAVAILABLE
+          </div>
+        )}
       </div>
     </div>
   );

@@ -49,12 +49,14 @@ function GMConsole() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [locationsData, viewData] = await Promise.all([
+        const [locationsData, viewData, shipStatusData] = await Promise.all([
           gmConsoleApi.getLocations(),
-          gmConsoleApi.getActiveView()
+          gmConsoleApi.getActiveView(),
+          gmConsoleApi.getShipStatus().catch(() => null),
         ]);
         setLocations(locationsData);
         setActiveView(viewData);
+        if (shipStatusData) setShipData(shipStatusData);
         setError(null);
       } catch (err) {
         setError('Failed to load data');
@@ -227,6 +229,8 @@ function GMConsole() {
             charonDialogOpen={activeView?.charon_dialog_open || false}
             onDialogToggle={handleToggleCharonDialog}
             shipData={shipData}
+            shipDeckData={activeView?.ship_deck_data}
+            shipDeckTotalDecks={activeView?.ship_deck_total_decks}
           />
         )}
         {gmView === 'ENCOUNTER' && (

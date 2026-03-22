@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-22T19:18:13.707Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-03-22T19:30:09.817Z"
 last_activity: 2026-03-09 — Completed 08-03 views and dashboard
 progress:
   total_phases: 10
   completed_phases: 7
   total_plans: 30
-  completed_plans: 27
+  completed_plans: 28
   percent: 92
 ---
 
@@ -61,6 +61,7 @@ Progress: [█████████░] 92% (Phase 8: 3/4 plans)
 | Phase 09 P01 | 360 | 3 tasks | 8 files |
 | Phase 09 P02 | 182 | 2 tasks | 2 files |
 | Phase 10 P01 | 512 | 2 tasks | 9 files |
+| Phase 10 P02 | 556 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,9 @@ Recent decisions affecting current work:
 - [Phase 10]: campaign_ship slug resolved via early-return in find_location_by_slug (not galaxy tree search)
 - [Phase 10]: BRIDGE SSE payload eager-loads ship_deck_data via load_map() — no second API call needed from frontend
 - [Phase 10]: Morrigan deck polygon vertices share exact edge coordinates for contiguous wall rendering
+- [Phase 10]: ShipSchematic SVG placeholder removed; replaced by real EncounterMapDisplay deck map in player STATUS tab
+- [Phase 10]: GmBridgeStatusPanel renamed GmBridgeShipPanel — system toggles + deck map panel combined
+- [Phase 10]: EncounterMapDisplay bridge-mode pattern: isGM=false, omit roomVisibility (all rooms visible), slug=campaign_ship
 
 ### Roadmap Evolution
 
@@ -178,6 +182,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T19:18:13.700Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-22T19:30:09.810Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None

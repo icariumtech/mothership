@@ -167,3 +167,15 @@ Plans:
 - [ ] 08-02-PLAN.md — EncounterView: full-screen map with floating controls + 4 slide-out tool panels (tokens, portraits, locations, terminals)
 - [ ] 08-03-PLAN.md — BridgeView dashboard, CharonView full-screen, StandbyView, DISPLAY button wiring
 - [ ] 08-04-PLAN.md — Human verification: all views, navigation, tool panels, map interactions, DISPLAY button, tablet layout
+
+### Phase 10: Player ship map view
+
+**Goal:** Integrate the campaign ship as a first-class location with a real grid deck map visible in BRIDGE mode (player STATUS tab + GM right panel), plus a GM action to set the ship's galactic position from the Locations panel.
+**Requirements**: SHIP-01
+**Depends on:** Phase 9
+**Plans:** 3 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Data layer + backend API: Morrigan deck YAML, DataLoader extensions, api_set_ship_location endpoint, BRIDGE payload branch, TypeScript types
+- [ ] 10-02-PLAN.md — Frontend bridge rendering: ship deck map in player STATUS tab + GmBridgeShipPanel replacing GmBridgeStatusPanel
+- [ ] 10-03-PLAN.md — GM ship location setter + end-to-end human verification

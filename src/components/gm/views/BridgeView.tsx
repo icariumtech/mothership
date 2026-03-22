@@ -60,6 +60,17 @@ export function BridgeView({
   shipDeckTotalDecks,
 }: BridgeViewProps) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleSetShipLocation = useCallback(async (slug: string) => {
+    try {
+      await gmConsoleApi.setShipLocation(slug);
+      messageApi.success('Ship position updated');
+    } catch (err) {
+      console.error('Failed to set ship location:', err);
+      messageApi.error('Failed to update ship location');
+    }
+  }, [messageApi]);
 
   // Personnel
   const [crew, setCrew] = useState<CrewMember[]>([]);
@@ -139,6 +150,7 @@ export function BridgeView({
 
   return (
     <div className="gm-bridge-view">
+      {contextHolder}
       {/* Main dashboard area */}
       <GmBridgeDashboard
         activeView={activeView}
@@ -162,6 +174,7 @@ export function BridgeView({
             onToggleNode={onToggleNode}
             onSelectLocation={() => {}}
             onShowTerminal={onShowTerminal}
+            onSetShipLocation={handleSetShipLocation}
           />
         </SlideOutPanel>
 

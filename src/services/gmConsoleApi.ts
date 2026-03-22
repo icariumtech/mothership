@@ -81,6 +81,10 @@ async function getSessions(): Promise<SessionLog[]> {
   return response.data.sessions;
 }
 
+async function setShipLocation(locationSlug: string): Promise<void> {
+  await api.post('/gm/ship/set-location/', { location_slug: locationSlug });
+}
+
 export const gmConsoleApi = {
   getLocations,
   getActiveView,
@@ -93,4 +97,5 @@ export const gmConsoleApi = {
   toggleShipSystem,
   getCrew,
   getSessions,
+  setShipLocation,
 };

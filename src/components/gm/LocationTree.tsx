@@ -14,6 +14,7 @@ interface LocationTreeProps {
   onSelectLocation: (slug: string | null) => void;
   onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
   selectionEnabled: boolean;
+  onSetShipLocation?: (slug: string) => void;
 }
 
 export function LocationTree({
@@ -25,7 +26,8 @@ export function LocationTree({
   onToggle,
   onSelectLocation,
   onShowTerminal,
-  selectionEnabled
+  selectionEnabled,
+  onSetShipLocation,
 }: LocationTreeProps) {
   // Track which keys are selectable (all locations are now selectable)
   const selectableKeys = useMemo(() => {
@@ -87,6 +89,19 @@ export function LocationTree({
             <Space>
               <span style={{ fontWeight: 500 }}>{location.name}</span>
               <Tag color="blue">{location.type}</Tag>
+              {onSetShipLocation && (
+                <Button
+                  size="small"
+                  type="text"
+                  style={{ fontSize: 10, opacity: 0.6, color: '#8b7355', padding: '0 4px' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSetShipLocation(location.slug);
+                  }}
+                >
+                  Set Ship Here
+                </Button>
+              )}
             </Space>
           ),
           children: [...terminalNodes, ...childNodes],
@@ -96,7 +111,7 @@ export function LocationTree({
     }
 
     return convertToTreeData(locations);
-  }, [locations, activeTerminalLocationSlug, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys]);
+  }, [locations, activeTerminalLocationSlug, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys, onSetShipLocation]);
 
   const expandedKeys = useMemo(() => Array.from(expandedNodes), [expandedNodes]);
 

@@ -44,7 +44,7 @@ Declared values (must be multiples of 4):
 | 3xl | 64px | Page-level spacing (not used at this scale) |
 
 Exceptions:
-- Breadcrumb bar: 6px top/bottom padding (matches existing `gm-bridge-breadcrumb` pattern — source: BridgeView.css line 108)
+- Existing `gm-bridge-breadcrumb` CSS inherited unchanged — not a new spacing decision. New `ship-dashboard-view__*` breadcrumb-equivalent padding uses 4px or 8px.
 - ToolRail width: 48px (existing fixed rail constant — source: MEMORY.md)
 - Terminal header height: 52px (existing fixed constant — source: STYLE_GUIDE.md)
 - Map `right` offset when ToolRail is visible: 48px (source: MEMORY.md right panel layout pattern)
@@ -65,6 +65,7 @@ Notes:
 - `letter-spacing: 2px` on uppercase display/label text (breadcrumbs, section headers, status chips).
 - `letter-spacing: 1px` on secondary labels.
 - Body at 12px/1.6 is the established pattern across all bridge sections. Source: BridgeView.tsx session/crew cards.
+- The 11/12/13px type scale is locked by the project's existing design system (STYLE_GUIDE.md) and is intentional for the CRT terminal aesthetic. Do not flag as non-standard.
 
 ---
 
@@ -146,6 +147,8 @@ New components needed:
 ## Layout Contract
 
 ### Player Terminal: SHIP_DASHBOARD view
+
+Primary focal point: `EncounterMapDisplay` (the ship deck map) — largest visual element, occupies the full `flex: 1` area. Status sidebar is a supporting element and must not compete visually with the map.
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -239,7 +242,7 @@ No third-party component registries in use. All components are first-party or An
 | Source | Decisions Used |
 |--------|---------------|
 | CLAUDE.md | Font (Cascadia Code), color palette hex values, component library (Ant Design + custom Panel), `@/` alias |
-| STYLE_GUIDE.md | All color tokens, chamfer 12px, spacing patterns, scrollbar styles |
+| STYLE_GUIDE.md | All color tokens, chamfer 12px, spacing patterns, scrollbar styles, 11/12/13px type scale locked |
 | STATE.md | Phase 10 goal ("ship-as-location deck map view using EncounterMapRenderer"), no-animation token movement policy, CRITICAL pulse pattern, 400ms flicker |
 | BridgeView.tsx (GM) | `GmBridgeStatusPanel` width/layout, system status color map, existing toggle API pattern |
 | BridgeView.css (GM) | `gm-bridge-content` flex layout, panel border/background values, breadcrumb positioning |

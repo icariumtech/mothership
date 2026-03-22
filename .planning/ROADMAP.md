@@ -173,7 +173,7 @@ Plans:
 **Goal:** Integrate the campaign ship as a first-class location with a real grid deck map visible in BRIDGE mode (player STATUS tab + GM right panel), plus a GM action to set the ship's galactic position from the Locations panel.
 **Requirements**: SHIP-01
 **Depends on:** Phase 9
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 - [ ] 10-01-PLAN.md — Data layer + backend API: Morrigan deck YAML, DataLoader extensions, api_set_ship_location endpoint, BRIDGE payload branch, TypeScript types

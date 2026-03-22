@@ -77,6 +77,9 @@ interface ActiveView {
   // Portrait overlay state
   encounter_active_portraits?: string[];
   encounter_npc_data?: { [id: string]: { id: string; name: string; portrait: string } };
+  // Ship deck map (BRIDGE view)
+  ship_deck_data?: import('../types/gmConsole').ShipDeckData;
+  ship_deck_total_decks?: number;
 }
 
 interface InitialData {
@@ -157,6 +160,8 @@ function SharedConsole() {
   }, [performanceMode]);
 
   // Map view state
+  const [shipData, setShipData] = useState(window.INITIAL_DATA?.shipStatus ?? null);
+
   const [mapViewMode, setMapViewMode] = useState<MapViewMode>('galaxy');
   const [currentSystemSlug, setCurrentSystemSlug] = useState<string | null>(null);
   const [systemMapData, setSystemMapData] = useState<SystemMapData | null>(null);
@@ -335,6 +340,9 @@ function SharedConsole() {
       } else {
         setTerminalOverlayOpen(false);
       }
+    }, []),
+    onShipStatusEvent: useCallback((rawData: unknown) => {
+      setShipData(rawData as typeof shipData);
     }, []),
     failureThreshold: 5,
     retryDelayMs: 3000,
@@ -628,7 +636,7 @@ function SharedConsole() {
     }
 
     const timer = setTimeout(() => {
-      terminalApi.updateBridgeSelection(slug).catch(() => {});
+      terminalApi.updateBridgeSelection(slug, mapViewMode).catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
   }, [viewType, mapViewMode, selectedSystemData, currentSystemSlug, selectedPlanet, currentBodySlug, selectedOrbitElementData]);
@@ -880,6 +888,9 @@ function SharedConsole() {
           onTabChange={handleTabChange}
           tabTransitionActive={tabTransition !== 'idle'}
           charonHasMessages={charonHasMessages}
+          shipData={shipData}
+          shipDeckData={activeView?.ship_deck_data}
+          shipDeckTotalDecks={activeView?.ship_deck_total_decks}
         >
           {/* Map components - only visible when map tab is active */}
           <>

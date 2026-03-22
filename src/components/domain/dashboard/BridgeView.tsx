@@ -1,4 +1,6 @@
 import { ReactNode } from 'react';
+import type { ShipStatusData } from '@/types/shipStatus';
+import type { ShipDeckData } from '@/types/gmConsole';
 import { TabBar, BridgeTab } from './TabBar';
 import { PersonnelSection } from './sections/PersonnelSection';
 import { LogsSection } from './sections/LogsSection';
@@ -80,6 +82,9 @@ export interface BridgeViewProps {
   tabTransitionActive?: boolean;
   children?: ReactNode; // Map components and InfoPanel passed from SharedConsole
   charonHasMessages?: boolean;
+  shipData?: ShipStatusData | null;
+  shipDeckData?: ShipDeckData;
+  shipDeckTotalDecks?: number;
 }
 
 export function BridgeView({
@@ -88,6 +93,9 @@ export function BridgeView({
   tabTransitionActive = false,
   children,
   charonHasMessages = false,
+  shipData,
+  shipDeckData,
+  shipDeckTotalDecks,
 }: BridgeViewProps) {
   return (
     <div className="bridge-view">
@@ -99,7 +107,7 @@ export function BridgeView({
         {/* Other sections - conditionally rendered */}
         {activeTab === 'personnel' && <PersonnelSection />}
         {activeTab === 'logs' && <LogsSection />}
-        {activeTab === 'status' && <StatusSection />}
+        {activeTab === 'status' && <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />}
 
         {/* CHARON Section - always mounted to preserve conversation state and avoid indicator flashes */}
         <div style={{ display: activeTab === 'charon' ? 'block' : 'none' }}>

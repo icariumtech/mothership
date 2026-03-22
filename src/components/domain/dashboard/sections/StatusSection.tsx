@@ -1,13 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { DashboardPanel } from '@components/ui/DashboardPanel';
 import type { ShipStatusData, SystemStatus } from '@/types/shipStatus';
+import { EncounterMapDisplay } from '@/components/domain/encounter/EncounterMapDisplay';
+import type { ShipDeckData } from '@/types/gmConsole';
 import './Section.css';
 import './StatusSection.css';
-
-// Read ship data from window.INITIAL_DATA (loaded by Django backend)
-function getShipStatusData(): ShipStatusData | null {
-  return window.INITIAL_DATA?.shipStatus || null;
-}
 
 // Track previous status for flicker detection
 interface PreviousStatuses {
@@ -22,105 +19,6 @@ interface ChangingFlags {
   engines: boolean;
   weapons: boolean;
   comms: boolean;
-}
-
-// Ship schematic component - SVG blueprint-style top-down view
-function ShipSchematic() {
-  return (
-    <svg
-      className="ship-schematic"
-      viewBox="0 0 400 600"
-      preserveAspectRatio="xMidYMid meet"
-    >
-      {/* Background grid pattern */}
-      <defs>
-        <pattern
-          id="grid"
-          width="20"
-          height="20"
-          patternUnits="userSpaceOnUse"
-        >
-          <path
-            d="M 20 0 L 0 0 0 20"
-            fill="none"
-            stroke="var(--color-border-subtle)"
-            strokeWidth="0.5"
-          />
-        </pattern>
-      </defs>
-      <rect width="400" height="600" fill="url(#grid)" />
-
-      {/* Ship outline - vertical orientation */}
-      <path
-        d="M 200 50 L 250 150 L 240 300 L 250 450 L 200 550 L 150 450 L 160 300 L 150 150 Z"
-        fill="var(--color-bg-panel-dark)"
-        stroke="var(--color-teal)"
-        strokeWidth="2"
-      />
-
-      {/* Bridge section */}
-      <circle
-        cx="200"
-        cy="120"
-        r="15"
-        fill="none"
-        stroke="var(--color-teal)"
-        strokeWidth="1"
-      />
-      <text
-        x="200"
-        y="125"
-        textAnchor="middle"
-        fill="var(--color-text-muted)"
-        fontSize="10"
-        fontFamily="Cascadia Code, monospace"
-      >
-        BRIDGE
-      </text>
-
-      {/* Cargo bay section */}
-      <rect
-        x="170"
-        y="280"
-        width="60"
-        height="40"
-        fill="none"
-        stroke="var(--color-teal)"
-        strokeWidth="1"
-      />
-      <text
-        x="200"
-        y="305"
-        textAnchor="middle"
-        fill="var(--color-text-muted)"
-        fontSize="10"
-        fontFamily="Cascadia Code, monospace"
-      >
-        CARGO
-      </text>
-
-      {/* Engine section */}
-      <rect
-        x="170"
-        y="460"
-        width="60"
-        height="60"
-        fill="none"
-        stroke="var(--color-teal)"
-        strokeWidth="1"
-      />
-      <text
-        x="200"
-        y="495"
-        textAnchor="middle"
-        fill="var(--color-text-muted)"
-        fontSize="10"
-        fontFamily="Cascadia Code, monospace"
-      >
-        ENGINES
-      </text>
-    </svg>
-  );
 }
 
 // System status panel component
@@ -200,20 +98,22 @@ function IntegrityPanel({ label, current, max, variant, delay, staggerDone }: In
   );
 }
 
-export function StatusSection() {
-  // shipData: Plan 09-02 will call setShipData on SSE shipstatus events (via prop from BridgeView)
-  const [shipData, setShipData] = useState<ShipStatusData | null>(getShipStatusData());
-  void setShipData; // Plan 09-02 will wire this to SSE updates
+interface StatusSectionProps {
+  shipData: ShipStatusData | null;
+  shipDeckData?: ShipDeckData;
+  shipDeckTotalDecks?: number;
+}
+
+export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: StatusSectionProps) {
   const [staggerComplete, setStaggerComplete] = useState(false);
+  const [currentDeckLevel] = useState(1);
   const previousStatusesRef = useRef<PreviousStatuses | null>(null);
-  // changingFlags: Plan 09-02 will call setChangingFlags when SSE events arrive
   const [changingFlags, setChangingFlags] = useState<ChangingFlags>({
     life_support: false,
     engines: false,
     weapons: false,
     comms: false,
   });
-  void setChangingFlags; // Plan 09-02 will wire this to SSE-triggered flicker logic
 
   // Mark stagger animation complete after longest delay + animation duration
   useEffect(() => {
@@ -221,22 +121,40 @@ export function StatusSection() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Initialize previous statuses on mount
+  // Track status changes from SSE updates — flash changingFlags briefly on change
   useEffect(() => {
-    if (shipData && !previousStatusesRef.current) {
+    if (!shipData) return;
+    const systems = shipData.ship.systems;
+    const prev = previousStatusesRef.current;
+
+    if (!prev) {
       previousStatusesRef.current = {
-        life_support: shipData.ship.systems.life_support.status,
-        engines: shipData.ship.systems.engines.status,
-        weapons: shipData.ship.systems.weapons.status,
-        comms: shipData.ship.systems.comms.status,
+        life_support: systems.life_support.status,
+        engines: systems.engines.status,
+        weapons: systems.weapons.status,
+        comms: systems.comms.status,
       };
+      return;
+    }
+
+    const changed: ChangingFlags = {
+      life_support: prev.life_support !== systems.life_support.status,
+      engines: prev.engines !== systems.engines.status,
+      weapons: prev.weapons !== systems.weapons.status,
+      comms: prev.comms !== systems.comms.status,
+    };
+
+    if (Object.values(changed).some(Boolean)) {
+      setChangingFlags(changed);
+      previousStatusesRef.current = {
+        life_support: systems.life_support.status,
+        engines: systems.engines.status,
+        weapons: systems.weapons.status,
+        comms: systems.comms.status,
+      };
+      setTimeout(() => setChangingFlags({ life_support: false, engines: false, weapons: false, comms: false }), 600);
     }
   }, [shipData]);
-
-  // Note: polling removed (Plan 09-01) — StatusSection now initializes from window.INITIAL_DATA.shipStatus on mount.
-  // GM-side ship status will be driven by SSE shipstatus events via GMConsole → BridgeView (Plan 09-02).
-  // The changingFlags / previousStatusesRef logic is preserved for SSE-driven updates in Plan 09-02.
-  // Player-side StatusSection remains static from INITIAL_DATA until a future phase wires SSE to the player terminal.
 
   if (!shipData) {
     return (
@@ -259,7 +177,7 @@ export function StatusSection() {
         </div>
       </div>
 
-      {/* Main layout: panels + schematic */}
+      {/* Main layout: panels — 2 columns (hull/armor/life-support left, engines/weapons/comms right) */}
       <div className="status-layout">
         {/* Left column - Hull, Armor, Life Support */}
         <div className="status-column-left">
@@ -288,11 +206,6 @@ export function StatusSection() {
             delay={1.0}
             staggerDone={staggerComplete}
           />
-        </div>
-
-        {/* Center - Ship schematic */}
-        <div className="status-schematic-container">
-          <ShipSchematic />
         </div>
 
         {/* Right column - Engines, Weapons, Comms */}
@@ -325,6 +238,30 @@ export function StatusSection() {
             staggerDone={staggerComplete}
           />
         </div>
+      </div>
+
+      {/* Ship deck map — below status panels */}
+      <div className="section-status__deck-map">
+        <div style={{ color: '#4a6b6b', fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>
+          SHIP STATUS
+        </div>
+        {shipDeckData ? (
+          <EncounterMapDisplay
+            locationData={{
+              slug: 'campaign_ship',
+              name: (shipData?.ship?.name) || 'USCSS Morrigan',
+              type: 'ship',
+              map: shipDeckData,
+            }}
+            isGM={false}
+            currentLevel={currentDeckLevel}
+            totalLevels={shipDeckTotalDecks || 1}
+          />
+        ) : (
+          <div style={{ color: '#444', fontSize: 11, padding: '16px 0', textAlign: 'center' }}>
+            DECK MAP UNAVAILABLE
+          </div>
+        )}
       </div>
     </div>
   );

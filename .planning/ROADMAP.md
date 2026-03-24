@@ -134,13 +134,16 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Campaign Logs Tab | 2/2 | ✓ Complete | 2026-02-12 |
 | 2. Ship Status Dashboard | 3/3 | ✓ Complete | 2026-02-12 |
-| 3. Encounter Tokens | 0/4 | In Progress | - |
-| 4. NPC Portrait System | 3/4 | In Progress|  |
-| 5. Real-Time Push Architecture | 3/4 | In Progress|  |
+| 3. Encounter Tokens | 4/4 | ✓ Complete | 2026-02-21 |
+| 4. NPC Portrait System | 4/4 | ✓ Complete | 2026-02-21 |
+| 5. Real-Time Push Architecture | 4/4 | ✓ Complete | 2026-03-01 |
 | 6. UI Audio System | — | Deferred to v2 | - |
 | 7. Grid-Based Encounter Map | 4/4 | ✓ Complete | 2026-03-16 |
-| 8. Rework GM Console UI | 3/4 | ✓ Complete | 2026-03-16 |
-| 9. Integration + GM Bridge Polish | 2/2 | Complete   | 2026-03-20 |
+| 8. Rework GM Console UI | 4/4 | ✓ Complete | 2026-03-16 |
+| 9. Integration + GM Bridge Polish | 2/2 | ✓ Complete | 2026-03-20 |
+| 10. Player Ship Map View | 3/3 | ✓ Complete | 2026-03-24 |
+| 11. Close Functional + Security Gaps | 0/1 | Pending | - |
+| 12. Requirements Tracking + Dead Code Cleanup | 0/1 | Pending | - |
 
 ### Phase 7: Grid-based encounter map redesign
 
@@ -179,3 +182,34 @@ Plans:
 - [ ] 10-01-PLAN.md — Data layer + backend API: Morrigan deck YAML, DataLoader extensions, api_set_ship_location endpoint, BRIDGE payload branch, TypeScript types
 - [ ] 10-02-PLAN.md — Frontend bridge rendering: ship deck map in player STATUS tab + GmBridgeShipPanel replacing GmBridgeStatusPanel
 - [ ] 10-03-PLAN.md — GM ship location setter + end-to-end human verification
+
+### Phase 11: Close Functional + Security Gaps
+**Goal:** Fix the three real gaps found by the v1.0 milestone audit: add the NPC portrait overlay to GM EncounterView, secure the ship integrity endpoint, thread the Set Ship Here prop into Encounter locations, and eliminate the GM console loading flash.
+**Depends on:** Phase 10
+**Requirements:** PORT-03, STAT-06, SHIP-01
+**Gap Closure:** Closes functional and security gaps from v1.0-MILESTONE-AUDIT.md
+
+**Success Criteria** (what must be TRUE):
+  1. NPCPortraitOverlay renders in GM EncounterView when portraits are toggled — overlay visible on GM screen
+  2. `/api/gm/ship-status/integrity/` returns 403 for unauthenticated requests
+  3. Right-click "Set Ship Here" context menu appears in Encounter view Locations panel
+  4. GM console loads without "No ship data available" flash (INITIAL_DATA injected)
+
+Plans:
+- [ ] 11-01-PLAN.md — Security fix + NPC portrait overlay + Set Ship Here prop + INITIAL_DATA injection
+
+### Phase 12: Requirements Tracking + Dead Code Cleanup
+**Goal:** Bring REQUIREMENTS.md and ROADMAP.md into alignment with the actual implemented state: register orphaned requirements, check off completed grid map requirements, and remove dead code left over from the Phase 09 refactor.
+**Depends on:** Phase 11
+**Requirements:** SHIP-01 (register), GMUI-LAYOUT, GMUI-VIEWRAIL, GMUI-TOOLRAIL, GMUI-SLIDEOUT, GMUI-ENCOUNTER, GMUI-TOOLPANELS, GMUI-MAPFULLSCREEN, GMUI-BRIDGE, GMUI-CHARON, GMUI-STANDBY, GMUI-DISPLAY (register), GRID-01..10 (check off)
+**Gap Closure:** Closes tracking and housekeeping gaps from v1.0-MILESTONE-AUDIT.md
+
+**Success Criteria** (what must be TRUE):
+  1. REQUIREMENTS.md contains SHIP-01 entry with description and phase reference
+  2. REQUIREMENTS.md contains all 11 GMUI-* requirements with descriptions and Phase 8 reference
+  3. GRID-01..10 checkboxes are `[x]` in REQUIREMENTS.md
+  4. ShipStatusPanel.tsx and ShipStatusToolPanel.tsx deleted (no more orphaned 5s polling loop)
+  5. ROADMAP.md progress table and plan checkboxes reflect actual completed state
+
+Plans:
+- [ ] 12-01-PLAN.md — REQUIREMENTS.md registration + ROADMAP.md sync + dead code removal

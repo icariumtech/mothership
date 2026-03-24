@@ -34,7 +34,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [x] **PORT-01**: GM can trigger an NPC portrait display on the terminal
 - [x] **PORT-02**: Portrait panel shows NPC name and basic info with CRT/amber styling
-- [x] **PORT-03**: Portrait appears as overlay during encounter view (GM EncounterView — Phase 9)
+- [ ] **PORT-03**: Portrait appears as overlay during encounter view (GM EncounterView — Phase 11)
 - [x] **PORT-04**: Multiple portraits can display simultaneously for group conversations
 - [x] **PORT-05**: Portrait reveal uses animated typewriter name and fade-in effect
 
@@ -57,6 +57,24 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **GRID-08**: MapPreview and EncounterPanel updated for GridRoom schema (no status field, type field, onRoomToggle wired)
 - [ ] **GRID-09**: isGridEncounterMap() type guard routes new maps to grid renderer in EncounterMapDisplay
 - [ ] **GRID-10**: End-to-end human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect placement
+
+### GM Console UI (Phase 8)
+
+- [x] **GMUI-LAYOUT**: GM console uses view-driven architecture with left icon rail, full-content main area, and right slide-out panels
+- [x] **GMUI-VIEWRAIL**: Left ViewRail with circular icon buttons for switching views (Encounter, Bridge, CHARON, Standby); DISPLAY button at top
+- [x] **GMUI-TOOLRAIL**: Right ToolRail with icon buttons that toggle slide-out tool panels
+- [x] **GMUI-SLIDEOUT**: SlideOutPanel component slides out from right when tool activated; closes by re-clicking active tool
+- [x] **GMUI-ENCOUNTER**: EncounterView fills main content area with full-screen map
+- [x] **GMUI-TOOLPANELS**: Four slide-out panels in EncounterView: Tokens, Portraits, Locations, Terminals
+- [x] **GMUI-MAPFULLSCREEN**: Encounter map occupies full available width/height in GM view (fills container, no fixed aspect ratio)
+- [x] **GMUI-BRIDGE**: BridgeView main dashboard with breadcrumb nav, 3D map mirror, and inline ship status panel
+- [x] **GMUI-CHARON**: CharonView provides full-screen CHARON AI terminal in GM console
+- [x] **GMUI-STANDBY**: StandbyView shows animated standby state when no active encounter
+- [x] **GMUI-DISPLAY**: DISPLAY button in ViewRail opens/controls the player-facing terminal display
+
+### Player Ship Map (Phase 10)
+
+- [x] **SHIP-01**: Campaign ship deck map visible in BRIDGE mode (player STATUS tab and GM right panel); GM can set ship galactic position from Locations panel via right-click "Set Ship Here"
 
 ## v2 Requirements
 
@@ -131,7 +149,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOKN-05 | Phase 3 | Pending |
 | PORT-01 | Phase 4 | Complete |
 | PORT-02 | Phase 4 | Complete |
-| PORT-03 | Phase 4 | Complete |
+| PORT-03 | Phase 11 | Pending |
 | PORT-04 | Phase 4 | Complete |
 | PORT-05 | Phase 4 | Complete |
 | RTMA-01 | Phase 5 | Complete |
@@ -148,10 +166,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GRID-08 | Phase 7 | Pending |
 | GRID-09 | Phase 7 | Pending |
 | GRID-10 | Phase 7 | Pending |
+| GMUI-LAYOUT | Phase 8 | Complete |
+| GMUI-VIEWRAIL | Phase 8 | Complete |
+| GMUI-TOOLRAIL | Phase 8 | Complete |
+| GMUI-SLIDEOUT | Phase 8 | Complete |
+| GMUI-ENCOUNTER | Phase 8 | Complete |
+| GMUI-TOOLPANELS | Phase 8 | Complete |
+| GMUI-MAPFULLSCREEN | Phase 8 | Complete |
+| GMUI-BRIDGE | Phase 8 | Complete |
+| GMUI-CHARON | Phase 8 | Complete |
+| GMUI-STANDBY | Phase 8 | Complete |
+| GMUI-DISPLAY | Phase 8 | Complete |
+| SHIP-01 | Phase 10 | Complete |
 
 **Coverage:**
-- v1 requirements: 29 total (AUDI-01..03 moved to v2)
-- Mapped to phases: 29
+- v1 requirements: 42 total (29 original + 12 GMUI-* + 1 SHIP-01; AUDI-01..03 moved to v2)
+- Mapped to phases: 42
 - Unmapped: 0
 
 **Phase 09 gap closures (integration fixes):**
@@ -159,8 +189,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status | Note |
 |-------------|-------|--------|------|
 | RTMA-01 | Phase 9 | Complete | StatusSection SSE migration |
-| PORT-03 | Phase 9 | Complete | NPCPortraitOverlay in GM EncounterView |
 | LOGS-02 | Phase 9 | Complete | react-markdown in GM SessionDetailView |
+
+**Phase 11 gap closures:**
+
+| Requirement | Phase | Status | Note |
+|-------------|-------|--------|------|
+| PORT-03 | Phase 11 | Pending | NPCPortraitOverlay wired into GM EncounterView |
+| STAT-06 | Phase 11 | Pending | @login_required on api_ship_update_integrity |
+| SHIP-01 | Phase 11 | Pending | onSetShipLocation prop passed in EncounterView |
+
+**Phase 12 gap closures:**
+
+| Requirement | Phase | Status | Note |
+|-------------|-------|--------|------|
+| GMUI-LAYOUT..GMUI-DISPLAY | Phase 8 | Complete | Registered — audit gap closure |
+| SHIP-01 | Phase 10 | Complete | Registered — audit gap closure |
+| GRID-01..10 | Phase 7 | Complete | Check off — audit gap closure |
 
 ---
 *Requirements defined: 2026-02-11*

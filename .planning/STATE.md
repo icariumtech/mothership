@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Checkpoint: Completed 10-03 Task 1, awaiting human verification Task 2"
-last_updated: "2026-03-22T19:44:03.885Z"
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-24T15:36:23.469Z"
 last_activity: 2026-03-09 — Completed 08-03 views and dashboard
 progress:
-  total_phases: 10
-  completed_phases: 8
-  total_plans: 30
-  completed_plans: 29
+  total_phases: 12
+  completed_phases: 9
+  total_plans: 31
+  completed_plans: 30
   percent: 92
 ---
 
@@ -63,6 +63,7 @@ Progress: [█████████░] 92% (Phase 8: 3/4 plans)
 | Phase 10 P01 | 512 | 2 tasks | 9 files |
 | Phase 10 P02 | 556 | 2 tasks | 7 files |
 | Phase 10 P03 | 480 | 1 tasks | 4 files |
+| Phase 11 P01 | 228 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -168,6 +169,9 @@ Recent decisions affecting current work:
 - [Phase 10]: EncounterMapDisplay bridge-mode pattern: isGM=false, omit roomVisibility (all rooms visible), slug=campaign_ship
 - [Phase 10]: BridgeView handles setShipLocation internally (no prop threading to GMConsole) — same pattern as other GM actions
 - [Phase 10]: 'Set Ship Here' button rendered only when onSetShipLocation prop is provided — opt-in at call site
+- [Phase 11]: @login_required added to api_ship_update_integrity matching companion endpoint pattern
+- [Phase 11]: NPCPortraitOverlay rendered as sibling to __map and __right divs in EncounterView — outside transform elements for correct fixed positioning
+- [Phase 11]: gm_console_react loads ship_status_json via DataLoader matching display_view_react pattern; GMConsole.tsx already reads INITIAL_DATA — no frontend change needed
 
 ### Roadmap Evolution
 
@@ -185,6 +189,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T19:44:03.865Z
-Stopped at: Checkpoint: Completed 10-03 Task 1, awaiting human verification Task 2
+Last session: 2026-03-24T15:36:23.442Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None

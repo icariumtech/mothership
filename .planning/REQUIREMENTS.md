@@ -34,7 +34,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 - [x] **PORT-01**: GM can trigger an NPC portrait display on the terminal
 - [x] **PORT-02**: Portrait panel shows NPC name and basic info with CRT/amber styling
-- [ ] **PORT-03**: Portrait appears as overlay during encounter view (GM EncounterView — Phase 11)
+- [x] **PORT-03**: Portrait appears as overlay during encounter view (GM EncounterView — Phase 11)
 - [x] **PORT-04**: Multiple portraits can display simultaneously for group conversations
 - [x] **PORT-05**: Portrait reveal uses animated typewriter name and fade-in effect
 
@@ -141,7 +141,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-03 | Phase 2 | Pending |
 | STAT-04 | Phase 2 | Pending |
 | STAT-05 | Phase 2 | Pending |
-| STAT-06 | Phase 2 | Pending |
+| STAT-06 | Phase 2 | Complete |
 | TOKN-01 | Phase 3 | Pending |
 | TOKN-02 | Phase 3 | Pending |
 | TOKN-03 | Phase 3 | Pending |
@@ -149,7 +149,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOKN-05 | Phase 3 | Pending |
 | PORT-01 | Phase 4 | Complete |
 | PORT-02 | Phase 4 | Complete |
-| PORT-03 | Phase 11 | Pending |
+| PORT-03 | Phase 11 | Complete |
 | PORT-04 | Phase 4 | Complete |
 | PORT-05 | Phase 4 | Complete |
 | RTMA-01 | Phase 5 | Complete |
@@ -195,9 +195,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status | Note |
 |-------------|-------|--------|------|
-| PORT-03 | Phase 11 | Pending | NPCPortraitOverlay wired into GM EncounterView |
-| STAT-06 | Phase 11 | Pending | @login_required on api_ship_update_integrity |
-| SHIP-01 | Phase 11 | Pending | onSetShipLocation prop passed in EncounterView |
+| PORT-03 | Phase 11 | Complete | NPCPortraitOverlay wired into GM EncounterView |
+| STAT-06 | Phase 11 | Complete | @login_required on api_ship_update_integrity |
+| SHIP-01 | Phase 11 | Complete | onSetShipLocation prop passed in EncounterView |
 
 **Phase 12 gap closures:**
 

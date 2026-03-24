@@ -71,6 +71,11 @@ async function toggleShipSystem(system: string, status: string, condition?: numb
   return response.data;
 }
 
+async function updateShipIntegrity(field: 'hull' | 'armor', current?: number, max?: number, info?: string): Promise<any> {
+  const response = await api.post('/gm/ship-status/integrity/', { field, current, max, info });
+  return response.data;
+}
+
 async function getCrew(): Promise<{ crew: CrewMember[]; npcs: CrewMember[] }> {
   const response = await api.get<{ crew: CrewMember[]; npcs: CrewMember[] }>('/gm/crew/');
   return response.data;
@@ -95,6 +100,7 @@ export const gmConsoleApi = {
   switchToBridge,
   getShipStatus,
   toggleShipSystem,
+  updateShipIntegrity,
   getCrew,
   getSessions,
   setShipLocation,

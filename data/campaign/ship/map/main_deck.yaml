@@ -1,0 +1,83 @@
+deck_id: "main_deck"
+name: "USCSS Patrol Gunboat — Main Deck"
+location_name: "USCSS Patrol Gunboat"
+unit_size: 30
+
+rooms:
+
+  - id: engineering
+    name: "ENGINEERING"
+    polygon: [[20.5,20.75], [30.5,20.75], [30.5,29.75], [20.5,29.75]]
+    doors:
+      - {x: 25.5, y: 20.75, angle: 0, type: standard, status: CLOSED}  # → corridor_3
+      - {x: 20.5, y: 25.25, angle: 90, type: standard, status: CLOSED}  # → corridor_1
+      - {x: 30.5, y: 25.25, angle: 90, type: standard, status: CLOSED}  # → corridor_2
+    # description: ""
+    # type: ""
+
+  - id: steerage
+    name: "STEERAGE"
+    polygon: [[20.5,19.75], [24.5,19.75], [24.5,16.75], [20.5,16.75]]
+    doors:
+      - {x: 22.5, y: 16.75, angle: 0, type: standard, status: CLOSED}  # → corridor_3
+      - {x: 24.5, y: 18.25, angle: 90, type: standard, status: CLOSED}  # → corridor_3
+    # description: ""
+    # type: ""
+
+  - id: cargo_bay
+    name: "CARGO BAY"
+    polygon: [[26.5,16.75], [30.5,16.75], [30.5,19.75], [26.5,19.75]]
+    doors:
+      - {x: 28.5, y: 16.75, angle: 0, type: standard, status: CLOSED}  # → corridor_3
+      - {x: 26.5, y: 18.25, angle: 90, type: standard, status: CLOSED}  # → corridor_3
+    # description: ""
+    # type: ""
+
+  - id: lounge
+    name: "LOUNGE"
+    polygon: [[20.5,14.75], [20.5,10.25], [24.5,10.25], [24.5,14.75]]
+    doors:
+      - {x: 24.5, y: 12.5, angle: 90, type: standard, status: CLOSED}  # → corridor_3
+      - {x: 22.5, y: 14.75, angle: 0, type: standard, status: CLOSED}  # → corridor_3
+    # description: ""
+    # type: ""
+
+  - id: computer
+    name: "COMPUTER"
+    polygon: [[26.5,10.25], [30.5,10.25], [30.5,14.75], [26.5,14.75]]
+    doors:
+      - {x: 26.5, y: 12.5, angle: 90, type: standard, status: CLOSED}  # → corridor_3
+      - {x: 28.5, y: 14.75, angle: 0, type: standard, status: CLOSED}  # → corridor_3
+    # description: ""
+    # type: ""
+
+  - id: bridge
+    name: "BRIDGE"
+    polygon: [[26.5,10.25], [28.25,9], [28.25,5], [27.5,4], [26.5,3.5], [24.5,3.5], [23.75,3.75], [22.5,5], [22.5,9], [24.5,10.25]]
+    doors:
+      - {x: 25.5, y: 10.25, angle: 0, type: standard, status: CLOSED}  # → corridor_3
+    # description: ""
+    # type: ""
+
+  - id: corridor_1
+    name: ""
+    polygon: [[20.5,14.75], [18.5,14.75], [18.5,22.75], [12.5,22.75], [12.5,20.75], [11.5,20.75], [11.5,26.75], [12.5,26.75], [12.5,23.75], [18.5,23.75], [18.5,25.75], [20.5,25.75], [20.5,24.75], [19.5,24.75], [19.5,15.75], [20.5,15.75]]
+    type: corridor
+    doors:
+      - {x: 20.5, y: 15.25, angle: 90, type: standard, status: CLOSED}  # → corridor_3
+
+  - id: corridor_2
+    name: ""
+    polygon: [[30.5,14.75], [32.5,14.75], [32.5,22.75], [38.5,22.75], [38.5,20.75], [39.5,20.75], [39.5,26.75], [38.5,26.75], [38.5,23.75], [32.5,23.75], [32.5,25.75], [30.5,25.75], [30.5,24.75], [31.5,24.75], [31.5,15.75], [30.5,15.75]]
+    type: corridor
+    doors:
+      - {x: 30.5, y: 15.25, angle: 90, type: standard, status: CLOSED}  # → corridor_3
+
+  - id: corridor_3
+    name: ""
+    polygon: [[20.5,14.75], [20.5,16.75], [24.5,16.75], [24.5,20.75], [26.5,20.75], [26.5,16.75], [30.5,16.75], [30.5,14.75], [26.5,14.75], [26.5,10.25], [24.5,10.25], [24.5,14.75]]
+    type: corridor
+    doors:
+      - {x: 20.5, y: 15.25, angle: 90, type: standard, status: CLOSED}  # → corridor_1
+      - {x: 30.5, y: 15.25, angle: 90, type: standard, status: CLOSED}  # → corridor_2
+

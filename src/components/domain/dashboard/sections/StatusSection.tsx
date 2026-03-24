@@ -53,11 +53,11 @@ function SystemStatusPanel({
           <div className={`system-status-label ${statusClass}`}>{status}</div>
           <div className="system-condition-bar">
             <div
-              className={`system-condition-fill ${statusClass}`}
+              className={`system-condition-fill ${statusClass}${condition <= 25 ? ' condition-low' : ''}`}
               style={{ width: `${condition}%` }}
             />
           </div>
-          {info && <div className="system-info-text">{info}</div>}
+          <div className="system-info-text">{info}</div>
         </div>
       </DashboardPanel>
     </div>
@@ -69,12 +69,13 @@ interface IntegrityPanelProps {
   label: string;
   current: number;
   max: number;
+  info?: string;
   variant: 'hull' | 'armor';
   delay: number;
   staggerDone: boolean;
 }
 
-function IntegrityPanel({ label, current, max, variant, delay, staggerDone }: IntegrityPanelProps) {
+function IntegrityPanel({ label, current, max, info, variant, delay, staggerDone }: IntegrityPanelProps) {
   const percentage = (current / max) * 100;
   const variantClass = `integrity-${variant}`;
   const staggerClass = staggerDone ? '' : 'stagger-animate';
@@ -92,6 +93,7 @@ function IntegrityPanel({ label, current, max, variant, delay, staggerDone }: In
               style={{ width: `${percentage}%` }}
             />
           </div>
+          <div className="system-info-text">{info}</div>
         </div>
       </DashboardPanel>
     </div>
@@ -177,14 +179,35 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: St
         </div>
       </div>
 
-      {/* Main layout: panels — 2 columns (hull/armor/life-support left, engines/weapons/comms right) */}
-      <div className="status-layout">
-        {/* Left column - Hull, Armor, Life Support */}
-        <div className="status-column-left">
+      {/* Map + floating panels */}
+      <div className="status-map-layout">
+        {/* Deck map — fills the area */}
+        <div className="status-map-fill">
+          {shipDeckData ? (
+            <EncounterMapDisplay
+              locationData={{
+                slug: 'campaign_ship',
+                name: ship.name || 'USCSS Morrigan',
+                type: 'ship',
+                map: shipDeckData,
+              }}
+              isGM={false}
+              currentLevel={currentDeckLevel}
+              totalLevels={shipDeckTotalDecks || 1}
+              viewPadding={8}
+            />
+          ) : (
+            <div className="status-map-unavailable">DECK MAP UNAVAILABLE</div>
+          )}
+        </div>
+
+        {/* Left overlay — Hull, Armor, Life Support */}
+        <div className="status-overlay-left">
           <IntegrityPanel
             label="HULL"
             current={ship.hull.current}
             max={ship.hull.max}
+            info={ship.hull.info}
             variant="hull"
             delay={0.6}
             staggerDone={staggerComplete}
@@ -193,6 +216,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: St
             label="ARMOR"
             current={ship.armor.current}
             max={ship.armor.max}
+            info={ship.armor.info}
             variant="armor"
             delay={0.8}
             staggerDone={staggerComplete}
@@ -208,8 +232,8 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: St
           />
         </div>
 
-        {/* Right column - Engines, Weapons, Comms */}
-        <div className="status-column-right">
+        {/* Right overlay — Engines, Weapons, Comms */}
+        <div className="status-overlay-right">
           <SystemStatusPanel
             name="ENGINES"
             status={ship.systems.engines.status}
@@ -238,30 +262,6 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: St
             staggerDone={staggerComplete}
           />
         </div>
-      </div>
-
-      {/* Ship deck map — below status panels */}
-      <div className="section-status__deck-map">
-        <div style={{ color: '#4a6b6b', fontSize: 10, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 8 }}>
-          SHIP STATUS
-        </div>
-        {shipDeckData ? (
-          <EncounterMapDisplay
-            locationData={{
-              slug: 'campaign_ship',
-              name: (shipData?.ship?.name) || 'USCSS Morrigan',
-              type: 'ship',
-              map: shipDeckData,
-            }}
-            isGM={false}
-            currentLevel={currentDeckLevel}
-            totalLevels={shipDeckTotalDecks || 1}
-          />
-        ) : (
-          <div style={{ color: '#444', fontSize: 11, padding: '16px 0', textAlign: 'center' }}>
-            DECK MAP UNAVAILABLE
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Tree, Button, Space, Tag } from 'antd';
 import { MessageOutlined } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
@@ -89,19 +89,6 @@ export function LocationTree({
             <Space>
               <span style={{ fontWeight: 500 }}>{location.name}</span>
               <Tag color="blue">{location.type}</Tag>
-              {onSetShipLocation && (
-                <Button
-                  size="small"
-                  type="text"
-                  style={{ fontSize: 10, opacity: 0.6, color: '#8b7355', padding: '0 4px' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSetShipLocation(location.slug);
-                  }}
-                >
-                  Set Ship Here
-                </Button>
-              )}
             </Space>
           ),
           children: [...terminalNodes, ...childNodes],
@@ -111,7 +98,29 @@ export function LocationTree({
     }
 
     return convertToTreeData(locations);
-  }, [locations, activeTerminalLocationSlug, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys, onSetShipLocation]);
+  }, [locations, activeTerminalLocationSlug, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys]);
+
+  const [contextMenu, setContextMenu] = useState<{ slug: string; name: string; x: number; y: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setContextMenu(null); };
+    const timeout = setTimeout(() => {
+      document.addEventListener('mousedown', handleClick);
+      document.addEventListener('keydown', handleEsc);
+    }, 0);
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [contextMenu]);
 
   const expandedKeys = useMemo(() => Array.from(expandedNodes), [expandedNodes]);
 
@@ -156,15 +165,103 @@ export function LocationTree({
     }
   };
 
+  const handleRightClick = ({ event, node }: { event: React.MouseEvent; node: { key: React.Key } }) => {
+    if (!onSetShipLocation) return;
+    const key = String(node.key);
+    // Skip terminal pseudo-nodes
+    if (key.startsWith('terminal-')) return;
+    event.preventDefault();
+
+    // Find location name by slug
+    function findName(locs: Location[], slug: string): string {
+      for (const loc of locs) {
+        if (loc.slug === slug) return loc.name;
+        const found = findName(loc.children, slug);
+        if (found) return found;
+      }
+      return slug;
+    }
+
+    const containerRect = (event.currentTarget as HTMLElement).closest('.location-tree-container')?.getBoundingClientRect();
+    const x = containerRect ? event.clientX - containerRect.left : event.clientX;
+    const y = containerRect ? event.clientY - containerRect.top : event.clientY;
+    setContextMenu({ slug: key, name: findName(locations, key), x, y });
+  };
+
   return (
-    <Tree
-      treeData={treeData}
-      expandedKeys={expandedKeys}
-      selectedKeys={selectedKeys}
-      onExpand={handleExpand}
-      onSelect={handleSelect}
-      showLine={{ showLeafIcon: false }}
-      style={{ background: 'transparent' }}
-    />
+    <div className="location-tree-container" style={{ position: 'relative' }}>
+      <Tree
+        treeData={treeData}
+        expandedKeys={expandedKeys}
+        selectedKeys={selectedKeys}
+        onExpand={handleExpand}
+        onSelect={handleSelect}
+        onRightClick={handleRightClick}
+        showLine={{ showLeafIcon: false }}
+        style={{ background: 'transparent' }}
+      />
+      {contextMenu && onSetShipLocation && (
+        <div
+          ref={menuRef}
+          style={{
+            position: 'absolute',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            background: '#0f1515',
+            border: '1px solid #4a6b6b',
+            padding: '6px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            zIndex: 100,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            minWidth: '140px',
+            fontFamily: "'Cascadia Code', 'Courier New', monospace",
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div style={{
+            color: '#4a6b6b',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            paddingBottom: '4px',
+            borderBottom: '1px solid #2a3a3a',
+            marginBottom: '2px',
+          }}>
+            {contextMenu.name}
+          </div>
+          <button
+            onClick={() => {
+              onSetShipLocation(contextMenu.slug);
+              setContextMenu(null);
+            }}
+            style={{
+              background: '#1a1a1a',
+              border: '1px solid #8b7355',
+              color: '#8b7355',
+              padding: '4px 8px',
+              fontSize: '10px',
+              fontFamily: 'inherit',
+              letterSpacing: '1px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              textAlign: 'center',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#8b7355';
+              e.currentTarget.style.color = '#0a0a0a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#1a1a1a';
+              e.currentTarget.style.color = '#8b7355';
+            }}
+          >
+            SET SHIP HERE
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

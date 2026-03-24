@@ -1,29 +1,29 @@
-location_slug: "tau-ceti/tau-ceti-f"
+location_slug: veil-station
 ship:
-  name: "USCSS Morrigan"
-  class: "Hargrave-Class Light Freighter"
-  crew_count: 7
-  crew_capacity: 12
-  hull:
-    current: 45
-    max: 60
   armor:
-    current: 8
+    current: 12
     max: 12
+  class: Hargrave-Class Light Freighter
+  crew_capacity: 12
+  crew_count: 7
+  hull:
+    current: 60
+    max: 60
+  name: USCSS Morrigan
   systems:
-    life_support:
-      status: "ONLINE"
-      condition: 100
-      info: "O2 levels nominal"
-    engines:
-      status: "STRESSED"
-      condition: 72
-      info: "Coolant pressure low"
-    weapons:
-      status: "ONLINE"
-      condition: 100
-      info: "Defense grid active"
     comms:
-      status: "DAMAGED"
-      condition: 45
-      info: "Long-range offline"
+      condition: 100
+      info: ''
+      status: ONLINE
+    engines:
+      condition: 100
+      info: Coolant pressure low
+      status: ONLINE
+    life_support:
+      condition: 100
+      info: O2 levels nominal
+      status: ONLINE
+    weapons:
+      condition: 100
+      info: Defense grid active
+      status: ONLINE

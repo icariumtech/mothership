@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DashboardPanel } from '@components/ui/DashboardPanel';
 import type { SessionLog } from '@/types/session';
+import { terminalApi } from '@/services/terminalApi';
 import './Section.css';
 import './LogsSection.css';
 
@@ -87,7 +88,9 @@ export function LogsSection() {
   // Auto-select first session (newest) on mount
   useEffect(() => {
     if (sessions.length > 0 && !selectedId) {
-      setSelectedId(sessions[0].filename);
+      const first = sessions[0];
+      setSelectedId(first.filename);
+      terminalApi.updateBridgeLabel(first.title || first.filename).catch(() => {});
     }
   }, [sessions, selectedId]);
 
@@ -98,7 +101,12 @@ export function LogsSection() {
   }, [selectedId, sessions]);
 
   const handleSelect = (filename: string) => {
-    setSelectedId(prev => prev === filename ? null : filename);
+    setSelectedId(prev => {
+      const deselecting = prev === filename;
+      const session = sessions.find(s => s.filename === filename);
+      terminalApi.updateBridgeLabel(deselecting ? '' : (session?.title || filename)).catch(() => {});
+      return deselecting ? null : filename;
+    });
   };
 
   return (

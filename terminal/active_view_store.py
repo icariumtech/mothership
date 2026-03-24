@@ -8,6 +8,8 @@ _state: dict = {
     'location_slug': '',
     'view_slug': '',
     'bridge_tab': '',
+    'bridge_map_mode': 'galaxy',
+    'bridge_label': '',
     'overlay_location_slug': '',
     'overlay_terminal_slug': '',
     'charon_mode': 'DISPLAY',
@@ -20,7 +22,6 @@ _state: dict = {
     'encounter_door_status': {},
     'encounter_tokens_by_location': {},
     'encounter_active_portraits': [],
-    'ship_system_overrides': {},
 }
 
 

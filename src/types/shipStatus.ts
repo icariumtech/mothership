@@ -12,8 +12,8 @@ export interface ShipStatusData {
     class: string;
     crew_count: number;
     crew_capacity: number;
-    hull: { current: number; max: number };
-    armor: { current: number; max: number };
+    hull: { current: number; max: number; info?: string };
+    armor: { current: number; max: number; info?: string };
     systems: {
       life_support: SystemData;
       engines: SystemData;

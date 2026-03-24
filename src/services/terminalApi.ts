@@ -63,12 +63,16 @@ async function hideTerminal(): Promise<{ success: boolean }> {
 /**
  * Update bridge map selection (public - called by player terminal when navigating)
  */
-async function updateBridgeSelection(locationSlug: string): Promise<void> {
-  await api.post('/bridge-selection/', { location_slug: locationSlug });
+async function updateBridgeSelection(locationSlug: string, mapMode?: string): Promise<void> {
+  await api.post('/bridge-selection/', { location_slug: locationSlug, map_mode: mapMode });
 }
 
 async function updateBridgeTab(tab: string): Promise<void> {
   await api.post('/bridge-selection/', { tab });
+}
+
+async function updateBridgeLabel(label: string): Promise<void> {
+  await api.post('/bridge-selection/', { label });
 }
 
 export const terminalApi = {
@@ -77,4 +81,5 @@ export const terminalApi = {
   hideTerminal,
   updateBridgeSelection,
   updateBridgeTab,
+  updateBridgeLabel,
 };

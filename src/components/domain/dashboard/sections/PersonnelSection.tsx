@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { DashboardPanel } from '@components/ui/DashboardPanel';
 import { buildInfoHTML } from '../InfoPanel';
 import type { CrewMember, NPC } from '../BridgeView';
+import { terminalApi } from '@/services/terminalApi';
 import './Section.css';
 import './PersonnelSection.css';
 
@@ -139,9 +140,18 @@ export function PersonnelSection() {
   }, [selected, crew, npcs]);
 
   const handleSelect = (type: PersonType, id: string) => {
-    setSelected(prev =>
-      prev?.type === type && prev?.id === id ? null : { type, id }
-    );
+    setSelected(prev => {
+      const deselecting = prev?.type === type && prev?.id === id;
+      if (deselecting) {
+        terminalApi.updateBridgeLabel('').catch(() => {});
+        return null;
+      }
+      const person = type === 'crew'
+        ? crew.find(c => c.id === id)
+        : npcs.find(n => n.id === id);
+      terminalApi.updateBridgeLabel(person?.name ?? '').catch(() => {});
+      return { type, id };
+    });
   };
 
   return (

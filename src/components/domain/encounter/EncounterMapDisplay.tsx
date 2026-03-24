@@ -76,6 +76,8 @@ interface EncounterMapDisplayProps {
   onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
   onTokenRemove?: (id: string) => void;
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
+  /** Extra grid-cell padding around the map in the SVG viewBox */
+  viewPadding?: number;
 }
 
 export function EncounterMapDisplay({
@@ -91,6 +93,7 @@ export function EncounterMapDisplay({
   onTokenMove,
   onTokenRemove,
   onTokenStatusToggle,
+  viewPadding,
 }: EncounterMapDisplayProps) {
   const mapData = locationData?.map;
 
@@ -114,6 +117,7 @@ export function EncounterMapDisplay({
       onTokenRemove,
       onTokenStatusToggle,
       hull: manifestHull,
+      viewPadding,
     };
 
     // IMPORTANT: check the deck's own format before choosing a renderer.
@@ -159,6 +163,7 @@ export function EncounterMapDisplay({
           onTokenMove={onTokenMove}
           onTokenRemove={onTokenRemove}
           onTokenStatusToggle={onTokenStatusToggle}
+          viewPadding={viewPadding}
         />
       </div>
     );
@@ -181,6 +186,7 @@ export function EncounterMapDisplay({
           onTokenMove={onTokenMove}
           onTokenRemove={onTokenRemove}
           onTokenStatusToggle={onTokenStatusToggle}
+          viewPadding={viewPadding}
         />
       </div>
     );

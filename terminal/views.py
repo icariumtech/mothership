@@ -121,13 +121,8 @@ def display_view_react(request):
     sessions_data = loader.load_sessions()
     sessions_json = json.dumps(sessions_data)
 
-    # Load ship status and merge runtime overrides
+    # Load ship status
     ship_data = loader.load_ship_status()
-    if ship_data and ship_data.get('ship'):
-        overrides = active_view.get('ship_system_overrides') or {}
-        for system_name, override in overrides.items():
-            if system_name in ship_data['ship'].get('systems', {}):
-                ship_data['ship']['systems'][system_name].update(override)
     ship_status_json = json.dumps(ship_data) if ship_data else 'null'
 
     return render(request, 'terminal/shared_console_react.html', {
@@ -208,7 +203,6 @@ def build_active_view_payload(state: dict) -> dict:
         'encounter_door_status': state.get('encounter_door_status', {}),
         'encounter_tokens': state.get('encounter_tokens_by_location', {}).get(state.get('location_slug', ''), {}),
         'encounter_active_portraits': list(state.get('encounter_active_portraits', [])),
-        'ship_system_overrides': state.get('ship_system_overrides', {}),
     }
 
     # Always include NPC data (portrait overlay needs it without a second request)
@@ -272,16 +266,15 @@ def build_active_view_payload(state: dict) -> dict:
                                 response['encounter_deck_name'] = deck.get('name', '')
                                 break
 
-    # BRIDGE view: include ship deck map data so frontend can render without a second call
-    if state.get('view_type') == 'BRIDGE':
-        loader = DataLoader()
-        ship_dir = loader.data_dir / "campaign" / "ship"
-        if ship_dir.exists():
-            ship_map = loader.load_map(ship_dir)
-            if ship_map:
-                response['ship_deck_data'] = ship_map
-                manifest = ship_map.get('manifest', {})
-                response['ship_deck_total_decks'] = manifest.get('total_decks', 1)
+    # Always include ship deck map data so GM console can render it regardless of player view
+    loader = DataLoader()
+    ship_dir = loader.data_dir / "campaign" / "ship"
+    if ship_dir.exists():
+        ship_map = loader.load_map(ship_dir)
+        if ship_map:
+            response['ship_deck_data'] = ship_map
+            manifest = ship_map.get('manifest', {})
+            response['ship_deck_total_decks'] = manifest.get('total_decks', 1)
 
     return response
 
@@ -676,6 +669,8 @@ def api_bridge_selection(request):
 def api_set_ship_location(request):
     """GM action: set the ship's current galactic position. Writes to ship.yaml + broadcasts SSE."""
     import json
+
+    from terminal.data_loader import DataLoader
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1680,14 +1675,6 @@ def api_ship_status(request):
     if not ship_data:
         return JsonResponse({'error': 'Ship data not found'}, status=404)
 
-    # Merge runtime overrides from active view store
-    active_view = get_state()
-    if ship_data and ship_data.get('ship'):
-        overrides = active_view.get('ship_system_overrides') or {}
-        for system_name, override in overrides.items():
-            if system_name in ship_data['ship'].get('systems', {}):
-                ship_data['ship']['systems'][system_name].update(override)
-
     return JsonResponse(ship_data)
 
 
@@ -1724,42 +1711,74 @@ def api_ship_toggle_system(request):
             'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'
         }, status=400)
 
-    # Build override object
-    override = {'status': status}
+    # Build update fields
+    fields = {'status': status}
     if 'condition' in data:
-        override['condition'] = int(data['condition'])
+        fields['condition'] = int(data['condition'])
     if 'info' in data:
-        override['info'] = data['info']
+        fields['info'] = data['info']
 
-    # Store override in active view store
-    current = get_state()
-    overrides = dict(current.get('ship_system_overrides') or {})
-    overrides[system_name] = override
+    # Write directly to ship.yaml
+    from terminal.data_loader import DataLoader
+    loader = DataLoader()
+    loader.save_ship_system(system_name, fields)
 
-    new_state = update_state(ship_system_overrides=overrides)
-    broadcaster.announce(build_active_view_payload(new_state))
-
-    # Broadcast merged ship status on 'shipstatus' SSE channel
+    # Broadcast updated ship status
     try:
-        from terminal.data_loader import DataLoader
-        loader = DataLoader()
         ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data and ship_broadcast_data.get('ship'):
-            current_overrides = new_state.get('ship_system_overrides') or {}
-            for sys_name, sys_override in current_overrides.items():
-                if sys_name in ship_broadcast_data['ship'].get('systems', {}):
-                    ship_broadcast_data['ship']['systems'][sys_name].update(sys_override)
+        if ship_broadcast_data:
             broadcaster.announce_ship_status(ship_broadcast_data)
     except Exception as e:
-        # Non-fatal — SSE failure should not break the REST response
         import logging
         logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
 
-    return JsonResponse({
-        'success': True,
-        'system': system_name,
-        'override': override
-    })
+    return JsonResponse({'success': True, 'system': system_name, 'fields': fields})
+
+
+def api_ship_update_integrity(request):
+    """
+    API endpoint to update ship hull or armor values.
+    GM only - updates runtime overrides in ActiveView.
+    POST: { field: "hull" | "armor", current?: number, max?: number }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    field = data.get('field', '').strip()
+    if field not in ('hull', 'armor'):
+        return JsonResponse({'error': 'field must be "hull" or "armor"'}, status=400)
+
+    values = {}
+    if 'current' in data:
+        values['current'] = int(data['current'])
+    if 'max' in data:
+        values['max'] = int(data['max'])
+    if 'info' in data:
+        values['info'] = data['info']
+
+    if not values:
+        return JsonResponse({'error': 'Provide at least one of current, max, or info'}, status=400)
+
+    # Write directly to ship.yaml
+    from terminal.data_loader import DataLoader
+    loader = DataLoader()
+    loader.save_ship_integrity(field, values)
+
+    # Broadcast updated ship status
+    try:
+        ship_broadcast_data = loader.load_ship_status()
+        if ship_broadcast_data:
+            broadcaster.announce_ship_status(ship_broadcast_data)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+
+    return JsonResponse({'success': True, 'field': field, 'values': values})
 
 
 def api_terminal_data(request, location_slug, terminal_slug):

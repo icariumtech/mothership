@@ -575,14 +575,36 @@ class DataLoader:
             ship_data = yaml.safe_load(f)
         return ship_data
 
+    def _save_ship_yaml(self, ship_data: dict) -> None:
+        """Write ship data back to data/campaign/ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'w') as f:
+            yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True)
+
     def save_ship_location(self, location_slug: str) -> None:
         """Write the galactic location_slug back to data/campaign/ship.yaml."""
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data['location_slug'] = location_slug
-        with open(ship_file, 'w') as f:
-            yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True)
+        self._save_ship_yaml(ship_data)
+
+    def save_ship_system(self, system_name: str, fields: dict) -> None:
+        """Update a ship system's fields (status, condition, info) in ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        systems = ship_data.setdefault('ship', {}).setdefault('systems', {})
+        systems.setdefault(system_name, {}).update(fields)
+        self._save_ship_yaml(ship_data)
+
+    def save_ship_integrity(self, field: str, values: dict) -> None:
+        """Update hull or armor values (current, max) in ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        ship_data.setdefault('ship', {}).setdefault(field, {}).update(values)
+        self._save_ship_yaml(ship_data)
 
 
 def group_messages_by_conversation(messages: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:

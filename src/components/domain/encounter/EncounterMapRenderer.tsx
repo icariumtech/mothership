@@ -61,6 +61,8 @@ interface EncounterMapRendererProps {
   hull?: HullDef;
   /** Optional style override for the root container div (e.g. position:absolute when embedded in MapPreview) */
   style?: React.CSSProperties;
+  /** Extra grid-cell padding around map in the SVG viewBox — increases effective "zoom out" at default zoom:1 */
+  viewPadding?: number;
 }
 
 // Pan and zoom state
@@ -485,6 +487,7 @@ export function EncounterMapRenderer({
   onTokenStatusToggle,
   hull: hullProp,
   style,
+  viewPadding = 2,
 }: EncounterMapRendererProps) {
   // Hull override (manifest-level) takes precedence over per-deck hull
   const effectiveHull = hullProp ?? mapData.hull;
@@ -534,8 +537,8 @@ export function EncounterMapRenderer({
   // SVG dimensions — always computed from ALL rooms + hull (never filtered by visibility)
   const unitSize = mapData.unit_size ?? 40;
   const { originX, originY, svgWidth, svgHeight } = useMemo(
-    () => computeBoundingBox(mapData.rooms, unitSize, 2, effectiveHull),
-    [mapData.rooms, effectiveHull, unitSize]
+    () => computeBoundingBox(mapData.rooms, unitSize, viewPadding, effectiveHull),
+    [mapData.rooms, effectiveHull, unitSize, viewPadding]
   );
 
   // Hull SVG polygon points string (grid coords → pixel coords)

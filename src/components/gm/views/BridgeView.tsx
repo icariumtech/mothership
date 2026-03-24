@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Modal, Typography, Tag, Progress, Select, message } from 'antd';
 import {
   RobotOutlined,
@@ -151,16 +151,24 @@ export function BridgeView({
   return (
     <div className="gm-bridge-view">
       {contextHolder}
-      {/* Main dashboard area */}
-      <GmBridgeDashboard
-        activeView={activeView}
-        locations={locations}
-        starMapData={starMapData}
-        shipData={shipData}
-        shipDeckData={shipDeckData}
-        shipDeckTotalDecks={shipDeckTotalDecks}
-      />
+      <div className="gm-bridge-view__body">
+        {/* Main dashboard area */}
+        <GmBridgeDashboard
+          activeView={activeView}
+          locations={locations}
+          starMapData={starMapData}
+          shipData={shipData}
+          shipDeckData={shipDeckData}
+          shipDeckTotalDecks={shipDeckTotalDecks}
+        />
+      </div>
 
+      {/* Status bar at the bottom */}
+      <div className="gm-bridge-status-bar">
+        <span className="gm-bridge-status-bar__text">{deriveBreadcrumb(activeView, locations)}</span>
+      </div>
+
+      {/* Right rail — absolute on gm-bridge-view so it spans full height including status bar */}
       <div className="gm-bridge-view__right">
         <ToolRail tools={tools} activePanel={activePanel} onToggle={handleToolToggle} />
 
@@ -598,6 +606,8 @@ function deriveBreadcrumb(activeView: ActiveView | null, locations: Location[]):
   return `MAP > ${loc.name.toUpperCase()}`;
 }
 
+type GmBridgeTab = 'map' | 'ship';
+
 interface GmBridgeDashboardProps {
   activeView: ActiveView | null;
   locations: Location[];
@@ -608,25 +618,36 @@ interface GmBridgeDashboardProps {
 }
 
 function GmBridgeDashboard({ activeView, locations, starMapData, shipData, shipDeckData, shipDeckTotalDecks }: GmBridgeDashboardProps) {
+  const [gmTab, setGmTab] = useState<GmBridgeTab>('map');
+
   return (
     <div className="gm-bridge-view__main">
-      <GmBridgeBreadcrumb activeView={activeView} locations={locations} />
       <div className="gm-bridge-content">
-        <GmBridgeMapPanel activeView={activeView} locations={locations} starMapData={starMapData} />
-        <GmBridgeShipPanel shipData={shipData} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />
+        {gmTab === 'map' && (
+          <GmBridgeMapPanel activeView={activeView} locations={locations} starMapData={starMapData} />
+        )}
+        {gmTab === 'ship' && (
+          <GmBridgeShipPanel shipData={shipData} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />
+        )}
+      </div>
+      <div className="gm-bridge-tab-bar">
+        <button
+          className={`gm-bridge-tab ${gmTab === 'map' ? 'gm-bridge-tab--active' : ''}`}
+          onClick={() => setGmTab('map')}
+        >
+          MAP MIRROR
+        </button>
+        <button
+          className={`gm-bridge-tab ${gmTab === 'ship' ? 'gm-bridge-tab--active' : ''}`}
+          onClick={() => setGmTab('ship')}
+        >
+          SHIP VIEW
+        </button>
       </div>
     </div>
   );
 }
 
-function GmBridgeBreadcrumb({ activeView, locations }: { activeView: ActiveView | null; locations: Location[] }) {
-  const crumb = deriveBreadcrumb(activeView, locations);
-  return (
-    <div className="gm-bridge-breadcrumb">
-      <span className="gm-bridge-breadcrumb__text">{crumb}</span>
-    </div>
-  );
-}
 
 function GmBridgeMapPanel({
   activeView,
@@ -704,21 +725,110 @@ interface GmBridgeShipPanelProps {
 function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBridgeShipPanelProps) {
   const [messageApi, contextHolder] = message.useMessage();
   const [currentDeckLevel] = useState(1);
+  const [localInfos, setLocalInfos] = useState<Record<string, string>>({});
+  const [localConditions, setLocalConditions] = useState<Record<string, string>>({});
+  const [localIntegrity, setLocalIntegrity] = useState<Record<string, string>>({});
+  const editingRef = useRef<Record<string, boolean>>({});
+
+  // Sync info, condition, and integrity values from server when not currently editing that field
+  useEffect(() => {
+    if (!shipData) return;
+    setLocalInfos(prev => {
+      const next = { ...prev };
+      for (const [key, sys] of Object.entries(shipData.ship.systems)) {
+        if (!editingRef.current[key]) next[key] = sys.info ?? '';
+      }
+      return next;
+    });
+    setLocalConditions(prev => {
+      const next = { ...prev };
+      for (const [key, sys] of Object.entries(shipData.ship.systems)) {
+        if (!editingRef.current[`${key}_condition`]) next[key] = String(sys.condition);
+      }
+      return next;
+    });
+    setLocalIntegrity(prev => {
+      const next = { ...prev };
+      const { hull, armor } = shipData.ship;
+      if (!editingRef.current['hull_current']) next['hull_current'] = String(hull.current);
+      if (!editingRef.current['hull_max']) next['hull_max'] = String(hull.max);
+      if (!editingRef.current['hull_info']) next['hull_info'] = hull.info ?? '';
+      if (!editingRef.current['armor_current']) next['armor_current'] = String(armor.current);
+      if (!editingRef.current['armor_max']) next['armor_max'] = String(armor.max);
+      if (!editingRef.current['armor_info']) next['armor_info'] = armor.info ?? '';
+      return next;
+    });
+  }, [shipData]);
 
   const handleSystemChange = useCallback(async (systemName: string, newStatus: SystemStatus) => {
     try {
       await gmConsoleApi.toggleShipSystem(systemName, newStatus);
       messageApi.success(`${SYSTEM_LABELS_GM[systemName]} → ${newStatus}`);
-      // SSE will push the updated ship status back — no manual re-fetch needed
     } catch (err) {
       console.error('Error toggling ship system:', err);
       messageApi.error('Failed to update system status');
     }
   }, [messageApi]);
 
+  const handleInfoSubmit = useCallback(async (systemName: string, info: string, currentStatus: SystemStatus) => {
+    editingRef.current[systemName] = false;
+    try {
+      await gmConsoleApi.toggleShipSystem(systemName, currentStatus, undefined, info);
+    } catch (err) {
+      console.error('Error updating system info:', err);
+      messageApi.error('Failed to update system info');
+    }
+  }, [messageApi]);
+
+  const handleConditionSubmit = useCallback(async (systemName: string, conditionStr: string, currentStatus: SystemStatus) => {
+    editingRef.current[`${systemName}_condition`] = false;
+    const condition = parseInt(conditionStr, 10);
+    if (isNaN(condition)) return;
+    try {
+      await gmConsoleApi.toggleShipSystem(systemName, currentStatus, Math.min(100, Math.max(0, condition)));
+    } catch (err) {
+      console.error('Error updating condition:', err);
+      messageApi.error('Failed to update condition');
+    }
+  }, [messageApi]);
+
+  const handleIntegrityCurrentSubmit = useCallback(async (field: 'hull' | 'armor', currentStr: string) => {
+    editingRef.current[`${field}_current`] = false;
+    const current = parseInt(currentStr, 10);
+    if (isNaN(current)) return;
+    try {
+      await gmConsoleApi.updateShipIntegrity(field, current, undefined);
+    } catch (err) {
+      console.error('Error updating integrity:', err);
+      messageApi.error('Failed to update integrity');
+    }
+  }, [messageApi]);
+
+  const handleIntegrityMaxSubmit = useCallback(async (field: 'hull' | 'armor', maxStr: string) => {
+    editingRef.current[`${field}_max`] = false;
+    const max = parseInt(maxStr, 10);
+    if (isNaN(max)) return;
+    try {
+      await gmConsoleApi.updateShipIntegrity(field, undefined, max);
+    } catch (err) {
+      console.error('Error updating integrity:', err);
+      messageApi.error('Failed to update integrity');
+    }
+  }, [messageApi]);
+
+  const handleIntegrityInfoSubmit = useCallback(async (field: 'hull' | 'armor', info: string) => {
+    editingRef.current[`${field}_info`] = false;
+    try {
+      await gmConsoleApi.updateShipIntegrity(field, undefined, undefined, info);
+    } catch (err) {
+      console.error('Error updating integrity info:', err);
+      messageApi.error('Failed to update integrity info');
+    }
+  }, [messageApi]);
+
   if (!shipData) {
     return (
-      <div className="gm-bridge-status-panel">
+      <div className="gm-bridge-ship-panel">
         {contextHolder}
         <Text type="secondary" style={{ fontSize: 11, padding: 16, display: 'block' }}>
           No ship data available
@@ -728,48 +838,134 @@ function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBri
   }
 
   const { ship } = shipData;
+  const hullPct = (ship.hull.current / ship.hull.max) * 100;
+  const armorPct = (ship.armor.current / ship.armor.max) * 100;
+  const hullColor = hullPct < 30 ? '#8b5555' : '#5a7a7a';
+  const armorColor = armorPct < 30 ? '#8b5555' : '#8b7355';
 
   return (
-    <div className="gm-bridge-status-panel">
+    <div className="gm-bridge-ship-panel">
       {contextHolder}
 
-      {/* Ship identity */}
-      <div className="gm-bridge-status-identity">
-        <div style={{ color: '#5a7a7a', fontSize: 13, fontWeight: 600 }}>{ship.name}</div>
-        <div style={{ color: '#555', fontSize: 11, marginTop: 2 }}>{ship.class}</div>
-        <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11 }}>
-          <span><span style={{ color: '#444' }}>CREW </span><span style={{ color: '#aaa' }}>{ship.crew_count}/{ship.crew_capacity}</span></span>
-          <span><span style={{ color: '#444' }}>HULL </span><span style={{ color: ship.hull.current < ship.hull.max * 0.3 ? '#8b5555' : '#aaa' }}>{ship.hull.current}/{ship.hull.max}</span></span>
-          <span><span style={{ color: '#444' }}>ARMOR </span><span style={{ color: ship.armor.current < ship.armor.max * 0.3 ? '#8b5555' : '#aaa' }}>{ship.armor.current}/{ship.armor.max}</span></span>
+      {/* Left sidebar: identity + system controls + integrity */}
+      <div className="gm-bridge-ship-sidebar">
+        <div className="gm-bridge-status-identity">
+          <div style={{ color: '#5a7a7a', fontSize: 13, fontWeight: 600 }}>{ship.name}</div>
+          <div style={{ color: '#555', fontSize: 11, marginTop: 2 }}>{ship.class}</div>
+          <div style={{ marginTop: 8, fontSize: 11 }}>
+            <span><span style={{ color: '#444' }}>CREW </span><span style={{ color: '#aaa' }}>{ship.crew_count}/{ship.crew_capacity}</span></span>
+          </div>
+        </div>
+
+        <div className="gm-bridge-status-systems">
+          {Object.entries(ship.systems).map(([systemKey, systemData]) => (
+            <div key={systemKey} className="gm-bridge-status-system-row">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 12 }}>{SYSTEM_LABELS_GM[systemKey]}</Text>
+                <Text style={{ fontSize: 10, color: STATUS_COLORS_GM[systemData.status] }}>
+                  {localConditions[systemKey] ?? systemData.condition}%
+                </Text>
+              </div>
+              <input
+                type="range"
+                className="gm-system-slider"
+                style={{ '--slider-thumb-color': STATUS_COLORS_GM[systemData.status] } as React.CSSProperties}
+                min={0}
+                max={100}
+                value={localConditions[systemKey] ?? systemData.condition}
+                onChange={e => {
+                  editingRef.current[`${systemKey}_condition`] = true;
+                  setLocalConditions(prev => ({ ...prev, [systemKey]: e.target.value }));
+                }}
+                onPointerUp={() => handleConditionSubmit(systemKey, localConditions[systemKey] ?? String(systemData.condition), systemData.status)}
+                onKeyUp={() => handleConditionSubmit(systemKey, localConditions[systemKey] ?? String(systemData.condition), systemData.status)}
+              />
+              <Select
+                value={systemData.status}
+                onChange={(value) => handleSystemChange(systemKey, value as SystemStatus)}
+                style={{ width: '100%', marginBottom: 6 }}
+                size="small"
+                options={SYSTEM_STATUSES_GM.map(s => ({
+                  value: s,
+                  label: <span style={{ color: STATUS_COLORS_GM[s] }}>{s}</span>,
+                }))}
+              />
+              <input
+                className="gm-system-info-input"
+                value={localInfos[systemKey] ?? ''}
+                placeholder="status note..."
+                onChange={e => {
+                  editingRef.current[systemKey] = true;
+                  setLocalInfos(prev => ({ ...prev, [systemKey]: e.target.value }));
+                }}
+                onFocus={() => { editingRef.current[systemKey] = true; }}
+                onBlur={() => handleInfoSubmit(systemKey, localInfos[systemKey] ?? '', systemData.status)}
+                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              />
+            </div>
+          ))}
+
+          {/* Hull and Armor — slider for current, number input for max */}
+          {(['hull', 'armor'] as const).map(field => {
+            const color = field === 'hull' ? hullColor : armorColor;
+            const curKey = `${field}_current`;
+            const maxKey = `${field}_max`;
+            const sliderMax = parseInt(localIntegrity[maxKey], 10) || (field === 'hull' ? ship.hull.max : ship.armor.max);
+            const curVal = parseInt(localIntegrity[curKey], 10) || 0;
+            return (
+              <div key={field} className="gm-bridge-status-system-row">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, textTransform: 'capitalize' }}>{field}</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ fontSize: 10, color }}>{localIntegrity[curKey]}</Text>
+                    <span style={{ color: '#333', fontSize: 11 }}>/</span>
+                    <input
+                      className="gm-system-info-input gm-integrity-num-input"
+                      value={localIntegrity[maxKey] ?? ''}
+                      onChange={e => {
+                        editingRef.current[maxKey] = true;
+                        setLocalIntegrity(prev => ({ ...prev, [maxKey]: e.target.value }));
+                      }}
+                      onFocus={() => { editingRef.current[maxKey] = true; }}
+                      onBlur={() => handleIntegrityMaxSubmit(field, localIntegrity[maxKey] ?? '')}
+                      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    />
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  className="gm-system-slider"
+                  style={{ '--slider-thumb-color': color } as React.CSSProperties}
+                  min={0}
+                  max={sliderMax}
+                  value={curVal}
+                  onChange={e => {
+                    editingRef.current[curKey] = true;
+                    setLocalIntegrity(prev => ({ ...prev, [curKey]: e.target.value }));
+                  }}
+                  onPointerUp={() => handleIntegrityCurrentSubmit(field, localIntegrity[curKey] ?? '')}
+                  onKeyUp={() => handleIntegrityCurrentSubmit(field, localIntegrity[curKey] ?? '')}
+                />
+                <input
+                  className="gm-system-info-input"
+                  value={localIntegrity[`${field}_info`] ?? ''}
+                  placeholder="status note..."
+                  onChange={e => {
+                    editingRef.current[`${field}_info`] = true;
+                    setLocalIntegrity(prev => ({ ...prev, [`${field}_info`]: e.target.value }));
+                  }}
+                  onFocus={() => { editingRef.current[`${field}_info`] = true; }}
+                  onBlur={() => handleIntegrityInfoSubmit(field, localIntegrity[`${field}_info`] ?? '')}
+                  onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* System toggles */}
-      <div className="gm-bridge-status-systems">
-        {Object.entries(ship.systems).map(([systemKey, systemData]) => (
-          <div key={systemKey} className="gm-bridge-status-system-row">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <Text style={{ fontSize: 12 }}>{SYSTEM_LABELS_GM[systemKey]}</Text>
-              <Text style={{ fontSize: 10, color: STATUS_COLORS_GM[systemData.status], letterSpacing: 1 }}>
-                {systemData.status}
-              </Text>
-            </div>
-            <Select
-              value={systemData.status}
-              onChange={(value) => handleSystemChange(systemKey, value as SystemStatus)}
-              style={{ width: '100%' }}
-              size="small"
-              options={SYSTEM_STATUSES_GM.map(s => ({
-                value: s,
-                label: <span style={{ color: STATUS_COLORS_GM[s] }}>{s}</span>,
-              }))}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Deck map section */}
-      <div className="gm-bridge-ship-deck-map">
+      {/* Right: deck map fills remaining space */}
+      <div className="gm-bridge-ship-map-area">
         {shipDeckData ? (
           <EncounterMapDisplay
             locationData={{
@@ -781,9 +977,10 @@ function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBri
             isGM={false}
             currentLevel={currentDeckLevel}
             totalLevels={shipDeckTotalDecks || 1}
+            viewPadding={5}
           />
         ) : (
-          <div style={{ color: '#444', fontSize: 11, padding: 12, textAlign: 'center' }}>
+          <div style={{ color: '#444', fontSize: 11, padding: 12, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             DECK MAP UNAVAILABLE
           </div>
         )}

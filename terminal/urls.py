@@ -15,6 +15,7 @@ urlpatterns = [
     # Ship Status API endpoints
     path('api/ship-status/', views.api_ship_status, name='ship_status_api'),
     path('api/gm/ship-status/toggle/', views.api_ship_toggle_system, name='ship_toggle_system'),
+    path('api/gm/ship-status/integrity/', views.api_ship_update_integrity, name='ship_update_integrity'),
     # GM Console React API endpoints
     path('api/gm/locations/', views.api_locations, name='api_locations'),
     path('api/gm/crew/', views.api_crew, name='api_crew'),

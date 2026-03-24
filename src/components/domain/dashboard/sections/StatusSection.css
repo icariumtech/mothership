@@ -1,18 +1,10 @@
 @import '../../../../styles/variables.css';
 
-/* Main container */
+/* Main container — fills the entire bridge content area */
 .section-status {
   position: absolute;
-  top: 30px;
-  bottom: 128px; /* 30px gap + 68px tab bar + 30px gap */
-  left: 50%;
-  transform: translateX(-50%);
-  width: 75vw;
-  max-width: 1024px;
+  inset: 0;
   z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 
   /* Status color variables */
   --status-online: #4a6b6b;
@@ -22,15 +14,24 @@
   --status-offline: #3a3a3a;
 }
 
-/* Ship identity header */
+/* Ship identity header — floats centered at the top of the map */
 .ship-identity-header {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  z-index: 20;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background-color: var(--color-bg-panel-dark);
+  gap: 24px;
+  padding: 10px 24px;
+  background-color: rgba(8, 14, 14, 0.85);
   border: 1px solid var(--color-border-main);
   font-family: 'Cascadia Code', 'Courier New', monospace;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
   animation: fade-slide-in 0.6s ease backwards;
   animation-delay: 0.2s;
 }
@@ -56,30 +57,69 @@
   text-transform: uppercase;
 }
 
-/* Main layout - 2 columns (schematic removed, deck map moved below) */
-.status-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  flex-shrink: 0;
+/* Map fills the entire section */
+.status-map-layout {
+  position: absolute;
+  inset: 0;
 }
 
-/* Ship deck map section — below status panels */
-.section-status__deck-map {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #1a2525;
-  min-height: 200px;
-  flex-shrink: 0;
-  position: relative;
+/* Grid background extends to fill the full container, including letterbox areas around the SVG */
+.status-map-fill {
+  position: absolute;
+  inset: 0;
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(#141e1e 0.5px, transparent 0.5px),
+    linear-gradient(90deg, #141e1e 0.5px, transparent 0.5px);
+  background-size: 40px 40px;
 }
 
-/* Side columns */
-.status-column-left,
-.status-column-right {
+/* Remove the solid black background from the display so CSS grid shows in letterbox areas */
+.status-map-fill .encounter-map-display {
+  background: transparent;
+}
+
+.status-map-unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #444;
+  font-size: 11px;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+/* Floating overlay columns — 30px from edge, matching star map panel offset */
+.status-overlay-left,
+.status-overlay-right {
+  position: absolute;
+  top: 30px;
+  bottom: 128px; /* above floating tab bar */
+  width: 260px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px;
+  z-index: 10;
+  /* Display-only panels — pass clicks through to the map controls beneath */
+  pointer-events: none;
+}
+
+.status-overlay-left {
+  left: 30px;
+}
+
+.status-overlay-right {
+  right: 30px;
+}
+
+/* Semi-transparent panel backgrounds when floating over map */
+.status-overlay-left .panel-wrapper,
+.status-overlay-right .panel-wrapper {
+  background-color: rgba(8, 14, 14, 0.82) !important;
+  backdrop-filter: blur(4px);
 }
 
 /* System panel wrapper */
@@ -167,14 +207,21 @@
   background-color: var(--status-offline);
 }
 
-/* Info text */
+/* Info text — always rendered so panel height stays constant */
 .system-info-text {
   font-family: 'Cascadia Code', 'Courier New', monospace;
   font-size: 10px;
   color: var(--color-text-muted);
   text-align: center;
   line-height: 1.4;
-  min-height: 28px;
+  height: 28px;
+  overflow: hidden;
+}
+
+/* Condition bar turns red when <= 25% regardless of system status */
+.system-condition-fill.condition-low {
+  background-color: var(--status-critical);
+  box-shadow: 0 0 8px var(--status-critical);
 }
 
 /* Status states - persistent animations (only after stagger completes) */

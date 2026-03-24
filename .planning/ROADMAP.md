@@ -142,7 +142,7 @@ Plans:
 | 8. Rework GM Console UI | 4/4 | ✓ Complete | 2026-03-16 |
 | 9. Integration + GM Bridge Polish | 2/2 | ✓ Complete | 2026-03-20 |
 | 10. Player Ship Map View | 3/3 | ✓ Complete | 2026-03-24 |
-| 11. Close Functional + Security Gaps | 1/1 | Complete   | 2026-03-24 |
+| 11. Close Functional + Security Gaps | 1/1 | Complete    | 2026-03-24 |
 | 12. Requirements Tracking + Dead Code Cleanup | 0/1 | Pending | - |
 
 ### Phase 7: Grid-based encounter map redesign

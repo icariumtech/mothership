@@ -23,6 +23,12 @@
 <body>
     <div id="gm-console-root"></div>
 
+    <script>
+        window.INITIAL_DATA = {
+            shipStatus: {{ ship_status_json|safe|default:'null' }},
+        };
+    </script>
+
     <link rel="stylesheet" href="{% static 'js/assets/style.css' %}">
     <script type="module" src="{% static 'js/gm-console.bundle.js' %}"></script>
 </body>

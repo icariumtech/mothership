@@ -459,7 +459,13 @@ def gm_console_react(request):
     React version of the GM Console.
     Provides a simpler, standard-widget UI for GM control.
     """
-    return render(request, 'terminal/gm_console_react.html')
+    from terminal.data_loader import DataLoader
+    loader = DataLoader()
+    ship_data = loader.load_ship_status()
+    ship_status_json = json.dumps(ship_data) if ship_data else 'null'
+    return render(request, 'terminal/gm_console_react.html', {
+        'ship_status_json': ship_status_json,
+    })
 
 
 @login_required
@@ -1735,6 +1741,7 @@ def api_ship_toggle_system(request):
     return JsonResponse({'success': True, 'system': system_name, 'fields': fields})
 
 
+@login_required
 def api_ship_update_integrity(request):
     """
     API endpoint to update ship hull or armor values.

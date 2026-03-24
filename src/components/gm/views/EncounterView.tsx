@@ -8,6 +8,8 @@ import {
   RobotOutlined,
 } from '@ant-design/icons';
 import { encounterApi, type DeckWithRooms } from '@/services/encounterApi';
+import { gmConsoleApi } from '@/services/gmConsoleApi';
+import { NPCPortraitOverlay } from '@/components/domain/encounter/NPCPortraitOverlay';
 import type { ActiveView, Location } from '@/types/gmConsole';
 import type {
   EncounterManifest,
@@ -343,6 +345,16 @@ export function EncounterView({
     setActivePanel(null);
   }, []);
 
+  const handleSetShipLocation = useCallback(async (slug: string) => {
+    try {
+      await gmConsoleApi.setShipLocation(slug);
+      messageApi.success('Ship position updated');
+    } catch (err) {
+      console.error('Failed to set ship location:', err);
+      messageApi.error('Failed to update ship location');
+    }
+  }, [messageApi]);
+
   // Derive NPC list and active portrait IDs
   const npcs = useMemo(
     () => Object.values(activeView?.encounter_npc_data || {}),
@@ -467,6 +479,7 @@ export function EncounterView({
             onToggleNode={onToggleNode}
             onSelectLocation={onSelectLocation}
             onShowTerminal={onShowTerminal}
+            onSetShipLocation={handleSetShipLocation}
           />
         </SlideOutPanel>
 
@@ -488,6 +501,12 @@ export function EncounterView({
           />
         </SlideOutPanel>
       </div>
+      {(activePortraits.length > 0) && (
+        <NPCPortraitOverlay
+          activePortraitIds={activeView?.encounter_active_portraits || []}
+          npcData={activeView?.encounter_npc_data || {}}
+        />
+      )}
     </div>
   );
 }

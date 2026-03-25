@@ -7,6 +7,8 @@ export interface SystemData {
 }
 
 export interface ShipStatusData {
+  location_slug?: string;
+  slug?: string;
   ship: {
     name: string;
     class: string;

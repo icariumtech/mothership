@@ -11,6 +11,7 @@ import { encounterApi, type DeckWithRooms } from '@/services/encounterApi';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { NPCPortraitOverlay } from '@/components/domain/encounter/NPCPortraitOverlay';
 import type { ActiveView, Location } from '@/types/gmConsole';
+import type { ShipStatusData } from '@/types/shipStatus';
 import type {
   EncounterManifest,
   HullDef,
@@ -57,6 +58,7 @@ interface EncounterViewProps {
   charonChannel: string;
   charonDialogOpen: boolean;
   onDialogToggle: () => void;
+  shipData?: ShipStatusData | null;
 }
 
 const ENCOUNTER_TOOLS: ToolRailButton[] = [
@@ -77,6 +79,7 @@ export function EncounterView({
   charonChannel,
   charonDialogOpen,
   onDialogToggle,
+  shipData,
 }: EncounterViewProps) {
   const [manifest, setManifest] = useState<EncounterManifest | null>(null);
   const [allDecks, setAllDecks] = useState<DeckWithRooms[]>([]);
@@ -480,6 +483,9 @@ export function EncounterView({
             onSelectLocation={onSelectLocation}
             onShowTerminal={onShowTerminal}
             onSetShipLocation={handleSetShipLocation}
+            shipLocationSlug={shipData?.location_slug}
+            shipName={shipData?.ship?.name}
+            shipSlug={shipData?.slug}
           />
         </SlideOutPanel>
 

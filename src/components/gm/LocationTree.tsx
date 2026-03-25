@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Tree, Button, Space, Tag } from 'antd';
 import { MessageOutlined } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
@@ -15,7 +15,12 @@ interface LocationTreeProps {
   onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
   selectionEnabled: boolean;
   onSetShipLocation?: (slug: string) => void;
+  shipLocationSlug?: string | null;
+  shipName?: string;
+  shipSlug?: string | null;
 }
+
+const SHIP_NODE_KEY = '__player_ship__';
 
 export function LocationTree({
   locations,
@@ -28,6 +33,9 @@ export function LocationTree({
   onShowTerminal,
   selectionEnabled,
   onSetShipLocation,
+  shipLocationSlug,
+  shipName = 'Player Ship',
+  shipSlug,
 }: LocationTreeProps) {
   // Track which keys are selectable (all locations are now selectable)
   const selectableKeys = useMemo(() => {
@@ -44,6 +52,27 @@ export function LocationTree({
     collectSelectableKeys(locations);
     return keys;
   }, [locations]);
+
+  // Compute set of slugs that are ancestors-or-self of the ship location (for amber highlighting)
+  const shipAncestorSlugs = useMemo(() => {
+    const result = new Set<string>();
+    if (!shipLocationSlug) return result;
+
+    function findPath(locs: Location[], target: string, path: string[]): boolean {
+      for (const loc of locs) {
+        const newPath = [...path, loc.slug];
+        if (loc.slug === target) {
+          newPath.forEach(s => result.add(s));
+          return true;
+        }
+        if (findPath(loc.children, target, newPath)) return true;
+      }
+      return false;
+    }
+
+    findPath(locations, shipLocationSlug, []);
+    return result;
+  }, [locations, shipLocationSlug]);
 
   // Convert locations to Ant Design tree data format
   const treeData = useMemo(() => {
@@ -80,25 +109,45 @@ export function LocationTree({
         // Create child location nodes
         const childNodes = convertToTreeData(location.children);
 
+        // Inject player ship node if this is the ship's current location.
+        // Use a synthetic key to avoid colliding with the real uscss_morrigan node
+        // that appears elsewhere in the tree — duplicate keys cause Ant Design Tree
+        // to spawn ghost nodes on expand/collapse.
+        const shipNode: DataNode[] = shipLocationSlug === location.slug ? [{
+          key: SHIP_NODE_KEY,
+          title: (
+            <Space>
+              <span style={{ fontWeight: 500 }}>{shipName}</span>
+              <Tag style={{ backgroundColor: '#8b7355', borderColor: '#8b7355', color: '#0f1515' }}>ship</Tag>
+            </Space>
+          ),
+          isLeaf: true,
+          selectable: selectionEnabled && !!shipSlug,
+        }] : [];
+
         // Check if this location can be selected
         const canSelect = selectableKeys.has(location.slug);
+        const isOnShipPath = shipAncestorSlugs.has(location.slug);
 
         return [{
           key: location.slug,
           title: (
             <Space>
               <span style={{ fontWeight: 500 }}>{location.name}</span>
-              <Tag color="blue">{location.type}</Tag>
+              {isOnShipPath
+                ? <Tag style={{ backgroundColor: '#8b7355', borderColor: '#8b7355', color: '#0f1515' }}>{location.type}</Tag>
+                : <Tag color="blue">{location.type}</Tag>
+              }
             </Space>
           ),
-          children: [...terminalNodes, ...childNodes],
+          children: [...terminalNodes, ...shipNode, ...childNodes],
           selectable: selectionEnabled && canSelect,
         }];
       });
     }
 
     return convertToTreeData(locations);
-  }, [locations, activeTerminalLocationSlug, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys]);
+  }, [locations, activeTerminalLocationSlug, activeTerminalSlug, onShowTerminal, selectionEnabled, selectableKeys, shipLocationSlug, shipAncestorSlugs, shipName, shipSlug]);
 
   const [contextMenu, setContextMenu] = useState<{ slug: string; name: string; x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -147,15 +196,22 @@ export function LocationTree({
   };
 
   const selectedKeys = useMemo(() => {
-    return selectedLocationSlug ? [selectedLocationSlug] : [];
-  }, [selectedLocationSlug]);
+    if (!selectedLocationSlug) return [];
+    // When the ship's own location is selected, highlight the synthetic ship node
+    if (selectedLocationSlug === shipSlug) return [SHIP_NODE_KEY];
+    return [selectedLocationSlug];
+  }, [selectedLocationSlug, shipSlug]);
 
-  const handleSelect = (keys: React.Key[]) => {
+  const handleSelect = useCallback((keys: React.Key[]) => {
     if (!selectionEnabled) return;
 
-    // If a key was selected, use it; otherwise clear selection
     if (keys.length > 0) {
       const key = String(keys[0]);
+      // Ship node uses a synthetic key — map it back to the real ship slug
+      if (key === SHIP_NODE_KEY) {
+        if (shipSlug) onSelectLocation(shipSlug);
+        return;
+      }
       // Only select if it's a selectable location (not a terminal)
       if (selectableKeys.has(key)) {
         onSelectLocation(key);
@@ -163,7 +219,7 @@ export function LocationTree({
     } else {
       onSelectLocation(null);
     }
-  };
+  }, [selectionEnabled, shipSlug, selectableKeys, onSelectLocation]);
 
   const handleRightClick = ({ event, node }: { event: React.MouseEvent; node: { key: React.Key } }) => {
     if (!onSetShipLocation) return;

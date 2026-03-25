@@ -383,15 +383,10 @@ class DataLoader:
         """
         Find a location by slug anywhere in the hierarchy.
         Searches recursively through all locations and their children.
+        Falls back to data/campaign/ subdirectories for locations not in the galaxy tree.
         """
-        # Special case: campaign ship lives outside the galaxy tree
-        if slug == 'campaign_ship':
-            ship_dir = self.data_dir / "campaign" / "ship"
-            if ship_dir.exists():
-                return self.load_location_recursive(ship_dir)
-            return None
-
-        if locations is None:
+        is_top_level = locations is None
+        if is_top_level:
             locations = self.load_all_locations()
 
         for location in locations:
@@ -403,6 +398,16 @@ class DataLoader:
                 found = self.find_location_by_slug(slug, location['children'])
                 if found:
                     return found
+
+        # Only check campaign directory at the top level, not during recursive child searches
+        if is_top_level:
+            campaign_dir = self.data_dir / "campaign"
+            if campaign_dir.exists():
+                candidate = campaign_dir / slug
+                if candidate.is_dir() and (candidate / "location.yaml").exists():
+                    return self.load_location_recursive(candidate)
+
+        return None
 
         return None
 

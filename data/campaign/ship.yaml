@@ -1,4 +1,4 @@
-location_slug: veil-station
+location_slug: phoebe
 ship:
   armor:
     current: 12
@@ -14,16 +14,17 @@ ship:
     comms:
       condition: 100
       info: ''
-      status: ONLINE
+      status: OFFLINE
     engines:
-      condition: 100
+      condition: 43
       info: Coolant pressure low
-      status: ONLINE
+      status: OFFLINE
     life_support:
       condition: 100
       info: O2 levels nominal
-      status: ONLINE
+      status: OFFLINE
     weapons:
       condition: 100
       info: Defense grid active
       status: ONLINE
+slug: ship

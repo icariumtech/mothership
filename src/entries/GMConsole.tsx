@@ -244,6 +244,7 @@ function GMConsole() {
             charonChannel={activeCharonChannel}
             charonDialogOpen={activeView?.charon_dialog_open || false}
             onDialogToggle={handleToggleCharonDialog}
+            shipData={shipData}
           />
         )}
         {gmView === 'CHARON' && (

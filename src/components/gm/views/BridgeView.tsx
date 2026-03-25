@@ -183,6 +183,9 @@ export function BridgeView({
             onSelectLocation={() => {}}
             onShowTerminal={onShowTerminal}
             onSetShipLocation={handleSetShipLocation}
+            shipLocationSlug={shipData?.location_slug}
+            shipName={shipData?.ship?.name}
+            shipSlug={shipData?.slug}
           />
         </SlideOutPanel>
 

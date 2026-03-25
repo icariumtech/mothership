@@ -1579,13 +1579,9 @@ def api_encounter_map_data(request, location_slug):
 
     # If it's a multi-deck map and a specific deck is requested (or stored in active_view)
     if map_data.get('is_multi_deck') and requested_deck_id:
-        # Get the full location path to load the specific deck
-        location_path = loader.get_location_path(location_slug)
-        if location_path:
-            location_dir = loader.systems_dir
-            for slug in location_path:
-                location_dir = location_dir / slug
-
+        if location.get('directory'):
+            from pathlib import Path
+            location_dir = Path(location['directory'])
             deck_data = loader.load_deck_map(location_dir, requested_deck_id)
             if deck_data:
                 map_data['current_deck'] = deck_data
@@ -1638,12 +1634,9 @@ def api_encounter_all_decks(request, location_slug):
     manifest = map_data.get('manifest', {})
     decks_data = []
 
-    location_path = loader.get_location_path(location_slug)
-    if location_path:
-        location_dir = loader.systems_dir
-        for slug in location_path:
-            location_dir = location_dir / slug
-
+    if location.get('directory'):
+        from pathlib import Path
+        location_dir = Path(location['directory'])
         for deck_info in manifest.get('decks', []):
             deck_data = loader.load_deck_map(location_dir, deck_info['id'])
             if deck_data:

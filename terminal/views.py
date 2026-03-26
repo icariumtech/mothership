@@ -1821,8 +1821,21 @@ def api_terminal_data(request, location_slug, terminal_slug):
             'in_reply_to': msg.get('in_reply_to', ''),
         }
 
+    def format_log(log):
+        timestamp = log.get('timestamp')
+        if hasattr(timestamp, 'isoformat'):
+            timestamp = timestamp.isoformat()
+        return {
+            'log_id': log.get('filename', ''),
+            'title': log.get('title', ''),
+            'author': log.get('author', ''),
+            'timestamp': timestamp,
+            'content': log.get('content', ''),
+        }
+
     inbox = [format_message(m) for m in terminal.get('inbox', [])]
     sent = [format_message(m) for m in terminal.get('sent', [])]
+    logs = [format_log(l) for l in terminal.get('logs', [])]
 
     return JsonResponse({
         'slug': terminal.get('slug'),
@@ -1833,6 +1846,7 @@ def api_terminal_data(request, location_slug, terminal_slug):
         'location_name': location.get('name', ''),
         'inbox': inbox,
         'sent': sent,
+        'logs': logs,
     })
 
 

@@ -264,6 +264,9 @@ class DataLoader:
         # Sort combined messages by timestamp
         terminal_data['messages'].sort(key=lambda m: m.get('timestamp', ''))
 
+        # Load logs folder (static, terminal-specific log entries)
+        terminal_data['logs'] = self.load_logs_folder(terminal_dir / "logs")
+
         return terminal_data
 
     def load_central_messages(self, messages_dir: Path) -> List[Dict[str, Any]]:
@@ -343,6 +346,21 @@ class DataLoader:
         messages.sort(key=lambda m: m.get('timestamp', ''))
 
         return messages
+
+    def load_logs_folder(self, logs_dir: Path) -> List[Dict[str, Any]]:
+        """Load all log entries from a terminal's logs/ folder."""
+        logs = []
+
+        if not logs_dir.exists():
+            return logs
+
+        for log_file in sorted(logs_dir.glob("*.md")):
+            log_data = self.parse_message_file(log_file)
+            if log_data:
+                logs.append(log_data)
+
+        logs.sort(key=lambda l: l.get('timestamp', ''))
+        return logs
 
     def parse_message_file(self, message_file: Path) -> Dict[str, Any]:
         """Parse a message markdown file with YAML frontmatter."""

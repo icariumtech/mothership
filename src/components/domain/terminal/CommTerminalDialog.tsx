@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { terminalApi, TerminalData, TerminalMessage } from '@/services/terminalApi';
+import { terminalApi, TerminalData, TerminalMessage, TerminalLogEntry } from '@/services/terminalApi';
 import { Panel } from '@/components/ui/Panel';
 import './CommTerminalDialog.css';
 
@@ -10,12 +10,13 @@ interface CommTerminalDialogProps {
   onClose: () => void;
 }
 
-type ViewMode = 'inbox' | 'sent';
+type ViewMode = 'inbox' | 'sent' | 'logs';
 
 export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }: CommTerminalDialogProps) {
   const [terminalData, setTerminalData] = useState<TerminalData | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('inbox');
   const [selectedMessage, setSelectedMessage] = useState<TerminalMessage | null>(null);
+  const [selectedLog, setSelectedLog] = useState<TerminalLogEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,6 +73,10 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
     setSelectedMessage(msg);
   }, []);
 
+  const handleLogSelect = useCallback((log: TerminalLogEntry) => {
+    setSelectedLog(log);
+  }, []);
+
   const formatTimestamp = (timestamp: string) => {
     if (!timestamp) return '';
     try {
@@ -100,7 +105,7 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
 
   if (!open) return null;
 
-  const messages = viewMode === 'inbox' ? terminalData?.inbox : terminalData?.sent;
+  const messages = viewMode === 'logs' ? null : (viewMode === 'inbox' ? terminalData?.inbox : terminalData?.sent);
   const title = terminalData?.owner
     ? `${terminalData.owner.toUpperCase()}'S TERMINAL`
     : 'COMM TERMINAL';
@@ -143,74 +148,129 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
                   >
                     SENT ({terminalData.sent.length})
                   </button>
+                  <button
+                    className={`sidebar-tab ${viewMode === 'logs' ? 'active' : ''}`}
+                    onClick={() => setViewMode('logs')}
+                  >
+                    LOGS ({terminalData.logs.length})
+                  </button>
                 </div>
                 <div className="message-list">
-                  {messages && messages.length > 0 ? (
-                    messages.map((msg) => (
-                      <div
-                        key={msg.message_id}
-                        className={`message-item ${selectedMessage?.message_id === msg.message_id ? 'selected' : ''} ${!msg.read ? 'unread' : ''} ${getPriorityClass(msg.priority)}`}
-                        onClick={() => handleMessageSelect(msg)}
-                      >
-                        <div className="message-item-header">
-                          <span className="message-from">
-                            {viewMode === 'inbox' ? msg.from : `TO: ${msg.to}`}
-                          </span>
-                          {msg.priority !== 'NORMAL' && (
-                            <span className={`priority-indicator ${getPriorityClass(msg.priority)}`}>
-                              {msg.priority}
-                            </span>
-                          )}
+                  {viewMode === 'logs' ? (
+                    terminalData.logs.length > 0 ? (
+                      terminalData.logs.map((log) => (
+                        <div
+                          key={log.log_id}
+                          className={`message-item ${selectedLog?.log_id === log.log_id ? 'selected' : ''}`}
+                          onClick={() => handleLogSelect(log)}
+                        >
+                          <div className="message-subject">{log.title || log.log_id}</div>
+                          {log.author && <div className="message-from">{log.author}</div>}
+                          <div className="message-timestamp">{formatTimestamp(log.timestamp)}</div>
                         </div>
-                        <div className="message-subject">{msg.subject}</div>
-                        <div className="message-timestamp">{formatTimestamp(msg.timestamp)}</div>
-                      </div>
-                    ))
+                      ))
+                    ) : (
+                      <div className="no-messages">NO LOGS</div>
+                    )
                   ) : (
-                    <div className="no-messages">NO MESSAGES</div>
+                    messages && messages.length > 0 ? (
+                      messages.map((msg) => (
+                        <div
+                          key={msg.message_id}
+                          className={`message-item ${selectedMessage?.message_id === msg.message_id ? 'selected' : ''} ${!msg.read ? 'unread' : ''} ${getPriorityClass(msg.priority)}`}
+                          onClick={() => handleMessageSelect(msg)}
+                        >
+                          <div className="message-item-header">
+                            <span className="message-from">
+                              {viewMode === 'inbox' ? msg.from : `TO: ${msg.to}`}
+                            </span>
+                            {msg.priority !== 'NORMAL' && (
+                              <span className={`priority-indicator ${getPriorityClass(msg.priority)}`}>
+                                {msg.priority}
+                              </span>
+                            )}
+                          </div>
+                          <div className="message-subject">{msg.subject}</div>
+                          <div className="message-timestamp">{formatTimestamp(msg.timestamp)}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-messages">NO MESSAGES</div>
+                    )
                   )}
                 </div>
               </div>
 
-              {/* Main Area - Selected Message */}
+              {/* Main Area - Selected Message or Log */}
               <div className="comm-terminal-main">
-                {selectedMessage ? (
-                  <>
-                    <div className="message-header">
-                      <div className="header-row">
-                        <span className="header-label">FROM:</span>
-                        <span className="header-value">{selectedMessage.from}</span>
-                      </div>
-                      <div className="header-row">
-                        <span className="header-label">TO:</span>
-                        <span className="header-value">{selectedMessage.to}</span>
-                      </div>
-                      <div className="header-row">
-                        <span className="header-label">SUBJECT:</span>
-                        <span className="header-value">{selectedMessage.subject}</span>
-                      </div>
-                      <div className="header-row">
-                        <span className="header-label">DATE:</span>
-                        <span className="header-value">{formatTimestamp(selectedMessage.timestamp)}</span>
-                      </div>
-                      {selectedMessage.priority !== 'NORMAL' && (
+                {viewMode === 'logs' ? (
+                  selectedLog ? (
+                    <>
+                      <div className="message-header">
                         <div className="header-row">
-                          <span className="header-label">PRIORITY:</span>
-                          <span className={`header-value ${getPriorityClass(selectedMessage.priority)}`}>
-                            {selectedMessage.priority}
-                          </span>
+                          <span className="header-label">TITLE:</span>
+                          <span className="header-value">{selectedLog.title}</span>
                         </div>
-                      )}
+                        {selectedLog.author && (
+                          <div className="header-row">
+                            <span className="header-label">AUTHOR:</span>
+                            <span className="header-value">{selectedLog.author}</span>
+                          </div>
+                        )}
+                        <div className="header-row">
+                          <span className="header-label">DATE:</span>
+                          <span className="header-value">{formatTimestamp(selectedLog.timestamp)}</span>
+                        </div>
+                      </div>
+                      <div className="message-divider" />
+                      <div className="message-body">
+                        <pre className="message-content">{selectedLog.content}</pre>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="no-message-selected">
+                      <span>SELECT A LOG ENTRY TO VIEW</span>
                     </div>
-                    <div className="message-divider" />
-                    <div className="message-body">
-                      <pre className="message-content">{selectedMessage.content}</pre>
-                    </div>
-                  </>
+                  )
                 ) : (
-                  <div className="no-message-selected">
-                    <span>SELECT A MESSAGE TO VIEW</span>
-                  </div>
+                  selectedMessage ? (
+                    <>
+                      <div className="message-header">
+                        <div className="header-row">
+                          <span className="header-label">FROM:</span>
+                          <span className="header-value">{selectedMessage.from}</span>
+                        </div>
+                        <div className="header-row">
+                          <span className="header-label">TO:</span>
+                          <span className="header-value">{selectedMessage.to}</span>
+                        </div>
+                        <div className="header-row">
+                          <span className="header-label">SUBJECT:</span>
+                          <span className="header-value">{selectedMessage.subject}</span>
+                        </div>
+                        <div className="header-row">
+                          <span className="header-label">DATE:</span>
+                          <span className="header-value">{formatTimestamp(selectedMessage.timestamp)}</span>
+                        </div>
+                        {selectedMessage.priority !== 'NORMAL' && (
+                          <div className="header-row">
+                            <span className="header-label">PRIORITY:</span>
+                            <span className={`header-value ${getPriorityClass(selectedMessage.priority)}`}>
+                              {selectedMessage.priority}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="message-divider" />
+                      <div className="message-body">
+                        <pre className="message-content">{selectedMessage.content}</pre>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="no-message-selected">
+                      <span>SELECT A MESSAGE TO VIEW</span>
+                    </div>
+                  )
                 )}
                 <div ref={messagesEndRef} />
               </div>

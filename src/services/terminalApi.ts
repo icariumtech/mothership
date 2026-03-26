@@ -19,6 +19,14 @@ export interface TerminalMessage {
   in_reply_to: string;
 }
 
+export interface TerminalLogEntry {
+  log_id: string;
+  title: string;
+  author: string;
+  timestamp: string;
+  content: string;
+}
+
 export interface TerminalData {
   slug: string;
   owner: string;
@@ -28,6 +36,7 @@ export interface TerminalData {
   location_name: string;
   inbox: TerminalMessage[];
   sent: TerminalMessage[];
+  logs: TerminalLogEntry[];
 }
 
 /**

@@ -14,7 +14,7 @@ type ViewMode = 'inbox' | 'sent' | 'logs';
 
 export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }: CommTerminalDialogProps) {
   const [terminalData, setTerminalData] = useState<TerminalData | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('inbox');
+  const [viewMode, setViewMode] = useState<ViewMode>('logs');
   const [selectedMessage, setSelectedMessage] = useState<TerminalMessage | null>(null);
   const [selectedLog, setSelectedLog] = useState<TerminalLogEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,6 +137,12 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
               <div className="comm-terminal-sidebar">
                 <div className="sidebar-tabs">
                   <button
+                    className={`sidebar-tab ${viewMode === 'logs' ? 'active' : ''}`}
+                    onClick={() => setViewMode('logs')}
+                  >
+                    LOGS ({terminalData.logs.length})
+                  </button>
+                  <button
                     className={`sidebar-tab ${viewMode === 'inbox' ? 'active' : ''}`}
                     onClick={() => setViewMode('inbox')}
                   >
@@ -147,12 +153,6 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
                     onClick={() => setViewMode('sent')}
                   >
                     SENT ({terminalData.sent.length})
-                  </button>
-                  <button
-                    className={`sidebar-tab ${viewMode === 'logs' ? 'active' : ''}`}
-                    onClick={() => setViewMode('logs')}
-                  >
-                    LOGS ({terminalData.logs.length})
                   </button>
                 </div>
                 <div className="message-list">

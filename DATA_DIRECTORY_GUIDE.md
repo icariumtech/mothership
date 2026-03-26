@@ -1057,7 +1057,53 @@ Will have full report ready by end of week.
 | `in_reply_to` | No | Links to previous message in thread |
 | `read` | No | Whether message has been read |
 
-### 6.4 Legacy Directory Structure (Backwards Compatible)
+### 6.4 Terminal Log Files
+
+Each terminal can have a `logs/` directory containing static personal log entries authored by the terminal's owner. Logs appear in the **LOGS** tab (shown first by default) in the comm-terminal UI.
+
+**Directory structure:**
+```
+{facility}/comms/
+└── {terminal-slug}/
+    ├── terminal.yaml
+    ├── logs/                  # Personal log entries (optional)
+    │   ├── 001-arrival-notes.md
+    │   └── 002-incident-report.md
+    ├── inbox/
+    └── sent/
+```
+
+**Filename Convention:** `{sequence}-{description}.md`
+- Sequence: 3-digit number for ordering (001, 002, etc.)
+- Description: Brief lowercase description with hyphens
+
+**Example:** `logs/001-arrival-notes.md`
+
+```markdown
+---
+title: Arrival Notes
+author: Commander Drake
+timestamp: "2184-01-09T06:00:00"
+---
+Docked at Research Base Alpha 0600 local time. Facility systems nominal.
+Full complement aboard and accounted for.
+```
+
+**Log Fields:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | Yes | Displayed as the log entry title in the list and header |
+| `author` | No | Who wrote the log entry |
+| `timestamp` | No | In-game date/time for ordering and display |
+
+**Notes:**
+- Logs are sorted by `timestamp` ascending (oldest first)
+- Unlike messages, logs are not routed — they belong to the terminal they're placed in
+- Logs with no `timestamp` sort before timestamped entries
+- The `logs/` directory is optional; terminals without it show `LOGS (0)` in the UI
+
+### 6.5 Legacy Directory Structure (Backwards Compatible)
 
 The system also supports a legacy format where each terminal has its own `inbox/` and `sent/` directories. This is still supported for backwards compatibility but requires message duplication.
 

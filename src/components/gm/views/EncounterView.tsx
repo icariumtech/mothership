@@ -9,7 +9,6 @@ import {
 } from '@ant-design/icons';
 import { encounterApi, type DeckWithRooms } from '@/services/encounterApi';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
-import { NPCPortraitOverlay } from '@/components/domain/encounter/NPCPortraitOverlay';
 import type { ActiveView, Location } from '@/types/gmConsole';
 import type { ShipStatusData } from '@/types/shipStatus';
 import type {
@@ -363,8 +362,6 @@ export function EncounterView({
     () => Object.values(activeView?.encounter_npc_data || {}),
     [activeView?.encounter_npc_data]
   );
-  const activePortraits = activeView?.encounter_active_portraits || [];
-
   // Deck dropdown options
   const deckOptions = useMemo(() => {
     if (!manifest) return [];
@@ -467,7 +464,7 @@ export function EncounterView({
         <SlideOutPanel open={activePanel === 'portraits'} title="NPC Portraits" onClose={closePanel}>
           <NpcPortraitsPanel
             npcs={npcs}
-            activePortraits={activePortraits}
+            activePortraits={activeView?.encounter_active_portraits || []}
             onToggle={handleTogglePortrait}
           />
         </SlideOutPanel>
@@ -507,12 +504,6 @@ export function EncounterView({
           />
         </SlideOutPanel>
       </div>
-      {(activePortraits.length > 0) && (
-        <NPCPortraitOverlay
-          activePortraitIds={activeView?.encounter_active_portraits || []}
-          npcData={activeView?.encounter_npc_data || {}}
-        />
-      )}
     </div>
   );
 }

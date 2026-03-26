@@ -90,6 +90,27 @@ async function setShipLocation(locationSlug: string): Promise<void> {
   await api.post('/gm/ship/set-location/', { location_slug: locationSlug });
 }
 
+export interface CampaignDocSummary {
+  slug: string;
+  title: string;
+}
+
+export interface CampaignDoc {
+  slug: string;
+  title: string;
+  content: string;
+}
+
+async function getCampaignDocs(): Promise<CampaignDocSummary[]> {
+  const response = await api.get<{ docs: CampaignDocSummary[] }>('/gm/campaign-docs/');
+  return response.data.docs;
+}
+
+async function getCampaignDoc(slug: string): Promise<CampaignDoc> {
+  const response = await api.get<CampaignDoc>(`/gm/campaign-docs/${slug}/`);
+  return response.data;
+}
+
 export const gmConsoleApi = {
   getLocations,
   getActiveView,
@@ -104,4 +125,6 @@ export const gmConsoleApi = {
   getCrew,
   getSessions,
   setShipLocation,
+  getCampaignDocs,
+  getCampaignDoc,
 };

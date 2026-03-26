@@ -589,6 +589,43 @@ class DataLoader:
 
         return session_data
 
+    def load_campaign_docs(self) -> List[Dict[str, Any]]:
+        """Load list of campaign docs from data/campaign/docs/ — returns slug + title only."""
+        docs_dir = self.data_dir / "campaign" / "docs"
+        if not docs_dir.exists():
+            return []
+        docs = []
+        for doc_file in sorted(docs_dir.glob("*.md")):
+            slug = doc_file.stem
+            title = slug.replace('-', ' ').replace('_', ' ').title()
+            with open(doc_file, 'r') as f:
+                content = f.read()
+            if content.startswith('---'):
+                parts = content.split('---', 2)
+                if len(parts) >= 3:
+                    frontmatter = yaml.safe_load(parts[1]) or {}
+                    title = frontmatter.get('title', title)
+            docs.append({'slug': slug, 'title': title})
+        return docs
+
+    def load_campaign_doc(self, slug: str) -> Dict[str, Any]:
+        """Load a single campaign doc by slug. Returns title + body (frontmatter stripped)."""
+        docs_dir = self.data_dir / "campaign" / "docs"
+        doc_file = docs_dir / f"{slug}.md"
+        if not doc_file.exists():
+            return None
+        with open(doc_file, 'r') as f:
+            content = f.read()
+        title = slug.replace('-', ' ').replace('_', ' ').title()
+        body = content
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                frontmatter = yaml.safe_load(parts[1]) or {}
+                title = frontmatter.get('title', title)
+                body = parts[2].strip()
+        return {'slug': slug, 'title': title, 'content': body}
+
     def load_ship_status(self) -> Dict[str, Any]:
         """Load ship status from data/campaign/ship.yaml."""
         ship_file = self.data_dir / "campaign" / "ship.yaml"

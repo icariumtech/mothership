@@ -2175,3 +2175,29 @@ def api_sessions(request):
     loader = DataLoader()
     sessions = loader.load_sessions()
     return JsonResponse({'sessions': sessions})
+
+
+def api_campaign_docs(request):
+    """
+    GM endpoint — returns list of campaign docs from data/campaign/docs/.
+    GET: Returns [{slug, title}] sorted by filename.
+    """
+    from terminal.data_loader import DataLoader
+
+    loader = DataLoader()
+    docs = loader.load_campaign_docs()
+    return JsonResponse({'docs': docs})
+
+
+def api_campaign_doc(request, slug):
+    """
+    GM endpoint — returns a single campaign doc by slug.
+    GET: Returns {slug, title, content} (markdown body, frontmatter stripped).
+    """
+    from terminal.data_loader import DataLoader
+
+    loader = DataLoader()
+    doc = loader.load_campaign_doc(slug)
+    if doc is None:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    return JsonResponse(doc)

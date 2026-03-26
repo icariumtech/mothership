@@ -6,6 +6,7 @@ import {
   ApartmentOutlined,
   MessageOutlined,
   RobotOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { encounterApi, type DeckWithRooms } from '@/services/encounterApi';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
@@ -32,6 +33,7 @@ import { NpcPortraitsPanel } from '../panels/NpcPortraitsPanel';
 import { LocationTreePanel } from '../panels/LocationTreePanel';
 import { TerminalsPanel } from '../panels/TerminalsPanel';
 import { CharonPanel } from '../CharonPanel';
+import { DocumentsPanel } from '../panels/DocumentsPanel';
 import './EncounterView.css';
 
 // Room with deck info for display (supports both legacy and grid formats)
@@ -65,6 +67,7 @@ const ENCOUNTER_TOOLS: ToolRailButton[] = [
   { key: 'tokens', icon: <TeamOutlined />, tooltip: 'Token Palette' },
   { key: 'portraits', icon: <UserOutlined />, tooltip: 'NPC Portraits' },
   { key: 'terminals', icon: <MessageOutlined />, tooltip: 'Terminals' },
+  { key: 'documents', icon: <FileTextOutlined />, tooltip: 'Documents' },
   { key: 'charon', icon: <RobotOutlined />, tooltip: 'CHARON' },
 ];
 
@@ -493,6 +496,10 @@ export function EncounterView({
             activeTerminalSlug={activeView?.overlay_terminal_slug || null}
             onShowTerminal={onShowTerminal}
           />
+        </SlideOutPanel>
+
+        <SlideOutPanel open={activePanel === 'documents'} title="Documents" onClose={closePanel}>
+          <DocumentsPanel />
         </SlideOutPanel>
 
         <SlideOutPanel open={activePanel === 'charon'} title="CHARON" onClose={closePanel}>

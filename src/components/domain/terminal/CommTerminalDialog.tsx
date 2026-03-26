@@ -115,7 +115,8 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
       <div className="comm-terminal-container" onClick={handlePanelClick}>
         <Panel
           title={title}
-          chamferCorners={['tr', 'bl', 'br']}
+          chamferCorners={['tl', 'tr', 'bl', 'br']}
+          chamferSize={20}
           className="comm-terminal-panel"
         >
           {isLoading && (

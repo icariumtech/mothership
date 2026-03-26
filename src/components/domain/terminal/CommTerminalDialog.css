@@ -17,11 +17,6 @@
   animation: commFadeInBackdrop 0.2s ease-out;
 }
 
-/* Larger chamfer size for comm terminal dialog */
-.comm-terminal-panel.panel-wrapper {
-  --chamfer-size: 20px;
-}
-
 @keyframes commFadeInBackdrop {
   from { opacity: 0; }
   to { opacity: 1; }

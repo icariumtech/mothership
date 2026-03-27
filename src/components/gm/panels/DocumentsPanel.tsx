@@ -95,16 +95,13 @@ export function DocumentsPanel({ activeDocSlug }: DocumentsPanelProps) {
         onCancel={() => setSelectedDoc(null)}
         width={640}
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => setSelectedDoc(null)}>Close</Button>
-            <Button
-              type={isShown ? 'primary' : 'default'}
-              style={isShown ? { background: '#8b7355', borderColor: '#8b7355' } : {}}
-              onClick={isShown ? handleHide : handleShow}
-            >
-              {isShown ? 'HIDE FROM PLAYERS' : 'SHOW TO PLAYERS'}
-            </Button>
-          </div>
+          <Button
+            type={isShown ? 'primary' : 'default'}
+            style={isShown ? { background: '#8b7355', borderColor: '#8b7355' } : {}}
+            onClick={isShown ? handleHide : handleShow}
+          >
+            {isShown ? 'HIDE FROM PLAYERS' : 'SHOW TO PLAYERS'}
+          </Button>
         }
       >
         {loading ? (

@@ -46,7 +46,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
 
   // CHARON panel is active when the terminal view is displayed, the dialog is open,
   // or we're in a view that has a CHARON channel (bridge, encounter)
-  const isActive = currentViewType === 'CHARON_TERMINAL' || currentViewType === 'BRIDGE' || currentViewType === 'ENCOUNTER' || charonDialogOpen;
+  const isActive = currentViewType === 'CHARON_TERMINAL' || currentViewType === 'BRIDGE' || currentViewType === 'ENCOUNTER' || currentViewType === 'STANDBY' || charonDialogOpen;
 
   // Show visibility toggle only for story and encounter channels, not when CHARON_TERMINAL is the active view (always showing)
   const showVisibilityToggle = useMemo(() => {

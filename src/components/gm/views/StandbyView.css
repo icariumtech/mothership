@@ -1,0 +1,38 @@
+.gm-standby-view {
+  flex: 1;
+  display: flex;
+  position: relative;
+  min-height: 0;
+}
+
+.gm-standby-view__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.gm-standby-view__label {
+  color: #555;
+  font-size: 24px;
+  letter-spacing: 4px;
+  font-weight: 300;
+}
+
+.gm-standby-view__hint {
+  color: #333;
+  font-size: 12px;
+}
+
+.gm-standby-view__overlay {
+  position: absolute;
+  inset: 0;
+  right: 48px; /* don't cover the ToolRail */
+  background: #0a0a0a;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

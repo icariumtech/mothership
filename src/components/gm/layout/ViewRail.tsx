@@ -4,12 +4,11 @@ import {
   PauseCircleOutlined,
   DashboardOutlined,
   RadarChartOutlined,
-  RobotOutlined,
   SendOutlined,
 } from '@ant-design/icons';
 import './ViewRail.css';
 
-export type GMViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'CHARON';
+export type GMViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER';
 
 interface ViewRailProps {
   gmView: GMViewType;
@@ -51,13 +50,6 @@ const VIEW_ITEMS: ViewItem[] = [
     tooltip: 'Encounter',
     playerViewKeys: ['ENCOUNTER'],
     unreadKey: 'encounter',
-  },
-  {
-    key: 'CHARON',
-    icon: <RobotOutlined />,
-    tooltip: 'CHARON Terminal',
-    playerViewKeys: ['CHARON_TERMINAL'],
-    unreadKey: 'story',
   },
 ];
 

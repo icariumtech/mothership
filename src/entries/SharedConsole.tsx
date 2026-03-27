@@ -34,7 +34,7 @@ import type { DoorStatusState, TokenState } from '../types/encounterMap';
 type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
 
 // View types matching Django's ActiveView model
-type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD' | 'CHARON_TERMINAL';
+type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
 
 // Map view modes for BRIDGE view
 type MapViewMode = 'galaxy' | 'system' | 'orbit';
@@ -309,19 +309,7 @@ function SharedConsole() {
       const previousViewType = activeViewRef.current?.view_type;
       setActiveView(data);
 
-      // CHARON_TERMINAL transition handling
-      if (data.view_type === 'CHARON_TERMINAL' && previousViewType !== 'CHARON_TERMINAL') {
-        // Switching TO CHARON_TERMINAL - auto-open dialog
-        setCharonDialogOpen(true);
-        charonApi.toggleDialog(true).catch(console.error);
-      } else if (data.view_type !== 'CHARON_TERMINAL' && previousViewType === 'CHARON_TERMINAL') {
-        // Switching AWAY from CHARON_TERMINAL - auto-close dialog
-        setCharonDialogOpen(false);
-        charonApi.toggleDialog(false).catch(console.error);
-      } else {
-        // Sync charon dialog state for other transitions
-        setCharonDialogOpen(data.charon_dialog_open);
-      }
+      setCharonDialogOpen(data.charon_dialog_open);
 
       // Reset map state when transitioning TO BRIDGE from another view type
       if (data.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
@@ -389,8 +377,6 @@ function SharedConsole() {
 
   const viewType = activeView?.view_type || 'STANDBY';
   const isStandby = viewType === 'STANDBY';
-  const isCharonTerminal = viewType === 'CHARON_TERMINAL';
-
   // Get selected system data and build content HTML
   const selectedSystemData = useMemo(() => {
     if (!selectedSystem || !starMapData) return null;
@@ -877,25 +863,13 @@ function SharedConsole() {
         title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : 'MOTHERSHIP'}
         subtitle={viewType === 'ENCOUNTER' ? undefined : 'TERMINAL'}
         rightText={viewType === 'ENCOUNTER' || viewType === 'BRIDGE' ? undefined : 'STATION ACCESS'}
-        hidden={isStandby || isCharonTerminal}
+        hidden={isStandby}
         typewriterTitle={viewType === 'ENCOUNTER'}
       />
 
       {/* View content */}
       {viewType === 'STANDBY' && (
         <StandbyView title="MOTHERSHIP" subtitle="The Outer Veil" />
-      )}
-
-      {viewType === 'CHARON_TERMINAL' && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: '#000',
-          zIndex: 1
-        }} />
       )}
 
       {viewType === 'BRIDGE' && (
@@ -1020,7 +994,7 @@ function SharedConsole() {
       )}
 
       {/* Other view types can be added here */}
-      {viewType !== 'STANDBY' && viewType !== 'BRIDGE' && viewType !== 'CHARON_TERMINAL' && viewType !== 'ENCOUNTER' && (
+      {viewType !== 'STANDBY' && viewType !== 'BRIDGE' && viewType !== 'ENCOUNTER' && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -1037,7 +1011,7 @@ function SharedConsole() {
         open={charonDialogOpen}
         onClose={handleCharonDialogClose}
         channel={activeView?.charon_active_channel || 'story'}
-        disableClose={isCharonTerminal}
+        disableClose={false}
       />
 
       {/* Document Dialog - overlay for viewing campaign docs pushed by GM */}

@@ -11,7 +11,6 @@ import { useSSE } from '@/hooks/useSSE';
 import { SSEConnectionToast } from '@/components/ui/SSEConnectionToast';
 import { StandbyView } from '@/components/gm/views/StandbyView';
 import { BridgeView } from '@/components/gm/views/BridgeView';
-import { CharonView } from '@/components/gm/views/CharonView';
 import { EncounterView } from '@/components/gm/views/EncounterView';
 import './GMConsole.css';
 
@@ -37,7 +36,6 @@ function GMConsole() {
 
   // Derive active CHARON channel from GM's local view (not player view)
   const activeCharonChannel = useMemo(() => {
-    if (gmView === 'CHARON') return 'story';
     if (gmView === 'BRIDGE') return 'bridge';
     if (gmView === 'ENCOUNTER' && activeView?.location_slug) {
       return `encounter-${activeView.location_slug}`;
@@ -131,9 +129,6 @@ function GMConsole() {
         case 'ENCOUNTER':
           await gmConsoleApi.switchView('ENCOUNTER', activeView?.location_slug || '');
           break;
-        case 'CHARON':
-          await charonApi.switchToCharon();
-          break;
       }
       showStatus(`Pushed ${gmView} to player terminal`);
     } catch (err) {
@@ -217,7 +212,13 @@ function GMConsole() {
         unreadCounts={unreadCounts}
       />
       <main className="gm-console__content">
-        {gmView === 'STANDBY' && <StandbyView />}
+        {gmView === 'STANDBY' && (
+          <StandbyView
+            charonChannel={activeCharonChannel}
+            charonDialogOpen={activeView?.charon_dialog_open || false}
+            onDialogToggle={handleToggleCharonDialog}
+          />
+        )}
         {gmView === 'BRIDGE' && (
           <BridgeView
             activeView={activeView}
@@ -245,14 +246,6 @@ function GMConsole() {
             charonDialogOpen={activeView?.charon_dialog_open || false}
             onDialogToggle={handleToggleCharonDialog}
             shipData={shipData}
-          />
-        )}
-        {gmView === 'CHARON' && (
-          <CharonView
-            channel={activeCharonChannel}
-            currentViewType="CHARON_TERMINAL"
-            charonDialogOpen={activeView?.charon_dialog_open || false}
-            onDialogToggle={handleToggleCharonDialog}
           />
         )}
       </main>

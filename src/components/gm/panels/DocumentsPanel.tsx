@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Typography } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Button, Modal, Typography } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { gmConsoleApi, type CampaignDocSummary, type CampaignDoc } from '@/services/gmConsoleApi';
@@ -49,38 +48,6 @@ export function DocumentsPanel({ activeDocSlug }: DocumentsPanelProps) {
     }
   };
 
-  if (selectedDoc) {
-    const isShown = activeDocSlug === selectedDoc.slug;
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexShrink: 0 }}>
-          <Button
-            size="small"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => setSelectedDoc(null)}
-            style={{ borderColor: '#2a3a3a' }}
-          />
-          <Text style={{ fontSize: 12, fontWeight: 600, color: '#8b7355', flex: 1 }}>
-            {selectedDoc.title.toUpperCase()}
-          </Text>
-          <Button
-            size="small"
-            type={isShown ? 'primary' : 'default'}
-            style={isShown ? { background: '#8b7355', borderColor: '#8b7355' } : {}}
-            onClick={isShown ? handleHide : handleShow}
-          >
-            {isShown ? 'HIDE' : 'SHOW'}
-          </Button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', fontSize: 12, lineHeight: 1.6, color: '#c0c8c8' }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {selectedDoc.content}
-          </ReactMarkdown>
-        </div>
-      </div>
-    );
-  }
-
   if (docs.length === 0 && !loading) {
     return (
       <Text type="secondary" style={{ fontSize: 11 }}>
@@ -89,43 +56,67 @@ export function DocumentsPanel({ activeDocSlug }: DocumentsPanelProps) {
     );
   }
 
+  const isShown = selectedDoc ? activeDocSlug === selectedDoc.slug : false;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {docs.map(doc => {
-        const isShown = activeDocSlug === doc.slug;
-        return (
-          <div
-            key={doc.slug}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <button
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {docs.map(doc => {
+          const active = activeDocSlug === doc.slug;
+          return (
+            <div
+              key={doc.slug}
               onClick={() => handleSelect(doc.slug)}
               style={{
-                flex: 1,
-                background: 'none',
-                border: `1px solid ${isShown ? '#8b7355' : '#2a3a3a'}`,
+                padding: '8px 10px',
+                background: '#0f1515',
+                border: `1px solid ${active ? '#8b7355' : '#252525'}`,
                 borderRadius: 4,
-                padding: '6px 10px',
-                textAlign: 'left',
                 cursor: 'pointer',
-                color: isShown ? '#8b7355' : '#c0c8c8',
-                fontSize: 12,
-                fontFamily: 'inherit',
                 transition: 'border-color 0.15s',
               }}
-              onMouseEnter={e => { if (!isShown) e.currentTarget.style.borderColor = '#4a6b6b'; }}
-              onMouseLeave={e => { if (!isShown) e.currentTarget.style.borderColor = '#2a3a3a'; }}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = '#4a6b6b'; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = '#252525'; }}
             >
-              {doc.title}
-            </button>
-            {isShown && (
-              <Button size="small" onClick={handleHide} style={{ flexShrink: 0 }}>
-                HIDE
-              </Button>
-            )}
+              <div style={{ color: active ? '#8b7355' : '#d0d0d0', fontSize: 12, fontWeight: 500 }}>
+                {doc.title}
+              </div>
+              {active && (
+                <div style={{ color: '#8b7355', fontSize: 10, marginTop: 2 }}>SHOWING TO PLAYERS</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <Modal
+        title={selectedDoc?.title}
+        open={!!selectedDoc}
+        onCancel={() => setSelectedDoc(null)}
+        width={640}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={() => setSelectedDoc(null)}>Close</Button>
+            <Button
+              type={isShown ? 'primary' : 'default'}
+              style={isShown ? { background: '#8b7355', borderColor: '#8b7355' } : {}}
+              onClick={isShown ? handleHide : handleShow}
+            >
+              {isShown ? 'HIDE FROM PLAYERS' : 'SHOW TO PLAYERS'}
+            </Button>
           </div>
-        );
-      })}
-    </div>
+        }
+      >
+        {loading ? (
+          <Text type="secondary">Loading...</Text>
+        ) : selectedDoc ? (
+          <div style={{ fontSize: 13, lineHeight: 1.7, color: '#c0c8c8', maxHeight: '60vh', overflowY: 'auto' }}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {selectedDoc.content}
+            </ReactMarkdown>
+          </div>
+        ) : null}
+      </Modal>
+    </>
   );
 }

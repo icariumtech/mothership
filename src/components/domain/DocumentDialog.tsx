@@ -46,6 +46,7 @@ export function DocumentDialog({ open, docSlug, onClose }: DocumentDialogProps) 
           chamferCorners={['tr', 'bl', 'br']}
           chamferSize={20}
           className="doc-dialog-panel"
+          padding={0}
         >
           {isLoading && (
             <div className="doc-dialog-loading">

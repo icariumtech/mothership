@@ -101,6 +101,14 @@ export interface CampaignDoc {
   content: string;
 }
 
+async function showDoc(slug: string): Promise<void> {
+  await api.post(`/gm/show-doc/${slug}/`, {});
+}
+
+async function hideDoc(): Promise<void> {
+  await api.post('/doc/hide/', {});
+}
+
 async function getCampaignDocs(): Promise<CampaignDocSummary[]> {
   const response = await api.get<{ docs: CampaignDocSummary[] }>('/gm/campaign-docs/');
   return response.data.docs;
@@ -125,6 +133,8 @@ export const gmConsoleApi = {
   getCrew,
   getSessions,
   setShipLocation,
+  showDoc,
+  hideDoc,
   getCampaignDocs,
   getCampaignDoc,
 };

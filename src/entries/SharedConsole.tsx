@@ -14,6 +14,7 @@ import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
 import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
 import { CharonDialog } from '@components/domain/charon/CharonDialog';
 import { CommTerminalDialog } from '@components/domain/terminal/CommTerminalDialog';
+import { DocumentDialog } from '@components/domain/DocumentDialog';
 import { EncounterView } from '@components/domain/encounter/EncounterView';
 import { NPCPortraitOverlay } from '@components/domain/encounter/NPCPortraitOverlay';
 import { charonApi } from '@/services/charonApi';
@@ -44,6 +45,7 @@ interface ActiveView {
   view_slug: string;
   overlay_location_slug: string;
   overlay_terminal_slug: string;
+  overlay_doc_slug: string;
   charon_dialog_open: boolean;
   charon_active_channel?: string;
   updated_at: string;
@@ -234,6 +236,8 @@ function SharedConsole() {
   const [terminalOverlayOpen, setTerminalOverlayOpen] = useState(false);
   const [terminalOverlayLocation, setTerminalOverlayLocation] = useState('');
   const [terminalOverlaySlug, setTerminalOverlaySlug] = useState('');
+  const [docOverlayOpen, setDocOverlayOpen] = useState(false);
+  const [docOverlaySlug, setDocOverlaySlug] = useState('');
 
   // Refs for map components to call dive methods
   const galaxyMapRef = useRef<GalaxyMapHandle>(null);
@@ -339,6 +343,14 @@ function SharedConsole() {
         setTerminalOverlayOpen(true);
       } else {
         setTerminalOverlayOpen(false);
+      }
+
+      // Sync document overlay state
+      if (data.overlay_doc_slug) {
+        setDocOverlaySlug(data.overlay_doc_slug);
+        setDocOverlayOpen(true);
+      } else {
+        setDocOverlayOpen(false);
       }
     }, []),
     onShipStatusEvent: useCallback((rawData: unknown) => {
@@ -835,6 +847,10 @@ function SharedConsole() {
     }
   }, []);
 
+  const handleDocOverlayClose = useCallback(() => {
+    setDocOverlayOpen(false);
+  }, []);
+
   // Terminal overlay handlers
   // When players close the dialog, notify the GM view to unselect the terminal
   const handleTerminalOverlayClose = useCallback(async () => {
@@ -1022,6 +1038,13 @@ function SharedConsole() {
         onClose={handleCharonDialogClose}
         channel={activeView?.charon_active_channel || 'story'}
         disableClose={isCharonTerminal}
+      />
+
+      {/* Document Dialog - overlay for viewing campaign docs pushed by GM */}
+      <DocumentDialog
+        open={docOverlayOpen}
+        docSlug={docOverlaySlug}
+        onClose={handleDocOverlayClose}
       />
 
       {/* Comm Terminal Dialog - overlay for viewing terminal messages */}

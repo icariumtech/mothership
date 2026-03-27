@@ -499,7 +499,7 @@ export function EncounterView({
         </SlideOutPanel>
 
         <SlideOutPanel open={activePanel === 'documents'} title="Documents" onClose={closePanel}>
-          <DocumentsPanel />
+          <DocumentsPanel activeDocSlug={activeView?.overlay_doc_slug || ''} />
         </SlideOutPanel>
 
         <SlideOutPanel open={activePanel === 'charon'} title="CHARON" onClose={closePanel}>

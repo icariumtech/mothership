@@ -12,6 +12,7 @@ _state: dict = {
     'bridge_label': '',
     'overlay_location_slug': '',
     'overlay_terminal_slug': '',
+    'overlay_doc_slug': '',
     'charon_mode': 'DISPLAY',
     'charon_location_path': '',
     'charon_dialog_open': False,

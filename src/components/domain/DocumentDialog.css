@@ -1,0 +1,132 @@
+.doc-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  z-index: 1000;
+  animation: docFadeIn 0.2s ease-out;
+}
+
+@keyframes docFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.doc-dialog-container {
+  width: 60%;
+  max-height: 80vh;
+  min-width: 520px;
+  max-width: 900px;
+  animation: docScaleIn 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes docScaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.doc-dialog-panel {
+  height: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.doc-dialog-loading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #4a6b6b;
+  font-size: 12px;
+  padding: 20px;
+}
+
+.doc-dialog-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: calc(80vh - 60px);
+  color: #c0c8c8;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Markdown element styles */
+.doc-dialog-body h1,
+.doc-dialog-body h2,
+.doc-dialog-body h3 {
+  color: #8b7355;
+  margin: 1em 0 0.4em;
+  font-weight: 600;
+}
+
+.doc-dialog-body h1 { font-size: 16px; }
+.doc-dialog-body h2 { font-size: 14px; }
+.doc-dialog-body h3 { font-size: 13px; }
+
+.doc-dialog-body p { margin: 0 0 0.8em; }
+
+.doc-dialog-body strong { color: #d0d8d8; }
+
+.doc-dialog-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  font-size: 12px;
+}
+
+.doc-dialog-body th {
+  color: #4a6b6b;
+  border-bottom: 1px solid #2a3a3a;
+  padding: 4px 8px;
+  text-align: left;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.doc-dialog-body td {
+  border-bottom: 1px solid #1a2a2a;
+  padding: 4px 8px;
+  color: #b0b8b8;
+}
+
+.doc-dialog-body blockquote {
+  border-left: 2px solid #4a6b6b;
+  margin: 0.8em 0;
+  padding: 4px 12px;
+  color: #8a9898;
+  font-style: italic;
+}
+
+.doc-dialog-body hr {
+  border: none;
+  border-top: 1px solid #2a3a3a;
+  margin: 1em 0;
+}
+
+.doc-dialog-body ul,
+.doc-dialog-body ol {
+  padding-left: 1.4em;
+  margin: 0.4em 0 0.8em;
+}
+
+.doc-dialog-body li { margin: 0.2em 0; }
+
+.loading-dots::after {
+  content: '...';
+  animation: dots 1.2s steps(3, end) infinite;
+}
+
+@keyframes dots {
+  0%, 100% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+}

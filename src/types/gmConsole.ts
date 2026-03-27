@@ -57,6 +57,7 @@ export interface ActiveView {
   bridge_label?: string;
   overlay_location_slug: string;
   overlay_terminal_slug: string;
+  overlay_doc_slug: string;
   charon_mode: 'DISPLAY' | 'QUERY';
   charon_dialog_open: boolean;
   charon_active_channel?: string;

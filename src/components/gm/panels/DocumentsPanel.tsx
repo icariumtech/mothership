@@ -7,7 +7,11 @@ import { gmConsoleApi, type CampaignDocSummary, type CampaignDoc } from '@/servi
 
 const { Text } = Typography;
 
-export function DocumentsPanel() {
+interface DocumentsPanelProps {
+  activeDocSlug: string;
+}
+
+export function DocumentsPanel({ activeDocSlug }: DocumentsPanelProps) {
   const [docs, setDocs] = useState<CampaignDocSummary[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<CampaignDoc | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,7 +32,25 @@ export function DocumentsPanel() {
     }
   };
 
+  const handleShow = async () => {
+    if (!selectedDoc) return;
+    try {
+      await gmConsoleApi.showDoc(selectedDoc.slug);
+    } catch (err) {
+      console.error('Failed to show doc:', err);
+    }
+  };
+
+  const handleHide = async () => {
+    try {
+      await gmConsoleApi.hideDoc();
+    } catch (err) {
+      console.error('Failed to hide doc:', err);
+    }
+  };
+
   if (selectedDoc) {
+    const isShown = activeDocSlug === selectedDoc.slug;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexShrink: 0 }}>
@@ -38,9 +60,17 @@ export function DocumentsPanel() {
             onClick={() => setSelectedDoc(null)}
             style={{ borderColor: '#2a3a3a' }}
           />
-          <Text style={{ fontSize: 12, fontWeight: 600, color: '#8b7355' }}>
+          <Text style={{ fontSize: 12, fontWeight: 600, color: '#8b7355', flex: 1 }}>
             {selectedDoc.title.toUpperCase()}
           </Text>
+          <Button
+            size="small"
+            type={isShown ? 'primary' : 'default'}
+            style={isShown ? { background: '#8b7355', borderColor: '#8b7355' } : {}}
+            onClick={isShown ? handleHide : handleShow}
+          >
+            {isShown ? 'HIDE' : 'SHOW'}
+          </Button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', fontSize: 12, lineHeight: 1.6, color: '#c0c8c8' }}>
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -61,28 +91,41 @@ export function DocumentsPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {docs.map(doc => (
-        <button
-          key={doc.slug}
-          onClick={() => handleSelect(doc.slug)}
-          style={{
-            background: 'none',
-            border: '1px solid #2a3a3a',
-            borderRadius: 4,
-            padding: '6px 10px',
-            textAlign: 'left',
-            cursor: 'pointer',
-            color: '#c0c8c8',
-            fontSize: 12,
-            fontFamily: 'inherit',
-            transition: 'border-color 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = '#4a6b6b')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a3a3a')}
-        >
-          {doc.title}
-        </button>
-      ))}
+      {docs.map(doc => {
+        const isShown = activeDocSlug === doc.slug;
+        return (
+          <div
+            key={doc.slug}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <button
+              onClick={() => handleSelect(doc.slug)}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: `1px solid ${isShown ? '#8b7355' : '#2a3a3a'}`,
+                borderRadius: 4,
+                padding: '6px 10px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                color: isShown ? '#8b7355' : '#c0c8c8',
+                fontSize: 12,
+                fontFamily: 'inherit',
+                transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={e => { if (!isShown) e.currentTarget.style.borderColor = '#4a6b6b'; }}
+              onMouseLeave={e => { if (!isShown) e.currentTarget.style.borderColor = '#2a3a3a'; }}
+            >
+              {doc.title}
+            </button>
+            {isShown && (
+              <Button size="small" onClick={handleHide} style={{ flexShrink: 0 }}>
+                HIDE
+              </Button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

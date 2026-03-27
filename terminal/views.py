@@ -193,6 +193,7 @@ def build_active_view_payload(state: dict) -> dict:
         'bridge_label': state.get('bridge_label', ''),
         'overlay_location_slug': state.get('overlay_location_slug', ''),
         'overlay_terminal_slug': state.get('overlay_terminal_slug', ''),
+        'overlay_doc_slug': state.get('overlay_doc_slug', ''),
         'charon_mode': state.get('charon_mode', 'DISPLAY'),
         'charon_location_path': state.get('charon_location_path', ''),
         'charon_dialog_open': state.get('charon_dialog_open', False),
@@ -539,6 +540,7 @@ def api_switch_view(request):
         # Clear overlay when switching views
         'overlay_location_slug': '',
         'overlay_terminal_slug': '',
+        'overlay_doc_slug': '',
     }
 
     # Auto-set CHARON channel based on view type
@@ -719,6 +721,36 @@ def api_hide_terminal(request):
     return JsonResponse({
         'success': True
     })
+
+
+@login_required
+def api_show_doc(request, slug):
+    """
+    GM endpoint — push a campaign doc to the player display.
+    POST: /api/gm/show-doc/<slug>/
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    new_state = update_state(overlay_doc_slug=slug)
+    broadcaster.announce(build_active_view_payload(new_state))
+
+    return JsonResponse({'success': True, 'overlay_doc_slug': slug})
+
+
+@csrf_exempt
+def api_hide_doc(request):
+    """
+    Public endpoint — hide the document overlay (called by players on dismiss).
+    POST: {}
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    new_state = update_state(overlay_doc_slug='')
+    broadcaster.announce(build_active_view_payload(new_state))
+
+    return JsonResponse({'success': True})
 
 
 @login_required

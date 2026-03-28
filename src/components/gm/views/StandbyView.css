@@ -26,6 +26,16 @@
   font-size: 12px;
 }
 
+.gm-standby-view__overlay-trap {
+  position: absolute;
+  inset: 0;
+  right: 48px;
+  /* transform creates a new containing block so position:fixed children are
+     scoped here — keeps the portrait overlay clear of the tool rail */
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
 .gm-standby-view__right {
   position: absolute;
   top: 0;

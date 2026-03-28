@@ -214,6 +214,7 @@ function GMConsole() {
       <main className="gm-console__content">
         {gmView === 'STANDBY' && (
           <StandbyView
+            activeView={activeView}
             charonChannel={activeCharonChannel}
             charonDialogOpen={activeView?.charon_dialog_open || false}
             onDialogToggle={handleToggleCharonDialog}

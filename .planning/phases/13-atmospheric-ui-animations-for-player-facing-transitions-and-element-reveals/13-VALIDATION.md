@@ -1,9 +1,9 @@
 ---
 phase: 13
 slug: atmospheric-ui-animations-for-player-facing-transitions-and-element-reveals
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: ready
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-28
 ---
 
@@ -42,6 +42,9 @@ created: 2026-03-28
 | 13-01-02 | 01 | 1 | anim-glitch | type-check | `npm run typecheck` | ✅ | ⬜ pending |
 | 13-02-01 | 02 | 2 | anim-overlays | type-check | `npm run typecheck` | ✅ | ⬜ pending |
 | 13-02-02 | 02 | 2 | anim-encounter | type-check | `npm run typecheck` | ✅ | ⬜ pending |
+| 13-03-01 | 03 | 1 | anim-room | build-check | `grep -c "roomFlickerIn" src/components/domain/encounter/EncounterMapRenderer.css` | ✅ | ⬜ pending |
+| 13-03-02 | 03 | 1 | anim-room | type-check | `npm run typecheck` | ✅ | ⬜ pending |
+| 13-04-01 | 04 | 1 | anim-bridge | type-check | `npm run typecheck` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -67,11 +70,11 @@ Existing infrastructure covers all phase requirements. No new test framework ins
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (existing infrastructure sufficient — no new test framework needed)
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** ready

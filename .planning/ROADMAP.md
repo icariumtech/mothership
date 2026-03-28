@@ -144,6 +144,7 @@ Plans:
 | 10. Player Ship Map View | 3/3 | ✓ Complete | 2026-03-24 |
 | 11. Close Functional + Security Gaps | 1/1 | Complete    | 2026-03-24 |
 | 12. Requirements Tracking + Dead Code Cleanup | 0/1 | Pending | - |
+| 13. Atmospheric UI Animations | 0/5 | Pending | - |
 
 ### Phase 7: Grid-based encounter map redesign
 
@@ -213,3 +214,17 @@ Plans:
 
 Plans:
 - [ ] 12-01-PLAN.md — REQUIREMENTS.md registration + ROADMAP.md sync + dead code removal
+
+### Phase 13: Atmospheric UI animations for player-facing transitions and element reveals
+
+**Goal:** Add atmospheric CRT-aesthetic animations to player-facing UI transitions and element reveals — view-to-view glitch transitions, overlay entrance/exit animations, encounter room reveal flicker, and bridge panel boot stagger. No new features; pure animation polish on existing player-facing elements.
+**Requirements**: ANIM-VIEW, ANIM-OVERLAY, ANIM-ROOM, ANIM-BRIDGE
+**Depends on:** Phase 12
+**Plans:** 5 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — useViewTransition hook + ViewStatusOverlay component + SharedConsole view transition wiring
+- [ ] 13-02-PLAN.md — Overlay animations: DocumentDialog scan-reveal, CharonDialog flicker-in, CommTerminalDialog scan-reveal, shared exit animation
+- [ ] 13-03-PLAN.md — Encounter room reveal: CSS flicker keyframes + roomAnimState in EncounterMapRenderer + token delayed reveal in TokenLayer
+- [ ] 13-04-PLAN.md — Bridge panel boot stagger: BridgeView.css stagger classes + BridgeView.tsx staggerDone state
+- [ ] 13-05-PLAN.md — Human verification: view transitions, overlay animations, room reveals, bridge stagger

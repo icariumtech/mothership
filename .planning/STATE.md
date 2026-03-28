@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 13-04-PLAN.md
-last_updated: "2026-03-28T20:58:59.293Z"
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-03-28T20:59:39.444Z"
 last_activity: 2026-03-09 — Completed 08-03 views and dashboard
 progress:
   total_phases: 13
@@ -67,6 +67,7 @@ Progress: [█████████░] 92% (Phase 8: 3/4 plans)
 | Phase 13 P01 | 208 | 2 tasks | 5 files |
 | Phase 13 P03 | 306 | 2 tasks | 3 files |
 | Phase 13 P04 | 356 | 1 tasks | 2 files |
+| Phase 13 P02 | 600 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -181,6 +182,9 @@ Recent decisions affecting current work:
 - [Phase 13]: SVG opacity presentation attribute must be undefined during animation; CSS cannot override inline SVG attributes — use CSS class for GM-dim opacity instead
 - [Phase 13]: Token reveal animation is player-only; newlyRevealedRooms state lives in TokenLayer independently from EncounterMapRenderer roomAnimState
 - [Phase 13]: Duplicated bridge-panel-fade-in keyframe in BridgeView.css rather than importing from StatusSection.css to avoid cross-file CSS coupling
+- [Phase 13]: AnimPhase guard uses !open && animPhase === 'entering' so component stays mounted through exit animation
+- [Phase 13]: commLineReveal stagger duration capped at 2000ms to handle very long terminal logs gracefully
+- [Phase 13]: CharonDialog disableClose prop unchanged; AnimPhase exit triggered only by parent setting open=false
 
 ### Roadmap Evolution
 
@@ -198,6 +202,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T20:58:59.290Z
-Stopped at: Completed 13-04-PLAN.md
+Last session: 2026-03-28T20:59:39.438Z
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None

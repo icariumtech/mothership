@@ -11,12 +11,16 @@
   color: #4a6b6b;
   text-align: center;
   white-space: nowrap;
-  animation: viewStatusFadeOut 0.4s ease-out 1.6s forwards;
 }
 
 .view-status-text {
   display: block;
   text-shadow: 0 0 10px rgba(74, 107, 107, 0.6);
+}
+
+/* Fade-out triggered by JS when label is cleared (isExiting state) */
+.view-status-overlay.exiting {
+  animation: viewStatusFadeOut 0.4s ease-out forwards;
 }
 
 @keyframes viewStatusFadeOut {

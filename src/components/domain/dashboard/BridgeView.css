@@ -42,10 +42,12 @@
    Bridge view entrance: staggered panel boot-up
    ======================================================== */
 
-/* Reuse fade-slide-in keyframe (also in StatusSection.css — duplicating is fine) */
+/* Opacity-only fade — NO transform. Using transform here would create a CSS stacking
+   context on wrapper divs, which breaks position:fixed (tab bar) and position:absolute
+   (map container) children during the animation window. */
 @keyframes bridge-panel-fade-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Applied to bridge content wrapper on mount, removed after stagger completes */

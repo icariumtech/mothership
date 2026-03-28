@@ -5,12 +5,14 @@ type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'COMM_TERMINAL' | 'MESSAGES
 // Per-view status labels shown during transition
 const VIEW_STATUS_LABELS: Record<ViewType, string> = {
   ENCOUNTER: 'TACTICAL DISPLAY INITIALIZING...',
-  BRIDGE: 'BRIDGE SYSTEMS ONLINE',
+  BRIDGE: 'INITIALIZING BRIDGE DISPLAY...',
   STANDBY: 'STANDBY MODE ACTIVE',
   COMM_TERMINAL: 'COMM TERMINAL ONLINE',
   MESSAGES: 'BROADCAST CHANNEL OPEN',
   SHIP_DASHBOARD: 'SHIP SYSTEMS ONLINE',
 };
+
+const TYPEWRITER_RATE_MS = 55; // ms per character — must match ViewStatusOverlay
 
 type ViewTransitionPhase = 'idle' | 'glitching-out' | 'dark' | 'fading-in';
 
@@ -80,24 +82,28 @@ export function useViewTransition(): UseViewTransitionResult {
       await new Promise(r => setTimeout(r, 300));
       if (cancelledRef.current) return; // Abandoned — do not commit stale data
 
-      // Phase 2: dark frame (50ms)
+      // Phase 2: dark frame — commit new view AND start typewriter label.
+      // View stays hidden (opacity: 0) until typing finishes so the label
+      // completes before the new content is revealed.
       setTransitionPhase('dark');
       commit(data);  // React renders new view during dark frame
-      await new Promise(r => setTimeout(r, 50));
+      const label = VIEW_STATUS_LABELS[newViewType] || null;
+      setStatusLabel(label);
+      // Wait for typewriter to finish: label.length * 55ms + small buffer
+      const typingDuration = label ? label.length * TYPEWRITER_RATE_MS + 100 : 50;
+      await new Promise(r => setTimeout(r, typingDuration));
       if (cancelledRef.current) return;
 
-      // Phase 3: fade-in (150ms) + show status label
+      // Phase 3: fade-in (150ms) — label has finished typing, now reveal view
       setTransitionPhase('fading-in');
-      setStatusLabel(VIEW_STATUS_LABELS[newViewType] || null);
       await new Promise(r => setTimeout(r, 150));
       if (cancelledRef.current) return;
 
-      // Phase 4: idle — status label persists briefly then fades out via CSS
+      // Phase 4: idle — label briefly visible while view is shown, then fades out
       setTransitionPhase('idle');
-      // Clear label after 2s (matches CSS fade-out duration + typewriter)
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 500));
       if (cancelledRef.current) return;
-      setStatusLabel(null);
+      setStatusLabel(null);  // ViewStatusOverlay fades out via isExiting animation
       lockRef.current = false;
     };
 

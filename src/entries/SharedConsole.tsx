@@ -969,28 +969,27 @@ function SharedConsole() {
 
       {/* ENCOUNTER view - clean display for player terminal */}
       {viewType === 'ENCOUNTER' && (
-        <>
-          <EncounterView
-            locationSlug={activeView?.location_slug || null}
-            locationType={activeView?.location_type || null}
-            locationData={activeView?.location_data || null}
-            encounterLevel={activeView?.encounter_level}
-            totalDecks={activeView?.encounter_total_decks}
-            deckName={activeView?.encounter_deck_name}
-            roomVisibility={activeView?.encounter_room_visibility}
-            doorStatus={activeView?.encounter_door_status}
-            tokens={encounterTokens}
-            isGM={false}
-            onTokenMove={handleTokenMove}
-          />
-          {/* NPC Portrait overlay — shown when GM has active portraits */}
-          {(activeView?.encounter_active_portraits?.length ?? 0) > 0 && (
-            <NPCPortraitOverlay
-              activePortraitIds={activeView?.encounter_active_portraits || []}
-              npcData={activeView?.encounter_npc_data || {}}
-            />
-          )}
-        </>
+        <EncounterView
+          locationSlug={activeView?.location_slug || null}
+          locationType={activeView?.location_type || null}
+          locationData={activeView?.location_data || null}
+          encounterLevel={activeView?.encounter_level}
+          totalDecks={activeView?.encounter_total_decks}
+          deckName={activeView?.encounter_deck_name}
+          roomVisibility={activeView?.encounter_room_visibility}
+          doorStatus={activeView?.encounter_door_status}
+          tokens={encounterTokens}
+          isGM={false}
+          onTokenMove={handleTokenMove}
+        />
+      )}
+
+      {/* NPC Portrait overlay — shown for any view type when GM has active portraits */}
+      {(activeView?.encounter_active_portraits?.length ?? 0) > 0 && (
+        <NPCPortraitOverlay
+          activePortraitIds={activeView?.encounter_active_portraits || []}
+          npcData={activeView?.encounter_npc_data || {}}
+        />
       )}
 
       {/* Other view types can be added here */}

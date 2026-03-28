@@ -1,21 +1,47 @@
+/* Backdrop: radial vignette creeps in from edges over 500ms */
+@keyframes docBackdropIn {
+  from {
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0) 100%);
+  }
+  to {
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.92) 100%);
+  }
+}
+
+@keyframes docBackdropOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Container: top-down scan reveal using clip-path (500ms) */
+@keyframes docScanIn {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0% 0); }
+}
+
+/* Container exit: opacity fade + scale reduction (300ms) */
+@keyframes docDismiss {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.92); }
+}
+
 .doc-dialog-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.85);
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.92) 100%);
   display: flex;
   justify-content: center;
   align-items: center;
   font-family: 'Cascadia Code', 'Courier New', monospace;
   z-index: 1000;
-  animation: docFadeIn 0.2s ease-out;
+  animation: docBackdropIn 0.5s ease-out forwards;
 }
 
-@keyframes docFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.doc-dialog-backdrop.exiting {
+  animation: docBackdropOut 0.3s ease-out forwards;
 }
 
 .doc-dialog-container {
@@ -23,14 +49,14 @@
   max-height: 80vh;
   min-width: 520px;
   max-width: 900px;
-  animation: docScaleIn 0.2s ease-out;
+  animation: docScanIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-@keyframes docScaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.doc-dialog-container.exiting {
+  animation: docDismiss 0.3s ease-out forwards;
 }
 
 .doc-dialog-panel {

@@ -11,6 +11,8 @@ interface CharonDialogProps {
   disableClose?: boolean;
 }
 
+type AnimPhase = 'entering' | 'stable' | 'exiting';
+
 export function CharonDialog({ open, onClose, channel = 'default', disableClose = false }: CharonDialogProps) {
   const [messages, setMessages] = useState<CharonMessage[]>([]);
   const [mode, setMode] = useState<CharonMode>('DISPLAY');
@@ -19,9 +21,32 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [typedMessages, setTypedMessages] = useState<Map<string, string>>(new Map());
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+  const [animPhase, setAnimPhase] = useState<AnimPhase>('entering');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const processedMessagesRef = useRef<Set<string>>(new Set());
+
+  // Transition to entering then stable on open
+  useEffect(() => {
+    if (open) {
+      setAnimPhase('entering');
+      // Transition to stable after flicker animation completes (280ms)
+      const timer = setTimeout(() => setAnimPhase('stable'), 280);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
+  // Transition to exiting when closed
+  useEffect(() => {
+    if (!open && animPhase !== 'exiting') {
+      setAnimPhase('exiting');
+      const timer = setTimeout(() => {
+        // Reset to entering for next open
+        setAnimPhase('entering');
+      }, 300); // matches charonDismiss duration
+      return () => clearTimeout(timer);
+    }
+  }, [open, animPhase]);
 
   // Typewriter effect for CHARON messages
   useEffect(() => {
@@ -147,7 +172,8 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     return msg.message_id === typingMessageId;
   };
 
-  if (!open) return null;
+  // Keep mounted during exit animation; truly hidden only when not open and not animating
+  if (!open && animPhase === 'entering') return null;
 
   const isCurrentlyTyping = typingMessageId !== null;
   const showDisplayCursor = mode === 'DISPLAY' && !isCurrentlyTyping && !isProcessing;
@@ -156,8 +182,8 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     messages.some(m => m.role === 'user' && m.content === submittedQuery);
 
   return (
-    <div className="charon-dialog-backdrop" onClick={handleBackdropClick}>
-      <div className="charon-dialog-container" onClick={handlePanelClick}>
+    <div className={`charon-dialog-backdrop${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handleBackdropClick}>
+      <div className={`charon-dialog-container${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handlePanelClick}>
         <Panel
           title="CHARON"
           chamferCorners={['tl', 'tr', 'bl', 'br']}

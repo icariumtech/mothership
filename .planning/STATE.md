@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-03-28T20:57:11.379Z"
+stopped_at: Completed 13-03-PLAN.md
+last_updated: "2026-03-28T20:58:55.852Z"
 last_activity: 2026-03-09 — Completed 08-03 views and dashboard
 progress:
   total_phases: 13
   completed_phases: 9
   total_plans: 36
-  completed_plans: 31
+  completed_plans: 34
   percent: 92
 ---
 
@@ -65,6 +65,8 @@ Progress: [█████████░] 92% (Phase 8: 3/4 plans)
 | Phase 10 P03 | 480 | 1 tasks | 4 files |
 | Phase 11 P01 | 228 | 2 tasks | 3 files |
 | Phase 13 P01 | 208 | 2 tasks | 5 files |
+| Phase 13 P03 | 306 | 2 tasks | 3 files |
+| Phase 13 P04 | 356 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -176,6 +178,9 @@ Recent decisions affecting current work:
 - [Phase 13]: useViewTransition commit() called during dark phase so React renders new view while screen is black — no flash of new content
 - [Phase 13]: ViewStatusOverlay is outside console-content-wrapper so it survives the glitch animation and renders over the fade-in
 - [Phase 13]: setEncounterTokens stays outside handleViewChange — encounter token updates are not view-type-dependent and must not be delayed
+- [Phase 13]: SVG opacity presentation attribute must be undefined during animation; CSS cannot override inline SVG attributes — use CSS class for GM-dim opacity instead
+- [Phase 13]: Token reveal animation is player-only; newlyRevealedRooms state lives in TokenLayer independently from EncounterMapRenderer roomAnimState
+- [Phase 13]: Duplicated bridge-panel-fade-in keyframe in BridgeView.css rather than importing from StatusSection.css to avoid cross-file CSS coupling
 
 ### Roadmap Evolution
 
@@ -193,6 +198,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T20:57:11.373Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-03-28T20:58:46.709Z
+Stopped at: Completed 13-03-PLAN.md
 Resume file: None

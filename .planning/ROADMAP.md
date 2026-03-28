@@ -144,7 +144,7 @@ Plans:
 | 10. Player Ship Map View | 3/3 | ✓ Complete | 2026-03-24 |
 | 11. Close Functional + Security Gaps | 1/1 | Complete    | 2026-03-24 |
 | 12. Requirements Tracking + Dead Code Cleanup | 0/1 | Pending | - |
-| 13. Atmospheric UI Animations | 1/5 | In Progress|  |
+| 13. Atmospheric UI Animations | 4/5 | In Progress|  |
 
 ### Phase 7: Grid-based encounter map redesign
 
@@ -220,7 +220,7 @@ Plans:
 **Goal:** Add atmospheric CRT-aesthetic animations to player-facing UI transitions and element reveals — view-to-view glitch transitions, overlay entrance/exit animations, encounter room reveal flicker, and bridge panel boot stagger. No new features; pure animation polish on existing player-facing elements.
 **Requirements**: ANIM-VIEW, ANIM-OVERLAY, ANIM-ROOM, ANIM-BRIDGE
 **Depends on:** Phase 12
-**Plans:** 1/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 - [ ] 13-01-PLAN.md — useViewTransition hook + ViewStatusOverlay component + SharedConsole view transition wiring

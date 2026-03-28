@@ -7,3 +7,47 @@
   bottom: 0;
   overflow: hidden;
 }
+
+/* ========================================================
+   View transition classes — applied to .console-content-wrapper
+   ======================================================== */
+
+/* CSS custom properties for per-transition glitch randomization (set by useViewTransition) */
+.console-content-wrapper {
+  --glitch-x1: -35px;
+  --glitch-y1: 0px;
+  --glitch-x2: 30px;
+  --glitch-y2: 0px;
+  --glitch-x3: -20px;
+  --glitch-y3: 0px;
+}
+
+/* Glitch-out: rapid opacity flicker + position burst (~300ms, runs once) */
+.console-content-wrapper.view-glitch-out {
+  animation: viewGlitchOut 0.3s steps(1) forwards;
+}
+
+@keyframes viewGlitchOut {
+  0%   { opacity: 1; transform: translate(0, 0); }
+  15%  { opacity: 0; transform: translate(var(--glitch-x1), var(--glitch-y1)) skewX(-3deg); filter: brightness(1.4) blur(1px); }
+  30%  { opacity: 1; transform: translate(0, 0); }
+  50%  { opacity: 0; transform: translate(var(--glitch-x2), var(--glitch-y2)) skewX(4deg); filter: brightness(0.6) blur(2px); }
+  65%  { opacity: 1; transform: translate(0, 0); }
+  80%  { opacity: 0; transform: translate(var(--glitch-x3), var(--glitch-y3)) skewX(-2deg); filter: brightness(1.3) blur(1px); }
+  100% { opacity: 0; transform: translate(0, 0); }
+}
+
+/* Dark frame: content hidden during view swap */
+.console-content-wrapper.view-dark {
+  opacity: 0;
+}
+
+/* Fade-in: new view content fades in clean (~150ms) */
+.console-content-wrapper.view-fade-in {
+  animation: viewFadeIn 0.15s ease-out forwards;
+}
+
+@keyframes viewFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

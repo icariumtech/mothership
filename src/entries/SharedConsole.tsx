@@ -22,6 +22,8 @@ import { terminalApi } from '@/services/terminalApi';
 import { encounterApi } from '@/services/encounterApi';
 import { useTransitionGuard } from '@hooks/useDebounce';
 import { useSSE } from '@hooks/useSSE';
+import { useViewTransition } from '@hooks/useViewTransition';
+import { ViewStatusOverlay } from '@components/ui/ViewStatusOverlay';
 import { SSEConnectionToast } from '@components/ui/SSEConnectionToast';
 import { useSceneStore } from '@/stores/sceneStore';
 import { TRANSITION_TIMING, waitForTypewriter } from '@/utils/transitionCoordinator';
@@ -248,6 +250,9 @@ function SharedConsole() {
   // Transition lock to prevent concurrent transitions
   const transitionLockRef = useRef<boolean>(false);
 
+  // View transition hook — sequences glitch-out/dark/fade-in on SSE view_type changes
+  const { transitionPhase, statusLabel, handleViewChange, contentRef } = useViewTransition();
+
   // Track when scenes are ready (callback-based)
   const sceneReadyResolveRef = useRef<(() => void) | null>(null);
 
@@ -307,39 +312,42 @@ function SharedConsole() {
 
       // Read previous view type from ref (stable — no reconnect storm risk)
       const previousViewType = activeViewRef.current?.view_type;
-      setActiveView(data);
 
-      setCharonDialogOpen(data.charon_dialog_open);
+      // Buffer SSE data through view transition — animates out before committing new view
+      handleViewChange(data, (newData) => {
+        setActiveView(newData);
+        setCharonDialogOpen(newData.charon_dialog_open);
 
-      // Reset map state when transitioning TO BRIDGE from another view type
-      if (data.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
-        setSelectedSystem(null);
-        setMapViewMode('galaxy');
-        setCurrentSystemSlug(null);
-        setSelectedPlanet(null);
-        setCurrentBodySlug(null);
-        setSelectedOrbitElement(null);
-        setSelectedOrbitElementType(null);
-        setSelectedOrbitElementData(null);
-        setActiveTab('map');
-      }
+        // Reset map state when transitioning TO BRIDGE from another view type
+        if (newData.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
+          setSelectedSystem(null);
+          setMapViewMode('galaxy');
+          setCurrentSystemSlug(null);
+          setSelectedPlanet(null);
+          setCurrentBodySlug(null);
+          setSelectedOrbitElement(null);
+          setSelectedOrbitElementType(null);
+          setSelectedOrbitElementData(null);
+          setActiveTab('map');
+        }
 
-      // Sync terminal overlay state
-      if (data.overlay_terminal_slug && data.overlay_location_slug) {
-        setTerminalOverlayLocation(data.overlay_location_slug);
-        setTerminalOverlaySlug(data.overlay_terminal_slug);
-        setTerminalOverlayOpen(true);
-      } else {
-        setTerminalOverlayOpen(false);
-      }
+        // Sync terminal overlay state
+        if (newData.overlay_terminal_slug && newData.overlay_location_slug) {
+          setTerminalOverlayLocation(newData.overlay_location_slug);
+          setTerminalOverlaySlug(newData.overlay_terminal_slug);
+          setTerminalOverlayOpen(true);
+        } else {
+          setTerminalOverlayOpen(false);
+        }
 
-      // Sync document overlay state
-      if (data.overlay_doc_slug) {
-        setDocOverlaySlug(data.overlay_doc_slug);
-        setDocOverlayOpen(true);
-      } else {
-        setDocOverlayOpen(false);
-      }
+        // Sync document overlay state
+        if (newData.overlay_doc_slug) {
+          setDocOverlaySlug(newData.overlay_doc_slug);
+          setDocOverlayOpen(true);
+        } else {
+          setDocOverlayOpen(false);
+        }
+      }, previousViewType);
     }, []),
     onShipStatusEvent: useCallback((rawData: unknown) => {
       setShipData(rawData as typeof shipData);
@@ -858,6 +866,12 @@ function SharedConsole() {
       {/* Scanline overlay */}
       <div className="scanline-overlay" />
 
+      {/* Content wrapper — receives view transition classes for glitch/dark/fade-in */}
+      <div
+        className={`console-content-wrapper${transitionPhase === 'glitching-out' ? ' view-glitch-out' : transitionPhase === 'dark' ? ' view-dark' : transitionPhase === 'fading-in' ? ' view-fade-in' : ''}`}
+        ref={contentRef}
+      >
+
       {/* Header - hidden in standby and CHARON terminal modes */}
       <TerminalHeader
         title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : 'MOTHERSHIP'}
@@ -1027,6 +1041,11 @@ function SharedConsole() {
         terminalSlug={terminalOverlaySlug}
         onClose={handleTerminalOverlayClose}
       />
+
+      </div>{/* end console-content-wrapper */}
+
+      {/* View status overlay — typewriter boot label during view transitions */}
+      <ViewStatusOverlay label={statusLabel} />
     </>
   );
 }

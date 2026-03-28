@@ -553,6 +553,85 @@ export function EncounterMapRenderer({
     return roomVisibility[roomId] !== false;
   }, [roomVisibility]);
 
+  // Room animation state: 'revealing' | 'hiding' per room id
+  const [roomAnimState, setRoomAnimState] = useState<Map<string, 'revealing' | 'hiding'>>(new Map());
+
+  // Track previous roomVisibility to detect changes
+  const prevRoomVisibilityRef = useRef<RoomVisibilityState | undefined>(undefined);
+
+  // Sorted room index for cascade stagger delay (Y-ascending)
+  const roomSortedIndex = useMemo(() => {
+    const allRooms = mapData.rooms ?? [];
+    const sorted = [...allRooms].sort((a, b) => {
+      const getY = (room: GridRoom): number => {
+        if ((room.rects ?? []).length > 0) return Math.min(...(room.rects ?? []).map(r => r.y));
+        if (room.circle) return room.circle.cy;
+        if (room.polygon && room.polygon.length > 0) {
+          return room.polygon.reduce((sum, [, y]) => sum + y, 0) / room.polygon.length;
+        }
+        return 0;
+      };
+      return getY(a) - getY(b);
+    });
+    return new Map(sorted.map((room, i) => [room.id, i]));
+  }, [mapData.rooms]);
+
+  // Detect roomVisibility changes and trigger room animations
+  useEffect(() => {
+    const prev = prevRoomVisibilityRef.current;
+    prevRoomVisibilityRef.current = roomVisibility;
+
+    if (!prev || !roomVisibility) return;
+
+    const newAnimations = new Map<string, 'revealing' | 'hiding'>();
+    const allRooms = mapData.rooms ?? [];
+
+    // Sort rooms by Y centroid for cascade order (REVEAL ALL / HIDE ALL)
+    const sortedRooms = [...allRooms].sort((a, b) => {
+      const getY = (room: GridRoom): number => {
+        if ((room.rects ?? []).length > 0) return Math.min(...(room.rects ?? []).map(r => r.y));
+        if (room.circle) return room.circle.cy;
+        if (room.polygon && room.polygon.length > 0) {
+          return room.polygon.reduce((sum, [, y]) => sum + y, 0) / room.polygon.length;
+        }
+        return 0;
+      };
+      return getY(a) - getY(b);
+    });
+
+    sortedRooms.forEach((room) => {
+      const wasVisible = prev[room.id] !== false;
+      const nowVisible = roomVisibility[room.id] !== false;
+
+      if (!wasVisible && nowVisible) {
+        newAnimations.set(room.id, 'revealing');
+      } else if (wasVisible && !nowVisible) {
+        newAnimations.set(room.id, 'hiding');
+      }
+    });
+
+    if (newAnimations.size === 0) return;
+
+    setRoomAnimState(prevState => {
+      const next = new Map(prevState);
+      newAnimations.forEach((anim, id) => next.set(id, anim));
+      return next;
+    });
+
+    // Clear animation state after animation completes (400ms duration + max stagger)
+    const maxStagger = (newAnimations.size - 1) * 75;
+    const clearDelay = 400 + maxStagger + 50; // 50ms buffer
+    const timer = setTimeout(() => {
+      setRoomAnimState(prevState => {
+        const next = new Map(prevState);
+        newAnimations.forEach((_, id) => next.delete(id));
+        return next;
+      });
+    }, clearDelay);
+
+    return () => clearTimeout(timer);
+  }, [roomVisibility, mapData.rooms]);
+
   // -------------------------------------------------------------------
   // Get effective door status: runtime override > YAML default
   // -------------------------------------------------------------------
@@ -938,6 +1017,23 @@ export function EncounterMapRenderer({
     if (!isGM && !visible) return null;
     const roomOpacity = isGM && !visible ? 0.25 : 1.0;
 
+    const animState = roomAnimState.get(room.id);
+    const sortedIdx = roomSortedIndex.get(room.id) ?? 0;
+    const staggerDelay = animState ? sortedIdx * 75 : 0; // 75ms per room position
+
+    // During animation: omit the opacity prop so CSS animation can control it
+    // After animation: restore normal opacity
+    const svgOpacity = animState ? undefined : roomOpacity;
+
+    // Build className for the <g> group
+    const roomGroupClass = [
+      'encounter-map__room-group',
+      animState === 'revealing' ? 'room-revealing' : '',
+      animState === 'hiding' ? 'room-hiding' : '',
+      // GM dim: apply when no animation and room is hidden
+      (isGM && !animState && !visible) ? 'room-gm-dim' : '',
+    ].filter(Boolean).join(' ');
+
     const label = room.name ? getRoomLabelPosition(room, unitSize) : null;
     const labelEl = label && (isGM || visible) ? (
       <text
@@ -960,7 +1056,12 @@ export function EncounterMapRenderer({
       const svgCy = cy * unitSize;
       const svgR = r * unitSize;
       return (
-        <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
+        <g
+          key={room.id}
+          className={roomGroupClass}
+          opacity={svgOpacity}
+          style={animState ? { animationDelay: `${staggerDelay}ms` } : undefined}
+        >
           <circle cx={svgCx} cy={svgCy} r={svgR} fill={COLORS.bgRoom} className="encounter-map__floor" />
           <circle cx={svgCx} cy={svgCy} r={svgR} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} className="encounter-map__wall" />
           {isGM ? (
@@ -991,7 +1092,12 @@ export function EncounterMapRenderer({
     if (room.polygon && room.polygon.length > 0) {
       const points = room.polygon.map(([x, y]) => `${x * unitSize},${y * unitSize}`).join(' ');
       return (
-        <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
+        <g
+          key={room.id}
+          className={roomGroupClass}
+          opacity={svgOpacity}
+          style={animState ? { animationDelay: `${staggerDelay}ms` } : undefined}
+        >
           <polygon points={points} fill={COLORS.bgRoom} className="encounter-map__floor" />
           <polygon points={points} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
           {isGM ? (
@@ -1024,7 +1130,12 @@ export function EncounterMapRenderer({
     const walls = computeRoomWalls(plainRects, unitSize);
 
     return (
-      <g key={room.id} className="encounter-map__room-group" opacity={roomOpacity}>
+      <g
+        key={room.id}
+        className={roomGroupClass}
+        opacity={svgOpacity}
+        style={animState ? { animationDelay: `${staggerDelay}ms` } : undefined}
+      >
         {/* Floor fill — plain rects */}
         {plainRects.map((rect, i) => (
           <rect

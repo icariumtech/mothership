@@ -91,6 +91,35 @@ export function TokenLayer({
   const pendingDrag = useRef<{ id: string; startX: number; startY: number } | null>(null);
   const DRAG_THRESHOLD = 5;
 
+  // Track previous roomVisibility to detect newly-revealed rooms for token fade-in
+  const prevRoomVisibilityRef = useRef<RoomVisibilityState | undefined>(undefined);
+  const [newlyRevealedRooms, setNewlyRevealedRooms] = useState<Set<string>>(new Set());
+
+  // Detect newly-revealed rooms so tokens inside them get a fade-in animation
+  useEffect(() => {
+    const prev = prevRoomVisibilityRef.current;
+    prevRoomVisibilityRef.current = roomVisibility;
+
+    if (!prev || !roomVisibility) return;
+
+    const justRevealed = new Set<string>();
+    Object.keys(roomVisibility).forEach(roomId => {
+      const wasHidden = prev[roomId] === false;
+      const nowVisible = roomVisibility[roomId] !== false;
+      if (wasHidden && nowVisible) {
+        justRevealed.add(roomId);
+      }
+    });
+
+    if (justRevealed.size === 0) return;
+
+    setNewlyRevealedRooms(justRevealed);
+
+    // Clear after token reveal animation completes: 200ms delay + 250ms fade = 450ms + buffer
+    const timer = setTimeout(() => setNewlyRevealedRooms(new Set()), 500);
+    return () => clearTimeout(timer);
+  }, [roomVisibility]);
+
   // Get parent SVG element on mount
   useEffect(() => {
     const tokenLayerElement = document.querySelector('.encounter-map__token-layer');
@@ -289,11 +318,25 @@ export function TokenLayer({
         const isActiveDrag = isDragging && id === dragTokenId;
         const tokenDraggable = !isActiveDrag && isTokenDraggable(tokenData);
 
+        // Newly-revealed token: player terminal only, token in a room that just became visible
+        const isNewlyRevealed = !isGM && tokenData.room_id != null && tokenData.room_id !== '' &&
+          newlyRevealedRooms.has(tokenData.room_id);
+
         // Always wrap Token in <g key={id}> so key always corresponds to the same element type.
         // This preserves the inner Token's <g> DOM node (and its pointer capture) across the
         // transition from "idle" to "active drag" — prevents pointercancel from firing.
         return (
-          <g key={id} style={{ opacity: isActiveDrag ? 0 : 1 }}>
+          <g
+            key={id}
+            className={isNewlyRevealed ? 'encounter-map__token-reveal' : undefined}
+            style={
+              isActiveDrag
+                ? { opacity: 0 }
+                : isNewlyRevealed
+                  ? { '--token-reveal-delay': '200ms' } as React.CSSProperties
+                  : undefined
+            }
+          >
             <Token
               id={id}
               data={tokenData}

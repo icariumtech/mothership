@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect, useRef } from 'react';
 import type { ShipStatusData } from '@/types/shipStatus';
 import type { ShipDeckData } from '@/types/gmConsole';
 import { TabBar, BridgeTab } from './TabBar';
@@ -97,31 +97,62 @@ export function BridgeView({
   shipDeckData,
   shipDeckTotalDecks,
 }: BridgeViewProps) {
+  const [staggerDone, setStaggerDone] = useState(false);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    if (mountedRef.current) return; // Only run once per mount
+    mountedRef.current = true;
+    // 5 main content items (map, personnel, logs, status, charon) + tab bar = 6 items
+    // Last item at index 5, delay = 5 * 0.1s = 0.5s, animation = 0.6s
+    // Total stagger window: 0.5 + 0.6 = 1.1s
+    const timer = setTimeout(() => setStaggerDone(true), 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="bridge-view">
       {/* Content Area */}
-      <div className="bridge-content-area">
+      <div className={`bridge-content-area${staggerDone ? '' : ' bridge-stagger-active'}`}>
         {/* MAP Section - always mounted, renders children (maps + InfoPanel) */}
-        {activeTab === 'map' && children}
+        {activeTab === 'map' && (
+          <div style={!staggerDone ? { animationDelay: '0s' } : undefined}>
+            {children}
+          </div>
+        )}
 
         {/* Other sections - conditionally rendered */}
-        {activeTab === 'personnel' && <PersonnelSection />}
-        {activeTab === 'logs' && <LogsSection />}
-        {activeTab === 'status' && <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />}
+        {activeTab === 'personnel' && (
+          <div style={!staggerDone ? { animationDelay: '0.1s' } : undefined}>
+            <PersonnelSection />
+          </div>
+        )}
+        {activeTab === 'logs' && (
+          <div style={!staggerDone ? { animationDelay: '0.2s' } : undefined}>
+            <LogsSection />
+          </div>
+        )}
+        {activeTab === 'status' && (
+          <div style={!staggerDone ? { animationDelay: '0.3s' } : undefined}>
+            <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />
+          </div>
+        )}
 
         {/* CHARON Section - always mounted to preserve conversation state and avoid indicator flashes */}
-        <div style={{ display: activeTab === 'charon' ? 'block' : 'none' }}>
+        <div style={{ display: activeTab === 'charon' ? 'block' : 'none', ...(!staggerDone ? { animationDelay: '0.4s' } : {}) }}>
           <CharonSection isVisible={activeTab === 'charon'} />
         </div>
       </div>
 
       {/* Tab Bar */}
-      <TabBar
-        activeTab={activeTab}
-        onTabChange={onTabChange}
-        disabled={tabTransitionActive}
-        charonHasMessages={charonHasMessages}
-      />
+      <div style={!staggerDone ? { animation: 'bridge-panel-fade-in 0.6s ease 0.5s backwards' } : undefined}>
+        <TabBar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          disabled={tabTransitionActive}
+          charonHasMessages={charonHasMessages}
+        />
+      </div>
     </div>
   );
 }

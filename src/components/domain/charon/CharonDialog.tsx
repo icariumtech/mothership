@@ -36,12 +36,11 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     }
   }, [open]);
 
-  // Transition to exiting when closed
+  // Transition to exiting when closed — only from stable (was actually visible)
   useEffect(() => {
-    if (!open && animPhase !== 'exiting') {
+    if (!open && animPhase === 'stable') {
       setAnimPhase('exiting');
       const timer = setTimeout(() => {
-        // Reset to entering for next open
         setAnimPhase('entering');
       }, 300); // matches charonDismiss duration
       return () => clearTimeout(timer);
@@ -173,7 +172,7 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
   };
 
   // Keep mounted during exit animation; truly hidden only when not open and not animating
-  if (!open && animPhase === 'entering') return null;
+  if (!open && animPhase !== 'exiting') return null;
 
   const isCurrentlyTyping = typingMessageId !== null;
   const showDisplayCursor = mode === 'DISPLAY' && !isCurrentlyTyping && !isProcessing;

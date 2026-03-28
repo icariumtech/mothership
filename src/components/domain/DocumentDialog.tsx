@@ -40,12 +40,11 @@ export function DocumentDialog({ open, docSlug, onClose }: DocumentDialogProps) 
     }
   }, [open]);
 
-  // Transition to exiting when closed
+  // Transition to exiting when closed — only from stable (was actually visible)
   useEffect(() => {
-    if (!open && animPhase !== 'exiting') {
+    if (!open && animPhase === 'stable') {
       setAnimPhase('exiting');
       const timer = setTimeout(() => {
-        // Reset to entering for next open
         setAnimPhase('entering');
       }, 300); // matches docDismiss duration
       return () => clearTimeout(timer);
@@ -61,8 +60,8 @@ export function DocumentDialog({ open, docSlug, onClose }: DocumentDialogProps) 
     e.stopPropagation();
   }, []);
 
-  // Keep mounted during exit animation; truly hidden only when not open and not animating
-  if (!open && animPhase === 'entering') return null;
+  // Hidden unless actively animating out
+  if (!open && animPhase !== 'exiting') return null;
 
   return (
     <div className={`doc-dialog-backdrop${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handleBackdropClick}>

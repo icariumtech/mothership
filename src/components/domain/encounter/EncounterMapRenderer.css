@@ -240,3 +240,61 @@
 .status-indicator--panicked { animation: pulse-panicked 1s ease-in-out infinite; }
 
 /* Token popup styles moved to inline (TokenPopup.tsx renders outside SVG like DoorStatusPopup) */
+
+/* ========================================================
+   Room reveal / hide animations
+   Applied to .encounter-map__room-group <g> elements
+   ======================================================== */
+
+/*
+ * IMPORTANT: These classes work by removing the SVG `opacity` presentation
+ * attribute during animation (handled in EncounterMapRenderer.tsx).
+ * Without removing the inline opacity, CSS animations cannot override it.
+ */
+
+/* Room revealing: CRT flicker then stable */
+.encounter-map__room-group.room-revealing {
+  animation: roomFlickerIn 0.4s steps(1) forwards;
+}
+
+@keyframes roomFlickerIn {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  30%  { opacity: 0; }
+  50%  { opacity: 1; }
+  65%  { opacity: 0; }
+  80%  { opacity: 1; }
+  90%  { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Room hiding: reverse flicker then gone */
+.encounter-map__room-group.room-hiding {
+  animation: roomFlickerOut 0.4s steps(1) forwards;
+}
+
+@keyframes roomFlickerOut {
+  0%   { opacity: 1; }
+  15%  { opacity: 0; }
+  30%  { opacity: 1; }
+  50%  { opacity: 0; }
+  65%  { opacity: 1; }
+  80%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* GM dimmed state for hidden rooms when animating */
+.encounter-map__room-group.room-gm-dim {
+  opacity: 0.25;
+}
+
+/* Token reveal: fade in after room animation completes */
+.encounter-map__token-reveal {
+  animation: tokenRevealFadeIn 0.25s ease-out forwards;
+  animation-delay: var(--token-reveal-delay, 0ms);
+}
+
+@keyframes tokenRevealFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

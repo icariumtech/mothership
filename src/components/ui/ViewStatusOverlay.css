@@ -1,0 +1,25 @@
+.view-status-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  pointer-events: none;
+  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: #4a6b6b;
+  text-align: center;
+  white-space: nowrap;
+  animation: viewStatusFadeOut 0.4s ease-out 1.6s forwards;
+}
+
+.view-status-text {
+  display: block;
+  text-shadow: 0 0 10px rgba(74, 107, 107, 0.6);
+}
+
+@keyframes viewStatusFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}

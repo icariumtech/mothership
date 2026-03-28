@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-24T15:39:25.208Z"
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-03-28T20:57:11.379Z"
 last_activity: 2026-03-09 — Completed 08-03 views and dashboard
 progress:
-  total_phases: 12
+  total_phases: 13
   completed_phases: 9
-  total_plans: 31
-  completed_plans: 30
+  total_plans: 36
+  completed_plans: 31
   percent: 92
 ---
 
@@ -64,6 +64,7 @@ Progress: [█████████░] 92% (Phase 8: 3/4 plans)
 | Phase 10 P02 | 556 | 2 tasks | 7 files |
 | Phase 10 P03 | 480 | 1 tasks | 4 files |
 | Phase 11 P01 | 228 | 2 tasks | 3 files |
+| Phase 13 P01 | 208 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,9 @@ Recent decisions affecting current work:
 - [Phase 11]: @login_required added to api_ship_update_integrity matching companion endpoint pattern
 - [Phase 11]: NPCPortraitOverlay rendered as sibling to __map and __right divs in EncounterView — outside transform elements for correct fixed positioning
 - [Phase 11]: gm_console_react loads ship_status_json via DataLoader matching display_view_react pattern; GMConsole.tsx already reads INITIAL_DATA — no frontend change needed
+- [Phase 13]: useViewTransition commit() called during dark phase so React renders new view while screen is black — no flash of new content
+- [Phase 13]: ViewStatusOverlay is outside console-content-wrapper so it survives the glitch animation and renders over the fade-in
+- [Phase 13]: setEncounterTokens stays outside handleViewChange — encounter token updates are not view-type-dependent and must not be delayed
 
 ### Roadmap Evolution
 
@@ -189,6 +193,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T15:36:23.442Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-28T20:57:11.373Z
+Stopped at: Completed 13-01-PLAN.md
 Resume file: None

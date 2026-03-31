@@ -85,6 +85,7 @@ export interface BridgeViewProps {
   shipData?: ShipStatusData | null;
   shipDeckData?: ShipDeckData;
   shipDeckTotalDecks?: number;
+  revealKey?: number;
 }
 
 // Applies bridge-tab-glitch on mount; boot stagger overrides via higher CSS specificity
@@ -110,6 +111,7 @@ export function BridgeView({
   shipData,
   shipDeckData,
   shipDeckTotalDecks,
+  revealKey,
 }: BridgeViewProps) {
   const [staggerDone, setStaggerDone] = useState(false);
   const mountedRef = useRef(false);
@@ -156,7 +158,7 @@ export function BridgeView({
         {tab === 'map' && children}
         {tab === 'personnel' && <PersonnelSection />}
         {tab === 'logs' && <LogsSection />}
-        {tab === 'status' && <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />}
+        {tab === 'status' && <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} revealKey={revealKey} />}
       </Wrap>
     );
   };

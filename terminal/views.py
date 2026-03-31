@@ -469,6 +469,23 @@ def gm_console_react(request):
     })
 
 
+def api_corporation(request):
+    """
+    Public endpoint — returns corporation branding data from data/campaign/corporation.yaml.
+    GET: /api/corporation/
+    """
+    from terminal.data_loader import DataLoader
+    loader = DataLoader()
+    corp_file = loader.data_dir / 'campaign' / 'corporation.yaml'
+    if not corp_file.exists():
+        return JsonResponse({'error': 'Not found'}, status=404)
+    with open(corp_file) as f:
+        data = yaml.safe_load(f) or {}
+    if data.get('logo'):
+        data['logo_url'] = f'/data/{data["logo"]}'
+    return JsonResponse(data)
+
+
 @login_required
 def api_locations(request):
     """

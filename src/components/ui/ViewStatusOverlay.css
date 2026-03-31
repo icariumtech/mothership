@@ -6,24 +6,79 @@
   z-index: 50;
   pointer-events: none;
   font-family: 'Cascadia Code', 'Courier New', monospace;
-  font-size: 14px;
-  letter-spacing: 3px;
   color: #4a6b6b;
   text-align: center;
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  /* Glitch offset vars — randomized per exit by JS */
+  --overlay-glitch-x1: -20px;
+  --overlay-glitch-x2: 18px;
+  --overlay-glitch-x3: -12px;
 }
 
-.view-status-text {
-  display: block;
+/* Corporation name */
+.view-status-corp-name {
+  font-size: 20px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
   text-shadow: 0 0 10px rgba(74, 107, 107, 0.6);
 }
 
-/* Fade-out triggered by JS when label is cleared (isExiting state) */
-.view-status-overlay.exiting {
-  animation: viewStatusFadeOut 0.4s ease-out forwards;
+/* Logo image */
+.view-status-logo-img {
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+  /* Tint the image to match the teal palette */
+  filter: brightness(0) saturate(100%) invert(38%) sepia(20%) saturate(600%) hue-rotate(140deg) brightness(0.9);
+  opacity: 0.85;
 }
 
-@keyframes viewStatusFadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+/* Motto */
+.view-status-motto {
+  font-size: 11px;
+  letter-spacing: 2px;
+  opacity: 0.6;
+  font-style: italic;
+  max-width: 340px;
+  text-shadow: 0 0 8px rgba(74, 107, 107, 0.4);
+}
+
+/* VERSION / FIRMWARE lines */
+.view-status-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  letter-spacing: 4px;
+  opacity: 0.55;
+  text-shadow: 0 0 8px rgba(74, 107, 107, 0.4);
+}
+
+/* Typewriter status text */
+.view-status-text {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px rgba(74, 107, 107, 0.6);
+  min-height: 1em;
+  margin-top: 4px;
+}
+
+/* Exit: overlay glitches out before the view glitches in */
+.view-status-overlay.exiting {
+  animation: overlayGlitchOut 0.3s steps(1) forwards;
+}
+
+@keyframes overlayGlitchOut {
+  0%   { opacity: 1; transform: translate(-50%, -50%); filter: none; }
+  20%  { opacity: 0; transform: translate(calc(-50% + var(--overlay-glitch-x1)), calc(-50% + 3px)) skewX(-3deg); filter: brightness(1.5) blur(1px); }
+  35%  { opacity: 1; transform: translate(-50%, -50%); filter: none; }
+  55%  { opacity: 0; transform: translate(calc(-50% + var(--overlay-glitch-x2)), calc(-50% - 2px)) skewX(4deg); filter: brightness(0.5) blur(2px); }
+  70%  { opacity: 1; transform: translate(-50%, -50%); filter: none; }
+  85%  { opacity: 0; transform: translate(calc(-50% + var(--overlay-glitch-x3)), calc(-50% + 1px)) skewX(-2deg); filter: brightness(1.3) blur(1px); }
+  100% { opacity: 0; transform: translate(-50%, -50%); filter: none; }
 }

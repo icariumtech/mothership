@@ -5,7 +5,7 @@ type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'COMM_TERMINAL' | 'MESSAGES
 // Per-view status labels shown during transition
 const VIEW_STATUS_LABELS: Record<ViewType, string> = {
   ENCOUNTER: 'TACTICAL DISPLAY INITIALIZING...',
-  BRIDGE: 'INITIALIZING BRIDGE DISPLAY...',
+  BRIDGE: 'COMMAND SYSTEMS INITIALIZING...',
   STANDBY: 'STANDBY MODE ACTIVE',
   COMM_TERMINAL: 'COMM TERMINAL ONLINE',
   MESSAGES: 'BROADCAST CHANNEL OPEN',
@@ -14,7 +14,7 @@ const VIEW_STATUS_LABELS: Record<ViewType, string> = {
 
 const TYPEWRITER_RATE_MS = 55; // ms per character — must match ViewStatusOverlay
 
-type ViewTransitionPhase = 'idle' | 'glitching-out' | 'dark' | 'fading-in';
+type ViewTransitionPhase = 'idle' | 'glitching-out' | 'dark' | 'glitching-in';
 
 interface UseViewTransitionResult {
   transitionPhase: ViewTransitionPhase;
@@ -63,7 +63,7 @@ export function useViewTransition(): UseViewTransitionResult {
   ) => {
     const newViewType = data.view_type;
 
-    // Only animate on major view changes (not same view or missing type)
+    // Skip animation entirely for same-view or unknown view type
     if (!newViewType || newViewType === previousViewType) {
       commit(data);
       return;
@@ -71,10 +71,8 @@ export function useViewTransition(): UseViewTransitionResult {
 
     // Drop concurrent transitions — last SSE event wins
     if (lockRef.current) {
-      // Cancel in-progress: mark cancelled so the abandoned run() stops after its current await.
-      // Then reset immediately and commit new data.
       cancelledRef.current = true;
-      typewriterResolveRef.current = null; // Prevent stale resolve from unblocking new transition
+      typewriterResolveRef.current = null;
       setTransitionPhase('idle');
       setStatusLabel(null);
       lockRef.current = false;
@@ -83,23 +81,35 @@ export function useViewTransition(): UseViewTransitionResult {
     }
 
     lockRef.current = true;
-    cancelledRef.current = false; // Fresh run — clear any prior cancellation
+    cancelledRef.current = false;
 
     const run = async () => {
       // Phase 1: glitch-out (300ms)
       randomizeGlitch();
       setTransitionPhase('glitching-out');
       await new Promise(r => setTimeout(r, 300));
-      if (cancelledRef.current) return; // Abandoned — do not commit stale data
+      if (cancelledRef.current) return;
+
+      // Standby: glitch-only path — no overlay, no typewriter
+      if (newViewType === 'STANDBY') {
+        setTransitionPhase('dark');
+        commit(data);
+        await new Promise(r => setTimeout(r, 80));
+        if (cancelledRef.current) return;
+        randomizeGlitch();
+        setTransitionPhase('glitching-in');
+        await new Promise(r => setTimeout(r, 300));
+        if (cancelledRef.current) return;
+        setTransitionPhase('idle');
+        lockRef.current = false;
+        return;
+      }
 
       // Phase 2: dark frame — commit new view AND start typewriter label.
-      // View stays hidden (opacity: 0) until typing finishes so the label
-      // completes before the new content is revealed.
       setTransitionPhase('dark');
-      commit(data);  // React renders new view during dark frame
+      commit(data);
       const label = VIEW_STATUS_LABELS[newViewType] || null;
       setStatusLabel(label);
-      // Wait for typewriter completion via callback; fallback timeout if callback never fires
       if (label) {
         await new Promise<void>(resolve => {
           typewriterResolveRef.current = resolve;
@@ -110,16 +120,22 @@ export function useViewTransition(): UseViewTransitionResult {
       }
       if (cancelledRef.current) return;
 
-      // Phase 3: fade-in (150ms) — label has finished typing, now reveal view
-      setTransitionPhase('fading-in');
-      await new Promise(r => setTimeout(r, 150));
+      // Phase 3: hold 2s with text still visible, then dismiss label
+      await new Promise(r => setTimeout(r, 2000));
+      if (cancelledRef.current) return;
+      setStatusLabel(null);
+
+      // Wait for overlay glitch-out to complete before revealing view
+      await new Promise(r => setTimeout(r, 300));
       if (cancelledRef.current) return;
 
-      // Phase 4: idle — label briefly visible while view is shown, then fades out
-      setTransitionPhase('idle');
-      await new Promise(r => setTimeout(r, 500));
+      // Phase 4: glitch-in the new view (300ms)
+      randomizeGlitch();
+      setTransitionPhase('glitching-in');
+      await new Promise(r => setTimeout(r, 300));
       if (cancelledRef.current) return;
-      setStatusLabel(null);  // ViewStatusOverlay fades out via isExiting animation
+
+      setTransitionPhase('idle');
       lockRef.current = false;
     };
 

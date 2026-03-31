@@ -12,10 +12,10 @@ interface TabBarProps {
 
 export function TabBar({ activeTab, onTabChange, disabled = false, charonHasMessages = false }: TabBarProps) {
   const tabs: { id: BridgeTab; label: string }[] = [
+    { id: 'status', label: 'SYSTEMS' },
     { id: 'map', label: 'MAP' },
     { id: 'personnel', label: 'PERSONNEL' },
     { id: 'logs', label: 'LOGS' },
-    { id: 'status', label: 'STATUS' },
     { id: 'charon', label: 'CHARON' },
   ];
 

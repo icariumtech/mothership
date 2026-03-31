@@ -104,9 +104,10 @@ interface StatusSectionProps {
   shipData: ShipStatusData | null;
   shipDeckData?: ShipDeckData;
   shipDeckTotalDecks?: number;
+  revealKey?: number;
 }
 
-export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: StatusSectionProps) {
+export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, revealKey }: StatusSectionProps) {
   const [staggerComplete, setStaggerComplete] = useState(false);
   const [currentDeckLevel] = useState(1);
   const previousStatusesRef = useRef<PreviousStatuses | null>(null);
@@ -116,12 +117,23 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: St
     weapons: false,
     comms: false,
   });
+  const mapFillRef = useRef<HTMLDivElement>(null);
 
   // Mark stagger animation complete after longest delay + animation duration
   useEffect(() => {
     const timer = setTimeout(() => setStaggerComplete(true), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Re-trigger schematic glitch-in animation when view reveals (bridgeRevealKey increments)
+  useEffect(() => {
+    if (revealKey === undefined || revealKey === 0) return;
+    const el = mapFillRef.current;
+    if (!el) return;
+    el.classList.remove('glitch-enter');
+    void el.offsetWidth; // force reflow
+    el.classList.add('glitch-enter');
+  }, [revealKey]);
 
   // Track status changes from SSE updates — flash changingFlags briefly on change
   useEffect(() => {
@@ -182,7 +194,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks }: St
       {/* Map + floating panels */}
       <div className="status-map-layout">
         {/* Deck map — fills the area */}
-        <div className="status-map-fill">
+        <div className="status-map-fill glitch-enter" ref={mapFillRef}>
           {shipDeckData ? (
             <EncounterMapDisplay
               locationData={{

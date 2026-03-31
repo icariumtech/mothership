@@ -86,6 +86,14 @@ interface ActiveView {
   ship_deck_total_decks?: number;
 }
 
+interface CorporationData {
+  name: string;
+  motto: string;
+  logo_url: string;
+  version: string;
+  firmware: string;
+}
+
 interface InitialData {
   activeView: ActiveView;
   campaignTitle?: string;
@@ -163,6 +171,15 @@ function SharedConsole() {
     }
   }, [performanceMode]);
 
+  // Corporation branding — loaded once on mount for view transition overlay
+  const [corporation, setCorporation] = useState<CorporationData | null>(null);
+  useEffect(() => {
+    fetch('/api/corporation/')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setCorporation(data); })
+      .catch(() => {});
+  }, []);
+
   // Map view state
   const [shipData, setShipData] = useState(window.INITIAL_DATA?.shipStatus ?? null);
 
@@ -184,32 +201,9 @@ function SharedConsole() {
   const [orbitTransition, setOrbitTransition] = useState<TransitionState>('idle');
 
   // Tab state management
-  const [activeTab, setActiveTab] = useState<BridgeTab>(() => {
-    try {
-      const saved = sessionStorage.getItem('bridgeActiveTab');
-      // Handle migration from 'notes' to 'logs'
-      if (saved === 'notes') {
-        sessionStorage.setItem('bridgeActiveTab', 'logs');
-        return 'logs';
-      }
-      if (saved && ['map', 'personnel', 'logs', 'status', 'charon'].includes(saved)) {
-        return saved as BridgeTab;
-      }
-    } catch (error) {
-      console.warn('Failed to restore tab from session storage:', error);
-    }
-    return 'map';
-  });
+  const [activeTab, setActiveTab] = useState<BridgeTab>('status');
   const [tabTransition, setTabTransition] = useState<'idle' | 'transitioning'>('idle');
 
-  // Sync activeTab to session storage
-  useEffect(() => {
-    try {
-      sessionStorage.setItem('bridgeActiveTab', activeTab);
-    } catch (error) {
-      console.warn('Failed to save tab to session storage:', error);
-    }
-  }, [activeTab]);
 
   // State cleanup effects - clear child view states when parent view changes
   useEffect(() => {
@@ -252,6 +246,17 @@ function SharedConsole() {
 
   // View transition hook — sequences glitch-out/dark/fade-in on SSE view_type changes
   const { transitionPhase, statusLabel, handleViewChange, contentRef, onOverlayComplete } = useViewTransition();
+
+  // Bridge reveal key — incremented when glitch-in completes on BRIDGE view, triggers StatusSection re-animation
+  const [bridgeRevealKey, setBridgeRevealKey] = useState(0);
+  const prevTransitionPhaseRef = useRef(transitionPhase);
+  useEffect(() => {
+    const prev = prevTransitionPhaseRef.current;
+    prevTransitionPhaseRef.current = transitionPhase;
+    if (prev === 'glitching-in' && transitionPhase === 'idle' && activeView?.view_type === 'BRIDGE') {
+      setBridgeRevealKey(k => k + 1);
+    }
+  }, [transitionPhase, activeView?.view_type]);
 
   // Track when scenes are ready (callback-based)
   const sceneReadyResolveRef = useRef<(() => void) | null>(null);
@@ -328,7 +333,7 @@ function SharedConsole() {
           setSelectedOrbitElement(null);
           setSelectedOrbitElementType(null);
           setSelectedOrbitElementData(null);
-          setActiveTab('map');
+          setActiveTab('status');
         }
 
         // Sync terminal overlay state
@@ -868,7 +873,7 @@ function SharedConsole() {
 
       {/* Content wrapper — receives view transition classes for glitch/dark/fade-in */}
       <div
-        className={`console-content-wrapper${transitionPhase === 'glitching-out' ? ' view-glitch-out' : transitionPhase === 'dark' ? ' view-dark' : transitionPhase === 'fading-in' ? ' view-fade-in' : ''}`}
+        className={`console-content-wrapper${transitionPhase === 'glitching-out' ? ' view-glitch-out' : transitionPhase === 'dark' ? ' view-dark' : transitionPhase === 'glitching-in' ? ' view-glitch-in' : ''}`}
         ref={contentRef}
       >
 
@@ -895,6 +900,7 @@ function SharedConsole() {
           shipData={shipData}
           shipDeckData={activeView?.ship_deck_data}
           shipDeckTotalDecks={activeView?.ship_deck_total_decks}
+          revealKey={bridgeRevealKey}
         >
           {/* Map components - only visible when map tab is active */}
           <>
@@ -1045,7 +1051,7 @@ function SharedConsole() {
       </div>{/* end console-content-wrapper */}
 
       {/* View status overlay — typewriter boot label during view transitions */}
-      <ViewStatusOverlay label={statusLabel} onComplete={onOverlayComplete} />
+      <ViewStatusOverlay label={statusLabel} onComplete={onOverlayComplete} corporation={corporation} />
     </>
   );
 }

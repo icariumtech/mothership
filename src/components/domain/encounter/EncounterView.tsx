@@ -11,7 +11,7 @@
  * No info panels, no navigation - just clean view with camera controls.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { GalaxyMap } from '@components/domain/maps/GalaxyMap';
 import { SystemMap } from '@components/domain/maps/SystemMap';
 import { OrbitMap } from '@components/domain/maps/OrbitMap';
@@ -121,6 +121,23 @@ export function EncounterView({
   // Determine view mode
   const viewMode = useMemo(() => getViewMode(locationType), [locationType]);
 
+  // Glitch animation when map changes (deck switch or location switch)
+  const mapWrapperRef = useRef<HTMLDivElement>(null);
+  const prevLevelRef = useRef(encounterLevel);
+  const prevSlugRef = useRef(locationSlug);
+  useEffect(() => {
+    const levelChanged = prevLevelRef.current !== encounterLevel;
+    const slugChanged = prevSlugRef.current !== locationSlug;
+    prevLevelRef.current = encounterLevel;
+    prevSlugRef.current = locationSlug;
+    if (!levelChanged && !slugChanged) return;
+    const el = mapWrapperRef.current;
+    if (!el || viewMode !== 'map') return;
+    el.classList.remove('encounter-deck-glitch');
+    void el.offsetWidth;
+    el.classList.add('encounter-deck-glitch');
+  }, [encounterLevel, locationSlug, viewMode]);
+
   // Fetch star map data for galaxy view
   useEffect(() => {
     async function fetchStarMapData() {
@@ -190,19 +207,21 @@ export function EncounterView({
       {/* 2D Map display - shown for facilities (stations, ships, decks, rooms) */}
       {/* Level indicator is now rendered inside EncounterMapRenderer via CSS Grid */}
       {viewMode === 'map' && (
-        <EncounterMapDisplay
-          locationData={locationData}
-          roomVisibility={roomVisibility}
-          doorStatus={doorStatus}
-          currentLevel={encounterLevel}
-          totalLevels={totalDecks}
-          deckName={deckName}
-          tokens={tokens}
-          isGM={isGM}
-          onTokenMove={onTokenMove}
-          onTokenRemove={onTokenRemove}
-          onTokenStatusToggle={onTokenStatusToggle}
-        />
+        <div ref={mapWrapperRef} className="encounter-map-wrapper encounter-deck-glitch">
+          <EncounterMapDisplay
+            locationData={locationData}
+            roomVisibility={roomVisibility}
+            doorStatus={doorStatus}
+            currentLevel={encounterLevel}
+            totalLevels={totalDecks}
+            deckName={deckName}
+            tokens={tokens}
+            isGM={isGM}
+            onTokenMove={onTokenMove}
+            onTokenRemove={onTokenRemove}
+            onTokenStatusToggle={onTokenStatusToggle}
+          />
+        </div>
       )}
     </div>
   );

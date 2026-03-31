@@ -7,6 +7,7 @@ urlpatterns = [
     path('gmconsole/', views.gm_console_react, name='gm_console'),  # GM controls (React)
     path('logout/', views.logout_view, name='terminal_logout'),
     path('api/messages/', views.get_messages_json, name='messages_api'),
+    path('api/corporation/', views.api_corporation, name='api_corporation'),
     path('api/active-view/stream/', views.api_active_view_stream, name='active_view_stream'),
     path('api/active-view/', views.get_active_view_json, name='active_view_api'),
     path('api/star-map/', views.get_star_map_json, name='star_map_api'),

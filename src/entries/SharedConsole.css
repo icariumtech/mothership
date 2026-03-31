@@ -42,12 +42,17 @@
   opacity: 0;
 }
 
-/* Fade-in: new view content fades in clean (~150ms) */
-.console-content-wrapper.view-fade-in {
-  animation: viewFadeIn 0.15s ease-out forwards;
+/* Glitch-in: new view content glitches into existence (~300ms) */
+.console-content-wrapper.view-glitch-in {
+  animation: viewGlitchIn 0.3s steps(1) forwards;
 }
 
-@keyframes viewFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes viewGlitchIn {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  15%  { opacity: 1; transform: translate(var(--glitch-x1), var(--glitch-y1)) skewX(3deg); filter: brightness(1.4) blur(1px); }
+  30%  { opacity: 0; transform: translate(0, 0); filter: none; }
+  50%  { opacity: 1; transform: translate(var(--glitch-x2), var(--glitch-y2)) skewX(-4deg); filter: brightness(0.6) blur(2px); }
+  65%  { opacity: 0; transform: translate(0, 0); filter: none; }
+  80%  { opacity: 1; transform: translate(var(--glitch-x3), var(--glitch-y3)) skewX(2deg); filter: brightness(1.3) blur(1px); }
+  100% { opacity: 1; transform: translate(0, 0); filter: none; }
 }

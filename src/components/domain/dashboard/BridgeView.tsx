@@ -87,6 +87,20 @@ export interface BridgeViewProps {
   shipDeckTotalDecks?: number;
 }
 
+// Applies bridge-tab-glitch on mount; boot stagger overrides via higher CSS specificity
+function SectionWrapper({ children, style }: { children: ReactNode; style?: React.CSSProperties }) {
+  const [animating, setAnimating] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimating(false), 200);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className={animating ? 'bridge-tab-entering' : ''} style={style}>
+      {children}
+    </div>
+  );
+}
+
 export function BridgeView({
   activeTab,
   onTabChange,
@@ -100,47 +114,66 @@ export function BridgeView({
   const [staggerDone, setStaggerDone] = useState(false);
   const mountedRef = useRef(false);
 
+  // Tab transition: hold exiting section in DOM while it glitches out, then mount incoming
+  const [displayedTab, setDisplayedTab] = useState<BridgeTab>(activeTab);
+  const [exitingTab, setExitingTab] = useState<BridgeTab | null>(null);
+
   useEffect(() => {
-    if (mountedRef.current) return; // Only run once per mount
+    if (mountedRef.current) return;
     mountedRef.current = true;
-    // 5 main content items (map, personnel, logs, status, charon) + tab bar = 6 items
-    // Last item at index 5, delay = 5 * 0.1s = 0.5s, animation = 0.6s
-    // Total stagger window: 0.5 + 0.6 = 1.1s
     const timer = setTimeout(() => setStaggerDone(true), 1200);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (activeTab === displayedTab) return;
+    // Start exit on current tab, then swap after exit animation (100ms + small buffer)
+    setExitingTab(displayedTab);
+    const t = setTimeout(() => {
+      setDisplayedTab(activeTab);
+      setExitingTab(null);
+    }, 120);
+    return () => clearTimeout(t);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const renderSection = (tab: BridgeTab, isExiting: boolean) => {
+    const cls = isExiting ? 'bridge-tab-exiting' : undefined;
+    const Wrap = isExiting
+      ? ({ children: c }: { children: ReactNode }) => <div className={cls}>{c}</div>
+      : SectionWrapper;
+    const staggerStyle = !staggerDone ? ({
+      map: { animationDelay: '0s' },
+      personnel: { animationDelay: '0.1s' },
+      logs: { animationDelay: '0.2s' },
+      status: { animationDelay: '0.3s' },
+      charon: { animationDelay: '0.4s' },
+    } as Record<BridgeTab, React.CSSProperties>)[tab] : undefined;
+
+    if (tab === 'charon') return null; // CHARON handled separately (always mounted)
+
+    return (
+      <Wrap key={isExiting ? `exit-${tab}` : tab} style={staggerStyle}>
+        {tab === 'map' && children}
+        {tab === 'personnel' && <PersonnelSection />}
+        {tab === 'logs' && <LogsSection />}
+        {tab === 'status' && <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />}
+      </Wrap>
+    );
+  };
 
   return (
     <div className="bridge-view">
       {/* Content Area */}
       <div className={`bridge-content-area${staggerDone ? '' : ' bridge-stagger-active'}`}>
-        {/* MAP Section - always mounted, renders children (maps + InfoPanel) */}
-        {activeTab === 'map' && (
-          <div style={!staggerDone ? { animationDelay: '0s' } : undefined}>
-            {children}
-          </div>
-        )}
+        {/* Exiting section — held in DOM briefly to play glitch-out */}
+        {exitingTab && exitingTab !== 'charon' && renderSection(exitingTab, true)}
 
-        {/* Other sections - conditionally rendered */}
-        {activeTab === 'personnel' && (
-          <div style={!staggerDone ? { animationDelay: '0.1s' } : undefined}>
-            <PersonnelSection />
-          </div>
-        )}
-        {activeTab === 'logs' && (
-          <div style={!staggerDone ? { animationDelay: '0.2s' } : undefined}>
-            <LogsSection />
-          </div>
-        )}
-        {activeTab === 'status' && (
-          <div style={!staggerDone ? { animationDelay: '0.3s' } : undefined}>
-            <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} />
-          </div>
-        )}
+        {/* Active section — mounts after exit completes, plays glitch-in via SectionWrapper */}
+        {exitingTab !== displayedTab && renderSection(displayedTab, false)}
 
-        {/* CHARON Section - always mounted to preserve conversation state and avoid indicator flashes */}
-        <div style={{ display: activeTab === 'charon' ? 'block' : 'none', ...(!staggerDone ? { animationDelay: '0.4s' } : {}) }}>
-          <CharonSection isVisible={activeTab === 'charon'} />
+        {/* CHARON — always mounted, shown/hidden via display */}
+        <div style={{ display: displayedTab === 'charon' ? 'block' : 'none', ...(!staggerDone ? { animationDelay: '0.4s' } : {}) }}>
+          <CharonSection isVisible={displayedTab === 'charon'} />
         </div>
       </div>
 

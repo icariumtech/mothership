@@ -11,7 +11,7 @@ interface CommTerminalDialogProps {
 }
 
 type ViewMode = 'inbox' | 'sent' | 'logs';
-type AnimPhase = 'entering' | 'stable' | 'exiting';
+type AnimPhase = 'flicker' | 'wipe' | 'stable' | 'exiting';
 
 export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }: CommTerminalDialogProps) {
   const [terminalData, setTerminalData] = useState<TerminalData | null>(null);
@@ -20,7 +20,7 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
   const [selectedLog, setSelectedLog] = useState<TerminalLogEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [animPhase, setAnimPhase] = useState<AnimPhase>('entering');
+  const [animPhase, setAnimPhase] = useState<AnimPhase>('flicker');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch terminal data when dialog opens
@@ -57,28 +57,21 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
     fetchTerminalData();
   }, [open, locationSlug, terminalSlug]);
 
-  // Transition to entering then stable on open — stagger based on visible item count
+  // Enter: flicker (280ms) → wipe (650ms) → stable
   useEffect(() => {
-    if (open) {
-      setAnimPhase('entering');
-      // Compute stagger duration based on visible items (default 5 if data not loaded yet)
-      const itemCount = terminalData
-        ? (viewMode === 'logs' ? terminalData.logs.length : viewMode === 'inbox' ? terminalData.inbox.length : terminalData.sent.length)
-        : 5;
-      // Duration: 60ms per line + 150ms buffer. Cap at 2000ms for very long logs.
-      const staggerDuration = Math.min(itemCount * 60 + 150, 2000);
-      const timer = setTimeout(() => setAnimPhase('stable'), staggerDuration);
-      return () => clearTimeout(timer);
-    }
-  }, [open, terminalData, viewMode]);
+    if (!open) return;
+    let cancelled = false;
+    setAnimPhase('flicker');
+    const t1 = setTimeout(() => { if (!cancelled) setAnimPhase('wipe'); }, 280);
+    const t2 = setTimeout(() => { if (!cancelled) setAnimPhase('stable'); }, 930);
+    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); };
+  }, [open]);
 
-  // Transition to exiting when closed — only from stable (was actually visible)
+  // Exit — only from stable (was fully visible)
   useEffect(() => {
     if (!open && animPhase === 'stable') {
       setAnimPhase('exiting');
-      const timer = setTimeout(() => {
-        setAnimPhase('entering');
-      }, 300); // matches commDismiss duration
+      const timer = setTimeout(() => setAnimPhase('flicker'), 300);
       return () => clearTimeout(timer);
     }
   }, [open, animPhase]);
@@ -141,7 +134,7 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
 
   return (
     <div className={`comm-terminal-backdrop${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handleBackdropClick}>
-      <div className={`comm-terminal-container${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handlePanelClick}>
+      <div className={`comm-terminal-container phase-${animPhase}`} onClick={handlePanelClick}>
         <Panel
           title={title}
           chamferCorners={['tr', 'bl', 'br']}
@@ -191,8 +184,8 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
                       terminalData.logs.map((log, index) => (
                         <div
                           key={log.log_id}
-                          className={`message-item comm-log-line${selectedLog?.log_id === log.log_id ? ' selected' : ''}${animPhase === 'entering' ? ' comm-entering' : ''}`}
-                          style={animPhase === 'entering' ? { animationDelay: `${index * 60}ms` } : undefined}
+                          className={`message-item comm-log-line${selectedLog?.log_id === log.log_id ? ' selected' : ''}${animPhase === 'flicker' || animPhase === 'wipe' ? ' comm-entering' : ''}`}
+                          style={animPhase === 'flicker' || animPhase === 'wipe' ? { animationDelay: `${index * 60}ms` } : undefined}
                           onClick={() => handleLogSelect(log)}
                         >
                           <div className="message-subject">{log.title || log.log_id}</div>
@@ -208,8 +201,8 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
                       messages.map((msg, index) => (
                         <div
                           key={msg.message_id}
-                          className={`message-item comm-log-line${selectedMessage?.message_id === msg.message_id ? ' selected' : ''} ${!msg.read ? 'unread' : ''} ${getPriorityClass(msg.priority)}${animPhase === 'entering' ? ' comm-entering' : ''}`}
-                          style={animPhase === 'entering' ? { animationDelay: `${index * 60}ms` } : undefined}
+                          className={`message-item comm-log-line${selectedMessage?.message_id === msg.message_id ? ' selected' : ''} ${!msg.read ? 'unread' : ''} ${getPriorityClass(msg.priority)}${animPhase === 'flicker' || animPhase === 'wipe' ? ' comm-entering' : ''}`}
+                          style={animPhase === 'flicker' || animPhase === 'wipe' ? { animationDelay: `${index * 60}ms` } : undefined}
                           onClick={() => handleMessageSelect(msg)}
                         >
                           <div className="message-item-header">

@@ -24,6 +24,11 @@
   padding-bottom: 3px;
 }
 
+/* Row snap-in on tab enter — delay set inline per index */
+.personnel-row {
+  animation: bridge-row-snap 1ms steps(1) both;
+}
+
 /* Internal split layout */
 .personnel-split {
   display: flex;

@@ -59,3 +59,47 @@
 .bridge-view .tab-bar-panel.bridge-stagger-active {
   animation: bridge-panel-fade-in 0.6s ease backwards;
 }
+
+/* ========================================================
+   Tab switch: glitch snap
+   ======================================================== */
+
+/* Container enter: 3-frame stepped flicker, snaps solid (~100ms) */
+@keyframes bridge-tab-glitch {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  50%  { opacity: 0; }
+  70%  { opacity: 1; }
+  85%  { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Container exit: same flicker but ends dark */
+@keyframes bridge-tab-glitch-out {
+  0%   { opacity: 1; }
+  15%  { opacity: 0; }
+  35%  { opacity: 1; }
+  55%  { opacity: 0; }
+  75%  { opacity: 1; }
+  90%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Row: instant snap after delay — fills column one item at a time */
+@keyframes bridge-row-snap {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Applied to section wrapper on tab switch.
+   Lower specificity than .bridge-stagger-active > * (0,1,0 vs 0,2,0),
+   so boot stagger fade-in overrides this during the initial load window. */
+.bridge-tab-entering {
+  animation: bridge-tab-glitch 100ms steps(1) both;
+}
+
+/* Applied to outgoing section — plays exit glitch then section unmounts */
+.bridge-tab-exiting {
+  animation: bridge-tab-glitch-out 100ms steps(1) both;
+  pointer-events: none;
+}

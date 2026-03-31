@@ -154,6 +154,21 @@ export function PersonnelSection() {
     });
   };
 
+  // Compute stagger delays: flat sequential index across all rows (50ms per row)
+  const rowDelays = useMemo(() => {
+    const delays: Record<string, string> = {};
+    let i = 0;
+    for (const member of crew) {
+      delays[`crew-${member.id}`] = `${i++ * 100}ms`;
+    }
+    for (const [, members] of npcGroups) {
+      for (const npc of members) {
+        delays[`npc-${npc.id}`] = `${i++ * 100}ms`;
+      }
+    }
+    return delays;
+  }, [crew, npcGroups]);
+
   return (
     <div className="section-personnel">
       <DashboardPanel title="PERSONNEL" chamferCorners={['tl', 'br']} padding={0}>
@@ -168,6 +183,7 @@ export function PersonnelSection() {
                   <div
                     key={member.id}
                     className={`personnel-row ${selected?.type === 'crew' && selected?.id === member.id ? 'selected' : ''}`}
+                    style={{ animationDelay: rowDelays[`crew-${member.id}`] }}
                     onClick={() => handleSelect('crew', member.id)}
                   >
                     <div className="personnel-row-content">
@@ -193,6 +209,7 @@ export function PersonnelSection() {
                   <div
                     key={npc.id}
                     className={`personnel-row ${selected?.type === 'npc' && selected?.id === npc.id ? 'selected' : ''}`}
+                    style={{ animationDelay: rowDelays[`npc-${npc.id}`] }}
                     onClick={() => handleSelect('npc', npc.id)}
                   >
                     <div className="personnel-row-content">

@@ -116,10 +116,11 @@ export function LogsSection() {
           {/* Left side - session list */}
           <div className="logs-list">
             {sessions.length > 0 ? (
-              sessions.map(session => (
+              sessions.map((session, index) => (
                 <div
                   key={session.filename}
                   className={`logs-row ${selectedId === session.filename ? 'selected' : ''}`}
+                  style={{ animationDelay: `${index * 100}ms` }}
                   onClick={() => handleSelect(session.filename)}
                 >
                   <div className={`logs-row-checkbox ${selectedId === session.filename ? 'checked' : ''}`} />

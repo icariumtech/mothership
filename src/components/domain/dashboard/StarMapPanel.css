@@ -16,6 +16,11 @@
   max-height: calc(100vh - 52px - 30px - 30px);
 }
 
+/* Row snap-in on tab enter and map navigation — delay set inline per index */
+.star-system-row {
+  animation: bridge-row-snap 1ms steps(1) both;
+}
+
 /* Star system row styling */
 .star-system-row {
   display: flex;

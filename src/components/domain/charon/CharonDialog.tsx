@@ -11,7 +11,7 @@ interface CharonDialogProps {
   disableClose?: boolean;
 }
 
-type AnimPhase = 'entering' | 'stable' | 'exiting';
+type AnimPhase = 'flicker' | 'wipe' | 'stable' | 'exiting';
 
 export function CharonDialog({ open, onClose, channel = 'default', disableClose = false }: CharonDialogProps) {
   const [messages, setMessages] = useState<CharonMessage[]>([]);
@@ -21,28 +21,26 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [typedMessages, setTypedMessages] = useState<Map<string, string>>(new Map());
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
-  const [animPhase, setAnimPhase] = useState<AnimPhase>('entering');
+  const [animPhase, setAnimPhase] = useState<AnimPhase>('flicker');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const processedMessagesRef = useRef<Set<string>>(new Set());
 
-  // Transition to entering then stable on open
+  // Enter: flicker (280ms) → wipe (650ms) → stable
   useEffect(() => {
-    if (open) {
-      setAnimPhase('entering');
-      // Transition to stable after flicker animation completes (280ms)
-      const timer = setTimeout(() => setAnimPhase('stable'), 280);
-      return () => clearTimeout(timer);
-    }
+    if (!open) return;
+    let cancelled = false;
+    setAnimPhase('flicker');
+    const t1 = setTimeout(() => { if (!cancelled) setAnimPhase('wipe'); }, 280);
+    const t2 = setTimeout(() => { if (!cancelled) setAnimPhase('stable'); }, 930);
+    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); };
   }, [open]);
 
-  // Transition to exiting when closed — only from stable (was actually visible)
+  // Exit — only from stable (was fully visible)
   useEffect(() => {
     if (!open && animPhase === 'stable') {
       setAnimPhase('exiting');
-      const timer = setTimeout(() => {
-        setAnimPhase('entering');
-      }, 300); // matches charonDismiss duration
+      const timer = setTimeout(() => setAnimPhase('flicker'), 300);
       return () => clearTimeout(timer);
     }
   }, [open, animPhase]);
@@ -182,7 +180,7 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
 
   return (
     <div className={`charon-dialog-backdrop${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handleBackdropClick}>
-      <div className={`charon-dialog-container${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handlePanelClick}>
+      <div className={`charon-dialog-container phase-${animPhase}`} onClick={handlePanelClick}>
         <Panel
           title="CHARON"
           chamferCorners={['tl', 'tr', 'bl', 'br']}

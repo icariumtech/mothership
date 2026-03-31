@@ -50,10 +50,11 @@ export function StarMapPanel({
   const renderGalaxyList = () => (
     <>
       {starMapData && starMapData.systems.length > 0 ? (
-        starMapData.systems.map((system) => (
+        starMapData.systems.map((system, index) => (
           <div
             key={system.name}
             className={`star-system-row ${selectedSystem === system.name ? 'selected' : ''}`}
+            style={{ animationDelay: `${index * 100}ms` }}
             onClick={() => onSystemSelect(system.name)}
           >
             <div className="star-system-content">
@@ -113,10 +114,11 @@ export function StarMapPanel({
 
       {/* Planet list */}
       {systemMapData && systemMapData.bodies && systemMapData.bodies.length > 0 ? (
-        systemMapData.bodies.map((planet) => (
+        systemMapData.bodies.map((planet, index) => (
           <div
             key={planet.name}
             className={`star-system-row planet-row ${selectedPlanet?.name === planet.name ? 'selected' : ''}`}
+            style={{ animationDelay: `${index * 100}ms` }}
             onClick={() => onPlanetSelect(selectedPlanet?.name === planet.name ? null : planet)}
           >
             <div className="star-system-content">
@@ -161,13 +163,19 @@ export function StarMapPanel({
   );
 
   // Render orbit view
-  const renderOrbitList = () => (
+  const renderOrbitList = () => {
+    const moonCount = orbitMapData?.moons?.length ?? 0;
+    const stationCount = orbitMapData?.orbital_stations?.length ?? 0;
+    // back btn = index 0; moons start at 1; stations start at 1+moons; surfaces start at 1+moons+stations
+    const stationBase = 1 + moonCount;
+    const surfaceBase = 1 + moonCount + stationCount;
+    return (
     <>
       {/* Back to System button */}
       <div
         className="star-system-row back-to-system-btn"
         onClick={() => onBackToSystem()}
-        style={{ marginBottom: 12, borderColor: 'var(--color-amber)' }}
+        style={{ marginBottom: 12, borderColor: 'var(--color-amber)', animationDelay: '0ms' }}
       >
         <div className="star-system-content">
           <div
@@ -203,12 +211,13 @@ export function StarMapPanel({
       {orbitMapData?.moons && orbitMapData.moons.length > 0 && (
         <>
           <div className="orbit-section-header">MOONS</div>
-          {orbitMapData.moons.map((moon) => (
+          {orbitMapData.moons.map((moon, index) => (
             <div
               key={moon.name}
               className={`star-system-row orbit-element-row ${
                 selectedOrbitElementType === 'moon' && selectedOrbitElement === moon.name ? 'selected' : ''
               }`}
+              style={{ animationDelay: `${(1 + index) * 100}ms` }}
               onClick={() => {
                 if (selectedOrbitElementType === 'moon' && selectedOrbitElement === moon.name) {
                   onOrbitElementSelect(null, null);
@@ -239,12 +248,13 @@ export function StarMapPanel({
       {orbitMapData?.orbital_stations && orbitMapData.orbital_stations.length > 0 && (
         <>
           <div className="orbit-section-header">ORBITAL STATIONS</div>
-          {orbitMapData.orbital_stations.map((station) => (
+          {orbitMapData.orbital_stations.map((station, index) => (
             <div
               key={station.name}
               className={`star-system-row orbit-element-row ${
                 selectedOrbitElementType === 'station' && selectedOrbitElement === station.name ? 'selected' : ''
               }`}
+              style={{ animationDelay: `${(stationBase + index) * 100}ms` }}
               onClick={() => {
                 if (selectedOrbitElementType === 'station' && selectedOrbitElement === station.name) {
                   onOrbitElementSelect(null, null);
@@ -270,12 +280,13 @@ export function StarMapPanel({
       {orbitMapData?.surface_markers && orbitMapData.surface_markers.length > 0 && (
         <>
           <div className="orbit-section-header">SURFACE FACILITIES</div>
-          {orbitMapData.surface_markers.map((marker) => (
+          {orbitMapData.surface_markers.map((marker, index) => (
             <div
               key={marker.name}
               className={`star-system-row orbit-element-row ${
                 selectedOrbitElementType === 'surface' && selectedOrbitElement === marker.name ? 'selected' : ''
               }`}
+              style={{ animationDelay: `${(surfaceBase + index) * 100}ms` }}
               onClick={() => {
                 if (selectedOrbitElementType === 'surface' && selectedOrbitElement === marker.name) {
                   onOrbitElementSelect(null, null);
@@ -297,7 +308,8 @@ export function StarMapPanel({
         </>
       )}
     </>
-  );
+    );
+  };
 
   if (!visible) return null;
 

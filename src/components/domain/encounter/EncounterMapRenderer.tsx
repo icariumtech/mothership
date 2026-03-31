@@ -403,6 +403,33 @@ function getAdjacentCellForDoor(room: GridRoom, door: DoorDef): { x: number; y: 
 }
 
 // -------------------------------------------------------------------
+// getDoorBothAdjacentCells — returns the two cells on either side of a door.
+// For explicit-position doors (x/y/angle format) uses angle to derive cells
+// directly, avoiding the centroid-direction rounding error in getAdjacentCellForDoor.
+// -------------------------------------------------------------------
+function getDoorBothAdjacentCells(door: DoorDef): Array<{ x: number; y: number }> | null {
+  if (door.x === undefined || door.y === undefined) return null;
+  const angle = door.angle ?? 0;
+  if (angle === 0) {
+    // Horizontal slot (N/S wall): door.y is at an integer wall boundary
+    const wallY = Math.round(door.y);
+    const cellX = Math.floor(door.x);
+    return [
+      { x: cellX, y: wallY - 1 }, // cell above the wall
+      { x: cellX, y: wallY },     // cell below the wall
+    ];
+  } else {
+    // Vertical slot (E/W wall): door.x is at an integer wall boundary
+    const wallX = Math.round(door.x);
+    const cellY = Math.floor(door.y);
+    return [
+      { x: wallX - 1, y: cellY }, // cell left of the wall
+      { x: wallX,     y: cellY }, // cell right of the wall
+    ];
+  }
+}
+
+// -------------------------------------------------------------------
 // getDoorSVGPosition — map wall+position or angle to SVG coordinates
 // -------------------------------------------------------------------
 function getDoorSVGPosition(
@@ -558,6 +585,14 @@ export function EncounterMapRenderer({
 
   // Track previous roomVisibility to detect changes
   const prevRoomVisibilityRef = useRef<RoomVisibilityState | undefined>(undefined);
+  // Track map identity — when the actual map changes skip animations to prevent flash.
+  // Uses a string key (deck_id + name) rather than array reference because locationData
+  // is recreated on every SSE event, making mapData.rooms always a new reference.
+  const prevMapKeyRef = useRef<string | undefined>(undefined);
+
+  // Per-room clear timers — stored in a ref so effect cleanup cannot cancel them.
+  // A new animation for the same room cancels only that room's previous timer.
+  const roomClearTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Sorted room index for cascade stagger delay (Y-ascending)
   const roomSortedIndex = useMemo(() => {
@@ -581,7 +616,13 @@ export function EncounterMapRenderer({
     const prev = prevRoomVisibilityRef.current;
     prevRoomVisibilityRef.current = roomVisibility;
 
-    if (!prev || !roomVisibility) return;
+    // If the map itself changed, treat current visibility as the new baseline (no animations)
+    const mapKey = `${mapData.deck_id ?? ''}|${mapData.name}`;
+    const mapChanged = prevMapKeyRef.current !== mapKey;
+    prevMapKeyRef.current = mapKey;
+    if (mapChanged) return;
+
+    if (!prev || !roomVisibility || isGM) return;
 
     const newAnimations = new Map<string, 'revealing' | 'hiding'>();
     const allRooms = mapData.rooms ?? [];
@@ -618,19 +659,33 @@ export function EncounterMapRenderer({
       return next;
     });
 
-    // Clear animation state after animation completes (400ms duration + max stagger)
-    const maxStagger = (newAnimations.size - 1) * 75;
-    const clearDelay = 400 + maxStagger + 50; // 50ms buffer
-    const timer = setTimeout(() => {
-      setRoomAnimState(prevState => {
-        const next = new Map(prevState);
-        newAnimations.forEach((_, id) => next.delete(id));
-        return next;
-      });
-    }, clearDelay);
+    // Schedule per-room clear timers. Using a ref (not effect cleanup) so that
+    // a redundant re-run of this effect (e.g. from SSE echo with same visibility)
+    // cannot cancel a legitimate in-flight animation.
+    newAnimations.forEach((_, id) => {
+      // Cancel any existing timer for this room before setting a new one
+      const existing = roomClearTimersRef.current.get(id);
+      if (existing !== undefined) clearTimeout(existing);
 
-    return () => clearTimeout(timer);
-  }, [roomVisibility, mapData.rooms]);
+      const sortedIdx = roomSortedIndex.get(id) ?? 0;
+      const clearDelay = 400 + sortedIdx * 75 + 50; // animation + stagger + buffer
+      const timer = setTimeout(() => {
+        roomClearTimersRef.current.delete(id);
+        setRoomAnimState(prevState => {
+          const next = new Map(prevState);
+          next.delete(id);
+          return next;
+        });
+      }, clearDelay);
+      roomClearTimersRef.current.set(id, timer);
+    });
+  }, [roomVisibility, mapData.deck_id, mapData.name, roomSortedIndex, isGM]);
+
+  // Clear all room timers on unmount
+  useEffect(() => {
+    const timers = roomClearTimersRef.current;
+    return () => { timers.forEach(t => clearTimeout(t)); };
+  }, []);
 
   // -------------------------------------------------------------------
   // Get effective door status: runtime override > YAML default
@@ -1013,11 +1068,10 @@ export function EncounterMapRenderer({
   // -------------------------------------------------------------------
   const renderRoom = (room: GridRoom) => {
     const visible = isRoomVisible(room.id);
-    // Players only see revealed rooms
-    if (!isGM && !visible) return null;
-    const roomOpacity = isGM && !visible ? 0.25 : 1.0;
-
     const animState = roomAnimState.get(room.id);
+    // Players only see revealed rooms — but keep room in DOM during hide animation
+    if (!isGM && !visible && !animState) return null;
+    const roomOpacity = isGM && !visible ? 0.25 : 1.0;
     const sortedIdx = roomSortedIndex.get(room.id) ?? 0;
     const staggerDelay = animState ? sortedIdx * 75 : 0; // 75ms per room position
 
@@ -1598,10 +1652,24 @@ export function EncounterMapRenderer({
           {mapData.rooms.flatMap(room =>
             (room.doors || []).map((door, i) => {
               if (!isGM) {
-                // Show door if either the owning room OR the adjacent room is visible
-                const adjCell = getAdjacentCellForDoor(room, door);
-                const adjRoom = findRoomAtCell(adjCell.x, adjCell.y);
-                if (!isRoomVisible(room.id) && (!adjRoom || !isRoomVisible(adjRoom.id))) return null;
+                // Show door if either the owning room OR any adjacent room/corridor is visible
+                if (!isRoomVisible(room.id)) {
+                  const bothCells = getDoorBothAdjacentCells(door);
+                  let otherSideVisible: boolean;
+                  if (bothCells) {
+                    // Explicit-position door: check both cells, skip the owning room itself
+                    otherSideVisible = bothCells.some(cell => {
+                      const adj = findRoomAtCell(cell.x, cell.y);
+                      return adj && adj.id !== room.id && isRoomVisible(adj.id);
+                    });
+                  } else {
+                    // Legacy wall+position format: single outward cell
+                    const adjCell = getAdjacentCellForDoor(room, door);
+                    const adjRoom = findRoomAtCell(adjCell.x, adjCell.y);
+                    otherSideVisible = !!(adjRoom && isRoomVisible(adjRoom.id));
+                  }
+                  if (!otherSideVisible) return null;
+                }
               }
               const pos = getDoorSVGPosition(room, door, unitSize);
               const style = CONNECTION_STYLES[door.type] || CONNECTION_STYLES.standard;

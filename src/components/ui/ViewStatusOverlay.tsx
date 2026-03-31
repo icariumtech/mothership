@@ -3,9 +3,10 @@ import './ViewStatusOverlay.css';
 
 interface ViewStatusOverlayProps {
   label: string | null;
+  onComplete?: () => void;
 }
 
-export function ViewStatusOverlay({ label }: ViewStatusOverlayProps) {
+export function ViewStatusOverlay({ label, onComplete }: ViewStatusOverlayProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [visible, setVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
@@ -55,6 +56,7 @@ export function ViewStatusOverlay({ label }: ViewStatusOverlayProps) {
       if (i >= label.length) {
         clearInterval(timerRef.current!);
         timerRef.current = null;
+        onComplete?.();
       }
     }, 55); // 55ms/char — established rate
 

@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, MutableRefObject } from 'react';
 
 type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
 
@@ -25,6 +25,7 @@ interface UseViewTransitionResult {
     previousViewType: ViewType | undefined
   ) => void;
   contentRef: React.RefObject<HTMLDivElement | null>;
+  onOverlayComplete: () => void;
 }
 
 export function useViewTransition(): UseViewTransitionResult {
@@ -33,6 +34,14 @@ export function useViewTransition(): UseViewTransitionResult {
   const lockRef = useRef(false);
   const cancelledRef = useRef(false); // Tracks whether the current run() should abort
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const typewriterResolveRef: MutableRefObject<(() => void) | null> = useRef(null);
+
+  const onOverlayComplete = useCallback(() => {
+    if (typewriterResolveRef.current) {
+      typewriterResolveRef.current();
+      typewriterResolveRef.current = null;
+    }
+  }, []);
 
   // Randomize glitch CSS custom properties on the content wrapper (same as StandbyView pattern)
   const randomizeGlitch = useCallback(() => {
@@ -65,6 +74,7 @@ export function useViewTransition(): UseViewTransitionResult {
       // Cancel in-progress: mark cancelled so the abandoned run() stops after its current await.
       // Then reset immediately and commit new data.
       cancelledRef.current = true;
+      typewriterResolveRef.current = null; // Prevent stale resolve from unblocking new transition
       setTransitionPhase('idle');
       setStatusLabel(null);
       lockRef.current = false;
@@ -89,9 +99,15 @@ export function useViewTransition(): UseViewTransitionResult {
       commit(data);  // React renders new view during dark frame
       const label = VIEW_STATUS_LABELS[newViewType] || null;
       setStatusLabel(label);
-      // Wait for typewriter to finish: label.length * 55ms + small buffer
-      const typingDuration = label ? label.length * TYPEWRITER_RATE_MS + 100 : 50;
-      await new Promise(r => setTimeout(r, typingDuration));
+      // Wait for typewriter completion via callback; fallback timeout if callback never fires
+      if (label) {
+        await new Promise<void>(resolve => {
+          typewriterResolveRef.current = resolve;
+          setTimeout(resolve, label.length * TYPEWRITER_RATE_MS + 500);
+        });
+      } else {
+        await new Promise(r => setTimeout(r, 50));
+      }
       if (cancelledRef.current) return;
 
       // Phase 3: fade-in (150ms) — label has finished typing, now reveal view
@@ -113,5 +129,5 @@ export function useViewTransition(): UseViewTransitionResult {
     });
   }, [randomizeGlitch]);
 
-  return { transitionPhase, statusLabel, handleViewChange, contentRef };
+  return { transitionPhase, statusLabel, handleViewChange, contentRef, onOverlayComplete };
 }

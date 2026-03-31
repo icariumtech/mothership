@@ -251,7 +251,7 @@ function SharedConsole() {
   const transitionLockRef = useRef<boolean>(false);
 
   // View transition hook — sequences glitch-out/dark/fade-in on SSE view_type changes
-  const { transitionPhase, statusLabel, handleViewChange, contentRef } = useViewTransition();
+  const { transitionPhase, statusLabel, handleViewChange, contentRef, onOverlayComplete } = useViewTransition();
 
   // Track when scenes are ready (callback-based)
   const sceneReadyResolveRef = useRef<(() => void) | null>(null);
@@ -1045,7 +1045,7 @@ function SharedConsole() {
       </div>{/* end console-content-wrapper */}
 
       {/* View status overlay — typewriter boot label during view transitions */}
-      <ViewStatusOverlay label={statusLabel} />
+      <ViewStatusOverlay label={statusLabel} onComplete={onOverlayComplete} />
     </>
   );
 }

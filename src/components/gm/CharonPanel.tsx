@@ -48,11 +48,11 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
   // or we're in a view that has a CHARON channel (bridge, encounter)
   const isActive = currentViewType === 'CHARON_TERMINAL' || currentViewType === 'BRIDGE' || currentViewType === 'ENCOUNTER' || currentViewType === 'STANDBY' || charonDialogOpen;
 
-  // Show visibility toggle only for story and encounter channels, not when CHARON_TERMINAL is the active view (always showing)
+  // Show visibility toggle unless CHARON_TERMINAL is active (already always showing there)
   const showVisibilityToggle = useMemo(() => {
     if (currentViewType === 'CHARON_TERMINAL') return false;
-    return channel === 'story' || channel.startsWith('encounter-');
-  }, [channel, currentViewType]);
+    return true;
+  }, [currentViewType]);
 
   // Unread count
   const unreadCount = pendingResponses.length;

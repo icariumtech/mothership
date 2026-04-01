@@ -1,22 +1,22 @@
 import { Panel } from '@components/ui/Panel';
 import './TabBar.css';
 
-export type BridgeTab = 'map' | 'personnel' | 'logs' | 'status' | 'charon';
+export type BridgeTab = 'map' | 'personnel' | 'logs' | 'status' | 'janus';
 
 interface TabBarProps {
   activeTab: BridgeTab;
   onTabChange: (tab: BridgeTab) => void;
   disabled?: boolean;
-  charonHasMessages?: boolean;
+  janusHasMessages?: boolean;
 }
 
-export function TabBar({ activeTab, onTabChange, disabled = false, charonHasMessages = false }: TabBarProps) {
+export function TabBar({ activeTab, onTabChange, disabled = false, janusHasMessages = false }: TabBarProps) {
   const tabs: { id: BridgeTab; label: string }[] = [
     { id: 'status', label: 'SYSTEMS' },
     { id: 'map', label: 'MAP' },
     { id: 'personnel', label: 'PERSONNEL' },
     { id: 'logs', label: 'LOGS' },
-    { id: 'charon', label: 'CHARON' },
+    { id: 'janus', label: 'JANUS' },
   ];
 
   return (
@@ -37,7 +37,7 @@ export function TabBar({ activeTab, onTabChange, disabled = false, charonHasMess
             disabled={disabled}
           >
             {tab.label}
-            {tab.id === 'charon' && charonHasMessages && activeTab !== 'charon' && (
+            {tab.id === 'janus' && janusHasMessages && activeTab !== 'janus' && (
               <span className="tab-indicator" />
             )}
           </button>

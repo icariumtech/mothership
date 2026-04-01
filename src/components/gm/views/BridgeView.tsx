@@ -16,7 +16,7 @@ import { gmConsoleApi, type CrewMember, type SessionLog } from '@/services/gmCon
 import { ToolRail, ToolRailButton } from '@/components/gm/layout/ToolRail';
 import { SlideOutPanel } from '@/components/gm/layout/SlideOutPanel';
 import { LocationTreePanel } from '@/components/gm/panels/LocationTreePanel';
-import { CharonPanel } from '@/components/gm/CharonPanel';
+import { JanusPanel } from '@/components/gm/JanusPanel';
 import { GalaxyMap } from '@/components/domain/maps/GalaxyMap';
 import { SystemMap } from '@/components/domain/maps/SystemMap';
 import { OrbitMap } from '@/components/domain/maps/OrbitMap';
@@ -38,8 +38,8 @@ interface BridgeViewProps {
   expandedNodes: Set<string>;
   onToggleNode: (key: string) => void;
   onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
-  charonChannel: string;
-  charonDialogOpen: boolean;
+  janusChannel: string;
+  janusDialogOpen: boolean;
   onDialogToggle: () => void;
   shipData: ShipStatusData | null;
   shipDeckData?: ShipDeckData;
@@ -52,8 +52,8 @@ export function BridgeView({
   expandedNodes,
   onToggleNode,
   onShowTerminal,
-  charonChannel,
-  charonDialogOpen,
+  janusChannel,
+  janusDialogOpen,
   onDialogToggle,
   shipData,
   shipDeckData,
@@ -97,7 +97,7 @@ export function BridgeView({
     { key: 'locations', icon: <ApartmentOutlined />, tooltip: 'Locations' },
     { key: 'personnel', icon: <TeamOutlined />, tooltip: 'Personnel' },
     { key: 'sessions', icon: <ReadOutlined />, tooltip: 'Session Logs' },
-    { key: 'charon', icon: <RobotOutlined />, tooltip: 'CHARON' },
+    { key: 'janus', icon: <RobotOutlined />, tooltip: 'JANUS' },
   ], []);
 
   const handleToolToggle = useCallback((key: string) => {
@@ -265,11 +265,11 @@ export function BridgeView({
           )}
         </SlideOutPanel>
 
-        <SlideOutPanel open={activePanel === 'charon'} title="CHARON" onClose={() => setActivePanel(null)}>
-          <CharonPanel
-            channel={charonChannel}
+        <SlideOutPanel open={activePanel === 'janus'} title="JANUS" onClose={() => setActivePanel(null)}>
+          <JanusPanel
+            channel={janusChannel}
             currentViewType="BRIDGE"
-            charonDialogOpen={charonDialogOpen}
+            janusDialogOpen={janusDialogOpen}
             onDialogToggle={onDialogToggle}
           />
         </SlideOutPanel>

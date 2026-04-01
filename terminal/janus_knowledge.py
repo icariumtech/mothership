@@ -1,5 +1,5 @@
 """
-CHARON Knowledge Loader
+JANUS Knowledge Loader
 Loads knowledge from location.yaml files and linked Obsidian notes.
 """
 import re
@@ -9,12 +9,12 @@ import yaml
 from django.conf import settings
 
 
-class CharonKnowledgeLoader:
-    """Loads and assembles knowledge for a CHARON instance."""
+class JanusKnowledgeLoader:
+    """Loads and assembles knowledge for a JANUS instance."""
 
     def __init__(self, location_path: str):
         """
-        Initialize loader for a specific CHARON location.
+        Initialize loader for a specific JANUS location.
         
         Args:
             location_path: Path to location directory relative to data/galaxy/locations/
@@ -26,7 +26,7 @@ class CharonKnowledgeLoader:
         
     def load_knowledge(self) -> Dict[str, Any]:
         """
-        Load all knowledge for this CHARON instance.
+        Load all knowledge for this JANUS instance.
         
         Returns:
             Dict with 'location_data', 'lore_content', and 'instance_config'
@@ -34,7 +34,7 @@ class CharonKnowledgeLoader:
         knowledge = {
             'location_chain': [],  # Inherited location.yaml data
             'lore_content': '',    # Extracted Obsidian content
-            'instance_config': {}, # CHARON instance configuration
+            'instance_config': {}, # JANUS instance configuration
         }
         
         # Load location chain (walk up the tree)
@@ -45,8 +45,8 @@ class CharonKnowledgeLoader:
         if current_location and 'lore' in current_location:
             knowledge['lore_content'] = self._load_obsidian_lore(current_location['lore'])
         
-        # Load CHARON instance config if exists
-        instance_path = self.base_path / self.location_path / 'charon' / 'instance.yaml'
+        # Load JANUS instance config if exists
+        instance_path = self.base_path / self.location_path / 'janus' / 'instance.yaml'
         if instance_path.exists():
             with open(instance_path, 'r') as f:
                 knowledge['instance_config'] = yaml.safe_load(f) or {}
@@ -81,7 +81,7 @@ class CharonKnowledgeLoader:
         Load and filter content from an Obsidian note.
         
         Args:
-            lore_config: Dict with 'note', 'charon_sections', 'exclude_patterns'
+            lore_config: Dict with 'note', 'janus_sections', 'exclude_patterns'
         """
         if not self.vault_path:
             return ""
@@ -98,7 +98,7 @@ class CharonKnowledgeLoader:
             content = f.read()
         
         # Get allowed and excluded sections
-        allowed_sections = lore_config.get('charon_sections', [])
+        allowed_sections = lore_config.get('janus_sections', [])
         exclude_patterns = lore_config.get('exclude_patterns', [
             r'^GM Notes',
             r'^Secrets',
@@ -211,7 +211,7 @@ class CharonKnowledgeLoader:
     
     def build_context_string(self, knowledge: Dict[str, Any] = None) -> str:
         """
-        Build a context string suitable for injecting into CHARON's prompt.
+        Build a context string suitable for injecting into JANUS's prompt.
         
         Args:
             knowledge: Pre-loaded knowledge dict, or None to load fresh
@@ -257,15 +257,15 @@ class CharonKnowledgeLoader:
         return '\n'.join(sections)
 
 
-def load_charon_context(location_path: str) -> str:
+def load_janus_context(location_path: str) -> str:
     """
-    Convenience function to load CHARON context for a location.
+    Convenience function to load JANUS context for a location.
     
     Args:
         location_path: Path like "anchor-system/veil-station"
         
     Returns:
-        Context string for CHARON prompt
+        Context string for JANUS prompt
     """
-    loader = CharonKnowledgeLoader(location_path)
+    loader = JanusKnowledgeLoader(location_path)
     return loader.build_context_string()

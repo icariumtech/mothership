@@ -6,7 +6,7 @@ import type { ShipStatusData } from '@/types/shipStatus';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { useTreeState } from '@/hooks/useTreeState';
 import { ViewRail, GMViewType } from '@/components/gm/layout/ViewRail';
-import { charonApi } from '@/services/charonApi';
+import { janusApi } from '@/services/janusApi';
 import { useSSE } from '@/hooks/useSSE';
 import { SSEConnectionToast } from '@/components/ui/SSEConnectionToast';
 import { StandbyView } from '@/components/gm/views/StandbyView';
@@ -34,14 +34,14 @@ function GMConsole() {
 
   const { expandedNodes, toggleNode } = useTreeState('gm-console-tree');
 
-  // Derive active CHARON channel from GM's local view (not player view)
-  const activeCharonChannel = useMemo(() => {
+  // Derive active JANUS channel from GM's local view (not player view)
+  const activeJanusChannel = useMemo(() => {
     if (gmView === 'BRIDGE') return 'bridge';
     if (gmView === 'ENCOUNTER' && activeView?.location_slug) {
       return `encounter-${activeView.location_slug}`;
     }
-    return activeView?.charon_active_channel || 'story';
-  }, [gmView, activeView?.location_slug, activeView?.charon_active_channel]);
+    return activeView?.janus_active_channel || 'story';
+  }, [gmView, activeView?.location_slug, activeView?.janus_active_channel]);
 
   // Load initial data (locations + one-time active-view bootstrap)
   useEffect(() => {
@@ -83,10 +83,10 @@ function GMConsole() {
   useEffect(() => {
     const pollUnreads = async () => {
       try {
-        const data = await charonApi.getChannels();
+        const data = await janusApi.getChannels();
         const unreads: Record<string, number> = {};
         for (const ch of data.channels) {
-          const pending = await charonApi.getChannelPending(ch.channel);
+          const pending = await janusApi.getChannelPending(ch.channel);
           if (pending.count > 0) {
             unreads[ch.channel] = pending.count;
           }
@@ -172,13 +172,13 @@ function GMConsole() {
     }
   }, [showStatus, activeView?.overlay_location_slug, activeView?.overlay_terminal_slug]);
 
-  const handleToggleCharonDialog = useCallback(async () => {
+  const handleToggleJanusDialog = useCallback(async () => {
     try {
-      const result = await charonApi.toggleDialog();
-      showStatus(result.charon_dialog_open ? 'CHARON dialog shown' : 'CHARON dialog hidden');
+      const result = await janusApi.toggleDialog();
+      showStatus(result.janus_dialog_open ? 'JANUS dialog shown' : 'JANUS dialog hidden');
     } catch (err) {
-      console.error('Error toggling CHARON dialog:', err);
-      showStatus('Failed to toggle CHARON dialog', 'error');
+      console.error('Error toggling JANUS dialog:', err);
+      showStatus('Failed to toggle JANUS dialog', 'error');
     }
   }, [showStatus]);
 
@@ -215,9 +215,9 @@ function GMConsole() {
         {gmView === 'STANDBY' && (
           <StandbyView
             activeView={activeView}
-            charonChannel={activeCharonChannel}
-            charonDialogOpen={activeView?.charon_dialog_open || false}
-            onDialogToggle={handleToggleCharonDialog}
+            janusChannel={activeJanusChannel}
+            janusDialogOpen={activeView?.janus_dialog_open || false}
+            onDialogToggle={handleToggleJanusDialog}
           />
         )}
         {gmView === 'BRIDGE' && (
@@ -227,9 +227,9 @@ function GMConsole() {
             expandedNodes={expandedNodes}
             onToggleNode={toggleNode}
             onShowTerminal={handleShowTerminal}
-            charonChannel={activeCharonChannel}
-            charonDialogOpen={activeView?.charon_dialog_open || false}
-            onDialogToggle={handleToggleCharonDialog}
+            janusChannel={activeJanusChannel}
+            janusDialogOpen={activeView?.janus_dialog_open || false}
+            onDialogToggle={handleToggleJanusDialog}
             shipData={shipData}
             shipDeckData={activeView?.ship_deck_data}
             shipDeckTotalDecks={activeView?.ship_deck_total_decks}
@@ -243,9 +243,9 @@ function GMConsole() {
             onToggleNode={toggleNode}
             onSelectLocation={handleSelectLocation}
             onShowTerminal={handleShowTerminal}
-            charonChannel={activeCharonChannel}
-            charonDialogOpen={activeView?.charon_dialog_open || false}
-            onDialogToggle={handleToggleCharonDialog}
+            janusChannel={activeJanusChannel}
+            janusDialogOpen={activeView?.janus_dialog_open || false}
+            onDialogToggle={handleToggleJanusDialog}
             shipData={shipData}
           />
         )}

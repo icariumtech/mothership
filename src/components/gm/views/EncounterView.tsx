@@ -32,7 +32,7 @@ import { TokenPalettePanel } from '../panels/TokenPalettePanel';
 import { NpcPortraitsPanel } from '../panels/NpcPortraitsPanel';
 import { LocationTreePanel } from '../panels/LocationTreePanel';
 import { TerminalsPanel } from '../panels/TerminalsPanel';
-import { CharonPanel } from '../CharonPanel';
+import { JanusPanel } from '../JanusPanel';
 import { DocumentsPanel } from '../panels/DocumentsPanel';
 import './EncounterView.css';
 
@@ -56,8 +56,8 @@ interface EncounterViewProps {
   onToggleNode: (key: string) => void;
   onSelectLocation: (slug: string | null) => void;
   onShowTerminal: (locationSlug: string, terminalSlug: string) => void;
-  charonChannel: string;
-  charonDialogOpen: boolean;
+  janusChannel: string;
+  janusDialogOpen: boolean;
   onDialogToggle: () => void;
   shipData?: ShipStatusData | null;
 }
@@ -68,7 +68,7 @@ const ENCOUNTER_TOOLS: ToolRailButton[] = [
   { key: 'portraits', icon: <UserOutlined />, tooltip: 'NPC Portraits' },
   { key: 'terminals', icon: <MessageOutlined />, tooltip: 'Terminals' },
   { key: 'documents', icon: <FileTextOutlined />, tooltip: 'Documents' },
-  { key: 'charon', icon: <RobotOutlined />, tooltip: 'CHARON' },
+  { key: 'janus', icon: <RobotOutlined />, tooltip: 'JANUS' },
 ];
 
 export function EncounterView({
@@ -78,8 +78,8 @@ export function EncounterView({
   onToggleNode,
   onSelectLocation,
   onShowTerminal,
-  charonChannel,
-  charonDialogOpen,
+  janusChannel,
+  janusDialogOpen,
   onDialogToggle,
   shipData,
 }: EncounterViewProps) {
@@ -502,11 +502,11 @@ export function EncounterView({
           <DocumentsPanel activeDocSlug={activeView?.overlay_doc_slug || ''} />
         </SlideOutPanel>
 
-        <SlideOutPanel open={activePanel === 'charon'} title="CHARON" onClose={closePanel}>
-          <CharonPanel
-            channel={charonChannel}
+        <SlideOutPanel open={activePanel === 'janus'} title="JANUS" onClose={closePanel}>
+          <JanusPanel
+            channel={janusChannel}
             currentViewType="ENCOUNTER"
-            charonDialogOpen={charonDialogOpen}
+            janusDialogOpen={janusDialogOpen}
             onDialogToggle={onDialogToggle}
           />
         </SlideOutPanel>

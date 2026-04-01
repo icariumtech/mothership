@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 from dotenv import load_dotenv
 load_dotenv(BASE_DIR / '.env')
 
-# Obsidian vault path for CHARON knowledge integration
+# Obsidian vault path for JANUS knowledge integration
 OBSIDIAN_VAULT_PATH = os.environ.get('OBSIDIAN_VAULT_PATH', '')
 
 # Quick-start development settings - unsuitable for production
@@ -93,7 +93,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION': '/tmp/django_cache',
-        'TIMEOUT': 14400,  # 4 hours (matches CACHE_TTL in charon_session.py)
+        'TIMEOUT': 14400,  # 4 hours (matches CACHE_TTL in janus_session.py)
     }
 }
 

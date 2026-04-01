@@ -5,7 +5,7 @@ interface ViewControlsProps {
   currentView: string;
   onStandby: () => void;
   onBridge: () => void;
-  onCharon: () => void;
+  onJanus: () => void;
   onEncounter: () => void;
   unreadCounts?: {
     bridge?: number;
@@ -14,7 +14,7 @@ interface ViewControlsProps {
   };
 }
 
-export function ViewControls({ currentView, onStandby, onBridge, onCharon, onEncounter, unreadCounts }: ViewControlsProps) {
+export function ViewControls({ currentView, onStandby, onBridge, onJanus, onEncounter, unreadCounts }: ViewControlsProps) {
   return (
     <Card title="VIEW CONTROLS" size="small">
       <Space>
@@ -45,11 +45,11 @@ export function ViewControls({ currentView, onStandby, onBridge, onCharon, onEnc
         </Badge>
         <Badge count={unreadCounts?.story || 0} offset={[10, 5]}>
           <Button
-            type={currentView === 'CHARON_TERMINAL' ? 'primary' : 'default'}
+            type={currentView === 'JANUS_TERMINAL' ? 'primary' : 'default'}
             icon={<RobotOutlined />}
-            onClick={onCharon}
+            onClick={onJanus}
           >
-            CHARON
+            JANUS
           </Button>
         </Badge>
       </Space>

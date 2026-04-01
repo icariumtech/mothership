@@ -9,7 +9,7 @@ description: "The Anchor System serves as the primary hub for the Outer Veil reg
 # Lore link to Obsidian vault note
 lore:
   note: "02 Systems/Anchor System.md"
-  charon_sections:
+  janus_sections:
     - "Overview"
     - "Physical Characteristics"
     - "Astrography"

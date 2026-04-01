@@ -31,7 +31,7 @@ export function BroadcastForm({ onSubmit }: BroadcastFormProps) {
     <Form
       form={form}
       layout="vertical"
-      initialValues={{ sender: 'CHARON', priority: 'NORMAL', content: '' }}
+      initialValues={{ sender: 'JANUS', priority: 'NORMAL', content: '' }}
       onFinish={handleSubmit}
     >
       <div style={{ display: 'flex', gap: 16 }}>

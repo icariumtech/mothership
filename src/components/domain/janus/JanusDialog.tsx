@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { charonApi } from '@/services/charonApi';
+import { janusApi } from '@/services/janusApi';
 import { Panel } from '@/components/ui/Panel';
-import type { CharonMessage, CharonMode } from '@/types/charon';
-import './CharonDialog.css';
+import type { JanusMessage, JanusMode } from '@/types/janus';
+import './JanusDialog.css';
 
-interface CharonDialogProps {
+interface JanusDialogProps {
   open: boolean;
   onClose: () => void;
   channel?: string;
@@ -13,9 +13,9 @@ interface CharonDialogProps {
 
 type AnimPhase = 'flicker' | 'wipe' | 'stable' | 'exiting';
 
-export function CharonDialog({ open, onClose, channel = 'default', disableClose = false }: CharonDialogProps) {
-  const [messages, setMessages] = useState<CharonMessage[]>([]);
-  const [mode, setMode] = useState<CharonMode>('DISPLAY');
+export function JanusDialog({ open, onClose, channel = 'default', disableClose = false }: JanusDialogProps) {
+  const [messages, setMessages] = useState<JanusMessage[]>([]);
+  const [mode, setMode] = useState<JanusMode>('DISPLAY');
   const [queryInput, setQueryInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [submittedQuery, setSubmittedQuery] = useState('');
@@ -45,13 +45,13 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     }
   }, [open, animPhase]);
 
-  // Typewriter effect for CHARON messages
+  // Typewriter effect for JANUS messages
   useEffect(() => {
     if (!open) return;
 
-    const charonMessages = messages.filter(m => m.role === 'charon');
+    const janusMessages = messages.filter(m => m.role === 'janus');
 
-    for (const msg of charonMessages) {
+    for (const msg of janusMessages) {
       if (!processedMessagesRef.current.has(msg.message_id)) {
         processedMessagesRef.current.add(msg.message_id);
         setTypingMessageId(msg.message_id);
@@ -82,7 +82,7 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
 
     const fetchConversation = async () => {
       try {
-        const data = await charonApi.getChannelConversation(channel);
+        const data = await janusApi.getChannelConversation(channel);
         setMode(data.mode);
         setMessages(data.messages);
       } catch (err) {
@@ -119,7 +119,7 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
       setIsProcessing(true);
 
       try {
-        await charonApi.submitChannelQuery(channel, query);
+        await janusApi.submitChannelQuery(channel, query);
       } catch (err) {
         console.error('Error submitting query:', err);
         setIsProcessing(false);
@@ -149,8 +149,8 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     e.stopPropagation();
   }, []);
 
-  const getMessageContent = (msg: CharonMessage): string => {
-    if (msg.role === 'charon') {
+  const getMessageContent = (msg: JanusMessage): string => {
+    if (msg.role === 'janus') {
       if (typedMessages.has(msg.message_id) && typedMessages.get(msg.message_id) === msg.content) {
         return msg.content;
       }
@@ -165,7 +165,7 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     return msg.content;
   };
 
-  const isTyping = (msg: CharonMessage): boolean => {
+  const isTyping = (msg: JanusMessage): boolean => {
     return msg.message_id === typingMessageId;
   };
 
@@ -179,16 +179,16 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
     messages.some(m => m.role === 'user' && m.content === submittedQuery);
 
   return (
-    <div className={`charon-dialog-backdrop${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handleBackdropClick}>
-      <div className={`charon-dialog-container phase-${animPhase}`} onClick={handlePanelClick}>
+    <div className={`janus-dialog-backdrop${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handleBackdropClick}>
+      <div className={`janus-dialog-container phase-${animPhase}`} onClick={handlePanelClick}>
         <Panel
-          title="CHARON"
+          title="JANUS"
           chamferCorners={['tl', 'tr', 'bl', 'br']}
-          className="charon-dialog-panel"
+          className="janus-dialog-panel"
         >
-          <div className="charon-dialog-messages">
+          <div className="janus-dialog-messages">
             {messages.map((msg) => (
-              <div key={msg.message_id} className={`charon-message ${msg.role}`}>
+              <div key={msg.message_id} className={`janus-message ${msg.role}`}>
                 {msg.role === 'user' && <span className="message-prefix">&gt; </span>}
                 <span className="message-content">
                   {getMessageContent(msg)}
@@ -200,12 +200,12 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
             {isProcessing && (
               <>
                 {!queryAlreadyInMessages && (
-                  <div className="charon-message user">
+                  <div className="janus-message user">
                     <span className="message-prefix">&gt; </span>
                     <span className="message-content">{submittedQuery}</span>
                   </div>
                 )}
-                <div className="charon-message charon processing">
+                <div className="janus-message janus processing">
                   <span className="message-content">
                     Processing<span className="processing-dots"></span>
                   </span>
@@ -214,13 +214,13 @@ export function CharonDialog({ open, onClose, channel = 'default', disableClose 
             )}
 
             {showDisplayCursor && (
-              <div className="charon-prompt">
+              <div className="janus-prompt">
                 <span className="blinking-cursor">_</span>
               </div>
             )}
 
             {showQueryPrompt && (
-              <form className="charon-prompt" onSubmit={handleSubmit}>
+              <form className="janus-prompt" onSubmit={handleSubmit}>
                 <span className="query-prefix">&gt;&nbsp;</span>
                 <input
                   ref={inputRef}

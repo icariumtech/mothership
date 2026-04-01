@@ -11,13 +11,13 @@
 ## Codemaps (load dynamically — only load what you need for your task)
 
 - **codemaps/architecture.md** — system architecture, data flow, multi-view terminal, tech stack decisions
-- **codemaps/backend.md** — Django models, views, API endpoints, DataLoader, URL routing, CHARON AI
+- **codemaps/backend.md** — Django models, views, API endpoints, DataLoader, URL routing, JANUS AI
 - **codemaps/frontend.md** — React components, R3F scenes, Zustand store, hooks, state management, patterns
 - **codemaps/data.md** — data directory structure, YAML schemas, location hierarchy, file formats
 
 # Overview
 
-**mothership** — GM tool for Mothership RPG campaigns. Full-stack web app serving as an interactive command center with atmospheric CHARON computer messaging, 3D galaxy maps, and encounter tracking.
+**mothership** — GM tool for Mothership RPG campaigns. Full-stack web app serving as an interactive command center with atmospheric JANUS computer messaging, 3D galaxy maps, and encounter tracking.
 
 **Persona**: Expert full-stack developer. Write efficient, readable code. Create reusable functions, avoid duplication.
 
@@ -50,7 +50,7 @@ npm run typecheck                  # TypeScript type checking
 | `COMM_TERMINAL` | NPC terminal message logs |
 | `ENCOUNTER` | Tactical maps for combat |
 | `SHIP_DASHBOARD` | Ship status display |
-| `CHARON_TERMINAL` | Interactive AI terminal |
+| `JANUS_TERMINAL` | Interactive AI terminal |
 
 # UI Design System
 

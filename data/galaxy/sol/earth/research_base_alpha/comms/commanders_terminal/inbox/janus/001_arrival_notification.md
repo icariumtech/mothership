@@ -2,9 +2,9 @@
 timestamp: "2183-06-12 14:23:00"
 priority: "NORMAL"
 subject: "New Personnel Arrival"
-from: "CHARON"
+from: "JANUS"
 to: "Commander Drake"
-message_id: "msg_charon_001"
+message_id: "msg_janus_001"
 read: true
 ---
 

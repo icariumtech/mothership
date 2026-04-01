@@ -24,8 +24,8 @@ data/
 │   ├── missions.yaml           # Mission tracking (planned)
 │   └── notes.yaml              # Campaign notes (planned)
 │
-├── charon/                     # CHARON AI knowledge base
-│   └── context.yaml            # Global CHARON context
+├── janus/                     # JANUS AI knowledge base
+│   └── context.yaml            # Global JANUS context
 │
 └── galaxy/                     # Galaxy hierarchy (nested locations)
     ├── star_map.yaml           # Galaxy-level visualization
@@ -391,9 +391,9 @@ CREATE TABLE terminal_activeview (
     view_slug VARCHAR(200),
     overlay_location_slug VARCHAR(200),
     overlay_terminal_slug VARCHAR(200),
-    charon_mode VARCHAR(20) DEFAULT 'DISPLAY',
-    charon_location_path VARCHAR(500),
-    charon_dialog_open BOOLEAN DEFAULT 0,
+    janus_mode VARCHAR(20) DEFAULT 'DISPLAY',
+    janus_location_path VARCHAR(500),
+    janus_dialog_open BOOLEAN DEFAULT 0,
     encounter_level INTEGER DEFAULT 1,
     encounter_deck_id VARCHAR(100),
     encounter_room_visibility TEXT,  -- JSON
@@ -412,7 +412,7 @@ CREATE TABLE terminal_activeview (
 ```sql
 CREATE TABLE terminal_message (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sender VARCHAR(100) DEFAULT 'CHARON',
+    sender VARCHAR(100) DEFAULT 'JANUS',
     content TEXT,
     priority VARCHAR(10) DEFAULT 'NORMAL',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

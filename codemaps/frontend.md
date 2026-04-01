@@ -84,8 +84,8 @@ src/
 │   │   │   ├── LevelIndicator.tsx          # Deck/level indicator
 │   │   │   └── RoomTooltip.tsx             # Room hover info
 │   │   │
-│   │   ├── charon/             # CHARON AI dialog
-│   │   │   └── CharonDialog.tsx            # Overlay dialog component
+│   │   ├── janus/             # JANUS AI dialog
+│   │   │   └── JanusDialog.tsx            # Overlay dialog component
 │   │   │
 │   │   ├── terminal/           # Communication terminals
 │   │   │   └── CommTerminalDialog.tsx      # Terminal message viewer
@@ -99,7 +99,7 @@ src/
 │   │   ├── LocationTree.tsx                # Hierarchical location tree
 │   │   ├── ViewControls.tsx                # View switcher
 │   │   ├── BroadcastForm.tsx               # Message composer
-│   │   ├── CharonPanel.tsx                 # CHARON GM controls
+│   │   ├── JanusPanel.tsx                 # JANUS GM controls
 │   │   ├── EncounterPanel.tsx              # Encounter GM controls
 │   │   ├── MapPreview.tsx                  # Map thumbnail preview
 │   │   └── DoorStatusPopup.tsx             # Door status editor
@@ -117,7 +117,7 @@ src/
 │   ├── messageApi.ts                       # Broadcast message API
 │   ├── gmConsoleApi.ts                     # GM console API
 │   ├── encounterApi.ts                     # Encounter map API
-│   ├── charonApi.ts                        # CHARON terminal API
+│   ├── janusApi.ts                        # JANUS terminal API
 │   └── terminalApi.ts                      # Comm terminal API
 │
 ├── hooks/                      # Custom React hooks
@@ -134,7 +134,7 @@ src/
 │   ├── orbitMap.ts                         # Orbit map types
 │   ├── encounterMap.ts                     # Encounter map types
 │   ├── message.ts                          # Message types
-│   ├── charon.ts                           # CHARON types
+│   ├── janus.ts                           # JANUS types
 │   └── gmConsole.ts                        # GM console types
 │
 ├── styles/                     # Global styles
@@ -156,7 +156,7 @@ src/
 - `selectedSystem`, `selectedPlanet`, `selectedOrbitElement`: Navigation state
 - `starMapData`, `systemMapData`, `orbitMapData`: Map data
 - `activeTab`: Current Bridge tab (map | crew | contacts | notes | status)
-- `charonDialogOpen`: CHARON overlay visibility
+- `janusDialogOpen: JANUS overlay visibility
 - `terminalOverlayOpen`: Comm terminal overlay visibility
 
 **Refs**:
@@ -182,7 +182,7 @@ src/
 - Location tree with expand/collapse (localStorage persistence)
 - View switcher (DISPLAY, SHOW buttons)
 - Broadcast message composer
-- CHARON controls (mode switch, message composer, AI generation)
+- JANUS controls (mode switch, message composer, AI generation)
 - Encounter controls (room visibility, door status, level switcher)
 
 ### PlayerConsole.tsx
@@ -380,7 +380,7 @@ api.interceptors.request.use(config => {
 ### Service Modules
 - **gmConsoleApi.ts**: Location tree, view switching, terminal overlay
 - **encounterApi.ts**: Room visibility, door status, level switching
-- **charonApi.ts**: Conversation, query submission, mode switching
+- **janusApi.ts**: Conversation, query submission, mode switching
 - **messageApi.ts**: Broadcast messages
 - **terminalApi.ts**: Terminal data, hide overlay
 
@@ -395,7 +395,7 @@ api.interceptors.request.use(config => {
 
 ### Domain Types
 - **encounterMap.ts**: `RoomData`, `ConnectionData`, `DoorStatusState`, `EncounterMapData`
-- **charon.ts**: `CharonMessage`, `CharonMode`, `PendingResponse`
+- **janus.ts**: `JanusMessage`, `JanusMode`, `PendingResponse`
 - **message.ts**: `Message`, `MessagePriority`
 - **gmConsole.ts**: `Location`, `Terminal`, `LocationTree`
 

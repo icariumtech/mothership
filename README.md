@@ -1,13 +1,13 @@
 # Mothership RPG - Game Master Terminal
 
-A retro-futuristic web application for game masters running Mothership RPG campaigns. Features an atmospheric terminal interface inspired by the CHARON computer from Aliens.
+A retro-futuristic web application for game masters running Mothership RPG campaigns. Features an atmospheric terminal interface inspired by retro-futuristic ship computers.
 
 ## Features
 
 - **Bridge View Dashboard**: Interactive 3D galaxy/system/orbit map navigation with tabbed interface for crew, contacts, notes, and status
-- **CHARON AI Terminal**: Interactive AI chat interface with typewriter effect, processing indicators, and inline query input
+- **JANUS AI Terminal**: Interactive AI chat interface with typewriter effect, processing indicators, and inline query input
 - **3D Visualization**: React Three Fiber-powered galaxy maps with stars, nebulae, travel routes, and drill-down navigation
-- **Multi-View Terminal System**: Display different views (BRIDGE, ENCOUNTER, COMM_TERMINAL, CHARON) on shared terminal
+- **Multi-View Terminal System**: Display different views (BRIDGE, ENCOUNTER, COMM_TERMINAL, JANUS) on shared terminal
 - **Atmospheric Messaging**: Send in-character messages styled like classic sci-fi computer systems
 - **Retro CRT Aesthetic**: Muted teal/amber color scheme with chamfered angular panels and subtle scanline effects
 - **Priority Levels**: Mark messages as LOW, NORMAL, HIGH, or CRITICAL with visual indicators
@@ -94,8 +94,8 @@ Edit `.env` to configure:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes (for CHARON AI) | Your Anthropic API key for Claude integration. Get one at https://console.anthropic.com/ |
-| `OBSIDIAN_VAULT_PATH` | No | Path to your Obsidian vault containing campaign lore. CHARON will read linked notes for context-aware responses. |
+| `ANTHROPIC_API_KEY` | Yes (for JANUS AI) | Your Anthropic API key for Claude integration. Get one at https://console.anthropic.com/ |
+| `OBSIDIAN_VAULT_PATH` | No | Path to your Obsidian vault containing campaign lore. JANUS will read linked notes for context-aware responses. |
 
 #### 5. Build Frontend
 
@@ -216,7 +216,7 @@ sudo firewall-cmd --reload
 
 **Broadcast Messages:**
 Compose and send messages with:
-- **Sender**: Customize (e.g., "CHARON", "Station Control", "Ship AI")
+- **Sender**: Customize (e.g., "JANUS", "Station Control", "Ship AI")
 - **Priority**: LOW, NORMAL, HIGH, or CRITICAL
 - **Message**: Your atmospheric content
 
@@ -284,7 +284,7 @@ python manage.py createsuperuser  # For another GM
 - **CRITICAL**: Life-threatening emergencies, immediate danger
 
 **Sender Name Ideas:**
-- CHARON (ship computer)
+- JANUS (ship computer)
 - STATION CONTROL
 - WEYLAND-YUTANI CORP
 - EMERGENCY SYSTEMS
@@ -438,7 +438,7 @@ mothership/
 ├── src/                    # Frontend source (React + TypeScript)
 │   ├── entries/            # Entry points (GMConsole, SharedConsole)
 │   ├── components/         # React components
-│   │   ├── domain/         # Dashboard, maps, CHARON, terminal
+│   │   ├── domain/         # Dashboard, maps, JANUS, terminal
 │   │   ├── gm/             # GM Console components
 │   │   ├── layout/         # Layout components
 │   │   └── ui/             # Reusable UI components

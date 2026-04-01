@@ -86,7 +86,7 @@ The application supports 7 view types on a shared terminal display:
 | `COMM_TERMINAL` | NPC terminal message logs | File-based (comms/) |
 | `ENCOUNTER` | Tactical encounter maps | File-based (map/) + SQLite (room visibility) |
 | `SHIP_DASHBOARD` | Ship systems display | Planned |
-| `CHARON_TERMINAL` | AI terminal interface | In-memory session + AI generation |
+| `JANUS_TERMINAL` | AI terminal interface | In-memory session + AI generation |
 
 ## React Three Fiber Architecture
 
@@ -153,8 +153,8 @@ All animations synchronized through unified RAF loop:
 - `GET /api/orbit-map/{system_slug}/{body_slug}/` - Orbital data
 - `GET /api/encounter-map/{location_slug}/` - Encounter map data
 - `GET /api/terminal/{location_slug}/{terminal_slug}/` - Terminal messages
-- `POST /api/charon/submit-query/` - Player submits CHARON query (CSRF exempt)
-- `POST /api/charon/toggle-dialog/` - Toggle CHARON dialog (CSRF exempt)
+- `POST /api/janus/submit-query/` - Player submits CHARON query (CSRF exempt)
+- `POST /api/janus/toggle-dialog/` - Toggle JANUS dialog (CSRF exempt)
 - `POST /api/hide-terminal/` - Hide terminal overlay (CSRF exempt)
 
 ### GM Only (Login Required)
@@ -164,12 +164,12 @@ All animations synchronized through unified RAF loop:
 - `POST /api/encounter/toggle-room/` - Toggle room visibility
 - `POST /api/encounter/set-door-status/` - Set door status
 - `POST /api/encounter/switch-level/` - Switch encounter deck
-- `POST /api/charon/switch-mode/` - Switch CHARON mode (DISPLAY/QUERY)
-- `POST /api/charon/send-message/` - GM sends CHARON message
-- `POST /api/charon/generate/` - Generate AI response for review
-- `POST /api/charon/approve/` - Approve pending AI response
-- `POST /api/charon/reject/` - Reject pending AI response
-- `POST /api/charon/clear/` - Clear CHARON conversation
+- `POST /api/janus/switch-mode/` - Switch JANUS mode (DISPLAY/QUERY)
+- `POST /api/janus/send-message/` - GM sends JANUS message
+- `POST /api/janus/generate/` - Generate AI response for review
+- `POST /api/janus/approve/` - Approve pending AI response
+- `POST /api/janus/reject/` - Reject pending AI response
+- `POST /api/janus/clear/` - Clear JANUS conversation
 
 ## Performance Optimizations
 

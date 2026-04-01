@@ -13,7 +13,7 @@ title: USCSS Morrigan — Crew Manifest & Standing Orders
 
 All crew are reminded that the Morrigan operates under a **Standard Mercantile Contract (ICC Form 7-B)**. Deviation from assigned cargo manifests requires written authorization from the Company liaison. Unauthorized contact with non-registered salvage is a breach of contract and voids personal injury coverage.
 
-> *"CHARON systems are active at all times. All compartments are monitored. Compliance is expected."*
+> *"JANUS systems are active at all times. All compartments are monitored. Compliance is expected."*
 > — Ship's Articles, Section 4.2
 
 ---
@@ -43,5 +43,5 @@ The restricted locker has been sealed since departure from Phoebe. Contents are 
 ## Known Issues
 
 - Coolant pressure in the engine assembly has been running low since the last jump. Engineering has patched the secondary loop but a full repair requires drydock.
-- COMMS array is currently **OFFLINE**. Cause unknown. CHARON has logged repeated hardware query failures since 0300 on Day 6.
+- COMMS array is currently **OFFLINE**. Cause unknown. JANUS has logged repeated hardware query failures since 0300 on Day 6.
 - Crew is advised not to use the forward head on Deck 3. The recycler is malfunctioning. It smells like it.

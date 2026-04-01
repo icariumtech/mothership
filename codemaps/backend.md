@@ -20,9 +20,9 @@ terminal/               # Main Django app
 ├── views.py            # API endpoints and template views
 ├── urls.py             # URL patterns
 ├── data_loader.py      # File-based data loading
-├── charon_ai.py        # CHARON AI response generation
-├── charon_session.py   # In-memory CHARON conversation management
-├── charon_knowledge.py # CHARON location-specific knowledge
+├── janus_ai.py        # JANUS AI response generation
+├── janus_session.py   # In-memory JANUS conversation management
+├── janus_knowledge.py # CHARON location-specific knowledge
 └── templates/          # HTML template wrappers
 ```
 
@@ -32,14 +32,14 @@ terminal/               # Main Django app
 **Purpose**: Tracks what the shared terminal is currently displaying.
 
 **Fields**:
-- `view_type`: STANDBY, BRIDGE, ENCOUNTER, COMM_TERMINAL, MESSAGES, SHIP_DASHBOARD, CHARON_TERMINAL
+- `view_type`: STANDBY, BRIDGE, ENCOUNTER, COMM_TERMINAL, MESSAGES, SHIP_DASHBOARD, JANUS_TERMINAL
 - `location_slug`: Directory name under data/galaxy/
 - `view_slug`: Specific terminal/map slug
 - `overlay_location_slug`: Location of terminal overlay
 - `overlay_terminal_slug`: Terminal slug for overlay
-- `charon_mode`: DISPLAY, QUERY
-- `charon_location_path`: Path to active CHARON instance
-- `charon_dialog_open`: Whether CHARON dialog is visible
+- `janus_mode`: DISPLAY, QUERY
+- `janus_location_path`: Path to active JANUS instance
+- `janus_dialog_open`: Whether JANUS dialog is visible
 - `encounter_level`: Current deck/level (1-indexed)
 - `encounter_deck_id`: ID of current deck (e.g., "deck_1")
 - `encounter_room_visibility`: JSON map of room_id → visible (bool)
@@ -55,7 +55,7 @@ terminal/               # Main Django app
 **Purpose**: Broadcast messages sent from ship/station AI to crew.
 
 **Fields**:
-- `sender`: Name of AI system (default "CHARON")
+- `sender`: Name of AI system (default "JANUS")
 - `content`: Message text
 - `priority`: LOW, NORMAL, HIGH, CRITICAL
 - `created_at`: Timestamp (auto-added)
@@ -117,9 +117,9 @@ terminal/               # Main Django app
 - `api_encounter_map_data(location_slug)`: Encounter map + room visibility
 - `api_encounter_all_decks(location_slug)`: All decks for multi-level maps
 - `api_terminal_data(location_slug, terminal_slug)`: Terminal messages
-- `api_charon_conversation()`: Current CHARON conversation (public)
-- `api_charon_submit_query()`: Player submits query (CSRF exempt)
-- `api_charon_toggle_dialog()`: Toggle CHARON dialog (CSRF exempt)
+- `api_janus_conversation()`: Current JANUS conversation (public)
+- `api_janus_submit_query()`: Player submits query (CSRF exempt)
+- `api_janus_toggle_dialog()`: Toggle JANUS dialog (CSRF exempt)
 - `api_hide_terminal()`: Hide terminal overlay (CSRF exempt)
 
 ### GM API (Login Required)
@@ -131,26 +131,26 @@ terminal/               # Main Django app
 - `api_encounter_toggle_room()`: Toggle room visibility
 - `api_encounter_room_visibility()`: Get/set room visibility
 - `api_encounter_set_door_status()`: Set door status (OPEN, CLOSED, LOCKED, etc.)
-- `api_charon_switch_mode()`: Switch CHARON mode (DISPLAY/QUERY)
-- `api_charon_set_location()`: Set active CHARON instance location
-- `api_charon_send_message()`: GM sends CHARON message directly
-- `api_charon_generate()`: Generate AI response for GM review
-- `api_charon_pending()`: Get pending AI responses
-- `api_charon_approve()`: Approve pending response
-- `api_charon_reject()`: Reject pending response
-- `api_charon_clear()`: Clear CHARON conversation
+- `api_janus_switch_mode()`: Switch JANUS mode (DISPLAY/QUERY)
+- `api_janus_set_location()`: Set active JANUS instance location
+- `api_janus_send_message()`: GM sends JANUS message directly
+- `api_janus_generate()`: Generate AI response for GM review
+- `api_janus_pending()`: Get pending AI responses
+- `api_janus_approve()`: Approve pending response
+- `api_janus_reject()`: Reject pending response
+- `api_janus_clear()`: Clear JANUS conversation
 
 ### Helper Functions
-- `get_charon_location_path(active_view)`: Derive CHARON location context
-  - Priority: ENCOUNTER view location → explicit charon_location_path
+- `get_janus_location_path(active_view)`: Derive CHARON location context
+  - Priority: ENCOUNTER view location → explicit janus_location_path
 
-## CHARON AI System
+## JANUS AI System
 
-### CharonSessionManager (charon_session.py)
+### CharonSessionManager (janus_session.py)
 **Purpose**: In-memory conversation management (no DB persistence).
 
 **Storage**:
-- `_conversation`: List of CharonMessage objects
+- `_conversation`: List of JanusMessage objects
 - `_pending_responses`: List of pending AI responses for GM approval
 
 **Methods**:
@@ -162,17 +162,17 @@ terminal/               # Main Django app
 - `clear_conversation()`: Reset conversation
 - `get_pending_responses()`: List pending for GM
 
-### CharonAI (charon_ai.py)
+### CharonAI (janus_ai.py)
 **Purpose**: Generate AI responses with location-specific knowledge.
 
 **Features**:
 - Location-aware context (system, planet, facility)
-- Knowledge base from `data/charon/context.yaml`
+- Knowledge base from `data/janus/context.yaml`
 - Anthropic Claude integration (planned)
 - Character voice consistency (terse, technical, ominous)
 
-### CharonKnowledge (charon_knowledge.py)
-**Purpose**: Load location-specific knowledge for CHARON context.
+### CharonKnowledge (janus_knowledge.py)
+**Purpose**: Load location-specific knowledge for JANUS context.
 
 **Methods**:
 - `load_system_knowledge(system_slug)`: Load system-level context
@@ -194,9 +194,9 @@ terminal/               # Main Django app
 /api/orbit-map/<sys>/<body>/ → get_orbit_map_json
 /api/encounter-map/<slug>/ → api_encounter_map_data
 /api/terminal/<loc>/<term>/ → api_terminal_data
-/api/charon/conversation/ → api_charon_conversation
-/api/charon/submit-query/ → api_charon_submit_query
-/api/charon/toggle-dialog/ → api_charon_toggle_dialog
+/api/janus/conversation/ → api_janus_conversation
+/api/janus/submit-query/ → api_janus_submit_query
+/api/janus/toggle-dialog/ → api_janus_toggle_dialog
 /api/hide-terminal/      → api_hide_terminal
 ```
 
@@ -210,7 +210,7 @@ terminal/               # Main Django app
 /api/broadcast/          → api_broadcast
 /api/encounter/switch-level/ → api_encounter_switch_level
 /api/encounter/toggle-room/ → api_encounter_toggle_room
-/api/charon/*            → CHARON GM endpoints
+/api/janus/*            → CHARON GM endpoints
 ```
 
 ## Data Access Patterns
@@ -258,4 +258,4 @@ terminal/               # Main Django app
 
 ### CSRF Protection
 - Enabled for all POST endpoints except public player actions
-- CSRF exempt: `api_charon_submit_query`, `api_charon_toggle_dialog`, `api_hide_terminal`
+- CSRF exempt: `api_janus_submit_query`, `api_janus_toggle_dialog`, `api_hide_terminal`

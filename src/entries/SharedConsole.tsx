@@ -12,12 +12,12 @@ import { StarMapPanel } from '@components/domain/dashboard/StarMapPanel';
 import { GalaxyMap, GalaxyMapHandle } from '@components/domain/maps/GalaxyMap';
 import { SystemMap, SystemMapHandle } from '@components/domain/maps/SystemMap';
 import { OrbitMap, OrbitMapHandle } from '@components/domain/maps/OrbitMap';
-import { CharonDialog } from '@components/domain/charon/CharonDialog';
+import { JanusDialog } from '@components/domain/janus/JanusDialog';
 import { CommTerminalDialog } from '@components/domain/terminal/CommTerminalDialog';
 import { DocumentDialog } from '@components/domain/DocumentDialog';
 import { EncounterView } from '@components/domain/encounter/EncounterView';
 import { NPCPortraitOverlay } from '@components/domain/encounter/NPCPortraitOverlay';
-import { charonApi } from '@/services/charonApi';
+import { janusApi } from '@/services/janusApi';
 import { terminalApi } from '@/services/terminalApi';
 import { encounterApi } from '@/services/encounterApi';
 import { useTransitionGuard } from '@hooks/useDebounce';
@@ -48,8 +48,8 @@ interface ActiveView {
   overlay_location_slug: string;
   overlay_terminal_slug: string;
   overlay_doc_slug: string;
-  charon_dialog_open: boolean;
-  charon_active_channel?: string;
+  janus_dialog_open: boolean;
+  janus_active_channel?: string;
   updated_at: string;
   // ENCOUNTER view specific fields
   location_type?: string;
@@ -221,11 +221,11 @@ function SharedConsole() {
     }
   }, [mapViewMode]);
 
-  // CHARON dialog state
-  const [charonDialogOpen, setCharonDialogOpen] = useState(false);
+  // JANUS dialog state
+  const [janusDialogOpen, setJanusDialogOpen] = useState(false);
 
-  // Bridge CHARON message indicator
-  const [charonHasMessages, setCharonHasMessages] = useState(false);
+  // Bridge JANUS message indicator
+  const [janusHasMessages, setJanusHasMessages] = useState(false);
   const [lastReadMessageId, setLastReadMessageId] = useState<string | null>(null);
 
   // Comm terminal overlay state
@@ -321,7 +321,7 @@ function SharedConsole() {
       // Buffer SSE data through view transition — animates out before committing new view
       handleViewChange(data, (newData) => {
         setActiveView(newData);
-        setCharonDialogOpen(newData.charon_dialog_open);
+        setJanusDialogOpen(newData.janus_dialog_open);
 
         // Reset map state when transitioning TO BRIDGE from another view type
         if (newData.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
@@ -361,21 +361,21 @@ function SharedConsole() {
     retryDelayMs: 3000,
   });
 
-  // Poll bridge channel for new messages (for CHARON tab indicator).
-  // When the CHARON tab is active, auto-mark messages as read so the indicator
+  // Poll bridge channel for new messages (for JANUS tab indicator).
+  // When the JANUS tab is active, auto-mark messages as read so the indicator
   // doesn't flash when switching away.
   useEffect(() => {
     const pollBridgeMessages = async () => {
       try {
-        const data = await charonApi.getChannelConversation('bridge');
+        const data = await janusApi.getChannelConversation('bridge');
         if (data.messages.length > 0) {
           const lastMessage = data.messages[data.messages.length - 1];
-          if (activeTab === 'charon') {
-            // User is viewing CHARON — keep lastReadMessageId in sync
+          if (activeTab === 'janus') {
+            // User is viewing JANUS — keep lastReadMessageId in sync
             setLastReadMessageId(lastMessage.message_id);
-            setCharonHasMessages(false);
+            setJanusHasMessages(false);
           } else if (!lastReadMessageId || lastMessage.message_id !== lastReadMessageId) {
-            setCharonHasMessages(true);
+            setJanusHasMessages(true);
           }
         }
       } catch (error) {
@@ -835,14 +835,14 @@ function SharedConsole() {
     timeline.to('.bridge-content-area', { opacity: 1, duration: 0.3 });
   }, [activeTab, tabTransition]);
 
-  // CHARON dialog handlers
-  const handleCharonDialogClose = useCallback(async () => {
-    setCharonDialogOpen(false); // Immediate feedback
+  // JANUS dialog handlers
+  const handleJanusDialogClose = useCallback(async () => {
+    setJanusDialogOpen(false); // Immediate feedback
     try {
-      await charonApi.toggleDialog(false);
+      await janusApi.toggleDialog(false);
     } catch (error) {
-      console.error('Failed to close CHARON dialog:', error);
-      setCharonDialogOpen(true); // Revert on error
+      console.error('Failed to close JANUS dialog:', error);
+      setJanusDialogOpen(true); // Revert on error
     }
   }, []);
 
@@ -877,7 +877,7 @@ function SharedConsole() {
         ref={contentRef}
       >
 
-      {/* Header - hidden in standby and CHARON terminal modes */}
+      {/* Header - hidden in standby and JANUS terminal modes */}
       <TerminalHeader
         title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : 'MOTHERSHIP'}
         subtitle={viewType === 'ENCOUNTER' ? undefined : 'TERMINAL'}
@@ -896,7 +896,7 @@ function SharedConsole() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           tabTransitionActive={tabTransition !== 'idle'}
-          charonHasMessages={charonHasMessages}
+          janusHasMessages={janusHasMessages}
           shipData={shipData}
           shipDeckData={activeView?.ship_deck_data}
           shipDeckTotalDecks={activeView?.ship_deck_total_decks}
@@ -1025,11 +1025,11 @@ function SharedConsole() {
         </div>
       )}
 
-      {/* CHARON Dialog - overlay for quick CHARON access from dashboard */}
-      <CharonDialog
-        open={charonDialogOpen}
-        onClose={handleCharonDialogClose}
-        channel={activeView?.charon_active_channel || 'story'}
+      {/* JANUS Dialog - overlay for quick JANUS access from dashboard */}
+      <JanusDialog
+        open={janusDialogOpen}
+        onClose={handleJanusDialogClose}
+        channel={activeView?.janus_active_channel || 'story'}
         disableClose={false}
       />
 

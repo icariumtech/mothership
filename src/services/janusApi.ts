@@ -1,14 +1,14 @@
 /**
- * CHARON Terminal API Service
- * Handles all API calls for the CHARON interactive terminal.
+ * JANUS Terminal API Service
+ * Handles all API calls for the JANUS interactive terminal.
  */
 import { api } from './api';
-import type { CharonConversation, CharonMode, PendingResponse } from '@/types/charon';
+import type { JanusConversation, JanusMode, PendingResponse } from '@/types/janus';
 
 // Public endpoints (for shared terminal)
 
-async function getConversation(): Promise<CharonConversation> {
-  const response = await api.get<CharonConversation>('/charon/conversation/');
+async function getConversation(): Promise<JanusConversation> {
+  const response = await api.get<JanusConversation>('/janus/conversation/');
   return response.data;
 }
 
@@ -17,23 +17,23 @@ async function submitQuery(query: string): Promise<{
   query_id: string;
   pending_id: string;
 }> {
-  const response = await api.post('/charon/submit-query/', { query });
+  const response = await api.post('/janus/submit-query/', { query });
   return response.data;
 }
 
 // GM endpoints
 
-async function switchMode(mode: CharonMode): Promise<void> {
-  await api.post('/gm/charon/mode/', { mode });
+async function switchMode(mode: JanusMode): Promise<void> {
+  await api.post('/gm/janus/mode/', { mode });
 }
 
 async function setLocation(locationPath: string): Promise<void> {
-  await api.post('/gm/charon/location/', { location_path: locationPath });
+  await api.post('/gm/janus/location/', { location_path: locationPath });
 }
 
 async function sendMessage(content: string): Promise<{ message_id: string }> {
   const response = await api.post<{ success: boolean; message_id: string }>(
-    '/gm/charon/send/',
+    '/gm/janus/send/',
     { content }
   );
   return response.data;
@@ -48,12 +48,12 @@ async function generateResponse(prompt: string): Promise<{
     success: boolean;
     pending_id: string;
     query_id: string;
-  }>('/gm/charon/generate/', { prompt });
+  }>('/gm/janus/generate/', { prompt });
   return response.data;
 }
 
 async function getPending(): Promise<{ pending: PendingResponse[] }> {
-  const response = await api.get<{ pending: PendingResponse[] }>('/gm/charon/pending/');
+  const response = await api.get<{ pending: PendingResponse[] }>('/gm/janus/pending/');
   return response.data;
 }
 
@@ -61,27 +61,27 @@ async function approveResponse(
   pendingId: string,
   modifiedContent?: string
 ): Promise<void> {
-  await api.post('/gm/charon/approve/', {
+  await api.post('/gm/janus/approve/', {
     pending_id: pendingId,
     modified_content: modifiedContent,
   });
 }
 
 async function rejectResponse(pendingId: string): Promise<void> {
-  await api.post('/gm/charon/reject/', { pending_id: pendingId });
+  await api.post('/gm/janus/reject/', { pending_id: pendingId });
 }
 
 async function clearConversation(): Promise<void> {
-  await api.post('/gm/charon/clear/', {});
+  await api.post('/gm/janus/clear/', {});
 }
 
-async function switchToCharon(): Promise<void> {
-  await api.post('/gm/switch-view/', { view_type: 'CHARON_TERMINAL' });
+async function switchToJanus(): Promise<void> {
+  await api.post('/gm/switch-view/', { view_type: 'JANUS_TERMINAL' });
 }
 
-async function toggleDialog(open?: boolean): Promise<{ charon_dialog_open: boolean }> {
-  const response = await api.post<{ success: boolean; charon_dialog_open: boolean }>(
-    '/gm/charon/toggle-dialog/',
+async function toggleDialog(open?: boolean): Promise<{ janus_dialog_open: boolean }> {
+  const response = await api.post<{ success: boolean; janus_dialog_open: boolean }>(
+    '/gm/janus/toggle-dialog/',
     open !== undefined ? { open } : {}
   );
   return response.data;
@@ -97,16 +97,16 @@ async function getChannels(): Promise<{
     last_message: any | null;
   }>;
 }> {
-  const response = await api.get('/gm/charon/channels/');
+  const response = await api.get('/gm/janus/channels/');
   return response.data;
 }
 
 async function getChannelConversation(channel: string): Promise<{
   channel: string;
-  mode: CharonMode;
+  mode: JanusMode;
   messages: any[];
 }> {
-  const response = await api.get(`/charon/${channel}/conversation/`);
+  const response = await api.get(`/janus/${channel}/conversation/`);
   return response.data;
 }
 
@@ -115,7 +115,7 @@ async function submitChannelQuery(channel: string, query: string): Promise<{
   query_id: string;
   pending_id: string;
 }> {
-  const response = await api.post(`/charon/${channel}/submit/`, { query });
+  const response = await api.post(`/janus/${channel}/submit/`, { query });
   return response.data;
 }
 
@@ -124,12 +124,12 @@ async function sendChannelMessage(channel: string, content: string): Promise<{
   message_id: string;
   channel: string;
 }> {
-  const response = await api.post(`/gm/charon/${channel}/send/`, { content });
+  const response = await api.post(`/gm/janus/${channel}/send/`, { content });
   return response.data;
 }
 
 async function markChannelRead(channel: string): Promise<void> {
-  await api.post(`/gm/charon/${channel}/mark-read/`, {});
+  await api.post(`/gm/janus/${channel}/mark-read/`, {});
 }
 
 async function getChannelPending(channel: string): Promise<{
@@ -137,7 +137,7 @@ async function getChannelPending(channel: string): Promise<{
   pending: PendingResponse[];
   count: number;
 }> {
-  const response = await api.get(`/gm/charon/${channel}/pending/`);
+  const response = await api.get(`/gm/janus/${channel}/pending/`);
   return response.data;
 }
 
@@ -146,14 +146,14 @@ async function approveChannelResponse(
   pendingId: string,
   modifiedContent?: string
 ): Promise<void> {
-  await api.post(`/gm/charon/${channel}/approve/`, {
+  await api.post(`/gm/janus/${channel}/approve/`, {
     pending_id: pendingId,
     modified_content: modifiedContent,
   });
 }
 
 async function rejectChannelResponse(channel: string, pendingId: string): Promise<void> {
-  await api.post(`/gm/charon/${channel}/reject/`, { pending_id: pendingId });
+  await api.post(`/gm/janus/${channel}/reject/`, { pending_id: pendingId });
 }
 
 async function generateChannelResponse(
@@ -166,7 +166,7 @@ async function generateChannelResponse(
   response: string;
   channel: string;
 }> {
-  const response = await api.post(`/gm/charon/${channel}/generate/`, {
+  const response = await api.post(`/gm/janus/${channel}/generate/`, {
     prompt,
     context_override: contextOverride || '',
   });
@@ -174,10 +174,10 @@ async function generateChannelResponse(
 }
 
 async function clearChannelConversation(channel: string): Promise<void> {
-  await api.post(`/gm/charon/${channel}/clear/`, {});
+  await api.post(`/gm/janus/${channel}/clear/`, {});
 }
 
-export const charonApi = {
+export const janusApi = {
   // Public (legacy - default channel)
   getConversation,
   submitQuery,
@@ -190,7 +190,7 @@ export const charonApi = {
   approveResponse,
   rejectResponse,
   clearConversation,
-  switchToCharon,
+  switchToJanus,
   toggleDialog,
   // Channel-aware (new multi-channel API)
   getChannels,

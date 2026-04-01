@@ -58,9 +58,9 @@ export interface ActiveView {
   overlay_location_slug: string;
   overlay_terminal_slug: string;
   overlay_doc_slug: string;
-  charon_mode: 'DISPLAY' | 'QUERY';
-  charon_dialog_open: boolean;
-  charon_active_channel?: string;
+  janus_mode: 'DISPLAY' | 'QUERY';
+  janus_dialog_open: boolean;
+  janus_active_channel?: string;
   // Location info (when in ENCOUNTER view)
   location_type?: string;
   location_name?: string;

@@ -1,5 +1,5 @@
-/* CHARON Dialog Styles */
-/* Semi-transparent overlay dialog for CHARON terminal */
+/* JANUS Dialog Styles */
+/* Semi-transparent overlay dialog for JANUS terminal */
 
 /* Shared overlay keyframes — same sequence as NPCPortraitCard */
 @keyframes overlayFlicker {
@@ -23,7 +23,7 @@
 }
 
 /* Backdrop - flat dim, same as portrait overlay */
-.charon-dialog-backdrop {
+.janus-dialog-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -38,12 +38,12 @@
   transition: opacity 300ms ease;
 }
 
-.charon-dialog-backdrop.exiting {
+.janus-dialog-backdrop.exiting {
   opacity: 0;
 }
 
 /* Dialog container - phase-based enter animation */
-.charon-dialog-container {
+.janus-dialog-container {
   width: 40%;
   height: 70%;
   min-width: 400px;
@@ -51,32 +51,32 @@
   max-width: 700px;
 }
 
-.charon-dialog-container.phase-flicker {
+.janus-dialog-container.phase-flicker {
   animation: overlayFlicker 280ms steps(1) forwards;
 }
 
-.charon-dialog-container.phase-wipe {
+.janus-dialog-container.phase-wipe {
   clip-path: inset(0 0 100% 0);
   animation: overlayWipe 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.charon-dialog-container.phase-stable {
+.janus-dialog-container.phase-stable {
   clip-path: inset(0 0 0% 0);
 }
 
-.charon-dialog-container.phase-exiting {
+.janus-dialog-container.phase-exiting {
   animation: overlayDismiss 300ms ease-out forwards;
 }
 
 /* Override panel-content for dialog */
-.charon-dialog-panel .panel-content {
+.janus-dialog-panel .panel-content {
   padding: 0;
   display: flex;
   flex-direction: column;
 }
 
 /* Messages container inside panel-content */
-.charon-dialog-messages {
+.janus-dialog-messages {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -87,7 +87,7 @@
 }
 
 /* Messages - left aligned */
-.charon-dialog-backdrop .charon-message {
+.janus-dialog-backdrop .janus-message {
   line-height: 1.8;
   animation: fadeIn 0.3s ease-out;
   text-align: left;
@@ -98,27 +98,27 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.charon-dialog-backdrop .charon-message.user {
+.janus-dialog-backdrop .janus-message.user {
   color: var(--color-amber, #8b7355);
 }
 
-.charon-dialog-backdrop .charon-message.charon {
+.janus-dialog-backdrop .janus-message.charon {
   color: var(--color-text-primary, #9a9a9a);
 }
 
-.charon-dialog-backdrop .message-prefix {
+.janus-dialog-backdrop .message-prefix {
   color: var(--color-amber, #8b7355);
 }
 
-.charon-dialog-backdrop .message-content {
+.janus-dialog-backdrop .message-content {
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 13px;
   letter-spacing: 0.5px;
 }
 
-/* Typing cursor during CHARON response */
-.charon-dialog-backdrop .typing-cursor {
+/* Typing cursor during JANUS response */
+.janus-dialog-backdrop .typing-cursor {
   display: inline;
   animation: blink 0.7s step-end infinite;
   color: var(--color-text-primary, #9a9a9a);
@@ -130,7 +130,7 @@
 }
 
 /* Processing indicator with animated dots */
-.charon-dialog-backdrop .charon-message.processing .processing-dots::after {
+.janus-dialog-backdrop .janus-message.processing .processing-dots::after {
   content: '';
   animation: processingDots 1.5s steps(4, end) infinite;
 }
@@ -144,7 +144,7 @@
 }
 
 /* Prompt line at the end of conversation */
-.charon-dialog-backdrop .charon-prompt {
+.janus-dialog-backdrop .janus-prompt {
   display: flex;
   align-items: center;
   line-height: 1.8;
@@ -153,17 +153,17 @@
 }
 
 /* Blinking cursor for DISPLAY mode */
-.charon-dialog-backdrop .blinking-cursor {
+.janus-dialog-backdrop .blinking-cursor {
   color: var(--color-text-primary, #9a9a9a);
   animation: blink 0.7s step-end infinite;
 }
 
 /* Query prefix and input for QUERY mode */
-.charon-dialog-backdrop .query-prefix {
+.janus-dialog-backdrop .query-prefix {
   color: var(--color-amber, #8b7355);
 }
 
-.charon-dialog-backdrop .query-input {
+.janus-dialog-backdrop .query-input {
   flex: 1;
   background: transparent;
   border: none;
@@ -177,20 +177,20 @@
   margin: 0;
 }
 
-.charon-dialog-backdrop .query-input::placeholder {
+.janus-dialog-backdrop .query-input::placeholder {
   color: transparent;
 }
 
-.charon-dialog-backdrop .query-input:disabled {
+.janus-dialog-backdrop .query-input:disabled {
   opacity: 0.5;
 }
 
 /* Scrollbar styling - matching panel design */
-.charon-dialog-messages::-webkit-scrollbar {
+.janus-dialog-messages::-webkit-scrollbar {
   width: 10px;
 }
 
-.charon-dialog-messages::-webkit-scrollbar-track {
+.janus-dialog-messages::-webkit-scrollbar-track {
   background: #171717;
   background-image: repeating-linear-gradient(
     to bottom,
@@ -204,15 +204,15 @@
   margin-bottom: 2px;
 }
 
-.charon-dialog-messages::-webkit-scrollbar-thumb {
+.janus-dialog-messages::-webkit-scrollbar-thumb {
   background: #0f1515;
   border: 1px solid var(--color-border-main, #4a6b6b);
 }
 
-.charon-dialog-messages::-webkit-scrollbar-thumb:hover {
+.janus-dialog-messages::-webkit-scrollbar-thumb:hover {
   background: #1a2525;
 }
 
-.charon-dialog-messages::-webkit-scrollbar-button {
+.janus-dialog-messages::-webkit-scrollbar-button {
   display: none;
 }

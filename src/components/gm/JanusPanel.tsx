@@ -18,39 +18,39 @@ import {
   ClearOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { charonApi } from '@/services/charonApi';
-import type { CharonMode, PendingResponse, CharonMessage } from '@/types/charon';
+import { janusApi } from '@/services/janusApi';
+import type { JanusMode, PendingResponse, JanusMessage } from '@/types/janus';
 
 const { TextArea } = Input;
 const { Text } = Typography;
 
-interface CharonPanelProps {
+interface JanusPanelProps {
   channel: string;
   currentViewType: string;
-  charonDialogOpen?: boolean;
+  janusDialogOpen?: boolean;
   onDialogToggle?: () => void;
 }
 
-export function CharonPanel({ channel, currentViewType, charonDialogOpen = false, onDialogToggle }: CharonPanelProps) {
-  const [mode, setMode] = useState<CharonMode>('DISPLAY');
+export function JanusPanel({ channel, currentViewType, janusDialogOpen = false, onDialogToggle }: JanusPanelProps) {
+  const [mode, setMode] = useState<JanusMode>('DISPLAY');
   const [messageContent, setMessageContent] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
   const [contextOverride, setContextOverride] = useState('');
   const [pendingResponses, setPendingResponses] = useState<PendingResponse[]>([]);
-  const [conversation, setConversation] = useState<CharonMessage[]>([]);
+  const [conversation, setConversation] = useState<JanusMessage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingResponse, setEditingResponse] = useState<PendingResponse | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [messageApi, contextHolder] = message.useMessage();
 
-  // CHARON panel is active when the terminal view is displayed, the dialog is open,
-  // or we're in a view that has a CHARON channel (bridge, encounter)
-  const isActive = currentViewType === 'CHARON_TERMINAL' || currentViewType === 'BRIDGE' || currentViewType === 'ENCOUNTER' || currentViewType === 'STANDBY' || charonDialogOpen;
+  // JANUS panel is active when the terminal view is displayed, the dialog is open,
+  // or we're in a view that has a JANUS channel (bridge, encounter)
+  const isActive = currentViewType === 'JANUS_TERMINAL' || currentViewType === 'BRIDGE' || currentViewType === 'ENCOUNTER' || currentViewType === 'STANDBY' || janusDialogOpen;
 
-  // Show visibility toggle unless CHARON_TERMINAL is active (already always showing there)
+  // Show visibility toggle unless JANUS_TERMINAL is active (already always showing there)
   const showVisibilityToggle = useMemo(() => {
-    if (currentViewType === 'CHARON_TERMINAL') return false;
+    if (currentViewType === 'JANUS_TERMINAL') return false;
     return true;
   }, [currentViewType]);
 
@@ -66,21 +66,21 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
     setAiPrompt('');
   }, [channel]);
 
-  // Poll for updates when CHARON terminal is active
+  // Poll for updates when JANUS terminal is active
   useEffect(() => {
     if (!isActive) return;
 
     const fetchData = async () => {
       try {
         const [convData, pendingData] = await Promise.all([
-          charonApi.getChannelConversation(channel),
-          charonApi.getChannelPending(channel),
+          janusApi.getChannelConversation(channel),
+          janusApi.getChannelPending(channel),
         ]);
         setMode(convData.mode);
         setConversation(convData.messages);
         setPendingResponses(pendingData.pending);
       } catch (err) {
-        console.error('Error fetching CHARON data:', err);
+        console.error('Error fetching JANUS data:', err);
       }
     };
 
@@ -90,12 +90,12 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
   }, [isActive, channel]);
 
   const handleModeChange = useCallback(
-    async (newMode: CharonMode) => {
+    async (newMode: JanusMode) => {
       if (newMode === mode) return;
       try {
-        await charonApi.switchMode(newMode);
+        await janusApi.switchMode(newMode);
         setMode(newMode);
-        messageApi.success(`CHARON mode: ${newMode}`);
+        messageApi.success(`JANUS mode: ${newMode}`);
       } catch (err) {
         messageApi.error('Failed to switch mode');
       }
@@ -107,11 +107,11 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
     if (!messageContent.trim()) return;
     setIsSubmitting(true);
     try {
-      await charonApi.sendChannelMessage(channel, messageContent);
+      await janusApi.sendChannelMessage(channel, messageContent);
       setMessageContent('');
       messageApi.success('Message sent to terminal');
       // Refresh conversation
-      const convData = await charonApi.getChannelConversation(channel);
+      const convData = await janusApi.getChannelConversation(channel);
       setConversation(convData.messages);
     } catch (err) {
       messageApi.error('Failed to send message');
@@ -124,11 +124,11 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
     if (!aiPrompt.trim()) return;
     setIsGenerating(true);
     try {
-      await charonApi.generateChannelResponse(channel, aiPrompt, contextOverride);
+      await janusApi.generateChannelResponse(channel, aiPrompt, contextOverride);
       setAiPrompt('');
       messageApi.success('AI response generated - review in pending');
       // Refresh pending responses
-      const pendingData = await charonApi.getChannelPending(channel);
+      const pendingData = await janusApi.getChannelPending(channel);
       setPendingResponses(pendingData.pending);
     } catch (err) {
       messageApi.error('Failed to generate AI response');
@@ -140,13 +140,13 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
   const handleApprove = useCallback(
     async (pending: PendingResponse) => {
       try {
-        await charonApi.approveChannelResponse(channel, pending.pending_id);
+        await janusApi.approveChannelResponse(channel, pending.pending_id);
         setPendingResponses((prev) =>
           prev.filter((p) => p.pending_id !== pending.pending_id)
         );
         messageApi.success('Response approved');
         // Refresh conversation
-        const convData = await charonApi.getChannelConversation(channel);
+        const convData = await janusApi.getChannelConversation(channel);
         setConversation(convData.messages);
       } catch (err) {
         messageApi.error('Failed to approve response');
@@ -158,7 +158,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
   const handleReject = useCallback(
     async (pending: PendingResponse) => {
       try {
-        await charonApi.rejectChannelResponse(channel, pending.pending_id);
+        await janusApi.rejectChannelResponse(channel, pending.pending_id);
         setPendingResponses((prev) =>
           prev.filter((p) => p.pending_id !== pending.pending_id)
         );
@@ -178,7 +178,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
   const handleSaveEdit = useCallback(async () => {
     if (!editingResponse) return;
     try {
-      await charonApi.approveChannelResponse(channel, editingResponse.pending_id, editedContent);
+      await janusApi.approveChannelResponse(channel, editingResponse.pending_id, editedContent);
       setPendingResponses((prev) =>
         prev.filter((p) => p.pending_id !== editingResponse.pending_id)
       );
@@ -186,7 +186,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
       setEditedContent('');
       messageApi.success('Modified response approved');
       // Refresh conversation
-      const convData = await charonApi.getChannelConversation(channel);
+      const convData = await janusApi.getChannelConversation(channel);
       setConversation(convData.messages);
     } catch (err) {
       messageApi.error('Failed to save modified response');
@@ -195,7 +195,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
 
   const handleClear = useCallback(async () => {
     try {
-      await charonApi.clearChannelConversation(channel);
+      await janusApi.clearChannelConversation(channel);
       setConversation([]);
       setPendingResponses([]);
       messageApi.success('Conversation cleared');
@@ -244,10 +244,10 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
         </Tooltip>
         {showVisibilityToggle && (
           <Button
-            type={charonDialogOpen ? 'primary' : 'default'}
+            type={janusDialogOpen ? 'primary' : 'default'}
             onClick={onDialogToggle}
             size="small"
-            icon={charonDialogOpen ? <CheckOutlined /> : undefined}
+            icon={janusDialogOpen ? <CheckOutlined /> : undefined}
           >
             SHOWING
           </Button>
@@ -292,7 +292,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
           Generate AI Response
         </Text>
         <TextArea
-          placeholder="Prompt for CHARON AI (e.g., 'Warn about proximity alert')..."
+          placeholder="Prompt for JANUS AI (e.g., 'Warn about proximity alert')..."
           value={aiPrompt}
           onChange={(e) => setAiPrompt(e.target.value)}
           disabled={!isActive}
@@ -434,7 +434,7 @@ export function CharonPanel({ channel, currentViewType, charonDialogOpen = false
                   type="secondary"
                   style={{ fontSize: 10, display: 'block', marginBottom: 2 }}
                 >
-                  {msg.role === 'user' ? 'PLAYER' : 'CHARON'} •{' '}
+                  {msg.role === 'user' ? 'PLAYER' : 'JANUS'} •{' '}
                   {new Date(msg.timestamp).toLocaleTimeString()}
                 </Text>
                 <Text style={{ fontSize: 12, whiteSpace: 'pre-wrap' }}>{msg.content}</Text>

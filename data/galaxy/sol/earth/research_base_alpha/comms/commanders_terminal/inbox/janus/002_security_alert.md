@@ -2,9 +2,9 @@
 timestamp: "2183-06-15 03:47:00"
 priority: "HIGH"
 subject: "Security Breach - Lab Section C"
-from: "CHARON"
+from: "JANUS"
 to: "Commander Drake"
-message_id: "msg_charon_002"
+message_id: "msg_janus_002"
 read: false
 ---
 

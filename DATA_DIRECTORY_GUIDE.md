@@ -8,7 +8,7 @@ The data directory uses a file-based approach with YAML for structured data and 
 
 ```
 data/
-├── charon/                  # CHARON AI configuration
+├── janus/                   # JANUS AI configuration
 │   └── context.yaml         # AI personality and system prompt
 └── galaxy/                  # Galaxy data (locations, maps, messages)
     ├── star_map.yaml        # 3D galaxy map configuration
@@ -396,16 +396,16 @@ established: "2167"
 # Link to external lore notes (Obsidian vault integration)
 lore:
   note: "03 Locations/Veil Station.md"
-  charon_sections:
+  janus_sections:
     - "Overview"
     - "Description"
   exclude_patterns:
     - "^GM Notes"
     - "^Secrets"
 
-# CHARON AI instance for this location
-charon:
-  instance_id: "VEIL-CHARON-001"
+# JANUS AI instance for this location
+janus:
+  instance_id: "VEIL-JANUS-001"
   clearance_level: "INTERNAL"
   designation: "Station Operations AI"
 ```
@@ -1123,16 +1123,16 @@ The system also supports a legacy format where each terminal has its own `inbox/
 
 **When using legacy format:** You must create message files in both the sender's `sent/` and recipient's `inbox/` directories.
 
-**CHARON System Messages:**
+**JANUS System Messages:**
 
 ```markdown
 ---
 timestamp: "2183-06-12 14:23:00"
 priority: "NORMAL"
 subject: "New Personnel Arrival"
-from: "CHARON"
+from: "JANUS"
 to: "Commander Drake"
-message_id: "msg_charon_001"
+message_id: "msg_janus_001"
 read: true
 ---
 
@@ -1153,12 +1153,12 @@ END TRANSMISSION
 
 ---
 
-## 7. CHARON AI Configuration
+## 7. JANUS AI Configuration
 
-Located at `data/charon/context.yaml`
+Located at `data/janus/context.yaml`
 
 ```yaml
-name: "CHARON"
+name: "JANUS"
 designation: "Computerized Heuristic Autonomous Resource Operations Network"
 version: "3.7.2"
 
@@ -1171,7 +1171,7 @@ personality:
 
 # System prompt for AI API calls
 system_prompt: |
-  You are CHARON, a computer terminal. Output data like a database query result.
+  You are JANUS, a computer terminal. Output data like a database query result.
 
   FORMATTING RULES:
   1. ALL CAPS. Always. Every response.
@@ -1440,7 +1440,7 @@ description: "Main station terminal"
 timestamp: "2183-07-01 08:00:00"
 priority: "NORMAL"
 subject: "Station Online"
-from: "CHARON"
+from: "JANUS"
 to: "Station Commander"
 message_id: "msg_example_001"
 read: false

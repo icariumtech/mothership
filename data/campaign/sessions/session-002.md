@@ -6,7 +6,7 @@ location: "USCSS Morrigan - Lower Decks"
 npcs:
   - "Dr. Elena Vasquez"
   - "Chief Engineer Torres"
-  - "CHARON AI"
+  - "JANUS AI"
 ---
 
 The crew ventured through the unauthorized hatch discovered in the previous session. Beyond the door lay a series of narrow maintenance corridors that weren't in the official blueprints. The air grew colder as they descended, and their motion trackers began displaying intermittent phantom signals.

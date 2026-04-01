@@ -5,7 +5,7 @@ import { TabBar, BridgeTab } from './TabBar';
 import { PersonnelSection } from './sections/PersonnelSection';
 import { LogsSection } from './sections/LogsSection';
 import { StatusSection } from './sections/StatusSection';
-import { CharonSection } from './sections/CharonSection';
+import { JanusSection } from './sections/JanusSection';
 import './BridgeView.css';
 
 // Re-export types from CampaignDashboard for compatibility
@@ -81,7 +81,7 @@ export interface BridgeViewProps {
   onTabChange: (tab: BridgeTab) => void;
   tabTransitionActive?: boolean;
   children?: ReactNode; // Map components and InfoPanel passed from SharedConsole
-  charonHasMessages?: boolean;
+  janusHasMessages?: boolean;
   shipData?: ShipStatusData | null;
   shipDeckData?: ShipDeckData;
   shipDeckTotalDecks?: number;
@@ -107,7 +107,7 @@ export function BridgeView({
   onTabChange,
   tabTransitionActive = false,
   children,
-  charonHasMessages = false,
+  janusHasMessages = false,
   shipData,
   shipDeckData,
   shipDeckTotalDecks,
@@ -148,10 +148,10 @@ export function BridgeView({
       personnel: { animationDelay: '0.1s' },
       logs: { animationDelay: '0.2s' },
       status: { animationDelay: '0.3s' },
-      charon: { animationDelay: '0.4s' },
+      janus: { animationDelay: '0.4s'},
     } as Record<BridgeTab, React.CSSProperties>)[tab] : undefined;
 
-    if (tab === 'charon') return null; // CHARON handled separately (always mounted)
+    if (tab === 'janus') return null; // JANUS handled separately (always mounted)
 
     return (
       <Wrap key={isExiting ? `exit-${tab}` : tab} style={staggerStyle}>
@@ -168,14 +168,14 @@ export function BridgeView({
       {/* Content Area */}
       <div className={`bridge-content-area${staggerDone ? '' : ' bridge-stagger-active'}`}>
         {/* Exiting section — held in DOM briefly to play glitch-out */}
-        {exitingTab && exitingTab !== 'charon' && renderSection(exitingTab, true)}
+        {exitingTab && exitingTab !== 'janus' && renderSection(exitingTab, true)}
 
         {/* Active section — mounts after exit completes, plays glitch-in via SectionWrapper */}
         {exitingTab !== displayedTab && renderSection(displayedTab, false)}
 
-        {/* CHARON — always mounted, shown/hidden via display */}
-        <div style={{ display: displayedTab === 'charon' ? 'block' : 'none', ...(!staggerDone ? { animationDelay: '0.4s' } : {}) }}>
-          <CharonSection isVisible={displayedTab === 'charon'} />
+        {/* JANUS — always mounted, shown/hidden via display */}
+        <div style={{ display: displayedTab === 'janus' ? 'block' : 'none', ...(!staggerDone ? { animationDelay: '0.4s' } : {}) }}>
+          <JanusSection isVisible={displayedTab === 'janus'} />
         </div>
       </div>
 
@@ -185,7 +185,7 @@ export function BridgeView({
           activeTab={activeTab}
           onTabChange={onTabChange}
           disabled={tabTransitionActive}
-          charonHasMessages={charonHasMessages}
+          janusHasMessages={janusHasMessages}
         />
       </div>
     </div>

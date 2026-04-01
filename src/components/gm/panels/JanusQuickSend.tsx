@@ -1,15 +1,15 @@
 import { useState, useCallback } from 'react';
 import { Button, Input, message } from 'antd';
 import { SendOutlined } from '@ant-design/icons';
-import { charonApi } from '@/services/charonApi';
+import { janusApi } from '@/services/janusApi';
 
 const { TextArea } = Input;
 
-interface CharonQuickSendProps {
+interface JanusQuickSendProps {
   channel: string;
 }
 
-export function CharonQuickSend({ channel }: CharonQuickSendProps) {
+export function JanusQuickSend({ channel }: JanusQuickSendProps) {
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -18,11 +18,11 @@ export function CharonQuickSend({ channel }: CharonQuickSendProps) {
     if (!content.trim()) return;
     setSending(true);
     try {
-      await charonApi.sendChannelMessage(channel, content.trim());
+      await janusApi.sendChannelMessage(channel, content.trim());
       setContent('');
       messageApi.success('Message sent');
     } catch (err) {
-      console.error('Error sending CHARON message:', err);
+      console.error('Error sending JANUS message:', err);
       messageApi.error('Failed to send message');
     } finally {
       setSending(false);
@@ -36,7 +36,7 @@ export function CharonQuickSend({ channel }: CharonQuickSendProps) {
         Channel: <span style={{ color: '#8b7355' }}>{channel.toUpperCase()}</span>
       </div>
       <TextArea
-        placeholder="Type message for CHARON terminal..."
+        placeholder="Type message for JANUS terminal..."
         value={content}
         onChange={(e) => setContent(e.target.value)}
         autoSize={{ minRows: 3, maxRows: 6 }}

@@ -13,13 +13,13 @@ from terminal.active_view_store import get_state, update_state
 from terminal.sse_broadcaster import broadcaster, format_sse
 
 
-def get_charon_location_path(active_view) -> str:
+def get_janus_location_path(active_view) -> str:
     """
-    Derive CHARON's location context from the active view.
+    Derive JANUS's location context from the active view.
 
     Priority:
     1. If in ENCOUNTER view with a location, derive path from location_slug
-    2. Fall back to explicitly set charon_location_path
+    2. Fall back to explicitly set janus_location_path
     3. Return None if no location context available
 
     Accepts either a dict (from get_state()) or an ORM object.
@@ -33,11 +33,11 @@ def get_charon_location_path(active_view) -> str:
     if isinstance(active_view, dict):
         view_type = active_view.get('view_type', '')
         location_slug = active_view.get('location_slug', '')
-        charon_location_path = active_view.get('charon_location_path', '')
+        janus_location_path = active_view.get('janus_location_path', '')
     else:
         view_type = active_view.view_type
         location_slug = active_view.location_slug
-        charon_location_path = active_view.charon_location_path
+        janus_location_path = active_view.janus_location_path
 
     # If in ENCOUNTER view, derive from encounter location
     if view_type == 'ENCOUNTER' and location_slug:
@@ -46,9 +46,9 @@ def get_charon_location_path(active_view) -> str:
         if path_slugs:
             return '/'.join(path_slugs)
 
-    # Fall back to explicitly set CHARON location
-    if charon_location_path:
-        return charon_location_path
+    # Fall back to explicitly set JANUS location
+    if janus_location_path:
+        return janus_location_path
 
     return None
 
@@ -194,10 +194,10 @@ def build_active_view_payload(state: dict) -> dict:
         'overlay_location_slug': state.get('overlay_location_slug', ''),
         'overlay_terminal_slug': state.get('overlay_terminal_slug', ''),
         'overlay_doc_slug': state.get('overlay_doc_slug', ''),
-        'charon_mode': state.get('charon_mode', 'DISPLAY'),
-        'charon_location_path': state.get('charon_location_path', ''),
-        'charon_dialog_open': state.get('charon_dialog_open', False),
-        'charon_active_channel': state.get('charon_active_channel', 'story'),
+        'janus_mode': state.get('janus_mode', 'DISPLAY'),
+        'janus_location_path': state.get('janus_location_path', ''),
+        'janus_dialog_open': state.get('janus_dialog_open', False),
+        'janus_active_channel': state.get('janus_active_channel', 'story'),
         'encounter_level': state.get('encounter_level', 1),
         'encounter_deck_id': state.get('encounter_deck_id', ''),
         'encounter_room_visibility': state.get('encounter_room_visibility', {}),
@@ -560,19 +560,19 @@ def api_switch_view(request):
         'overlay_doc_slug': '',
     }
 
-    # Auto-set CHARON channel based on view type
-    if new_view_type == 'CHARON_TERMINAL':
-        update_kwargs['charon_active_channel'] = 'story'
-        # Clear story channel conversation on CHARON_TERMINAL view switch
-        from terminal.charon_session import CharonSessionManager
-        CharonSessionManager.clear_conversation('story')
+    # Auto-set JANUS channel based on view type
+    if new_view_type == 'JANUS_TERMINAL':
+        update_kwargs['janus_active_channel'] = 'story'
+        # Clear story channel conversation on JANUS_TERMINAL view switch
+        from terminal.janus_session import JanusSessionManager
+        JanusSessionManager.clear_conversation('story')
     elif new_view_type == 'BRIDGE':
-        update_kwargs['charon_active_channel'] = 'bridge'
+        update_kwargs['janus_active_channel'] = 'bridge'
         # Clear bridge channel conversation on BRIDGE view switch
-        from terminal.charon_session import CharonSessionManager
-        CharonSessionManager.clear_conversation('bridge')
+        from terminal.janus_session import JanusSessionManager
+        JanusSessionManager.clear_conversation('bridge')
     elif new_view_type == 'ENCOUNTER' and new_location_slug:
-        update_kwargs['charon_active_channel'] = f'encounter-{new_location_slug}'
+        update_kwargs['janus_active_channel'] = f'encounter-{new_location_slug}'
 
     # When switching to a new ENCOUNTER location, initialize all rooms as hidden
     if is_new_encounter_location:
@@ -791,7 +791,7 @@ def api_broadcast(request):
         return JsonResponse({'error': 'Message content is required'}, status=400)
 
     message = Message.objects.create(
-        sender=data.get('sender', 'CHARON'),
+        sender=data.get('sender', 'JANUS'),
         content=content,
         priority=data.get('priority', 'NORMAL'),
         created_by=request.user
@@ -804,46 +804,46 @@ def api_broadcast(request):
 
 
 # =============================================================================
-# CHARON Terminal API Endpoints
+# JANUS Terminal API Endpoints
 # =============================================================================
 
-def api_charon_conversation(request):
+def api_janus_conversation(request):
     """
-    Get current CHARON conversation (public for terminal display).
+    Get current JANUS conversation (public for terminal display).
     GET: Returns conversation messages and mode.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     active_view = get_state()
-    conversation = CharonSessionManager.get_conversation()
+    conversation = JanusSessionManager.get_conversation()
 
     # Get the derived location path (from encounter or explicit setting)
-    derived_location_path = get_charon_location_path(active_view)
+    derived_location_path = get_janus_location_path(active_view)
 
     return JsonResponse({
-        'mode': active_view.get('charon_mode', 'DISPLAY'),
-        'charon_location_path': active_view.get('charon_location_path') or '',
-        'active_location_path': derived_location_path or '',  # What CHARON is actually using
+        'mode': active_view.get('janus_mode', 'DISPLAY'),
+        'janus_location_path': active_view.get('janus_location_path') or '',
+        'active_location_path': derived_location_path or '',  # What JANUS is actually using
         'messages': conversation,
     })
 
 
 @csrf_exempt
-def api_charon_submit_query(request):
+def api_janus_submit_query(request):
     """
-    Player submits query to CHARON (only works in Query mode).
+    Player submits query to JANUS (only works in Query mode).
     POST: { query: string }
     Public endpoint - players submit queries from shared terminal.
     CSRF exempt since this is called from unauthenticated player terminals.
     """
-    from terminal.charon_session import CharonSessionManager, CharonMessage
+    from terminal.janus_session import JanusSessionManager, JanusMessage
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     # Check if in query mode
     active_view = get_state()
-    if active_view.get('charon_mode') != 'QUERY':
+    if active_view.get('janus_mode') != 'QUERY':
         return JsonResponse({'error': 'Terminal not in query mode'}, status=403)
 
     try:
@@ -856,19 +856,19 @@ def api_charon_submit_query(request):
         return JsonResponse({'error': 'Query required'}, status=400)
 
     # Add player query to conversation
-    query_msg = CharonMessage(role='user', content=query)
-    CharonSessionManager.add_message(query_msg)
+    query_msg = JanusMessage(role='user', content=query)
+    JanusSessionManager.add_message(query_msg)
 
     # Generate AI response with location-specific knowledge
     # Derive location from encounter view or fall back to explicit setting
-    location_path = get_charon_location_path(active_view)
-    from terminal.charon_ai import get_charon_ai
-    ai = get_charon_ai(location_path=location_path)
-    conversation = CharonSessionManager.get_conversation()
+    location_path = get_janus_location_path(active_view)
+    from terminal.janus_ai import get_janus_ai
+    ai = get_janus_ai(location_path=location_path)
+    conversation = JanusSessionManager.get_conversation()
     response = ai.generate_response(query, conversation)
 
     # Queue for GM approval
-    pending_id = CharonSessionManager.add_pending_response(
+    pending_id = JanusSessionManager.add_pending_response(
         query=query,
         response=response,
         query_id=query_msg.message_id
@@ -882,9 +882,9 @@ def api_charon_submit_query(request):
 
 
 @login_required
-def api_charon_switch_mode(request):
+def api_janus_switch_mode(request):
     """
-    Switch CHARON terminal mode (Display/Query).
+    Switch JANUS terminal mode (Display/Query).
     POST: { mode: 'DISPLAY' | 'QUERY' }
     """
 
@@ -900,16 +900,16 @@ def api_charon_switch_mode(request):
     if mode not in ('DISPLAY', 'QUERY'):
         return JsonResponse({'error': 'Invalid mode. Must be DISPLAY or QUERY'}, status=400)
 
-    new_state = update_state(charon_mode=mode)
+    new_state = update_state(janus_mode=mode)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({'success': True, 'mode': mode})
 
 
 @login_required
-def api_charon_set_location(request):
+def api_janus_set_location(request):
     """
-    Set the active CHARON instance location.
+    Set the active JANUS instance location.
     POST: { location_path: string }
     """
 
@@ -923,19 +923,19 @@ def api_charon_set_location(request):
 
     location_path = data.get('location_path', '')
 
-    new_state = update_state(charon_location_path=location_path)
+    new_state = update_state(janus_location_path=location_path)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({'success': True, 'location_path': location_path})
 
 
 @login_required
-def api_charon_send_message(request):
+def api_janus_send_message(request):
     """
-    GM sends message directly to CHARON terminal.
+    GM sends message directly to JANUS terminal.
     POST: { content: string }
     """
-    from terminal.charon_session import CharonSessionManager, CharonMessage
+    from terminal.janus_session import JanusSessionManager, JanusMessage
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -949,20 +949,20 @@ def api_charon_send_message(request):
     if not content:
         return JsonResponse({'error': 'Content required'}, status=400)
 
-    msg = CharonMessage(role='charon', content=content)
-    CharonSessionManager.add_message(msg)
+    msg = JanusMessage(role='janus', content=content)
+    JanusSessionManager.add_message(msg)
 
     return JsonResponse({'success': True, 'message_id': msg.message_id})
 
 
 @login_required
-def api_charon_generate(request):
+def api_janus_generate(request):
     """
-    GM prompts AI to generate a CHARON response for review.
+    GM prompts AI to generate a JANUS response for review.
     POST: { prompt: string }
     Returns a pending response for GM approval.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -976,23 +976,23 @@ def api_charon_generate(request):
     if not prompt:
         return JsonResponse({'error': 'Prompt required'}, status=400)
 
-    # Get active CHARON location for knowledge context
+    # Get active JANUS location for knowledge context
     # Derive location from encounter view or fall back to explicit setting
     active_view = get_state()
-    location_path = get_charon_location_path(active_view)
+    location_path = get_janus_location_path(active_view)
 
     # Generate AI response based on GM's prompt with location knowledge
-    from terminal.charon_ai import get_charon_ai
-    ai = get_charon_ai(location_path=location_path)
-    conversation = CharonSessionManager.get_conversation()
+    from terminal.janus_ai import get_janus_ai
+    ai = get_janus_ai(location_path=location_path)
+    conversation = JanusSessionManager.get_conversation()
 
     # Create a context message for the AI that includes the GM's prompt
-    context_prompt = f"[GM CONTEXT: {prompt}]\n\nGenerate a CHARON response based on this context."
+    context_prompt = f"[GM CONTEXT: {prompt}]\n\nGenerate a JANUS response based on this context."
     response = ai.generate_response(context_prompt, conversation)
 
     # Queue for GM approval (using prompt as the "query" for reference)
     import uuid
-    pending_id = CharonSessionManager.add_pending_response(
+    pending_id = JanusSessionManager.add_pending_response(
         query=f"[GM Prompt] {prompt}",
         response=response,
         query_id=str(uuid.uuid4())
@@ -1006,24 +1006,24 @@ def api_charon_generate(request):
 
 
 @login_required
-def api_charon_pending(request):
+def api_janus_pending(request):
     """
     GM gets list of pending AI responses for approval.
     GET: Returns list of pending responses.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
-    pending = CharonSessionManager.get_pending_responses()
+    pending = JanusSessionManager.get_pending_responses()
     return JsonResponse({'pending': pending})
 
 
 @login_required
-def api_charon_approve(request):
+def api_janus_approve(request):
     """
     GM approves a pending response.
     POST: { pending_id: string, modified_content?: string }
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1038,7 +1038,7 @@ def api_charon_approve(request):
         return JsonResponse({'error': 'pending_id required'}, status=400)
 
     modified = data.get('modified_content')
-    success = CharonSessionManager.approve_response(pending_id, modified)
+    success = JanusSessionManager.approve_response(pending_id, modified)
 
     if success:
         return JsonResponse({'success': True})
@@ -1047,12 +1047,12 @@ def api_charon_approve(request):
 
 
 @login_required
-def api_charon_reject(request):
+def api_janus_reject(request):
     """
     GM rejects a pending response.
     POST: { pending_id: string }
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1066,7 +1066,7 @@ def api_charon_reject(request):
     if not pending_id:
         return JsonResponse({'error': 'pending_id required'}, status=400)
 
-    success = CharonSessionManager.reject_response(pending_id)
+    success = JanusSessionManager.reject_response(pending_id)
 
     if success:
         return JsonResponse({'success': True})
@@ -1075,24 +1075,24 @@ def api_charon_reject(request):
 
 
 @login_required
-def api_charon_clear(request):
+def api_janus_clear(request):
     """
-    GM clears the CHARON conversation.
+    GM clears the JANUS conversation.
     POST: {}
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    CharonSessionManager.clear_conversation()
+    JanusSessionManager.clear_conversation()
     return JsonResponse({'success': True})
 
 
 @csrf_exempt
-def api_charon_toggle_dialog(request):
+def api_janus_toggle_dialog(request):
     """
-    Toggle the CHARON dialog overlay visibility.
+    Toggle the JANUS dialog overlay visibility.
     POST: { open?: boolean }
     If open is not specified, toggles the current state.
     Public endpoint - players can open/close dialog from shared terminal.
@@ -1113,14 +1113,14 @@ def api_charon_toggle_dialog(request):
     if 'open' in data:
         new_dialog_open = bool(data['open'])
     else:
-        new_dialog_open = not current.get('charon_dialog_open', False)
+        new_dialog_open = not current.get('janus_dialog_open', False)
 
-    new_state = update_state(charon_dialog_open=new_dialog_open)
+    new_state = update_state(janus_dialog_open=new_dialog_open)
     broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
-        'charon_dialog_open': new_state['charon_dialog_open']
+        'janus_dialog_open': new_state['janus_dialog_open']
     })
 
 
@@ -1900,25 +1900,25 @@ def api_terminal_data(request, location_slug, terminal_slug):
 
 
 # =============================================================================
-# CHARON Channel Management (Multi-Channel Support)
+# JANUS Channel Management (Multi-Channel Support)
 # =============================================================================
 
 @login_required
-def api_charon_channels(request):
+def api_janus_channels(request):
     """
-    Get list of all active CHARON channels with message counts and unread indicators.
+    Get list of all active JANUS channels with message counts and unread indicators.
     GET: Returns list of channels with metadata.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
     
-    channels = CharonSessionManager.get_all_channels()
+    channels = JanusSessionManager.get_all_channels()
     channel_data = []
     
     for channel in channels:
-        conversation = CharonSessionManager.get_conversation(channel)
-        last_read = CharonSessionManager.get_last_read(channel)
+        conversation = JanusSessionManager.get_conversation(channel)
+        last_read = JanusSessionManager.get_last_read(channel)
         last_read_id = last_read['message_id'] if last_read else None
-        unread_count = CharonSessionManager.get_unread_count(channel, last_read_id)
+        unread_count = JanusSessionManager.get_unread_count(channel, last_read_id)
         
         channel_data.append({
             'channel': channel,
@@ -1931,17 +1931,17 @@ def api_charon_channels(request):
 
 
 @csrf_exempt
-def api_charon_channel_conversation(request, channel):
+def api_janus_channel_conversation(request, channel):
     """
     Get conversation for a specific channel (public for player terminals).
     GET: Returns conversation messages for the channel.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
     
-    conversation = CharonSessionManager.get_conversation(channel)
+    conversation = JanusSessionManager.get_conversation(channel)
     active_view = get_state()
     
-    mode = active_view.get('charon_mode', 'DISPLAY')
+    mode = active_view.get('janus_mode', 'DISPLAY')
 
     return JsonResponse({
         'channel': channel,
@@ -1951,13 +1951,13 @@ def api_charon_channel_conversation(request, channel):
 
 
 @csrf_exempt
-def api_charon_channel_submit(request, channel):
+def api_janus_channel_submit(request, channel):
     """
-    Player submits query to a specific CHARON channel.
+    Player submits query to a specific JANUS channel.
     POST: { query: string }
     Public endpoint - players submit queries from terminals.
     """
-    from terminal.charon_session import CharonSessionManager, CharonMessage
+    from terminal.janus_session import JanusSessionManager, JanusMessage
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1972,19 +1972,19 @@ def api_charon_channel_submit(request, channel):
         return JsonResponse({'error': 'Query required'}, status=400)
     
     # Add player query to conversation
-    query_msg = CharonMessage(role='user', content=query)
-    CharonSessionManager.add_message(query_msg, channel)
+    query_msg = JanusMessage(role='user', content=query)
+    JanusSessionManager.add_message(query_msg, channel)
     
     # Generate AI response
     active_view = get_state()
-    location_path = get_charon_location_path(active_view)
-    from terminal.charon_ai import get_charon_ai
-    ai = get_charon_ai(location_path=location_path)
-    conversation = CharonSessionManager.get_conversation(channel)
+    location_path = get_janus_location_path(active_view)
+    from terminal.janus_ai import get_janus_ai
+    ai = get_janus_ai(location_path=location_path)
+    conversation = JanusSessionManager.get_conversation(channel)
     response = ai.generate_response(query, conversation)
     
     # Queue for GM approval
-    pending_id = CharonSessionManager.add_pending_response(
+    pending_id = JanusSessionManager.add_pending_response(
         query=query,
         response=response,
         query_id=query_msg.message_id,
@@ -1999,12 +1999,12 @@ def api_charon_channel_submit(request, channel):
 
 
 @login_required
-def api_charon_channel_send(request, channel):
+def api_janus_channel_send(request, channel):
     """
-    GM sends message to a specific CHARON channel.
+    GM sends message to a specific JANUS channel.
     POST: { content: string }
     """
-    from terminal.charon_session import CharonSessionManager, CharonMessage
+    from terminal.janus_session import JanusSessionManager, JanusMessage
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2018,8 +2018,8 @@ def api_charon_channel_send(request, channel):
     if not content:
         return JsonResponse({'error': 'Content required'}, status=400)
     
-    msg = CharonMessage(role='charon', content=content)
-    CharonSessionManager.add_message(msg, channel)
+    msg = JanusMessage(role='janus', content=content)
+    JanusSessionManager.add_message(msg, channel)
     
     return JsonResponse({
         'success': True,
@@ -2029,30 +2029,30 @@ def api_charon_channel_send(request, channel):
 
 
 @login_required
-def api_charon_channel_mark_read(request, channel):
+def api_janus_channel_mark_read(request, channel):
     """
     Mark all messages in a channel as read by GM.
     POST: No body required.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    CharonSessionManager.mark_channel_read(channel, request.user.id)
+    JanusSessionManager.mark_channel_read(channel, request.user.id)
     
     return JsonResponse({'success': True, 'channel': channel})
 
 
 @login_required
-def api_charon_channel_pending(request, channel):
+def api_janus_channel_pending(request, channel):
     """
     Get pending AI responses for a specific channel.
     GET: Returns pending responses awaiting GM approval.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
     
-    pending = CharonSessionManager.get_pending_responses(channel)
+    pending = JanusSessionManager.get_pending_responses(channel)
     
     return JsonResponse({
         'channel': channel,
@@ -2062,12 +2062,12 @@ def api_charon_channel_pending(request, channel):
 
 
 @login_required
-def api_charon_channel_approve(request, channel):
+def api_janus_channel_approve(request, channel):
     """
     Approve a pending AI response for a specific channel.
     POST: { pending_id: string, modified_content?: string }
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2083,7 +2083,7 @@ def api_charon_channel_approve(request, channel):
     if not pending_id:
         return JsonResponse({'error': 'pending_id required'}, status=400)
     
-    success = CharonSessionManager.approve_response(pending_id, modified_content, channel)
+    success = JanusSessionManager.approve_response(pending_id, modified_content, channel)
     
     if success:
         return JsonResponse({'success': True, 'channel': channel})
@@ -2092,12 +2092,12 @@ def api_charon_channel_approve(request, channel):
 
 
 @login_required
-def api_charon_channel_reject(request, channel):
+def api_janus_channel_reject(request, channel):
     """
     Reject a pending AI response for a specific channel.
     POST: { pending_id: string }
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2112,7 +2112,7 @@ def api_charon_channel_reject(request, channel):
     if not pending_id:
         return JsonResponse({'error': 'pending_id required'}, status=400)
 
-    success = CharonSessionManager.reject_response(pending_id, channel)
+    success = JanusSessionManager.reject_response(pending_id, channel)
 
     if success:
         return JsonResponse({'success': True, 'channel': channel})
@@ -2121,13 +2121,13 @@ def api_charon_channel_reject(request, channel):
 
 
 @login_required
-def api_charon_channel_generate(request, channel):
+def api_janus_channel_generate(request, channel):
     """
-    GM prompts AI to generate a CHARON response for a specific channel.
+    GM prompts AI to generate a JANUS response for a specific channel.
     POST: { prompt: string, context_override?: string }
     Returns a pending response for GM approval.
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2154,22 +2154,22 @@ def api_charon_channel_generate(request, channel):
             location_path = '/'.join(path_slugs)
 
     # Generate AI response with location context
-    from terminal.charon_ai import get_charon_ai
-    ai = get_charon_ai(location_path=location_path)
-    conversation = CharonSessionManager.get_conversation(channel)
+    from terminal.janus_ai import get_janus_ai
+    ai = get_janus_ai(location_path=location_path)
+    conversation = JanusSessionManager.get_conversation(channel)
 
     # Build context prompt
     context_parts = [f"[GM PROMPT: {prompt}]"]
     if context_override:
         context_parts.append(f"[GM CONTEXT OVERRIDE: {context_override}]")
-    context_parts.append("\n\nGenerate a CHARON response based on this context.")
+    context_parts.append("\n\nGenerate a JANUS response based on this context.")
     context_prompt = "\n".join(context_parts)
 
     response = ai.generate_response(context_prompt, conversation)
 
     # Queue for GM approval
     import uuid
-    pending_id = CharonSessionManager.add_pending_response(
+    pending_id = JanusSessionManager.add_pending_response(
         query=f"[GM Prompt] {prompt}",
         response=response,
         query_id=str(uuid.uuid4()),
@@ -2185,17 +2185,17 @@ def api_charon_channel_generate(request, channel):
 
 
 @login_required
-def api_charon_channel_clear(request, channel):
+def api_janus_channel_clear(request, channel):
     """
     GM clears conversation for a specific channel.
     POST: {}
     """
-    from terminal.charon_session import CharonSessionManager
+    from terminal.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    CharonSessionManager.clear_conversation(channel)
+    JanusSessionManager.clear_conversation(channel)
     return JsonResponse({'success': True, 'channel': channel})
 
 

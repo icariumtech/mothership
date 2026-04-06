@@ -63,6 +63,8 @@ interface EncounterMapRendererProps {
   style?: React.CSSProperties;
   /** Extra grid-cell padding around map in the SVG viewBox — increases effective "zoom out" at default zoom:1 */
   viewPadding?: number;
+  /** Whether to show the legend panel (default true) */
+  showLegend?: boolean;
 }
 
 // Pan and zoom state
@@ -515,6 +517,7 @@ export function EncounterMapRenderer({
   hull: hullProp,
   style,
   viewPadding = 2,
+  showLegend = true,
 }: EncounterMapRendererProps) {
   // Hull override (manifest-level) takes precedence over per-deck hull
   const effectiveHull = hullProp ?? mapData.hull;
@@ -1795,12 +1798,14 @@ export function EncounterMapRenderer({
         </div>
 
         {/* Legend - bottom right */}
-        <div
-          className="encounter-map__legend"
-          style={{ gridArea: 'bottom-right', alignSelf: 'end', justifySelf: 'end' }}
-        >
-          <LegendPanel />
-        </div>
+        {showLegend && (
+          <div
+            className="encounter-map__legend"
+            style={{ gridArea: 'bottom-right', alignSelf: 'end', justifySelf: 'end' }}
+          >
+            <LegendPanel />
+          </div>
+        )}
       </div>
 
       {/* Token popup — rendered outside SVG for proper styling */}

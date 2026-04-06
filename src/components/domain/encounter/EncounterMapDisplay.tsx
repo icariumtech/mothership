@@ -78,6 +78,8 @@ interface EncounterMapDisplayProps {
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
   /** Extra grid-cell padding around the map in the SVG viewBox */
   viewPadding?: number;
+  /** Whether to show the legend panel (default true) */
+  showLegend?: boolean;
 }
 
 export function EncounterMapDisplay({
@@ -94,6 +96,7 @@ export function EncounterMapDisplay({
   onTokenRemove,
   onTokenStatusToggle,
   viewPadding,
+  showLegend = true,
 }: EncounterMapDisplayProps) {
   const mapData = locationData?.map;
 
@@ -118,6 +121,7 @@ export function EncounterMapDisplay({
       onTokenStatusToggle,
       hull: manifestHull,
       viewPadding,
+      showLegend,
     };
 
     // IMPORTANT: check the deck's own format before choosing a renderer.
@@ -164,6 +168,7 @@ export function EncounterMapDisplay({
           onTokenRemove={onTokenRemove}
           onTokenStatusToggle={onTokenStatusToggle}
           viewPadding={viewPadding}
+          showLegend={showLegend}
         />
       </div>
     );
@@ -187,6 +192,7 @@ export function EncounterMapDisplay({
           onTokenRemove={onTokenRemove}
           onTokenStatusToggle={onTokenStatusToggle}
           viewPadding={viewPadding}
+          showLegend={showLegend}
         />
       </div>
     );

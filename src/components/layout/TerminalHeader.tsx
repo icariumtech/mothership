@@ -5,6 +5,7 @@ interface TerminalHeaderProps {
   title: string;
   subtitle?: string;
   rightText?: string;
+  rightDescription?: string;
   hidden?: boolean;
   typewriterTitle?: boolean;
 }
@@ -13,6 +14,7 @@ export function TerminalHeader({
   title,
   subtitle,
   rightText,
+  rightDescription,
   hidden = false,
   typewriterTitle = false
 }: TerminalHeaderProps) {
@@ -63,6 +65,7 @@ export function TerminalHeader({
       </div>
       <div className="terminal-header-right">
         {rightText && <span>{rightText}</span>}
+        {rightDescription && <span className="terminal-header-right-description">{rightDescription}</span>}
       </div>
     </header>
   );

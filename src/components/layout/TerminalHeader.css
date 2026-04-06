@@ -56,6 +56,12 @@
   font-family: 'Cascadia Code', 'Courier New', monospace;
 }
 
+.terminal-header-right-description {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--color-text-secondary);
+}
+
 
 .terminal-header .typing-cursor {
   animation: blink 0.7s infinite;

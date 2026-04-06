@@ -182,15 +182,6 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
 
   return (
     <div className="section-status">
-      {/* Ship identity header */}
-      <div className="ship-identity-header">
-        <div className="ship-identity-name">{ship.name}</div>
-        <div className="ship-identity-class">{ship.class}</div>
-        <div className="ship-identity-crew">
-          CREW: {ship.crew_count}/{ship.crew_capacity}
-        </div>
-      </div>
-
       {/* Map + floating panels */}
       <div className="status-map-layout">
         {/* Deck map — fills the area */}
@@ -207,6 +198,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
               currentLevel={currentDeckLevel}
               totalLevels={shipDeckTotalDecks || 1}
               viewPadding={8}
+              showLegend={false}
             />
           ) : (
             <div className="status-map-unavailable">DECK MAP UNAVAILABLE</div>

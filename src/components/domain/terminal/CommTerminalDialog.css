@@ -22,6 +22,12 @@
   to   { opacity: 0; transform: scale(0.92); }
 }
 
+/* Quick container fade-in — items do the reveal work via commLineReveal cascade */
+@keyframes commContainerIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* Per-line reveal: each log line slides/fades in from slightly above */
 @keyframes commLineReveal {
   from { opacity: 0; transform: translateY(-6px); }
@@ -62,12 +68,10 @@
 }
 
 .comm-terminal-container.phase-wipe {
-  clip-path: inset(0 0 100% 0);
-  animation: overlayWipe 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: commContainerIn 100ms ease-out forwards;
 }
 
 .comm-terminal-container.phase-stable {
-  clip-path: inset(0 0 0% 0);
 }
 
 .comm-terminal-container.phase-exiting {

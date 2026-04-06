@@ -58,8 +58,8 @@ export function DocumentDialog({ open, docSlug, onClose }: DocumentDialogProps) 
     e.stopPropagation();
   }, []);
 
-  // Hidden unless actively animating out
-  if (!open && animPhase !== 'exiting') return null;
+  // Stay mounted through exit animation; unmount only after reset to initial phase
+  if (!open && animPhase === 'flicker') return null;
 
   return (
     <div className={`doc-dialog-backdrop${animPhase === 'exiting' ? ' exiting' : ''}`} onClick={handleBackdropClick}>

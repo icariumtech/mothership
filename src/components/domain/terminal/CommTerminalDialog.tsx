@@ -124,8 +124,8 @@ export function CommTerminalDialog({ open, locationSlug, terminalSlug, onClose }
     }
   };
 
-  // Keep mounted during exit animation; truly hidden only when not open and not animating
-  if (!open && animPhase !== 'exiting') return null;
+  // Stay mounted through exit animation; unmount only after reset to initial phase
+  if (!open && animPhase === 'flicker') return null;
 
   const messages = viewMode === 'logs' ? null : (viewMode === 'inbox' ? terminalData?.inbox : terminalData?.sent);
   const title = terminalData?.owner

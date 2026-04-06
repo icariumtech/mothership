@@ -169,8 +169,8 @@ export function JanusDialog({ open, onClose, channel = 'default', disableClose =
     return msg.message_id === typingMessageId;
   };
 
-  // Keep mounted during exit animation; truly hidden only when not open and not animating
-  if (!open && animPhase !== 'exiting') return null;
+  // Stay mounted through exit animation; unmount only after reset to initial phase
+  if (!open && animPhase === 'flicker') return null;
 
   const isCurrentlyTyping = typingMessageId !== null;
   const showDisplayCursor = mode === 'DISPLAY' && !isCurrentlyTyping && !isProcessing;

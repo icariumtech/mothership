@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 13-atmospheric-ui-animations-for-player-facing-transitions-and-element-reveals
 source: [13-01-SUMMARY.md, 13-02-SUMMARY.md, 13-03-SUMMARY.md, 13-04-SUMMARY.md, 13-05-SUMMARY.md]
 started: 2026-04-06T18:14:51Z
@@ -63,8 +63,14 @@ blocked: 0
   reason: "User reported: The animation when showing works but when dismissing the dialog the dialogs just disappear"
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
+  root_cause: "Render guard `if (!open && animPhase !== 'exiting') return null` fired immediately on close while animPhase='stable', unmounting the component before the exit useEffect could set animPhase='exiting'. Fixed: guard changed to `if (!open && animPhase === 'flicker') return null` in DocumentDialog.tsx, JanusDialog.tsx, CommTerminalDialog.tsx"
+  artifacts:
+    - path: "src/components/domain/DocumentDialog.tsx"
+      issue: "Render guard unmounted component before exit animation could fire"
+    - path: "src/components/domain/janus/JanusDialog.tsx"
+      issue: "Same render guard bug"
+    - path: "src/components/domain/terminal/CommTerminalDialog.tsx"
+      issue: "Same render guard bug"
   missing: []
   debug_session: ""
 
@@ -73,7 +79,7 @@ blocked: 0
   reason: "User reported: Animation works on show but just disappears instead of fade and slight scale-down"
   severity: major
   test: 4
-  root_cause: ""
+  root_cause: "Same render guard bug as test 3 — fixed in same commit"
   artifacts: []
   missing: []
   debug_session: ""
@@ -83,7 +89,9 @@ blocked: 0
   reason: "User reported: no, on the comm terminal the items don't slide in."
   severity: major
   test: 5
-  root_cause: ""
-  artifacts: []
+  root_cause: "phase-wipe used clip-path: inset(0 0 100% 0) on the container, masking all items during the cascade window. Items had comm-entering opacity:0 but were hidden by the container clip — cascade animation was invisible. Fixed: replaced overlayWipe with commContainerIn (100ms fade-in) for comm-terminal-container.phase-wipe so items cascade visibly."
+  artifacts:
+    - path: "src/components/domain/terminal/CommTerminalDialog.css"
+      issue: "phase-wipe clip-path masked item cascade animation"
   missing: []
   debug_session: ""

@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 13-atmospheric-ui-animations-for-player-facing-transitions-and-element-reveals
 source: [13-01-SUMMARY.md, 13-02-SUMMARY.md, 13-03-SUMMARY.md, 13-04-SUMMARY.md, 13-05-SUMMARY.md]
 started: 2026-04-06T18:14:51Z
@@ -23,21 +23,15 @@ result: pass
 
 ### 3. DocumentDialog Scan Reveal
 expected: Open a document/notes dialog on the player terminal. It should animate in with a top-down wipe — like a scanner revealing the content from top to bottom over ~500ms. The backdrop should fade from transparent to a dark vignette. Dismissing the dialog should fade it out with a slight scale-down (not just instant disappear).
-result: issue
-reported: "The animation when showing works but when dismissing the dialog the dialogs just disappear"
-severity: major
+result: pass
 
 ### 4. CharonDialog Flicker-In
 expected: Trigger a CharonDialog message (the JANUS/AI overlay). It should flicker to life with a CRT power-on effect — rapid opacity pulses (stepping, not smooth) over ~280ms — rather than a smooth fade. Closing it should fade out with a slight scale-down.
-result: issue
-reported: "Animation works on show but just disappears instead of fade and slight scale-down"
-severity: major
+result: pass
 
 ### 5. CommTerminalDialog Cascade
 expected: Open a Comm Terminal dialog that has multiple log entries. The entries should appear sequentially one after another in a typewriter cascade — each line staggered ~60ms apart, sliding up from slightly below. Short logs should finish quickly; long logs should finish within 2 seconds. Closing should fade out with scale-down.
-result: issue
-reported: "no, on the comm terminal the items don't slide in."
-severity: major
+result: pass
 
 ### 6. Encounter Room Reveal Animation
 expected: In an encounter map on the player terminal, have the GM reveal a room. The room should flicker into view with a CRT-style digital flicker (stepped opacity pulses, not smooth fade) over ~400ms. If multiple rooms are revealed at once (Reveal All), they should cascade top-to-bottom with a ~75ms delay between each. Tokens in newly revealed rooms should fade in slightly after the room flicker (about 200ms delay).
@@ -50,8 +44,8 @@ result: pass
 ## Summary
 
 total: 7
-passed: 4
-issues: 3
+passed: 7
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0

@@ -6,6 +6,25 @@ export interface SystemData {
   info?: string;
 }
 
+export interface ResourceValue {
+  current: number;
+  max: number;
+}
+
+export interface ResourceCount {
+  occupied?: number;
+  available?: number;
+  total: number;
+}
+
+export interface ShipResources {
+  fuel: ResourceValue;
+  food: ResourceValue;
+  o2: ResourceValue;
+  cryopods: ResourceCount;
+  escape_pods: ResourceCount;
+}
+
 export interface ShipStatusData {
   location_slug?: string;
   slug?: string;
@@ -21,6 +40,8 @@ export interface ShipStatusData {
       engines: SystemData;
       weapons: SystemData;
       comms: SystemData;
+      reactor: SystemData;
     };
+    resources: ShipResources;
   };
 }

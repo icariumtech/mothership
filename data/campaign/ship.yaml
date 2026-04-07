@@ -23,8 +23,28 @@ ship:
       condition: 100
       info: O2 levels nominal
       status: OFFLINE
+    reactor:
+      condition: 100
+      info: Power output nominal
+      status: ONLINE
     weapons:
       condition: 100
       info: Defense grid active
       status: ONLINE
+  resources:
+    fuel:
+      current: 8
+      max: 12
+    food:
+      current: 14
+      max: 20
+    o2:
+      current: 94
+      max: 100
+    cryopods:
+      occupied: 4
+      total: 8
+    escape_pods:
+      available: 2
+      total: 2
 slug: ship

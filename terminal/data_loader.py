@@ -659,11 +659,20 @@ class DataLoader:
         self._save_ship_yaml(ship_data)
 
     def save_ship_integrity(self, field: str, values: dict) -> None:
-        """Update hull or armor values (current, max) in ship.yaml."""
+        """Update hull, armor, or other integrity fields (current, max) in ship.yaml."""
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data.setdefault('ship', {}).setdefault(field, {}).update(values)
+        self._save_ship_yaml(ship_data)
+
+    def save_ship_resource(self, resource_name: str, values: dict) -> None:
+        """Update a resource value (fuel, food, o2, cryopods, escape_pods) in ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        resources = ship_data.setdefault('ship', {}).setdefault('resources', {})
+        resources.setdefault(resource_name, {}).update(values)
         self._save_ship_yaml(ship_data)
 
 

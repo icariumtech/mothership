@@ -2,33 +2,38 @@
 
 UI Design System for the Mothership GM Tool. This guide defines the visual language inspired by Alien Romulus (2024) - a realistic, muted CRT aesthetic.
 
-## Color Scheme (V2-1: Muted Multi-Color)
+## Color Scheme (V2-2: Teal-Tinted CRT)
 
-**Design Philosophy**: Realistic, muted CRT aesthetic with multiple harmonious colors. No bright neon colors.
+**Design Philosophy**: Teal-tinted CRT aesthetic with brighter teal and warm amber. Text is teal-hued rather than neutral gray. Reference: `sample_ui/status-tab-hybrid.html`.
 
-**Color Palette** (defined as CSS variables in `terminal/templates/terminal/base.html`):
+**Color Palette** (defined as CSS variables in `src/styles/variables.css` and `terminal/templates/terminal/base.html`):
 
 ```css
---color-teal: #4a6b6b;              /* Primary structural color */
---color-teal-bright: #5a7a7a;       /* Hover states, emphasis */
---color-amber: #8b7355;             /* Active/interactive elements */
---color-amber-bright: #9a8065;      /* Hover states on amber */
---color-bg-primary: #0a0a0a;        /* Main background */
---color-bg-secondary: #1a1a1a;      /* Secondary surfaces */
---color-bg-panel: #1a2525;          /* Panel backgrounds */
---color-bg-panel-dark: #0f1515;     /* Dark panel variant */
---color-text-primary: #9a9a9a;      /* Body text */
---color-text-secondary: #7a7a7a;    /* Secondary text */
---color-text-muted: #5a5a5a;        /* Disabled/muted text */
---color-border-main: #4a6b6b;       /* Primary borders */
---color-border-subtle: #2a3a3a;     /* Subtle dividers */
---color-active: #8b7355;            /* Active selections */
+--color-teal: #4a8b8b;              /* Primary structural color */
+--color-teal-bright: #5a9b9b;       /* Hover states, emphasis */
+--color-teal-dim: #2a5a5a;          /* Dimmed teal, header text */
+--color-teal-dark: #0d1f1f;         /* Deep teal backgrounds */
+--color-amber: #c9a050;             /* Active/interactive elements */
+--color-amber-bright: #d4b060;      /* Hover states on amber */
+--color-amber-dim: #8b7355;         /* Dimmed amber */
+--color-bg-primary: #080e0e;        /* Main background */
+--color-bg-secondary: #0d1616;      /* Secondary surfaces */
+--color-bg-panel: #111e1e;          /* Panel backgrounds */
+--color-bg-panel-dark: #0d1616;     /* Dark panel variant */
+--color-text-primary: #7ab8b8;      /* Body text — teal-tinted */
+--color-text-secondary: #4a7070;    /* Secondary text */
+--color-text-muted: #2a4a4a;        /* Disabled/muted text */
+--color-border-main: #2a4040;       /* Primary borders */
+--color-border-subtle: #1e3333;     /* Subtle dividers */
+--color-active: #c9a050;            /* Active selections */
 ```
+
+**Font**: `'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace` — Share Tech Mono loaded via Google Fonts.
 
 **Visual Elements**:
 - **Angular Panels**: Chamfered corners using CSS `clip-path` polygons (12px chamfer size)
 - **CRT Effects**: Subtle scanlines (3px spacing, very low opacity)
-- **Text Hierarchy**: Teal for structure/headers, amber for actions, gray for content
+- **Text Hierarchy**: Teal for structure/headers, amber for actions, teal-tinted gray for content
 - **Diagonal Corner Lines**: 4px wide diagonal lines using linear gradients at chamfered corners
 
 ## Layout Standards

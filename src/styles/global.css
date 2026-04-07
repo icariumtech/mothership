@@ -7,9 +7,9 @@
 }
 
 body {
-  background-color: #000000;
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-family: 'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace;
   overflow: hidden;
   height: 100vh;
   width: 100vw;
@@ -39,17 +39,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a2525;
-  border-left: 1px solid #4a6b6b;
+  background: var(--color-bg-panel);
+  border-left: 1px solid var(--color-border-main);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #0f1515;
-  border: 1px solid #4a6b6b;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-main);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1a2525;
+  background: var(--color-bg-panel);
 }
 
 ::-webkit-scrollbar-button {

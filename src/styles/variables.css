@@ -1,28 +1,31 @@
-/* V2-1 Color Palette - Muted Multi-Color (Alien Romulus Style) */
+/* V2-2 Color Palette - Teal-Tinted CRT (status-tab-hybrid reference) */
 :root {
-  /* Primary colors - muted teal and amber */
-  --color-teal: #4a6b6b;
-  --color-teal-bright: #5a7a7a;
-  --color-amber: #8b7355;
-  --color-amber-bright: #9a8065;
+  /* Primary colors - brighter teal and amber */
+  --color-teal: #4a8b8b;
+  --color-teal-bright: #5a9b9b;
+  --color-teal-dim: #2a5a5a;
+  --color-teal-dark: #0d1f1f;
+  --color-amber: #c9a050;
+  --color-amber-bright: #d4b060;
+  --color-amber-dim: #8b7355;
 
   /* Background colors */
-  --color-bg-primary: #0a0a0a;
-  --color-bg-secondary: #1a1a1a;
-  --color-bg-panel: #1a2525;
-  --color-bg-panel-dark: #0f1515;
+  --color-bg-primary: #080e0e;
+  --color-bg-secondary: #0d1616;
+  --color-bg-panel: #111e1e;
+  --color-bg-panel-dark: #0d1616;
 
-  /* Text colors */
-  --color-text-primary: #9a9a9a;
-  --color-text-secondary: #7a7a7a;
-  --color-text-muted: #5a5a5a;
+  /* Text colors - teal-tinted */
+  --color-text-primary: #7ab8b8;
+  --color-text-secondary: #4a7070;
+  --color-text-muted: #2a4a4a;
 
   /* Border colors */
-  --color-border-main: #4a6b6b;
-  --color-border-subtle: #2a3a3a;
+  --color-border-main: #2a4040;
+  --color-border-subtle: #1e3333;
 
   /* State colors */
-  --color-active: #8b7355;
+  --color-active: #c9a050;
   --color-inactive: #3a4a4a;
 
   /* Performance mode - default values (effects enabled) */

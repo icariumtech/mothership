@@ -145,6 +145,7 @@ Plans:
 | 11. Close Functional + Security Gaps | 1/1 | Complete    | 2026-03-24 |
 | 12. Requirements Tracking + Dead Code Cleanup | 0/1 | Pending | - |
 | 13. Atmospheric UI Animations | 5/5 | Complete   | 2026-03-28 |
+| 14. Rework Bridge STATUS Tab | 0/3 | Planned | - |
 
 ### Phase 7: Grid-based encounter map redesign
 
@@ -228,3 +229,15 @@ Plans:
 - [ ] 13-03-PLAN.md — Encounter room reveal: CSS flicker keyframes + roomAnimState in EncounterMapRenderer + token delayed reveal in TokenLayer
 - [ ] 13-04-PLAN.md — Bridge panel boot stagger: BridgeView.css stagger classes + BridgeView.tsx staggerDone state
 - [ ] 13-05-PLAN.md — Human verification: view transitions, overlay animations, room reveals, bridge stagger
+
+### Phase 14: Rework Bridge STATUS Tab Ship Systems — remove armor, add reactor for ship power vs propulsion, align with official Mothership ship sheet
+
+**Goal:** Rework the player-facing Bridge STATUS tab from DashboardPanel cards to two floating terminal-readout panels (systems + resources) over the deck map. Add reactor as a 5th ship system, add consumable resource tracking (fuel, food, O2, cryopods, escape pods), and provide GM controls for all new fields.
+**Requirements**: STAT-10, STAT-11, STAT-12, STAT-13, STAT-14
+**Depends on:** Phase 13
+**Plans:** 3 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Data layer: ship.yaml reactor + resources, TypeScript types, Django resource endpoint, API client
+- [ ] 14-02-PLAN.md — Player UI: full rewrite of StatusSection.tsx/CSS with terminal panels, stagger animation, change flash
+- [ ] 14-03-PLAN.md — GM controls: reactor label in system loop, InputNumber resource spinners in BridgeView

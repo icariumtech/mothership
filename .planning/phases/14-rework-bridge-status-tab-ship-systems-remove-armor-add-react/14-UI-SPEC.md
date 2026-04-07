@@ -1,7 +1,8 @@
 ---
 phase: 14
 slug: rework-bridge-status-tab-ship-systems-remove-armor-add-react
-status: draft
+status: approved
+reviewed_at: 2026-04-07T00:00:00Z
 shadcn_initialized: false
 preset: none
 created: 2026-04-07
@@ -43,11 +44,11 @@ Declared values (multiples of 4):
 | 3xl | 64px | Not used in this phase's components |
 
 Exceptions:
-- Panel internal padding: 10px top/bottom, 10px left/right (from approved mockup — closest to sm=8px)
+- Panel internal padding: 8px top/bottom, 8px left/right (uses `sm` spacing token — rounded down from mockup's 10px)
 - Panel bottom clearance: 128px from bottom (above floating tab bar — existing StatusSection.css value retained)
-- Panel top offset: 30px from section top (matches existing overlay positioning)
-- Panel width: 138px (from approved mockup `sample_ui/status-tab-hybrid.html`)
-- Row top margin: 8px between rows; hull-row bottom margin 10px with separator border
+- Panel top offset: retain existing CSS value — not a spacing token (existing overlay positioning, not subject to token scale)
+- Panel width: 138px — layout dimension, exempt from spacing token scale (fixed by approved mockup `sample_ui/status-tab-hybrid.html`)
+- Row top margin: 8px between rows (uses `sm` token); hull-row bottom margin: 8px with separator border (rounded down from mockup's 10px)
 - Stagger animation delay increment: 80ms between rows (D-13)
 - Change-flash duration: 600ms (D-11)
 - Condition bar height: 3–4px (terminal readout style — thinner than current 16px)
@@ -63,13 +64,13 @@ Source: CONTEXT.md D-04, D-13; sample_ui/status-tab-hybrid.html; StatusSection.c
 |------|------|--------|-------------|-------|
 | Panel header label | 8px | 400 | 1.0 | Panel section title (SYSTEMS, RESOURCES) — all caps, letter-spacing 3px |
 | System/resource name | 7.5px | 400 | 1.0 | Row label left side (HULL, REACTOR, FUEL…) — all caps, letter-spacing 1px |
-| Status label / value | 7.5px | 700 | 1.0 | Row value right side (ONLINE, 8/12) — all caps, letter-spacing 0.5px |
+| Status label / value | 7.5px | 700 | 1.0 | Row value right side (ONLINE, 8/12) — all caps, letter-spacing 0.5px; also used for crew count in right-panel footer |
 | Hull value | 14px | 400 | 1.0 | Hull current/max only — larger for emphasis, letter-spacing 1px |
-| Info / sub text | 7px | 400 | 1.3 | One-line info beneath bar — muted, letter-spacing 0.5px |
-| Crew value | 11px | 400 | 1.0 | Crew count in right-panel footer |
-| System summary | 7px | 400 | 1.0 | Footer `X/5 OPERATIONAL · ⚠ N WARNING` |
+| Info / sub text | 7px | 400 | 1.3 | One-line info beneath bar — muted, letter-spacing 0.5px; also used for system summary footer |
 
 All text: `'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace`
+
+Distinct sizes: 4 (7px, 7.5px, 8px, 14px). Maximum enforced.
 
 Source: sample_ui/status-tab-hybrid.html — exact px values extracted from mockup CSS
 
@@ -174,7 +175,7 @@ Order of rows, top to bottom:
 5. **CRYOPODS row** (res-row style — label `CRYOPODS`, value `4 / 8`, sub: `occupied`)
 6. **ESCAPE PODS row** (res-row style — label `ESCAPE PODS`, value `2 / 2`)
 7. **Footer** — pinned to bottom with separator
-   - Label `CREW` (left, 7.5px muted) + value `7 / 12` (right, 11px text-dim; current count in teal)
+   - Label `CREW` (left, 7.5px, muted) + value `7 / 12` (right, 7.5px, text-dim; current count in teal)
 
 ### Panel Chamfer (clip-path)
 

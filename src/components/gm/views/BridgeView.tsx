@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Modal, Typography, Tag, Progress, Select, message } from 'antd';
+import { Modal, Typography, Tag, Progress, Select, message, InputNumber } from 'antd';
 import {
   RobotOutlined,
   TeamOutlined,
@@ -706,6 +706,7 @@ function GmBridgeMapPanel({
 
 const SYSTEM_STATUSES_GM: SystemStatus[] = ['ONLINE', 'STRESSED', 'DAMAGED', 'CRITICAL', 'OFFLINE'];
 const SYSTEM_LABELS_GM: Record<string, string> = {
+  reactor: 'Reactor',
   life_support: 'Life Support',
   engines: 'Engines',
   weapons: 'Weapons',
@@ -731,6 +732,7 @@ function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBri
   const [localInfos, setLocalInfos] = useState<Record<string, string>>({});
   const [localConditions, setLocalConditions] = useState<Record<string, string>>({});
   const [localIntegrity, setLocalIntegrity] = useState<Record<string, string>>({});
+  const [localResources, setLocalResources] = useState<Record<string, number>>({});
   const editingRef = useRef<Record<string, boolean>>({});
 
   // Sync info, condition, and integrity values from server when not currently editing that field
@@ -761,6 +763,18 @@ function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBri
       if (!editingRef.current['armor_info']) next['armor_info'] = armor.info ?? '';
       return next;
     });
+    if (shipData.ship.resources) {
+      const res = shipData.ship.resources;
+      setLocalResources(prev => {
+        const next = { ...prev };
+        if (!editingRef.current['fuel']) next['fuel'] = res.fuel.current;
+        if (!editingRef.current['food']) next['food'] = res.food.current;
+        if (!editingRef.current['o2']) next['o2'] = res.o2.current;
+        if (!editingRef.current['cryopods']) next['cryopods'] = res.cryopods.occupied ?? 0;
+        if (!editingRef.current['escape_pods']) next['escape_pods'] = res.escape_pods.available ?? 0;
+        return next;
+      });
+    }
   }, [shipData]);
 
   const handleSystemChange = useCallback(async (systemName: string, newStatus: SystemStatus) => {
@@ -816,6 +830,20 @@ function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBri
     } catch (err) {
       console.error('Error updating integrity:', err);
       messageApi.error('Failed to update integrity');
+    }
+  }, [messageApi]);
+
+  const handleResourceChange = useCallback(async (
+    resource: 'fuel' | 'food' | 'o2' | 'cryopods' | 'escape_pods',
+    valueKey: string,
+    value: number | null
+  ) => {
+    if (value === null) return;
+    try {
+      await gmConsoleApi.updateShipResource(resource, { [valueKey]: value });
+    } catch (err) {
+      console.error('Error updating resource:', err);
+      messageApi.error('Failed to update resource');
     }
   }, [messageApi]);
 
@@ -964,6 +992,88 @@ function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBri
               </div>
             );
           })}
+
+          {/* Resource Controls */}
+          {ship.resources && (
+            <div style={{ marginTop: 12, borderTop: '1px solid #1e3333', paddingTop: 8 }}>
+              <Text style={{ fontSize: 10, color: '#4a7070', letterSpacing: 1, textTransform: 'uppercase' }}>Resources</Text>
+
+              <div className="gm-bridge-status-system-row" style={{ marginTop: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11 }}>Fuel</Text>
+                  <span style={{ fontSize: 10, color: '#555' }}>/ {ship.resources.fuel.max}</span>
+                </div>
+                <InputNumber
+                  size="small" min={0} max={ship.resources.fuel.max}
+                  value={localResources['fuel'] ?? ship.resources.fuel.current}
+                  onChange={(val) => { editingRef.current['fuel'] = true; setLocalResources(prev => ({ ...prev, fuel: val ?? 0 })); }}
+                  onBlur={() => { editingRef.current['fuel'] = false; handleResourceChange('fuel', 'current', localResources['fuel'] ?? ship.resources.fuel.current); }}
+                  onPressEnter={() => { editingRef.current['fuel'] = false; handleResourceChange('fuel', 'current', localResources['fuel'] ?? ship.resources.fuel.current); }}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div className="gm-bridge-status-system-row" style={{ marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11 }}>Food</Text>
+                  <span style={{ fontSize: 10, color: '#555' }}>/ {ship.resources.food.max}</span>
+                </div>
+                <InputNumber
+                  size="small" min={0} max={ship.resources.food.max}
+                  value={localResources['food'] ?? ship.resources.food.current}
+                  onChange={(val) => { editingRef.current['food'] = true; setLocalResources(prev => ({ ...prev, food: val ?? 0 })); }}
+                  onBlur={() => { editingRef.current['food'] = false; handleResourceChange('food', 'current', localResources['food'] ?? ship.resources.food.current); }}
+                  onPressEnter={() => { editingRef.current['food'] = false; handleResourceChange('food', 'current', localResources['food'] ?? ship.resources.food.current); }}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div className="gm-bridge-status-system-row" style={{ marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11 }}>O2</Text>
+                  <span style={{ fontSize: 10, color: '#555' }}>/ {ship.resources.o2.max}</span>
+                </div>
+                <InputNumber
+                  size="small" min={0} max={ship.resources.o2.max}
+                  value={localResources['o2'] ?? ship.resources.o2.current}
+                  onChange={(val) => { editingRef.current['o2'] = true; setLocalResources(prev => ({ ...prev, o2: val ?? 0 })); }}
+                  onBlur={() => { editingRef.current['o2'] = false; handleResourceChange('o2', 'current', localResources['o2'] ?? ship.resources.o2.current); }}
+                  onPressEnter={() => { editingRef.current['o2'] = false; handleResourceChange('o2', 'current', localResources['o2'] ?? ship.resources.o2.current); }}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div className="gm-bridge-status-system-row" style={{ marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11 }}>Cryopods</Text>
+                  <span style={{ fontSize: 10, color: '#555' }}>/ {ship.resources.cryopods.total}</span>
+                </div>
+                <InputNumber
+                  size="small" min={0} max={ship.resources.cryopods.total}
+                  value={localResources['cryopods'] ?? ship.resources.cryopods.occupied ?? 0}
+                  onChange={(val) => { editingRef.current['cryopods'] = true; setLocalResources(prev => ({ ...prev, cryopods: val ?? 0 })); }}
+                  onBlur={() => { editingRef.current['cryopods'] = false; handleResourceChange('cryopods', 'occupied', localResources['cryopods'] ?? ship.resources.cryopods.occupied ?? 0); }}
+                  onPressEnter={() => { editingRef.current['cryopods'] = false; handleResourceChange('cryopods', 'occupied', localResources['cryopods'] ?? ship.resources.cryopods.occupied ?? 0); }}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div className="gm-bridge-status-system-row" style={{ marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11 }}>Escape Pods</Text>
+                  <span style={{ fontSize: 10, color: '#555' }}>/ {ship.resources.escape_pods.total}</span>
+                </div>
+                <InputNumber
+                  size="small" min={0} max={ship.resources.escape_pods.total}
+                  value={localResources['escape_pods'] ?? ship.resources.escape_pods.available ?? 0}
+                  onChange={(val) => { editingRef.current['escape_pods'] = true; setLocalResources(prev => ({ ...prev, escape_pods: val ?? 0 })); }}
+                  onBlur={() => { editingRef.current['escape_pods'] = false; handleResourceChange('escape_pods', 'available', localResources['escape_pods'] ?? ship.resources.escape_pods.available ?? 0); }}
+                  onPressEnter={() => { editingRef.current['escape_pods'] = false; handleResourceChange('escape_pods', 'available', localResources['escape_pods'] ?? ship.resources.escape_pods.available ?? 0); }}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -9,6 +9,7 @@ const { Option } = Select;
 const SYSTEM_STATUSES: SystemStatus[] = ['ONLINE', 'STRESSED', 'DAMAGED', 'CRITICAL', 'OFFLINE'];
 
 const SYSTEM_LABELS: Record<string, string> = {
+  reactor: 'Reactor',
   life_support: 'Life Support',
   engines: 'Engines',
   weapons: 'Weapons',

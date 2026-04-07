@@ -1746,7 +1746,7 @@ def api_ship_toggle_system(request):
     status = data.get('status', '').strip()
 
     # Validate system name
-    valid_systems = ['life_support', 'engines', 'weapons', 'comms']
+    valid_systems = ['life_support', 'engines', 'weapons', 'comms', 'reactor']
     if system_name not in valid_systems:
         return JsonResponse({
             'error': f'Invalid system. Must be one of: {", ".join(valid_systems)}'
@@ -1828,6 +1828,52 @@ def api_ship_update_integrity(request):
         logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
 
     return JsonResponse({'success': True, 'field': field, 'values': values})
+
+
+@login_required
+def api_ship_update_resource(request):
+    """
+    API endpoint to update ship resource values.
+    GM only - updates resource fields in ship.yaml.
+    POST: { resource: "fuel"|"food"|"o2"|"cryopods"|"escape_pods", current?: number, max?: number, occupied?: number, available?: number, total?: number }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    resource = data.get('resource', '').strip()
+    valid_resources = ['fuel', 'food', 'o2', 'cryopods', 'escape_pods']
+    if resource not in valid_resources:
+        return JsonResponse({
+            'error': f'Invalid resource. Must be one of: {", ".join(valid_resources)}'
+        }, status=400)
+
+    values = {}
+    for key in ('current', 'max', 'occupied', 'available', 'total'):
+        if key in data:
+            values[key] = int(data[key])
+
+    if not values:
+        return JsonResponse({'error': 'Provide at least one value field'}, status=400)
+
+    from terminal.data_loader import DataLoader
+    loader = DataLoader()
+    loader.save_ship_resource(resource, values)
+
+    # Broadcast updated ship status
+    try:
+        ship_broadcast_data = loader.load_ship_status()
+        if ship_broadcast_data:
+            broadcaster.announce_ship_status(ship_broadcast_data)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+
+    return JsonResponse({'success': True, 'resource': resource, 'values': values})
 
 
 def api_terminal_data(request, location_slug, terminal_slug):

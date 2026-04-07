@@ -76,6 +76,14 @@ async function updateShipIntegrity(field: 'hull' | 'armor', current?: number, ma
   return response.data;
 }
 
+async function updateShipResource(
+  resource: 'fuel' | 'food' | 'o2' | 'cryopods' | 'escape_pods',
+  values: Record<string, number>
+): Promise<any> {
+  const response = await api.post('/gm/ship-status/resource/', { resource, ...values });
+  return response.data;
+}
+
 async function getCrew(): Promise<{ crew: CrewMember[]; npcs: CrewMember[] }> {
   const response = await api.get<{ crew: CrewMember[]; npcs: CrewMember[] }>('/gm/crew/');
   return response.data;
@@ -130,6 +138,7 @@ export const gmConsoleApi = {
   getShipStatus,
   toggleShipSystem,
   updateShipIntegrity,
+  updateShipResource,
   getCrew,
   getSessions,
   setShipLocation,

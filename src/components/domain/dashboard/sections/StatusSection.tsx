@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { DashboardPanel } from '@components/ui/DashboardPanel';
 import type { ShipStatusData, SystemStatus } from '@/types/shipStatus';
 import { EncounterMapDisplay } from '@/components/domain/encounter/EncounterMapDisplay';
 import type { ShipDeckData } from '@/types/gmConsole';
 import './Section.css';
 import './StatusSection.css';
 
-// Track previous status for flicker detection
 interface PreviousStatuses {
   life_support: SystemStatus;
   engines: SystemStatus;
   weapons: SystemStatus;
   comms: SystemStatus;
+  reactor: SystemStatus;
 }
 
 interface ChangingFlags {
@@ -19,92 +18,75 @@ interface ChangingFlags {
   engines: boolean;
   weapons: boolean;
   comms: boolean;
+  reactor: boolean;
 }
 
-// System status panel component
-interface SystemStatusPanelProps {
-  name: string;
-  status: SystemStatus;
-  condition: number;
-  info?: string;
-  isChanging: boolean;
-  delay: number;
-  staggerDone: boolean;
-}
+const SYSTEM_ORDER = ['reactor', 'life_support', 'engines', 'weapons', 'comms'] as const;
 
-function SystemStatusPanel({
-  name,
-  status,
-  condition,
-  info,
-  isChanging,
-  delay,
-  staggerDone,
-}: SystemStatusPanelProps) {
-  const statusLower = status.toLowerCase();
-  const statusClass = `status-${statusLower}`;
-  const changingClass = isChanging ? 'state-changing' : '';
-  const staggerClass = staggerDone ? '' : 'stagger-animate';
-
-  return (
-    <div className={`system-panel ${statusClass} ${staggerClass}`} style={!staggerDone ? { animationDelay: `${delay}s` } : undefined}>
-      <DashboardPanel title={name} chamferCorners={['tl', 'br']} padding={12}>
-        <div className={`system-panel-content ${changingClass}`}>
-          <div className={`system-status-label ${statusClass}`}>{status}</div>
-          <div className="system-condition-bar">
-            <div
-              className={`system-condition-fill ${statusClass}${condition <= 25 ? ' condition-low' : ''}`}
-              style={{ width: `${condition}%` }}
-            />
-          </div>
-          <div className="system-info-text">{info}</div>
-        </div>
-      </DashboardPanel>
-    </div>
-  );
-}
-
-// Integrity panel component for hull/armor
-interface IntegrityPanelProps {
-  label: string;
-  current: number;
-  max: number;
-  info?: string;
-  variant: 'hull' | 'armor';
-  delay: number;
-  staggerDone: boolean;
-}
-
-function IntegrityPanel({ label, current, max, info, variant, delay, staggerDone }: IntegrityPanelProps) {
-  const percentage = (current / max) * 100;
-  const variantClass = `integrity-${variant}`;
-  const staggerClass = staggerDone ? '' : 'stagger-animate';
-
-  return (
-    <div className={`system-panel ${variantClass} ${staggerClass}`} style={!staggerDone ? { animationDelay: `${delay}s` } : undefined}>
-      <DashboardPanel title={label} chamferCorners={['tl', 'br']} padding={12}>
-        <div className="system-panel-content">
-          <div className={`integrity-value ${variantClass}`}>
-            {current} / {max}
-          </div>
-          <div className="system-condition-bar">
-            <div
-              className={`system-condition-fill integrity-fill-${variant}`}
-              style={{ width: `${percentage}%` }}
-            />
-          </div>
-          <div className="system-info-text">{info}</div>
-        </div>
-      </DashboardPanel>
-    </div>
-  );
-}
+const SYSTEM_LABELS: Record<string, string> = {
+  reactor: 'REACTOR',
+  life_support: 'LIFE SUPPORT',
+  engines: 'ENGINES',
+  weapons: 'WEAPONS',
+  comms: 'COMMS',
+};
 
 interface StatusSectionProps {
   shipData: ShipStatusData | null;
   shipDeckData?: ShipDeckData;
   shipDeckTotalDecks?: number;
   revealKey?: number;
+}
+
+function getThresholdClass(pct: number): string {
+  if (pct < 25) return 'critical';
+  if (pct <= 50) return 'low';
+  return '';
+}
+
+function renderResourceRows(ship: ShipStatusData['ship'], staggerComplete: boolean) {
+  const resources = ship.resources;
+  if (!resources) return null;
+
+  const rows: Array<{ key: string; label: string; valueDisplay: string; pct: number; subLabel: string }> = [];
+
+  const fuelPct = Math.round((resources.fuel.current / resources.fuel.max) * 100);
+  rows.push({ key: 'fuel', label: 'FUEL', valueDisplay: `${resources.fuel.current} / ${resources.fuel.max}`, pct: fuelPct, subLabel: `${fuelPct}% REMAINING` });
+
+  const foodPct = Math.round((resources.food.current / resources.food.max) * 100);
+  rows.push({ key: 'food', label: 'FOOD', valueDisplay: `${resources.food.current} / ${resources.food.max}`, pct: foodPct, subLabel: 'GALLEY STOCK' });
+
+  const o2Pct = Math.round((resources.o2.current / resources.o2.max) * 100);
+  rows.push({ key: 'o2', label: 'O2', valueDisplay: `${o2Pct}%`, pct: o2Pct, subLabel: 'OXYGEN REMAINING' });
+
+  const cryoPct = Math.round(((resources.cryopods.occupied ?? 0) / resources.cryopods.total) * 100);
+  rows.push({ key: 'cryopods', label: 'CRYOPODS', valueDisplay: `${resources.cryopods.occupied ?? 0} / ${resources.cryopods.total}`, pct: cryoPct, subLabel: 'OCCUPIED' });
+
+  const podPct = Math.round(((resources.escape_pods.available ?? 0) / resources.escape_pods.total) * 100);
+  rows.push({ key: 'escape_pods', label: 'ESCAPE PODS', valueDisplay: `${resources.escape_pods.available ?? 0} / ${resources.escape_pods.total}`, pct: podPct, subLabel: 'AVAILABLE' });
+
+  return rows.map((row, i) => {
+    const thresholdClass = getThresholdClass(row.pct);
+    return (
+      <div
+        key={row.key}
+        className={`res-row${!staggerComplete ? ' terminal-row-stagger' : ''}`}
+        style={!staggerComplete ? { animationDelay: `${i * 80}ms` } : undefined}
+      >
+        <div className="res-row-top">
+          <span className="res-name">{row.label}</span>
+          <span className="res-val">{row.valueDisplay}</span>
+        </div>
+        <div className="res-bar-track">
+          <div
+            className={`res-bar-fill${thresholdClass ? ` ${thresholdClass}` : ''}`}
+            style={{ width: `${row.pct}%` }}
+          />
+        </div>
+        <div className="res-sub">{row.subLabel}</div>
+      </div>
+    );
+  });
 }
 
 export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, revealKey }: StatusSectionProps) {
@@ -116,26 +98,27 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
     engines: false,
     weapons: false,
     comms: false,
+    reactor: false,
   });
   const mapFillRef = useRef<HTMLDivElement>(null);
 
-  // Mark stagger animation complete after longest delay + animation duration
+  // Mark stagger complete after all rows have animated in
   useEffect(() => {
-    const timer = setTimeout(() => setStaggerComplete(true), 2000);
+    const timer = setTimeout(() => setStaggerComplete(true), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Re-trigger schematic glitch-in animation when view reveals (bridgeRevealKey increments)
+  // Re-trigger schematic glitch-in animation when view reveals
   useEffect(() => {
     if (revealKey === undefined || revealKey === 0) return;
     const el = mapFillRef.current;
     if (!el) return;
     el.classList.remove('glitch-enter');
-    void el.offsetWidth; // force reflow
+    void el.offsetWidth;
     el.classList.add('glitch-enter');
   }, [revealKey]);
 
-  // Track status changes from SSE updates — flash changingFlags briefly on change
+  // Track SSE status changes — flash row briefly on change
   useEffect(() => {
     if (!shipData) return;
     const systems = shipData.ship.systems;
@@ -147,6 +130,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
         engines: systems.engines.status,
         weapons: systems.weapons.status,
         comms: systems.comms.status,
+        reactor: systems.reactor.status,
       };
       return;
     }
@@ -156,6 +140,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
       engines: prev.engines !== systems.engines.status,
       weapons: prev.weapons !== systems.weapons.status,
       comms: prev.comms !== systems.comms.status,
+      reactor: prev.reactor !== systems.reactor.status,
     };
 
     if (Object.values(changed).some(Boolean)) {
@@ -165,8 +150,11 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
         engines: systems.engines.status,
         weapons: systems.weapons.status,
         comms: systems.comms.status,
+        reactor: systems.reactor.status,
       };
-      setTimeout(() => setChangingFlags({ life_support: false, engines: false, weapons: false, comms: false }), 600);
+      setTimeout(() => setChangingFlags({
+        life_support: false, engines: false, weapons: false, comms: false, reactor: false,
+      }), 600);
     }
   }, [shipData]);
 
@@ -179,13 +167,28 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
   }
 
   const { ship } = shipData;
+  const systems = ship.systems;
+
+  // Crisis tint: hull <50% or any key resource <25%
+  const hasCrisis = (
+    (ship.hull.current / ship.hull.max) < 0.5 ||
+    (ship.resources?.fuel && (ship.resources.fuel.current / ship.resources.fuel.max) < 0.25) ||
+    (ship.resources?.food && (ship.resources.food.current / ship.resources.food.max) < 0.25) ||
+    (ship.resources?.o2 && (ship.resources.o2.current / ship.resources.o2.max) < 0.25)
+  );
+
+  // System summary for left panel footer
+  const onlineCount = SYSTEM_ORDER.filter(k => systems[k].status === 'ONLINE').length;
+  const warnCount = SYSTEM_ORDER.filter(k => ['STRESSED', 'DAMAGED', 'CRITICAL'].includes(systems[k].status)).length;
 
   return (
     <div className="section-status">
-      {/* Map + floating panels */}
       <div className="status-map-layout">
-        {/* Deck map — fills the area */}
-        <div className="status-map-fill glitch-enter" ref={mapFillRef}>
+        {/* Deck map */}
+        <div
+          className={`status-map-fill glitch-enter${hasCrisis ? ' crisis-tint' : ''}`}
+          ref={mapFillRef}
+        >
           {shipDeckData ? (
             <EncounterMapDisplay
               locationData={{
@@ -205,66 +208,81 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
           )}
         </div>
 
-        {/* Left overlay — Hull, Armor, Life Support */}
-        <div className="status-overlay-left">
-          <IntegrityPanel
-            label="HULL"
-            current={ship.hull.current}
-            max={ship.hull.max}
-            info={ship.hull.info}
-            variant="hull"
-            delay={0.6}
-            staggerDone={staggerComplete}
-          />
-          <IntegrityPanel
-            label="ARMOR"
-            current={ship.armor.current}
-            max={ship.armor.max}
-            info={ship.armor.info}
-            variant="armor"
-            delay={0.8}
-            staggerDone={staggerComplete}
-          />
-          <SystemStatusPanel
-            name="LIFE SUPPORT"
-            status={ship.systems.life_support.status}
-            condition={ship.systems.life_support.condition}
-            info={ship.systems.life_support.info}
-            isChanging={changingFlags.life_support}
-            delay={1.0}
-            staggerDone={staggerComplete}
-          />
+        {/* LEFT PANEL — Systems */}
+        <div className="terminal-panel panel-left">
+          <div className="terminal-panel-header">SYSTEMS</div>
+          <div className="terminal-panel-content">
+            {/* Hull row */}
+            <div
+              className={`hull-row${!staggerComplete ? ' terminal-row-stagger' : ''}`}
+              style={!staggerComplete ? { animationDelay: '0ms' } : undefined}
+            >
+              <div className="hull-top">
+                <span className="hull-label">HULL</span>
+                <span className="hull-val">{ship.hull.current} / {ship.hull.max}</span>
+              </div>
+              <div className="hull-bar-track">
+                <div className="hull-bar-fill" style={{ width: `${(ship.hull.current / ship.hull.max) * 100}%` }} />
+              </div>
+              <div className="hull-pct">{Math.round((ship.hull.current / ship.hull.max) * 100)}%</div>
+            </div>
+
+            {/* Armor row */}
+            <div
+              className={`hull-row${!staggerComplete ? ' terminal-row-stagger' : ''}`}
+              style={!staggerComplete ? { animationDelay: '80ms' } : undefined}
+            >
+              <div className="hull-top">
+                <span className="hull-label">ARMOR</span>
+                <span className="hull-val armor-val">{ship.armor.current} / {ship.armor.max}</span>
+              </div>
+              <div className="hull-bar-track">
+                <div className="hull-bar-fill armor-fill" style={{ width: `${(ship.armor.current / ship.armor.max) * 100}%` }} />
+              </div>
+              <div className="hull-pct">{Math.round((ship.armor.current / ship.armor.max) * 100)}%</div>
+            </div>
+
+            {/* System rows */}
+            {SYSTEM_ORDER.map((key, i) => {
+              const sys = systems[key];
+              const statusLower = sys.status.toLowerCase();
+              const staggerDelay = (i + 2) * 80;
+              return (
+                <div
+                  key={key}
+                  className={`sys-row s-${statusLower}${changingFlags[key] ? ' state-changing' : ''}${!staggerComplete ? ' terminal-row-stagger' : ''}`}
+                  style={!staggerComplete ? { animationDelay: `${staggerDelay}ms` } : undefined}
+                >
+                  <div className="sys-row-top">
+                    <span className="sys-name">{SYSTEM_LABELS[key]}</span>
+                    <span className="sys-status">{sys.status}</span>
+                  </div>
+                  <div className="sys-bar-track">
+                    <div className="sys-bar-fill" style={{ width: `${sys.condition}%` }} />
+                  </div>
+                  <div className="sys-info">{sys.info}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="terminal-panel-footer">
+            {onlineCount}/5 OPERATIONAL{warnCount > 0 ? ` · ⚠ ${warnCount} WARNING${warnCount > 1 ? 'S' : ''}` : ''}
+          </div>
         </div>
 
-        {/* Right overlay — Engines, Weapons, Comms */}
-        <div className="status-overlay-right">
-          <SystemStatusPanel
-            name="ENGINES"
-            status={ship.systems.engines.status}
-            condition={ship.systems.engines.condition}
-            info={ship.systems.engines.info}
-            isChanging={changingFlags.engines}
-            delay={0.6}
-            staggerDone={staggerComplete}
-          />
-          <SystemStatusPanel
-            name="WEAPONS"
-            status={ship.systems.weapons.status}
-            condition={ship.systems.weapons.condition}
-            info={ship.systems.weapons.info}
-            isChanging={changingFlags.weapons}
-            delay={0.8}
-            staggerDone={staggerComplete}
-          />
-          <SystemStatusPanel
-            name="COMMS"
-            status={ship.systems.comms.status}
-            condition={ship.systems.comms.condition}
-            info={ship.systems.comms.info}
-            isChanging={changingFlags.comms}
-            delay={1.0}
-            staggerDone={staggerComplete}
-          />
+        {/* RIGHT PANEL — Resources */}
+        <div className="terminal-panel panel-right">
+          <div className="terminal-panel-header">RESOURCES</div>
+          <div className="terminal-panel-content">
+            {renderResourceRows(ship, staggerComplete)}
+          </div>
+          <div className="terminal-panel-footer">
+            <span>CREW</span>
+            <span style={{ float: 'right' }}>
+              <span style={{ color: 'var(--color-teal)' }}>{ship.crew_count}</span> / {ship.crew_capacity}
+            </span>
+          </div>
         </div>
       </div>
     </div>

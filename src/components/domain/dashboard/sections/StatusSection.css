@@ -7,54 +7,11 @@
   z-index: 50;
 
   /* Status color variables */
-  --status-online: #4a6b6b;
-  --status-stressed: #8b7355;
+  --status-online: var(--color-teal);
+  --status-stressed: var(--color-amber);
   --status-damaged: #9a6045;
   --status-critical: #8b5555;
-  --status-offline: #3a3a3a;
-}
-
-/* Ship identity header — floats centered at the top of the map */
-.ship-identity-header {
-  position: absolute;
-  top: 30px;
-  left: 0;
-  right: 0;
-  margin: 0 auto;
-  width: fit-content;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 10px 24px;
-  background-color: rgba(8, 14, 14, 0.85);
-  border: 1px solid var(--color-border-main);
-  font-family: 'Cascadia Code', 'Courier New', monospace;
-  white-space: nowrap;
-  backdrop-filter: blur(4px);
-  animation: fade-slide-in 0.6s ease backwards;
-  animation-delay: 0.2s;
-}
-
-.ship-identity-name {
-  font-size: 16px;
-  font-weight: bold;
-  color: var(--color-teal-bright);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-.ship-identity-class {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  letter-spacing: 1px;
-}
-
-.ship-identity-crew {
-  font-size: 12px;
-  color: var(--color-amber);
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  --status-offline: #2a3a3a;
 }
 
 /* Map fills the entire section */
@@ -63,7 +20,7 @@
   inset: 0;
 }
 
-/* Grid background extends to fill the full container, including letterbox areas around the SVG */
+/* Grid background extends to fill the full container */
 .status-map-fill {
   position: absolute;
   inset: 0;
@@ -78,7 +35,7 @@
   animation: schematicGlitchIn 0.5s steps(1) forwards;
 }
 
-/* Remove the solid black background from the display so CSS grid shows in letterbox areas */
+/* Remove solid black background from display so CSS grid shows in letterbox areas */
 .status-map-fill .encounter-map-display {
   background: transparent;
 }
@@ -94,185 +51,307 @@
   letter-spacing: 1px;
 }
 
-/* Floating overlay columns — 30px from edge, matching star map panel offset */
-.status-overlay-left,
-.status-overlay-right {
+/* Crisis tint — low hull or resources */
+.status-map-fill.crisis-tint::before {
+  content: '';
   position: absolute;
-  top: 30px;
-  bottom: 128px; /* above floating tab bar */
-  width: 260px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px;
-  z-index: 10;
-  /* Display-only panels — pass clicks through to the map controls beneath */
+  inset: 0;
+  background: rgba(20, 5, 5, 0.15);
+  z-index: 1;
   pointer-events: none;
 }
 
-.status-overlay-left {
-  left: 30px;
-}
+/* ─── Terminal panels ─────────────────────────────────── */
 
-.status-overlay-right {
-  right: 30px;
-}
-
-/* Semi-transparent panel backgrounds when floating over map */
-.status-overlay-left .panel-wrapper,
-.status-overlay-right .panel-wrapper {
-  background-color: rgba(8, 14, 14, 0.82) !important;
-  backdrop-filter: blur(4px);
-}
-
-/* System panel wrapper */
-.system-panel {
-  /* No persistent animation here — stagger handled by .stagger-animate */
-}
-
-/* One-shot stagger animation on mount only */
-.system-panel.stagger-animate {
-  animation: fade-slide-in 0.6s ease backwards;
-}
-
-.system-panel-content {
+.terminal-panel {
+  position: absolute;
+  top: 40px;
+  bottom: 128px;
+  width: 138px;
+  padding: 8px;
+  background: rgba(13, 22, 22, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--color-border-subtle);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-/* Status labels */
-.system-status-label {
-  font-family: 'Cascadia Code', 'Courier New', monospace;
-  font-size: 14px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  text-align: center;
-  padding: 6px 0;
-}
-
-.system-status-label.status-online {
-  color: var(--status-online);
-}
-
-.system-status-label.status-stressed {
-  color: var(--status-stressed);
-}
-
-.system-status-label.status-damaged {
-  color: var(--status-damaged);
-}
-
-.system-status-label.status-critical {
-  color: var(--status-critical);
-}
-
-.system-status-label.status-offline {
-  color: var(--status-offline);
-}
-
-/* Condition bar */
-.system-condition-bar {
-  height: 16px;
-  background-color: rgba(15, 21, 21, 0.8);
-  border: 1px solid var(--color-border-subtle);
-  position: relative;
+  font-family: 'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace;
+  pointer-events: none;
+  z-index: 10;
   overflow: hidden;
 }
 
-.system-condition-fill {
-  height: 100%;
-  transition: width 0.5s ease;
+/* Scanline overlay */
+.terminal-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.06) 3px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
 }
 
-.system-condition-fill.status-online {
-  background-color: var(--status-online);
-  box-shadow: 0 0 8px var(--status-online);
+.terminal-panel.panel-left {
+  left: 0;
+  border-left: none;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
 }
 
-.system-condition-fill.status-stressed {
-  background-color: var(--status-stressed);
-  box-shadow: 0 0 8px var(--status-stressed);
+.terminal-panel.panel-right {
+  right: 0;
+  border-right: none;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
 }
 
-.system-condition-fill.status-damaged {
-  background-color: var(--status-damaged);
-  box-shadow: 0 0 8px var(--status-damaged);
-}
-
-.system-condition-fill.status-critical {
-  background-color: var(--status-critical);
-  box-shadow: 0 0 8px var(--status-critical);
-}
-
-.system-condition-fill.status-offline {
-  background-color: var(--status-offline);
-}
-
-/* Info text — always rendered so panel height stays constant */
-.system-info-text {
-  font-family: 'Cascadia Code', 'Courier New', monospace;
-  font-size: 10px;
+.terminal-panel-header {
+  font-size: 8px;
+  font-weight: 400;
   color: var(--color-text-muted);
-  text-align: center;
-  line-height: 1.4;
-  height: 28px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 7px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.terminal-panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
   overflow: hidden;
 }
 
-/* Condition bar turns red when <= 25% regardless of system status */
-.system-condition-fill.condition-low {
-  background-color: var(--status-critical);
-  box-shadow: 0 0 8px var(--status-critical);
+.terminal-panel-footer {
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: 7px;
+  color: var(--color-text-muted);
+  letter-spacing: 1px;
+  position: relative;
+  z-index: 1;
 }
 
-/* Status states - persistent animations (only after stagger completes) */
-.system-panel.status-critical:not(.stagger-animate) {
-  animation: pulse-critical 2s ease-in-out infinite;
+/* ─── Hull / Armor row ────────────────────────────────── */
+
+.hull-row {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  position: relative;
+  z-index: 1;
 }
 
-.system-panel.status-offline {
-  opacity: 0.5;
-  filter: grayscale(0.6);
+.hull-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
 }
 
-/* State changing - temporary flicker (on inner content to avoid stagger animation conflict) */
-.system-panel-content.state-changing {
-  animation: flicker 0.4s ease-in-out;
+.hull-label {
+  font-size: 7.5px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-/* Integrity panel values (hull/armor) */
-.integrity-value {
-  font-family: 'Cascadia Code', 'Courier New', monospace;
-  font-size: 18px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  text-align: center;
-  padding: 4px 0;
-}
-
-.integrity-value.integrity-hull {
+.hull-val {
+  font-size: 14px;
   color: var(--color-teal);
+  letter-spacing: 1px;
 }
 
-.integrity-value.integrity-armor {
+.hull-val.armor-val {
   color: var(--color-amber);
 }
 
-/* Integrity bar fills */
-.system-condition-fill.integrity-fill-hull {
-  background-color: var(--color-teal);
-  box-shadow: 0 0 8px var(--color-teal);
+.hull-bar-track {
+  height: 4px;
+  background: rgba(20, 35, 35, 0.8);
+  overflow: hidden;
+  margin-bottom: 2px;
 }
 
-.system-condition-fill.integrity-fill-armor {
-  background-color: var(--color-amber);
-  box-shadow: 0 0 8px var(--color-amber);
+.hull-bar-fill {
+  height: 100%;
+  background: var(--color-teal);
+  box-shadow: 0 0 6px var(--color-teal);
+  transition: width 0.4s ease;
 }
 
-/* Animations */
+.hull-bar-fill.armor-fill {
+  background: var(--color-amber);
+  box-shadow: 0 0 6px var(--color-amber);
+}
+
+.hull-pct {
+  font-size: 7px;
+  color: var(--color-text-muted);
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* ─── System rows ─────────────────────────────────────── */
+
+.sys-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.sys-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.sys-name {
+  font-size: 7.5px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sys-status {
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sys-bar-track {
+  height: 3px;
+  background: rgba(20, 35, 35, 0.8);
+  overflow: hidden;
+}
+
+.sys-bar-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.sys-info {
+  font-size: 7px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+  min-height: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status color variants */
+.sys-row.s-online .sys-status    { color: var(--status-online); }
+.sys-row.s-online .sys-bar-fill  { background: var(--status-online); box-shadow: 0 0 4px var(--status-online); }
+
+.sys-row.s-stressed .sys-status   { color: var(--status-stressed); }
+.sys-row.s-stressed .sys-bar-fill { background: var(--status-stressed); box-shadow: 0 0 4px var(--status-stressed); }
+
+.sys-row.s-damaged .sys-status    { color: var(--status-damaged); }
+.sys-row.s-damaged .sys-bar-fill  { background: var(--status-damaged); box-shadow: 0 0 4px var(--status-damaged); }
+
+.sys-row.s-critical .sys-status   { color: var(--status-critical); }
+.sys-row.s-critical .sys-bar-fill { background: var(--status-critical); box-shadow: 0 0 4px var(--status-critical); }
+
+.sys-row.s-offline { opacity: 0.45; filter: grayscale(0.3); }
+.sys-row.s-offline .sys-status   { color: var(--status-offline); }
+.sys-row.s-offline .sys-bar-fill { background: var(--status-offline); }
+
+/* Critical pulse (after stagger completes) */
+.sys-row.s-critical:not(.terminal-row-stagger) {
+  animation: pulse-critical 2s ease-in-out infinite;
+}
+
+/* Change flash */
+.sys-row.state-changing {
+  animation: flicker 0.4s ease-in-out;
+}
+
+/* ─── Resource rows ───────────────────────────────────── */
+
+.res-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.res-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.res-name {
+  font-size: 7.5px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.res-val {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: var(--color-amber);
+  letter-spacing: 0.5px;
+}
+
+.res-bar-track {
+  height: 3px;
+  background: rgba(20, 35, 35, 0.8);
+  overflow: hidden;
+}
+
+.res-bar-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+  background: var(--color-amber-dim);
+  box-shadow: 0 0 4px var(--color-amber-dim);
+}
+
+.res-bar-fill.low {
+  background: #9a6045;
+  box-shadow: 0 0 4px #9a6045;
+}
+
+.res-bar-fill.critical {
+  background: #8b5555;
+  box-shadow: 0 0 6px #8b5555;
+}
+
+.res-sub {
+  font-size: 7px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* ─── Row stagger animation ───────────────────────────── */
+
+.terminal-row-stagger {
+  animation: fade-slide-in 0.4s ease backwards;
+}
+
+/* ─── Keyframes (preserved) ───────────────────────────── */
+
 @keyframes fade-slide-in {
   from {
     opacity: 0;
@@ -313,10 +392,8 @@
 @keyframes pulse-critical {
   0%, 100% {
     opacity: 1;
-    border-color: var(--status-critical);
   }
   50% {
     opacity: 0.7;
-    border-color: rgba(139, 85, 85, 0.5);
   }
 }

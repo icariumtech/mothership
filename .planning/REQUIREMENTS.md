@@ -21,6 +21,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **STAT-04**: Crew count and capacity displayed
 - [x] **STAT-05**: System status changes animate visually (e.g., OPERATIONAL to WARNING transition)
 - [x] **STAT-06**: GM can toggle system states from the GM Console
+- [ ] **STAT-10**: STATUS tab uses dual terminal-readout panel layout (left=systems, right=resources) floating over full-screen deck map with semi-transparent backgrounds and chamfered corners
+- [ ] **STAT-11**: Reactor added as 5th ship system (SystemData shape: status/condition/info) in YAML, TypeScript types, and Django backend
+- [ ] **STAT-12**: Ship resource tracking for fuel, food, O2, cryopods, and escape pods with current/max values stored in ship.yaml and served via SSE
+- [ ] **STAT-13**: GM can modify reactor status/condition and all resource values from BridgeView panel using system controls and InputNumber spinners
+- [ ] **STAT-14**: Status change-flash animation (600ms row highlight on SSE update) and typewriter stagger-in animation (80ms sequential row reveal on tab load)
 
 ### Encounter Tokens
 
@@ -142,6 +147,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-04 | Phase 2 | Pending |
 | STAT-05 | Phase 2 | Pending |
 | STAT-06 | Phase 2 | Complete |
+| STAT-10 | Phase 14 | Pending |
+| STAT-11 | Phase 14 | Pending |
+| STAT-12 | Phase 14 | Pending |
+| STAT-13 | Phase 14 | Pending |
+| STAT-14 | Phase 14 | Pending |
 | TOKN-01 | Phase 3 | Pending |
 | TOKN-02 | Phase 3 | Pending |
 | TOKN-03 | Phase 3 | Pending |
@@ -180,8 +190,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHIP-01 | Phase 10 | Complete |
 
 **Coverage:**
-- v1 requirements: 42 total (29 original + 12 GMUI-* + 1 SHIP-01; AUDI-01..03 moved to v2)
-- Mapped to phases: 42
+- v1 requirements: 47 total (29 original + 12 GMUI-* + 1 SHIP-01 + 5 STAT-10..14; AUDI-01..03 moved to v2)
+- Mapped to phases: 47
 - Unmapped: 0
 
 **Phase 09 gap closures (integration fixes):**
@@ -209,4 +219,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-11*
-*Last updated: 2026-02-21 — Phase 7 grid-based encounter map requirements added (GRID-01 through GRID-10)*
+*Last updated: 2026-04-07 — Phase 14 STATUS tab rework requirements added (STAT-10 through STAT-14)*

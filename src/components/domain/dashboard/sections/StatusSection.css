@@ -61,85 +61,35 @@
   pointer-events: none;
 }
 
-/* ─── Terminal panels ─────────────────────────────────── */
+/* ─── Panel position wrappers ─────────────────────────── */
 
-.terminal-panel {
+.status-panel-left-wrap,
+.status-panel-right-wrap {
   position: absolute;
-  top: 40px;
-  bottom: 128px;
-  width: 138px;
-  padding: 8px;
-  background: rgba(13, 22, 22, 0.88);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-direction: column;
-  font-family: 'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace;
-  pointer-events: none;
+  top: 30px;
+  bottom: 110px;
+  width: 180px;
   z-index: 10;
+}
+
+.status-panel-left-wrap {
+  left: 30px;
+}
+
+.status-panel-right-wrap {
+  right: 30px;
+}
+
+/* Ensure panel-wrapper fills the absolute wrapper and clips overflow */
+.status-panel-left-wrap .panel-wrapper,
+.status-panel-right-wrap .panel-wrapper {
+  height: 100%;
   overflow: hidden;
 }
 
-/* Scanline overlay */
-.terminal-panel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 3px,
-    rgba(0, 0, 0, 0.06) 3px,
-    rgba(0, 0, 0, 0.06) 4px
-  );
-  pointer-events: none;
-  z-index: 0;
-}
-
-.terminal-panel.panel-left {
-  left: 0;
-  border-left: none;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
-}
-
-.terminal-panel.panel-right {
-  right: 0;
-  border-right: none;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-}
-
-.terminal-panel-header {
-  font-size: 8px;
-  font-weight: 400;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: 7px;
-  margin-bottom: 8px;
-  position: relative;
-  z-index: 1;
-}
-
-.terminal-panel-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-}
-
-.terminal-panel-footer {
-  margin-top: auto;
-  padding-top: 6px;
-  border-top: 1px solid var(--color-border-subtle);
-  font-size: 7px;
-  color: var(--color-text-muted);
-  letter-spacing: 1px;
-  position: relative;
-  z-index: 1;
+/* Right-align the RESOURCES panel header */
+.status-panel-right-wrap .panel-header h3 {
+  text-align: right;
 }
 
 /* ─── Hull / Armor row ────────────────────────────────── */
@@ -160,14 +110,14 @@
 }
 
 .hull-label {
-  font-size: 7.5px;
+  font-size: 10px;
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .hull-val {
-  font-size: 14px;
+  font-size: 10px;
   color: var(--color-teal);
   letter-spacing: 1px;
 }
@@ -196,7 +146,7 @@
 }
 
 .hull-pct {
-  font-size: 7px;
+  font-size: 9px;
   color: var(--color-text-muted);
   text-align: right;
   margin-top: 2px;
@@ -209,6 +159,8 @@
   flex-direction: column;
   gap: 3px;
   margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
   position: relative;
   z-index: 1;
 }
@@ -220,14 +172,14 @@
 }
 
 .sys-name {
-  font-size: 7.5px;
+  font-size: 10px;
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .sys-status {
-  font-size: 7.5px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -245,7 +197,7 @@
 }
 
 .sys-info {
-  font-size: 7px;
+  font-size: 9px;
   color: var(--color-text-muted);
   margin-top: 2px;
   letter-spacing: 0.5px;
@@ -254,6 +206,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sys-pct {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  text-align: right;
+  margin-top: 1px;
 }
 
 /* Status color variants */
@@ -269,9 +228,44 @@
 .sys-row.s-critical .sys-status   { color: var(--status-critical); }
 .sys-row.s-critical .sys-bar-fill { background: var(--status-critical); box-shadow: 0 0 4px var(--status-critical); }
 
-.sys-row.s-offline { opacity: 0.45; filter: grayscale(0.3); }
-.sys-row.s-offline .sys-status   { color: var(--status-offline); }
-.sys-row.s-offline .sys-bar-fill { background: var(--status-offline); }
+.sys-row.s-offline {
+  padding-left: 6px;
+  padding-right: 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+}
+
+.sys-row.s-offline::before {
+  content: '';
+  position: absolute;
+  top: -4px;    /* extends 4px into the 8px gap above → 4px from separator above */
+  left: 0;
+  right: 0;
+  bottom: 4px;  /* 4px from separator below */
+  border: 1px dashed #253535;
+  pointer-events: none;
+}
+
+.sys-row.s-offline .sys-name {
+  color: #3a5050;
+}
+
+.sys-row.s-offline .sys-status {
+  color: #3a5050;
+  border: 1px solid #2a3a3a;
+  padding: 0 5px;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.sys-row.s-offline .sys-bar-track {
+  display: none;
+}
+
+.sys-row.s-offline .sys-info,
+.sys-row.s-offline .sys-pct {
+  display: none;
+}
 
 /* Critical pulse (after stagger completes) */
 .sys-row.s-critical:not(.terminal-row-stagger) {
@@ -290,6 +284,8 @@
   flex-direction: column;
   gap: 3px;
   margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
   position: relative;
   z-index: 1;
 }
@@ -301,14 +297,14 @@
 }
 
 .res-name {
-  font-size: 7.5px;
+  font-size: 10px;
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .res-val {
-  font-size: 7.5px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--color-amber);
   letter-spacing: 0.5px;
@@ -338,10 +334,22 @@
 }
 
 .res-sub {
-  font-size: 7px;
+  font-size: 9px;
   color: var(--color-text-muted);
   margin-top: 2px;
   letter-spacing: 0.5px;
+}
+
+/* ─── Panel footer centering ──────────────────────────── */
+
+.status-panel-left-wrap .panel-footer,
+.status-panel-right-wrap .panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 32px;
+  padding: 6px 12px;
 }
 
 /* ─── Row stagger animation ───────────────────────────── */

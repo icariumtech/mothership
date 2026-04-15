@@ -242,6 +242,14 @@ Plans:
 - [x] 14-02-PLAN.md — Player UI: full rewrite of StatusSection.tsx/CSS with terminal panels, stagger animation, change flash
 - [x] 14-03-PLAN.md — GM controls: reactor label in system loop, InputNumber resource spinners in BridgeView
 
+### Phase 20: Audit Closure — Security + Requirements Tracking
+
+**Goal:** Close all remaining v1.0 audit gaps: fix two unauthenticated GM write endpoints, check off completed requirements (STAT-10..14, GRID-01..10), register untracked ANIM-* requirements, resolve PORT-03 design decision, and write minimal VERIFICATION.md artifacts for phases 04, 05, 07, 08, 10, 13, 14.
+**Requirements:** STAT-10, STAT-11, STAT-12, STAT-13, STAT-14, GRID-01..10, ANIM-VIEW, ANIM-OVERLAY, ANIM-ROOM, ANIM-BRIDGE
+**Gap Closure:** Closes all gaps from v1.0-MILESTONE-AUDIT.md (security, unregistered reqs, missing verification artifacts)
+**Depends on:** Phase 12
+**Plans:** 0 plans
+
 ### Phase 15: Data Directory Audit + Bug Fixes
 
 **Goal:** Establish a clean, verified baseline before the data directory restructure — fix dead code in data_loader.py, strip redundant YAML fields, and run TypeScript/YAML alignment audit.

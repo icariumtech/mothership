@@ -675,6 +675,42 @@ class DataLoader:
         resources.setdefault(resource_name, {}).update(values)
         self._save_ship_yaml(ship_data)
 
+    def save_ship_cargo(self, items: list) -> None:
+        """Replace the cargo items list in ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        ship_data.setdefault('ship', {}).setdefault('cargo', {})['items'] = list(items)
+        self._save_ship_yaml(ship_data)
+
+    def save_ship_stat(self, stat_name: str, value: int) -> None:
+        """Update a ship stat (thrusters, battle, systems) in ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        ship_data.setdefault('ship', {}).setdefault('stats', {})[stat_name] = value
+        self._save_ship_yaml(ship_data)
+
+    def save_system_power(self, system_name: str, allocated: int) -> None:
+        """Update a system's power.allocated in ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        systems = ship_data.setdefault('ship', {}).setdefault('systems', {})
+        systems.setdefault(system_name, {}).setdefault('power', {})['allocated'] = allocated
+        self._save_ship_yaml(ship_data)
+
+    def save_system_fault_indicator(self, system_name: str, index: int, active: bool) -> None:
+        """Toggle a fault indicator's active state for a system in ship.yaml."""
+        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        with open(ship_file, 'r') as f:
+            ship_data = yaml.safe_load(f) or {}
+        systems = ship_data.setdefault('ship', {}).setdefault('systems', {})
+        faults_list = systems.setdefault(system_name, {}).get('faults', [])
+        if 0 <= index < len(faults_list):
+            faults_list[index]['active'] = active
+        self._save_ship_yaml(ship_data)
+
 
 def group_messages_by_conversation(messages: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """

@@ -1097,7 +1097,7 @@ export function EncounterMapRenderer({
         x={label.x}
         y={label.y}
         className="encounter-map__room-label"
-        fontSize={unitSize * 0.3}
+        fontSize={unitSize * 0.45}
         fill="#8b7355"
         textAnchor="middle"
         dominantBaseline="middle"

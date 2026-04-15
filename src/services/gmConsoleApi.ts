@@ -77,11 +77,41 @@ async function updateShipIntegrity(field: 'hull' | 'armor', current?: number, ma
 }
 
 async function updateShipResource(
-  resource: 'fuel' | 'food' | 'o2' | 'cryopods' | 'escape_pods',
+  resource: string,
   values: Record<string, number>
 ): Promise<any> {
   const response = await api.post('/gm/ship-status/resource/', { resource, ...values });
   return response.data;
+}
+
+async function updateShipCargo(action: 'add', item: string): Promise<{ items: string[] }>;
+async function updateShipCargo(action: 'remove', index: number): Promise<{ items: string[] }>;
+async function updateShipCargo(action: 'add' | 'remove', itemOrIndex: string | number): Promise<{ items: string[] }> {
+  const payload = action === 'add'
+    ? { action, item: itemOrIndex }
+    : { action, index: itemOrIndex };
+  const response = await api.post('/ship/cargo/', payload);
+  return response.data;
+}
+
+async function updateReactorPower(system: string, amount: number): Promise<void> {
+  await api.post('/ship/reactor/power/', { system, amount });
+}
+
+async function triggerReactorAction(action: 'emergency_shutdown' | 'cold_start' | 'vent_plasma'): Promise<void> {
+  await api.post('/ship/reactor/action/', { action });
+}
+
+async function updateShipStat(stat: string, value: number): Promise<void> {
+  await api.post('/gm/ship-status/stat/', { stat, value });
+}
+
+async function updateSystemFault(system: string, index: number, active: boolean): Promise<void> {
+  await api.post('/gm/ship-status/fault/', { system, index, active });
+}
+
+async function updateSystemWarnings(system: string, warnings: string[]): Promise<void> {
+  await api.post('/gm/ship-status/toggle/', { system, warnings });
 }
 
 async function getCrew(): Promise<{ crew: CrewMember[]; npcs: CrewMember[] }> {
@@ -139,6 +169,12 @@ export const gmConsoleApi = {
   toggleShipSystem,
   updateShipIntegrity,
   updateShipResource,
+  updateShipStat,
+  updateShipCargo,
+  updateReactorPower,
+  triggerReactorAction,
+  updateSystemFault,
+  updateSystemWarnings,
   getCrew,
   getSessions,
   setShipLocation,

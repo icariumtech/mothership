@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-12T04:21:43.129Z",
+  "phase": "14",
+  "phase_name": "rework-bridge-status-tab-ship-systems-remove-armor-add-react",
+  "phase_dir": ".planning/phases/14-rework-bridge-status-tab-ship-systems-remove-armor-add-react",
+  "plan": 3,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Plan 14-01 — Extend ship data model (reactor + resources)", "status": "done", "commit": "dc56077"},
+    {"id": 2, "name": "Plan 14-02 — Backend API + SSE for systems/resources", "status": "done", "commit": "dc56077"},
+    {"id": 3, "name": "Plan 14-03 — Redesign STATUS tab dual-panel UI", "status": "done", "commit": "a0c1f36"}
+  ],
+  "remaining_tasks": [
+    {"id": 4, "name": "UAT — 10 tests pending (all human verification)", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {
+      "action": "Run UAT — all 10 tests require live server + visual inspection",
+      "context": "14-UAT.md has 10 tests covering dual-panel layout, system colors, resource threshold colors, stagger animation, crisis tint, GM controls, and SSE live updates. All marked pending.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {"decision": "Moved reset view button to top-center of STATUS tab", "rationale": "Better visual hierarchy, less clutter in panels", "phase": "14"},
+    {"decision": "Restyled offline systems with dimmed/greyed appearance", "rationale": "Clear visual distinction from online systems", "phase": "14"},
+    {"decision": "Added row separators and condition % to system rows", "rationale": "More information density without extra panels", "phase": "14"}
+  ],
+  "uncommitted_files": [
+    "data/campaign/ship.yaml",
+    "src/components/domain/dashboard/sections/StatusSection.css",
+    "src/components/domain/dashboard/sections/StatusSection.tsx",
+    "src/components/domain/encounter/EncounterMapRenderer.tsx",
+    "src/components/gm/ShipStatusPanel.tsx",
+    "src/components/gm/views/BridgeView.tsx",
+    "src/services/gmConsoleApi.ts",
+    "src/types/shipStatus.ts",
+    "terminal/data_loader.py",
+    "terminal/urls.py",
+    "terminal/views.py"
+  ],
+  "next_action": "Run the server and conduct UAT from 14-UAT.md — all 10 tests pending human verification",
+  "context_notes": "Phase 14 implementation is complete across all 3 plans. 12/12 automated checks passed (VERIFICATION.md). Only human UAT remains. Changes are substantial (1810+ insertions) but all uncommitted — need to run UAT before committing."
+}

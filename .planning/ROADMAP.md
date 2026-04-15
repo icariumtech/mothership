@@ -145,7 +145,7 @@ Plans:
 | 11. Close Functional + Security Gaps | 1/1 | Complete    | 2026-03-24 |
 | 12. Requirements Tracking + Dead Code Cleanup | 0/1 | Pending | - |
 | 13. Atmospheric UI Animations | 5/5 | Complete   | 2026-03-28 |
-| 14. Rework Bridge STATUS Tab | 0/3 | Planned | - |
+| 14. Rework Bridge STATUS Tab | 3/3 | Complete   | 2026-04-07 |
 
 ### Phase 7: Grid-based encounter map redesign
 
@@ -235,9 +235,55 @@ Plans:
 **Goal:** Rework the player-facing Bridge STATUS tab from DashboardPanel cards to two floating terminal-readout panels (systems + resources) over the deck map. Add reactor as a 5th ship system, add consumable resource tracking (fuel, food, O2, cryopods, escape pods), and provide GM controls for all new fields.
 **Requirements**: STAT-10, STAT-11, STAT-12, STAT-13, STAT-14
 **Depends on:** Phase 13
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 14-01-PLAN.md — Data layer: ship.yaml reactor + resources, TypeScript types, Django resource endpoint, API client
-- [ ] 14-02-PLAN.md — Player UI: full rewrite of StatusSection.tsx/CSS with terminal panels, stagger animation, change flash
-- [ ] 14-03-PLAN.md — GM controls: reactor label in system loop, InputNumber resource spinners in BridgeView
+- [x] 14-01-PLAN.md — Data layer: ship.yaml reactor + resources, TypeScript types, Django resource endpoint, API client
+- [x] 14-02-PLAN.md — Player UI: full rewrite of StatusSection.tsx/CSS with terminal panels, stagger animation, change flash
+- [x] 14-03-PLAN.md — GM controls: reactor label in system loop, InputNumber resource spinners in BridgeView
+
+### Phase 15: Data Directory Audit + Bug Fixes
+
+**Goal:** Establish a clean, verified baseline before the data directory restructure — fix dead code in data_loader.py, strip redundant YAML fields, and run TypeScript/YAML alignment audit.
+**Depends on:** Phase 12
+**Plans:** 1 plan
+
+Plans:
+- [ ] 15-01-PLAN.md — Bug fixes (load_location, load_maps, duplicate return None), has_orbit_map cleanup, TypeScript/YAML alignment audit, body_slug validation script
+
+### Phase 16: Ship Data Consolidation
+
+**Goal:** Consolidate the Morrigan's data from 4 files into 2 — move ship.yaml into ship/ and merge deck map files into a single deckplan.yaml.
+**Depends on:** Phase 15
+**Plans:** 1 plan
+
+Plans:
+- [ ] 16-01-PLAN.md — Move ship.yaml, create deckplan.yaml, add SHIP_YAML_PATH constant, update find_location_by_slug and views.py
+
+### Phase 17: Characters Per-Entity Files
+
+**Goal:** Split crew.yaml and npcs.yaml into one file per character for easier editing and lower AI token cost.
+**Depends on:** Phase 15
+**Plans:** 1 plan
+
+Plans:
+- [ ] 17-01-PLAN.md — Split crew + NPC files, update load_crew/load_npcs with glob + id uniqueness check
+
+### Phase 18: Locations Flat Directory
+
+**Goal:** Move all non-celestial locations from data/galaxy/ nesting into data/locations/{slug}/ with explicit parent references and self-registration into orbit maps.
+**Depends on:** Phase 16 (Phase 17 can run independently)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Data migration + load_all_locations, load_deckplan (git tag pre-location-restructure required first)
+- [ ] 18-02-PLAN.md — Views: orbit map self-registration injection, facility counting rewrite, slug disambiguation, encounter manifest call site updates, galaxy cleanup
+
+### Phase 19: DATA_DIRECTORY_GUIDE.md Rewrite
+
+**Goal:** Fully rewrite the data directory guide to document the live state after Phases 15–18.
+**Depends on:** Phase 18
+**Plans:** 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Full guide rewrite: new structure, deckplan schema, self-registration pattern, step-by-step workflows

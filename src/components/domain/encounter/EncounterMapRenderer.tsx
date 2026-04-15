@@ -1097,7 +1097,7 @@ export function EncounterMapRenderer({
         x={label.x}
         y={label.y}
         className="encounter-map__room-label"
-        fontSize={unitSize * 0.3}
+        fontSize={unitSize * 0.45}
         fill="#8b7355"
         textAnchor="middle"
         dominantBaseline="middle"
@@ -1760,16 +1760,16 @@ export function EncounterMapRenderer({
           zIndex: 1,
         }}
       >
-        {/* Reset view button - top left */}
+        {/* Reset view button - top center */}
         {(viewState.zoom !== 1 || viewState.panX !== 0 || viewState.panY !== 0) && (
           <button
             className="encounter-map__reset-btn"
             onClick={handleResetView}
             title="Reset view"
             style={{
-              gridArea: 'top-left',
+              gridArea: 'top-center',
               alignSelf: 'start',
-              justifySelf: 'start',
+              justifySelf: 'center',
               pointerEvents: 'auto',
               background: 'rgba(15, 21, 21, 0.95)',
               border: '1px solid #4a6b6b',

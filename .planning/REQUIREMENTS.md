@@ -52,16 +52,16 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Grid-Based Encounter Map
 
-- [ ] **GRID-01**: New TypeScript types for grid-based rooms (GridRect, GridRoom, DoorDef, GridEncounterMapData) exported from encounterMap.ts
-- [ ] **GRID-02**: YAML map files rebuilt in grid-based format (rooms defined by rects, doors on walls, no connections array)
-- [ ] **GRID-03**: Encounter map renderer uses wall-segment algorithm: interior edges between same-room rects are suppressed, only exterior perimeter drawn
-- [ ] **GRID-04**: Map background shows faint dark grid in void; room interiors show scanline floor texture
-- [ ] **GRID-05**: Walls render in amber (#8b7355), room labels centered and only visible when room is revealed
-- [ ] **GRID-06**: GM click-to-reveal: clicking a room in GM map preview toggles its reveal/hide state; bulk reveal all / hide all buttons available
-- [ ] **GRID-07**: TokenLayer findRoomAtCell tests all rects in a GridRoom for correct multi-rect room hit detection
-- [ ] **GRID-08**: MapPreview and EncounterPanel updated for GridRoom schema (no status field, type field, onRoomToggle wired)
-- [ ] **GRID-09**: isGridEncounterMap() type guard routes new maps to grid renderer in EncounterMapDisplay
-- [ ] **GRID-10**: End-to-end human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect placement
+- [x] **GRID-01**: New TypeScript types for grid-based rooms (GridRect, GridRoom, DoorDef, GridEncounterMapData) exported from encounterMap.ts
+- [x] **GRID-02**: YAML map files rebuilt in grid-based format (rooms defined by rects, doors on walls, no connections array)
+- [x] **GRID-03**: Encounter map renderer uses wall-segment algorithm: interior edges between same-room rects are suppressed, only exterior perimeter drawn
+- [x] **GRID-04**: Map background shows faint dark grid in void; room interiors show scanline floor texture
+- [x] **GRID-05**: Walls render in amber (#8b7355), room labels centered and only visible when room is revealed
+- [x] **GRID-06**: GM click-to-reveal: clicking a room in GM map preview toggles its reveal/hide state; bulk reveal all / hide all buttons available
+- [x] **GRID-07**: TokenLayer findRoomAtCell tests all rects in a GridRoom for correct multi-rect room hit detection
+- [x] **GRID-08**: MapPreview and EncounterPanel updated for GridRoom schema (no status field, type field, onRoomToggle wired)
+- [x] **GRID-09**: isGridEncounterMap() type guard routes new maps to grid renderer in EncounterMapDisplay
+- [x] **GRID-10**: End-to-end human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect placement
 
 ### GM Console UI (Phase 8)
 
@@ -166,16 +166,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RTMA-02 | Phase 5 | Complete |
 | RTMA-03 | Phase 5 | Complete |
 | RTMA-04 | Phase 5 | Complete |
-| GRID-01 | Phase 7 | Pending |
-| GRID-02 | Phase 7 | Pending |
-| GRID-03 | Phase 7 | Pending |
-| GRID-04 | Phase 7 | Pending |
-| GRID-05 | Phase 7 | Pending |
-| GRID-06 | Phase 7 | Pending |
-| GRID-07 | Phase 7 | Pending |
-| GRID-08 | Phase 7 | Pending |
-| GRID-09 | Phase 7 | Pending |
-| GRID-10 | Phase 7 | Pending |
+| GRID-01 | Phase 7 | Complete |
+| GRID-02 | Phase 7 | Complete |
+| GRID-03 | Phase 7 | Complete |
+| GRID-04 | Phase 7 | Complete |
+| GRID-05 | Phase 7 | Complete |
+| GRID-06 | Phase 7 | Complete |
+| GRID-07 | Phase 7 | Complete |
+| GRID-08 | Phase 7 | Complete |
+| GRID-09 | Phase 7 | Complete |
+| GRID-10 | Phase 7 | Complete |
 | GMUI-LAYOUT | Phase 8 | Complete |
 | GMUI-VIEWRAIL | Phase 8 | Complete |
 | GMUI-TOOLRAIL | Phase 8 | Complete |

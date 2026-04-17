@@ -143,7 +143,7 @@ Plans:
 | 9. Integration + GM Bridge Polish | 2/2 | ✓ Complete | 2026-03-20 |
 | 10. Player Ship Map View | 3/3 | ✓ Complete | 2026-03-24 |
 | 11. Close Functional + Security Gaps | 1/1 | Complete    | 2026-03-24 |
-| 12. Requirements Tracking + Dead Code Cleanup | 0/1 | Pending | - |
+| 12. Requirements Tracking + Dead Code Cleanup | 1/1 | ✓ Complete | 2026-04-17 |
 | 13. Atmospheric UI Animations | 5/5 | Complete   | 2026-03-28 |
 | 14. Rework Bridge STATUS Tab | 3/3 | Complete   | 2026-04-07 |
 

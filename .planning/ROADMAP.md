@@ -8,9 +8,9 @@ This milestone extends the existing Bridge view with essential GM tools: campaig
 
 - [x] **Phase 1: Campaign Logs Tab** - Display session logs in LOGS bridge tab (rename NOTES)
 - [x] **Phase 2: Ship Status Dashboard** - Ship systems and status panels in STATUS bridge tab
-- [ ] **Phase 3: Encounter Tokens** - Movable tokens on encounter maps with live updates
-- [ ] **Phase 4: NPC Portrait System** - Portrait overlays during encounters with typewriter effects
-- [ ] **Phase 5: Real-Time Push Architecture** - Replace polling with SSE, move ActiveView out of DB
+- [x] **Phase 3: Encounter Tokens** - Movable tokens on encounter maps with live updates
+- [x] **Phase 4: NPC Portrait System** - Portrait overlays during encounters with typewriter effects
+- [x] **Phase 5: Real-Time Push Architecture** - Replace polling with SSE, move ActiveView out of DB
 - [ ] **Phase 6: UI Audio System** - Click sounds, transitions, and mute toggle
 
 ## Phase Details
@@ -61,10 +61,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Backend data pipeline: ActiveView encounter_tokens field, token CRUD API endpoints, TypeScript types, API client
-- [ ] 03-02-PLAN.md — Frontend token rendering: TokenLayer, Token, TokenStatusOverlay components, encounter map integration, polling wire-up
-- [ ] 03-03-PLAN.md — GM Console controls: TokenPalette with placement/status/removal, drag-to-move on encounter map
-- [ ] 03-04-PLAN.md — UAT gap closure: drag preview sizing, custom token placement, GM popup/labels, room visibility filter
+- [x] 03-01-PLAN.md — Backend data pipeline: ActiveView encounter_tokens field, token CRUD API endpoints, TypeScript types, API client
+- [x] 03-02-PLAN.md — Frontend token rendering: TokenLayer, Token, TokenStatusOverlay components, encounter map integration, polling wire-up
+- [x] 03-03-PLAN.md — GM Console controls: TokenPalette with placement/status/removal, drag-to-move on encounter map
+- [x] 03-04-PLAN.md — UAT gap closure: drag preview sizing, custom token placement, GM popup/labels, room visibility filter
 
 ### Phase 4: NPC Portrait System
 **Goal**: GM can trigger NPC portrait displays during encounters with atmospheric presentation
@@ -79,10 +79,10 @@ Plans:
 **Plans:** 3/4 plans executed
 
 Plans:
-- [ ] 04-01-PLAN.md — Backend: encounter_active_portraits field, toggle-portrait endpoint, active-view response extension
-- [ ] 04-02-PLAN.md — Frontend foundation: TypeScript types (NpcPortraitData, ActiveView fields), togglePortrait API method
-- [ ] 04-03-PLAN.md — Frontend features: EncounterPanel NPC section, NPCPortraitOverlay, NPCPortraitCard, CSS animations, SharedConsole wiring
-- [ ] 04-04-PLAN.md — Human verification: end-to-end test of GM trigger flow and CRT animation sequence
+- [x] 04-01-PLAN.md — Backend: encounter_active_portraits field, toggle-portrait endpoint, active-view response extension
+- [x] 04-02-PLAN.md — Frontend foundation: TypeScript types (NpcPortraitData, ActiveView fields), togglePortrait API method
+- [x] 04-03-PLAN.md — Frontend features: EncounterPanel NPC section, NPCPortraitOverlay, NPCPortraitCard, CSS animations, SharedConsole wiring
+- [x] 04-04-PLAN.md — Human verification: end-to-end test of GM trigger flow and CRT animation sequence
 
 ### Phase 5: Real-Time Push Architecture
 **Goal**: Replace 2-second polling with Server-Sent Events for instant state updates
@@ -97,10 +97,10 @@ Plans:
 **Plans:** 3/4 plans executed
 
 Plans:
-- [ ] 05-01-PLAN.md — Backend foundation: active_view_store.py, sse_broadcaster.py, migration to drop ActiveView, SSE streaming endpoint
-- [ ] 05-02-PLAN.md — Backend views refactor: migrate all 17 write endpoints from ActiveView ORM to store + broadcaster
-- [ ] 05-03-PLAN.md — Frontend SSE: useSSE hook, SSEConnectionToast, replace polling in SharedConsole and GMConsole
-- [ ] 05-04-PLAN.md — Human verification: end-to-end latency, connection resilience, database integrity
+- [x] 05-01-PLAN.md — Backend foundation: active_view_store.py, sse_broadcaster.py, migration to drop ActiveView, SSE streaming endpoint
+- [x] 05-02-PLAN.md — Backend views refactor: migrate all 17 write endpoints from ActiveView ORM to store + broadcaster
+- [x] 05-03-PLAN.md — Frontend SSE: useSSE hook, SSEConnectionToast, replace polling in SharedConsole and GMConsole
+- [x] 05-04-PLAN.md — Human verification: end-to-end latency, connection resilience, database integrity
 
 ### Phase 6: UI Audio System
 
@@ -125,8 +125,8 @@ Audio requirements (AUDI-01, AUDI-02, AUDI-03) moved to v2 scope. Phase director
 **Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 09-01-PLAN.md — SSE shipstatus event + StatusSection polling removal + NPC portrait tooltip + SessionDetailView react-markdown
-- [ ] 09-02-PLAN.md — GM BridgeView main dashboard: breadcrumb bar + 3D map mirror + inline ship status panel + remove ship-status slide-out
+- [x] 09-01-PLAN.md — SSE shipstatus event + StatusSection polling removal + NPC portrait tooltip + SessionDetailView react-markdown
+- [x] 09-02-PLAN.md — GM BridgeView main dashboard: breadcrumb bar + 3D map mirror + inline ship status panel + remove ship-status slide-out
 
 ## Progress
 
@@ -155,10 +155,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — TypeScript grid types + YAML map files rebuilt in grid format
-- [ ] 07-02-PLAN.md — EncounterMapRenderer rewrite (wall-segment algorithm, floor texture, GM click-to-reveal) + EncounterMapDisplay routing
-- [ ] 07-03-PLAN.md — TokenLayer multi-rect update + MapPreview/EncounterPanel grid support + bulk reveal/hide
-- [ ] 07-04-PLAN.md — Human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect
+- [x] 07-01-PLAN.md — TypeScript grid types + YAML map files rebuilt in grid format
+- [x] 07-02-PLAN.md — EncounterMapRenderer rewrite (wall-segment algorithm, floor texture, GM click-to-reveal) + EncounterMapDisplay routing
+- [x] 07-03-PLAN.md — TokenLayer multi-rect update + MapPreview/EncounterPanel grid support + bulk reveal/hide
+- [x] 07-04-PLAN.md — Human verification: visual rendering, room reveal, player terminal, door symbols, token multi-rect
 
 ### Phase 8: Rework GM console UI
 
@@ -168,10 +168,10 @@ Plans:
 **Plans:** 3/4 plans executed
 
 Plans:
-- [ ] 08-01-PLAN.md — Layout shell: ViewRail, ToolRail, SlideOutPanel components + GMConsole flexbox restructure with view routing
-- [ ] 08-02-PLAN.md — EncounterView: full-screen map with floating controls + 4 slide-out tool panels (tokens, portraits, locations, terminals)
-- [ ] 08-03-PLAN.md — BridgeView dashboard, CharonView full-screen, StandbyView, DISPLAY button wiring
-- [ ] 08-04-PLAN.md — Human verification: all views, navigation, tool panels, map interactions, DISPLAY button, tablet layout
+- [x] 08-01-PLAN.md — Layout shell: ViewRail, ToolRail, SlideOutPanel components + GMConsole flexbox restructure with view routing
+- [x] 08-02-PLAN.md — EncounterView: full-screen map with floating controls + 4 slide-out tool panels (tokens, portraits, locations, terminals)
+- [x] 08-03-PLAN.md — BridgeView dashboard, CharonView full-screen, StandbyView, DISPLAY button wiring
+- [x] 08-04-PLAN.md — Human verification: all views, navigation, tool panels, map interactions, DISPLAY button, tablet layout
 
 ### Phase 10: Player ship map view
 
@@ -181,9 +181,9 @@ Plans:
 **Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 10-01-PLAN.md — Data layer + backend API: Morrigan deck YAML, DataLoader extensions, api_set_ship_location endpoint, BRIDGE payload branch, TypeScript types
-- [ ] 10-02-PLAN.md — Frontend bridge rendering: ship deck map in player STATUS tab + GmBridgeShipPanel replacing GmBridgeStatusPanel
-- [ ] 10-03-PLAN.md — GM ship location setter + end-to-end human verification
+- [x] 10-01-PLAN.md — Data layer + backend API: Morrigan deck YAML, DataLoader extensions, api_set_ship_location endpoint, BRIDGE payload branch, TypeScript types
+- [x] 10-02-PLAN.md — Frontend bridge rendering: ship deck map in player STATUS tab + GmBridgeShipPanel replacing GmBridgeStatusPanel
+- [x] 10-03-PLAN.md — GM ship location setter + end-to-end human verification
 
 ### Phase 11: Close Functional + Security Gaps
 **Goal:** Fix the three real gaps found by the v1.0 milestone audit: add the NPC portrait overlay to GM EncounterView, secure the ship integrity endpoint, thread the Set Ship Here prop into Encounter locations, and eliminate the GM console loading flash.
@@ -198,7 +198,7 @@ Plans:
   4. GM console loads without "No ship data available" flash (INITIAL_DATA injected)
 
 Plans:
-- [ ] 11-01-PLAN.md — Security fix + NPC portrait overlay + Set Ship Here prop + INITIAL_DATA injection
+- [x] 11-01-PLAN.md — Security fix + NPC portrait overlay + Set Ship Here prop + INITIAL_DATA injection
 
 ### Phase 12: Requirements Tracking + Dead Code Cleanup
 **Goal:** Bring REQUIREMENTS.md and ROADMAP.md into alignment with the actual implemented state: register orphaned requirements, check off completed grid map requirements, and remove dead code left over from the Phase 09 refactor.
@@ -214,7 +214,7 @@ Plans:
   5. ROADMAP.md progress table and plan checkboxes reflect actual completed state
 
 Plans:
-- [ ] 12-01-PLAN.md — REQUIREMENTS.md registration + ROADMAP.md sync + dead code removal
+- [x] 12-01-PLAN.md — REQUIREMENTS.md registration + ROADMAP.md sync + dead code removal
 
 ### Phase 13: Atmospheric UI animations for player-facing transitions and element reveals
 
@@ -224,11 +224,11 @@ Plans:
 **Plans:** 5/5 plans complete
 
 Plans:
-- [ ] 13-01-PLAN.md — useViewTransition hook + ViewStatusOverlay component + SharedConsole view transition wiring
-- [ ] 13-02-PLAN.md — Overlay animations: DocumentDialog scan-reveal, CharonDialog flicker-in, CommTerminalDialog scan-reveal, shared exit animation
-- [ ] 13-03-PLAN.md — Encounter room reveal: CSS flicker keyframes + roomAnimState in EncounterMapRenderer + token delayed reveal in TokenLayer
-- [ ] 13-04-PLAN.md — Bridge panel boot stagger: BridgeView.css stagger classes + BridgeView.tsx staggerDone state
-- [ ] 13-05-PLAN.md — Human verification: view transitions, overlay animations, room reveals, bridge stagger
+- [x] 13-01-PLAN.md — useViewTransition hook + ViewStatusOverlay component + SharedConsole view transition wiring
+- [x] 13-02-PLAN.md — Overlay animations: DocumentDialog scan-reveal, CharonDialog flicker-in, CommTerminalDialog scan-reveal, shared exit animation
+- [x] 13-03-PLAN.md — Encounter room reveal: CSS flicker keyframes + roomAnimState in EncounterMapRenderer + token delayed reveal in TokenLayer
+- [x] 13-04-PLAN.md — Bridge panel boot stagger: BridgeView.css stagger classes + BridgeView.tsx staggerDone state
+- [x] 13-05-PLAN.md — Human verification: view transitions, overlay animations, room reveals, bridge stagger
 
 ### Phase 14: Rework Bridge STATUS Tab Ship Systems — remove armor, add reactor for ship power vs propulsion, align with official Mothership ship sheet
 

@@ -372,7 +372,7 @@ class DataLoader:
             campaign_dir = self.data_dir / "campaign"
             if campaign_dir.exists():
                 candidate = campaign_dir / slug
-                if candidate.is_dir() and (candidate / "location.yaml").exists():
+                if candidate.is_dir() and (candidate / "ship.yaml").exists():
                     return self.load_location_recursive(candidate)
 
         return None

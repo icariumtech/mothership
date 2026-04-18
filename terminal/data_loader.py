@@ -13,6 +13,8 @@ from typing import Dict, List, Any
 class DataLoader:
     """Loads campaign data from the data/ directory structure."""
 
+    SHIP_YAML_PATH = 'campaign/ship/ship.yaml'
+
     def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
         self.galaxy_dir = self.data_dir / "galaxy"
@@ -573,8 +575,8 @@ class DataLoader:
         return {'slug': slug, 'title': title, 'content': body}
 
     def load_ship_status(self) -> Dict[str, Any]:
-        """Load ship status from data/campaign/ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        """Load ship status from data/campaign/ship/ship.yaml."""
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         if not ship_file.exists():
             return None
         with open(ship_file, 'r') as f:
@@ -582,14 +584,14 @@ class DataLoader:
         return ship_data
 
     def _save_ship_yaml(self, ship_data: dict) -> None:
-        """Write ship data back to data/campaign/ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        """Write ship data back to data/campaign/ship/ship.yaml."""
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'w') as f:
             yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
     def save_ship_location(self, location_slug: str) -> None:
-        """Write the galactic location_slug back to data/campaign/ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        """Write the galactic location_slug back to data/campaign/ship/ship.yaml."""
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data['location_slug'] = location_slug
@@ -597,7 +599,7 @@ class DataLoader:
 
     def save_ship_system(self, system_name: str, fields: dict) -> None:
         """Update a ship system's fields (status, condition, info) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         systems = ship_data.setdefault('systems', {})
@@ -606,7 +608,7 @@ class DataLoader:
 
     def save_ship_integrity(self, field: str, values: dict) -> None:
         """Update hull, armor, or other integrity fields (current, max) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data.setdefault(field, {}).update(values)
@@ -614,7 +616,7 @@ class DataLoader:
 
     def save_ship_resource(self, resource_name: str, values: dict) -> None:
         """Update a resource value (fuel, food, o2, cryopods, escape_pods) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         resources = ship_data.setdefault('resources', {})
@@ -623,7 +625,7 @@ class DataLoader:
 
     def save_ship_cargo(self, items: list) -> None:
         """Replace the cargo items list in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data.setdefault('cargo', {})['items'] = list(items)
@@ -631,7 +633,7 @@ class DataLoader:
 
     def save_ship_stat(self, stat_name: str, value: int) -> None:
         """Update a ship stat (thrusters, battle, systems) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data.setdefault('stats', {})[stat_name] = value
@@ -639,7 +641,7 @@ class DataLoader:
 
     def save_system_power(self, system_name: str, allocated: int) -> None:
         """Update a system's power.allocated in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         systems = ship_data.setdefault('systems', {})
@@ -648,7 +650,7 @@ class DataLoader:
 
     def save_system_fault_indicator(self, system_name: str, index: int, active: bool) -> None:
         """Toggle a fault indicator's active state for a system in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         systems = ship_data.setdefault('systems', {})

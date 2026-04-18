@@ -574,6 +574,33 @@ class DataLoader:
                 body = parts[2].strip()
         return {'slug': slug, 'title': title, 'content': body}
 
+    def load_deckplan(self, location_dir) -> Dict[str, Any]:
+        """Load deckplan.yaml from a location directory.
+
+        Returns dict with keys:
+          - decks: list of deck dicts sorted by level (ascending)
+          - hull: top-level hull dict (or None if not present)
+          - total_decks: len(decks)
+
+        Replaces load_encounter_manifest() for locations using the new deckplan format.
+        """
+        deckplan_path = Path(location_dir) / 'deckplan.yaml'
+        if not deckplan_path.exists():
+            return {'decks': [], 'hull': None, 'total_decks': 0}
+
+        with open(deckplan_path) as f:
+            data = yaml.safe_load(f)
+
+        decks = data.get('decks', [])
+        decks_sorted = sorted(decks, key=lambda d: d.get('level', 0))
+        hull = data.get('hull', None)
+
+        return {
+            'decks': decks_sorted,
+            'hull': hull,
+            'total_decks': len(decks_sorted),
+        }
+
     def load_ship_status(self) -> Dict[str, Any]:
         """Load ship status from data/campaign/ship/ship.yaml."""
         ship_file = self.data_dir / self.SHIP_YAML_PATH

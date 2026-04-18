@@ -53,7 +53,6 @@ bodies:
     atmosphere_color: 0x87CEEB
     atmosphere_intensity: 0.4
     clickable: true
-    has_orbit_map: true
     info:
       description: "Primary colony world - Earth-like"
       population: "~165,000"
@@ -70,7 +69,6 @@ bodies:
     atmosphere_color: 0x9ACD32
     atmosphere_intensity: 0.3
     clickable: true
-    has_orbit_map: true
     info:
       description: "Secondary colony - Warm, humid climate"
       population: "~18,000"
@@ -90,6 +88,5 @@ bodies:
     ring_outer: 5.0
     ring_color: 0xD2B48C
     clickable: true
-    has_orbit_map: false
     info:
       description: "Gas giant with industrial moons"

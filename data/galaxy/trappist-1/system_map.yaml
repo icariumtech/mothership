@@ -55,7 +55,6 @@ bodies:
     atmosphere_color: 0xAA8866
     atmosphere_intensity: 0.2
     clickable: true
-    has_orbit_map: true
     tidally_locked: true
     info:
       description: "Habitable zone - Research outpost"
@@ -72,7 +71,6 @@ bodies:
     atmosphere_color: 0x6495ED
     atmosphere_intensity: 0.35
     clickable: true
-    has_orbit_map: true
     tidally_locked: true
     info:
       description: "Most Earth-like - Primary research colony"
@@ -90,7 +88,6 @@ bodies:
     atmosphere_color: 0x87CEEB
     atmosphere_intensity: 0.25
     clickable: true
-    has_orbit_map: false
     tidally_locked: true
     info:
       description: "Habitable zone - Water world candidate"

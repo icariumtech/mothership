@@ -2097,7 +2097,7 @@ def api_ship_reactor_action(request):
         if current_status == 'OFFLINE':
             return JsonResponse({'error': 'Reactor is already offline'}, status=400)
         # Zero all non-reactor power allocations atomically with reactor shutdown
-        all_systems = ship_data.setdefault('ship', {}).setdefault('systems', {})
+        all_systems = ship_data.setdefault('systems', {})
         for sys_key, sys_data in all_systems.items():
             if sys_key != 'reactor' and isinstance(sys_data, dict):
                 power = sys_data.get('power')

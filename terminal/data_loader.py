@@ -585,7 +585,7 @@ class DataLoader:
         """Write ship data back to data/campaign/ship.yaml."""
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'w') as f:
-            yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True)
+            yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
     def save_ship_location(self, location_slug: str) -> None:
         """Write the galactic location_slug back to data/campaign/ship.yaml."""

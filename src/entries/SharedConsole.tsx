@@ -879,10 +879,10 @@ function SharedConsole() {
 
       {/* Header - hidden in standby and JANUS terminal modes */}
       <TerminalHeader
-        title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : viewType === 'BRIDGE' ? (shipData?.ship.name?.toUpperCase() || 'MOTHERSHIP') : 'MOTHERSHIP'}
+        title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : viewType === 'BRIDGE' ? (shipData?.name?.toUpperCase() || 'MOTHERSHIP') : 'MOTHERSHIP'}
         subtitle={viewType === 'ENCOUNTER' || viewType === 'BRIDGE' ? undefined : 'TERMINAL'}
         rightText={viewType === 'ENCOUNTER' || viewType === 'BRIDGE' ? undefined : 'STATION ACCESS'}
-        rightDescription={viewType === 'BRIDGE' ? (shipData?.ship.class || undefined) : undefined}
+        rightDescription={viewType === 'BRIDGE' ? (shipData?.class || undefined) : undefined}
         hidden={isStandby}
         typewriterTitle={viewType === 'ENCOUNTER'}
       />

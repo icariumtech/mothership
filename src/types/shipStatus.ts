@@ -29,16 +29,14 @@ export interface CargoData {
 }
 
 export interface ShipStatusData {
-  location_slug?: string;
+  class: string;
+  name: string;
   slug?: string;
-  ship: {
-    name: string;
-    class: string;
-    crew_count: number;
-    crew_capacity: number;
-    stats?: { thrusters?: number; battle?: number; systems?: number };
-    systems: Record<string, SystemData>;
-    resources: Record<string, ResourceData>;
-    cargo?: CargoData;
-  };
+  location_slug?: string;
+  crew_capacity: number;
+  crew_count: number;
+  stats?: { thrusters?: number; battle?: number; systems?: number };
+  systems: Record<string, SystemData>;
+  resources: Record<string, ResourceData>;
+  cargo?: CargoData;
 }

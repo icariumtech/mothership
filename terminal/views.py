@@ -1747,7 +1747,7 @@ def api_ship_toggle_system(request):
 
     # Validate system name against what's actually in ship.yaml
     from terminal.data_loader import DataLoader as _DL
-    _ship = (_DL().load_ship_status() or {}).get('ship', {})
+    _ship = _DL().load_ship_status() or {}
     valid_systems = list((_ship.get('systems') or {}).keys())
     if system_name not in valid_systems:
         return JsonResponse({
@@ -1924,7 +1924,7 @@ def api_ship_update_resource(request):
 
     resource = data.get('resource', '').strip()
     from terminal.data_loader import DataLoader as _DL
-    _ship = (_DL().load_ship_status() or {}).get('ship', {})
+    _ship = _DL().load_ship_status() or {}
     valid_resources = list((_ship.get('resources') or {}).keys())
     if resource not in valid_resources:
         return JsonResponse({
@@ -1980,7 +1980,7 @@ def api_ship_update_cargo(request):
     from terminal.data_loader import DataLoader
     loader = DataLoader()
     ship_data = loader.load_ship_status() or {}
-    cargo = ship_data.get('ship', {}).get('cargo', {}) or {}
+    cargo = ship_data.get('cargo', {}) or {}
     items = list(cargo.get('items', []))
 
     if action == 'add':
@@ -2033,7 +2033,7 @@ def api_ship_reactor_power(request):
     from terminal.data_loader import DataLoader
     loader = DataLoader()
     ship_data = loader.load_ship_status() or {}
-    all_systems = ship_data.get('ship', {}).get('systems', {})
+    all_systems = ship_data.get('systems', {})
     reactor = all_systems.get('reactor', {})
     power_capacity = reactor.get('power_capacity', 0)
 
@@ -2090,7 +2090,7 @@ def api_ship_reactor_action(request):
     from terminal.data_loader import DataLoader
     loader = DataLoader()
     ship_data = loader.load_ship_status() or {}
-    reactor = ship_data.get('ship', {}).get('systems', {}).get('reactor', {})
+    reactor = ship_data.get('systems', {}).get('reactor', {})
     current_status = reactor.get('status', 'OFFLINE')
 
     if action == 'emergency_shutdown':

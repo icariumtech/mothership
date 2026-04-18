@@ -484,7 +484,7 @@ export function EncounterView({
             onShowTerminal={onShowTerminal}
             onSetShipLocation={handleSetShipLocation}
             shipLocationSlug={shipData?.location_slug}
-            shipName={shipData?.ship?.name}
+            shipName={shipData?.name}
             shipSlug={shipData?.slug}
           />
         </SlideOutPanel>

@@ -188,7 +188,7 @@ export function BridgeView({
             onShowTerminal={onShowTerminal}
             onSetShipLocation={handleSetShipLocation}
             shipLocationSlug={shipData?.location_slug}
-            shipName={shipData?.ship?.name}
+            shipName={shipData?.name}
             shipSlug={shipData?.slug}
           />
         </SlideOutPanel>
@@ -742,7 +742,7 @@ function GmBridgeShipPanel({ shipData, shipDeckData, shipDeckTotalDecks }: GmBri
     );
   }
 
-  const { ship } = shipData;
+  const ship = shipData;
 
   return (
     <div className="gm-bridge-ship-panel" style={{ flexDirection: 'column' }}>
@@ -786,7 +786,7 @@ function GmShipSystemsPanel({ shipData }: { shipData: ShipStatusData | null }) {
     if (!shipData) return;
     setLocalWarnings(prev => {
       const next = { ...prev };
-      for (const [key, sys] of Object.entries(shipData.ship.systems)) {
+      for (const [key, sys] of Object.entries(shipData.systems)) {
         next[key] = sys.warnings ?? [];
       }
       return next;
@@ -796,7 +796,7 @@ function GmShipSystemsPanel({ shipData }: { shipData: ShipStatusData | null }) {
   const handleSystemChange = useCallback(async (systemName: string, newStatus: SystemStatus) => {
     try {
       await gmConsoleApi.toggleShipSystem(systemName, newStatus);
-      const label = shipData?.ship.systems[systemName]?.display_name ?? systemName;
+      const label = shipData?.systems[systemName]?.display_name ?? systemName;
       messageApi.success(`${label} → ${newStatus}`);
     } catch {
       messageApi.error('Failed to update system status');
@@ -853,7 +853,7 @@ function GmShipSystemsPanel({ shipData }: { shipData: ShipStatusData | null }) {
 
   if (!shipData) return <Text type="secondary" style={{ fontSize: 11 }}>No ship data available</Text>;
 
-  const { ship } = shipData;
+  const ship = shipData;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -985,10 +985,10 @@ function GmShipResourcesPanel({ shipData }: { shipData: ShipStatusData | null })
   const editingRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!shipData?.ship.resources) return;
+    if (!shipData?.resources) return;
     setLocalResources(prev => {
       const next = { ...prev };
-      for (const [key, res] of Object.entries(shipData.ship.resources)) {
+      for (const [key, res] of Object.entries(shipData.resources)) {
         if (!editingRef.current[key]) next[key] = res.current;
       }
       return next;
@@ -1004,7 +1004,7 @@ function GmShipResourcesPanel({ shipData }: { shipData: ShipStatusData | null })
     }
   }, [messageApi]);
 
-  if (!shipData?.ship.resources) {
+  if (!shipData?.resources) {
     return <Text type="secondary" style={{ fontSize: 11 }}>No resource data available</Text>;
   }
 
@@ -1012,7 +1012,7 @@ function GmShipResourcesPanel({ shipData }: { shipData: ShipStatusData | null })
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {contextHolder}
       {/* Dynamic — renders whatever resources are defined in ship.yaml */}
-      {Object.entries(shipData.ship.resources).map(([key, res]) => {
+      {Object.entries(shipData.resources).map(([key, res]) => {
         const label = res.display_name ?? key.replace(/_/g, ' ');
         return (
           <div key={key} className="gm-bridge-status-system-row">

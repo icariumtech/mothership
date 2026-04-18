@@ -1,133 +1,132 @@
-location_slug: phoebe
-ship:
-  cargo:
-    items:
-    - Stuff 1
-    - Stuff 4
-    - Stuff 3
-    - stuff 3
-    - Stuff 5
-    - more stuff
-    - This is more stuff
-    - Even more sutff
-  class: Hargrave-Class Light Freighter
-  crew_capacity: 12
-  crew_count: 7
-  name: USCSS Morrigan
-  resources:
-    cryopods:
-      current: 2
-      display_name: Cryopods
-      info: Occupied
-      max: 8
-    escape_pods:
-      current: 0
-      display_name: Escape Pods
-      info: Available
-      max: 2
-    food:
-      current: 2
-      display_name: Food
-      info: Galley stock
-      max: 20
-    fuel:
-      current: 7
-      display_name: Fuel
-      info: Reactor feed
-      max: 12
-    o2:
-      current: 20
-      display_name: O2
-      info: Oxygen remaining
-      max: 100
-  stats:
-    battle: 5
-    systems: 10
-    thrusters: 20
-  systems:
-    comms:
-      condition: 3
-      display_name: Comms
-      icon: intercom
-      power:
-        allocated: 0
-        max: 3
-      status: ONLINE
-      subsystems:
-      - SHORT RANGE
-      - IN-SYSTEM
-      - LONG RANGE
-    engines:
-      condition: 5
-      display_name: Engines
-      faults:
-      - active: true
-        label: Coolant Leak
-      - active: true
-        label: Thruster Misalignment
-      - active: true
-        label: Jump Drive Calibration Error
-      icon: jumpdrive
-      power:
-        allocated: 0
-        max: 5
-      status: ONLINE
-      subsystems:
-      - THRUSTERS
-      - SUB-LIGHT
-      - FULL BURN
-      - JUMP READY
-      - OVERDRIVE
-      warnings:
-      - Coolant Pressure Low
-    life_support:
-      condition: 4
-      display_name: Life Support
-      icon: ventillation
-      power:
-        allocated: 0
-        max: 4
-      status: ONLINE
-      subsystems:
-      - MINIMAL
-      - NOMINAL
-      - MEDICAL
-      - CRYO
-      warnings:
-      - O2 levels nominal
-    medbay:
-      condition: 3
-      display_name: medbay
-      icon: medbay
-      power:
-        allocated: 0
-        max: 3
-      status: ONLINE
-      subsystems:
-      - DIAGNOSTICS
-      - TOOLS
-      - SERGICAL BED
-    reactor:
-      condition: 12
-      display_name: Reactor
-      icon: reactor core
-      power_capacity: 12
-      status: ONLINE
-      warnings:
-      - Low Pressure
-    weapons:
-      condition: 4
-      display_name: Weapons
-      icon: weapon system
-      power:
-        allocated: 0
-        max: 4
-      status: ONLINE
-      subsystems:
-      - POINT DEFENSE
-      - ARMED
-      - FULL BATTERY
-      - COMBAT READY
-      warnings:
-      - Defense grid active
+class: Hargrave-Class Light Freighter
+name: USCSS Morrigan
 slug: ship
+location_slug: phoebe
+crew_capacity: 12
+crew_count: 7
+stats:
+  battle: 5
+  systems: 10
+  thrusters: 20
+systems:
+  comms:
+    condition: 3
+    display_name: Comms
+    icon: intercom
+    power:
+      allocated: 2
+      max: 3
+    status: ONLINE
+    subsystems:
+    - SHORT RANGE
+    - IN-SYSTEM
+    - LONG RANGE
+  engines:
+    condition: 5
+    display_name: Engines
+    faults:
+    - active: true
+      label: Coolant Leak
+    - active: true
+      label: Thruster Misalignment
+    - active: true
+      label: Jump Drive Calibration Error
+    icon: jumpdrive
+    power:
+      allocated: 2
+      max: 5
+    status: ONLINE
+    subsystems:
+    - THRUSTERS
+    - SUB-LIGHT
+    - FULL BURN
+    - JUMP READY
+    - OVERDRIVE
+    warnings:
+    - Coolant Pressure Low
+  life_support:
+    condition: 4
+    display_name: Life Support
+    icon: ventillation
+    power:
+      allocated: 3
+      max: 4
+    status: ONLINE
+    subsystems:
+    - MINIMAL
+    - NOMINAL
+    - MEDICAL
+    - CRYO
+    warnings:
+    - O2 levels nominal
+  medbay:
+    condition: 3
+    display_name: medbay
+    icon: medbay
+    power:
+      allocated: 2
+      max: 3
+    status: ONLINE
+    subsystems:
+    - DIAGNOSTICS
+    - TOOLS
+    - SERGICAL BED
+  reactor:
+    condition: 12
+    display_name: Reactor
+    icon: reactor core
+    power_capacity: 12
+    status: ONLINE
+    warnings:
+    - Low Pressure
+  weapons:
+    condition: 4
+    display_name: Weapons
+    icon: weapon system
+    power:
+      allocated: 3
+      max: 4
+    status: ONLINE
+    subsystems:
+    - POINT DEFENSE
+    - ARMED
+    - FULL BATTERY
+    - COMBAT READY
+    warnings:
+    - Defense grid active
+resources:
+  cryopods:
+    current: 2
+    display_name: Cryopods
+    info: Occupied
+    max: 8
+  escape_pods:
+    current: 0
+    display_name: Escape Pods
+    info: Available
+    max: 2
+  food:
+    current: 2
+    display_name: Food
+    info: Galley stock
+    max: 20
+  fuel:
+    current: 7
+    display_name: Fuel
+    info: Reactor feed
+    max: 12
+  o2:
+    current: 20
+    display_name: O2
+    info: Oxygen remaining
+    max: 100
+cargo:
+  items:
+  - Stuff 1
+  - Stuff 4
+  - Stuff 3
+  - stuff 3
+  - Stuff 5
+  - more stuff
+  - This is more stuff
+  - Even more sutff

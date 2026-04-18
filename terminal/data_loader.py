@@ -600,7 +600,7 @@ class DataLoader:
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
-        systems = ship_data.setdefault('ship', {}).setdefault('systems', {})
+        systems = ship_data.setdefault('systems', {})
         systems.setdefault(system_name, {}).update(fields)
         self._save_ship_yaml(ship_data)
 
@@ -609,7 +609,7 @@ class DataLoader:
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
-        ship_data.setdefault('ship', {}).setdefault(field, {}).update(values)
+        ship_data.setdefault(field, {}).update(values)
         self._save_ship_yaml(ship_data)
 
     def save_ship_resource(self, resource_name: str, values: dict) -> None:
@@ -617,7 +617,7 @@ class DataLoader:
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
-        resources = ship_data.setdefault('ship', {}).setdefault('resources', {})
+        resources = ship_data.setdefault('resources', {})
         resources.setdefault(resource_name, {}).update(values)
         self._save_ship_yaml(ship_data)
 
@@ -626,7 +626,7 @@ class DataLoader:
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
-        ship_data.setdefault('ship', {}).setdefault('cargo', {})['items'] = list(items)
+        ship_data.setdefault('cargo', {})['items'] = list(items)
         self._save_ship_yaml(ship_data)
 
     def save_ship_stat(self, stat_name: str, value: int) -> None:
@@ -634,7 +634,7 @@ class DataLoader:
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
-        ship_data.setdefault('ship', {}).setdefault('stats', {})[stat_name] = value
+        ship_data.setdefault('stats', {})[stat_name] = value
         self._save_ship_yaml(ship_data)
 
     def save_system_power(self, system_name: str, allocated: int) -> None:
@@ -642,7 +642,7 @@ class DataLoader:
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
-        systems = ship_data.setdefault('ship', {}).setdefault('systems', {})
+        systems = ship_data.setdefault('systems', {})
         systems.setdefault(system_name, {}).setdefault('power', {})['allocated'] = allocated
         self._save_ship_yaml(ship_data)
 
@@ -651,7 +651,7 @@ class DataLoader:
         ship_file = self.data_dir / "campaign" / "ship.yaml"
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
-        systems = ship_data.setdefault('ship', {}).setdefault('systems', {})
+        systems = ship_data.setdefault('systems', {})
         faults_list = systems.setdefault(system_name, {}).get('faults', [])
         if 0 <= index < len(faults_list):
             faults_list[index]['active'] = active

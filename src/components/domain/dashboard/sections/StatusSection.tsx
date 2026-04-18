@@ -137,7 +137,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
   // Track SSE status changes — flash row briefly on change
   useEffect(() => {
     if (!shipData) return;
-    const systems = shipData.ship.systems;
+    const systems = shipData.systems;
     const prev = previousStatusesRef.current;
 
     if (!prev) {
@@ -300,7 +300,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
     setReactorModal(prev => prev ? { ...prev, phase: 'running' } : null);
 
     if (action === 'emergency_shutdown' && shipData) {
-      const systems = Object.entries(shipData.ship.systems).filter(([k]) => k !== 'reactor');
+      const systems = Object.entries(shipData.systems).filter(([k]) => k !== 'reactor');
       const startAllocs: Record<string, number> = Object.fromEntries(
         systems.map(([k, s]) => [k, localAllocations?.[k] ?? s.power?.allocated ?? 0])
       );
@@ -351,7 +351,7 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
     );
   }
 
-  const { ship } = shipData;
+  const ship = shipData;
   const systems = ship.systems;
 
   const reactorOffline = ship.systems.reactor?.status === 'OFFLINE';

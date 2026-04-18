@@ -146,6 +146,7 @@ Plans:
 | 12. Requirements Tracking + Dead Code Cleanup | 1/1 | ✓ Complete | 2026-04-17 |
 | 13. Atmospheric UI Animations | 5/5 | Complete   | 2026-03-28 |
 | 14. Rework Bridge STATUS Tab | 3/3 | Complete   | 2026-04-07 |
+| 15. Data Directory Audit + Bug Fixes | 1/1 | ✓ Complete | 2026-04-18 |
 
 ### Phase 7: Grid-based encounter map redesign
 
@@ -257,7 +258,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 15-01-PLAN.md — Bug fixes (load_location, load_maps, duplicate return None), has_orbit_map cleanup, TypeScript/YAML alignment audit, body_slug validation script
+- [x] 15-01-PLAN.md — Bug fixes (load_location, load_maps, duplicate return None), has_orbit_map cleanup, TypeScript/YAML alignment audit, body_slug validation script
 
 ### Phase 16: Ship Data Consolidation
 

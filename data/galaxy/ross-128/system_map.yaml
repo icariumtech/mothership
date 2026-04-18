@@ -23,7 +23,6 @@ bodies:
     color: 0x8B4513
     tidally_locked: true
     clickable: true
-    has_orbit_map: true
     info:
       description: "Rocky mining world, tidally locked"
       industry: "Heavy metals, rare earths"

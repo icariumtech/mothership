@@ -35,7 +35,6 @@ bodies:
     size: 3.8
     color: 0xDEB887
     clickable: true
-    has_orbit_map: false
     info:
       description: "Gas giant with helium-3 extraction operations"
 

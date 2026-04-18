@@ -70,31 +70,6 @@ class DataLoader:
 
         return location_data
 
-    def load_location(self, location_slug: str) -> Dict[str, Any]:
-        """Load a single location with all its data."""
-        location_dir = self.locations_dir / location_slug
-
-        if not location_dir.exists():
-            return None
-
-        # Load location metadata
-        location_file = location_dir / "location.yaml"
-        if location_file.exists():
-            with open(location_file, 'r') as f:
-                location_data = yaml.safe_load(f)
-        else:
-            location_data = {"name": location_slug}
-
-        location_data['slug'] = location_slug
-
-        # Load maps
-        location_data['maps'] = self.load_maps(location_dir)
-
-        # Load comm terminals
-        location_data['terminals'] = self.load_terminals(location_dir)
-
-        return location_data
-
     def load_encounter_manifest(self, location_dir: Path) -> Dict[str, Any]:
         """Load the multi-deck manifest file if present."""
         manifest_file = location_dir / "map" / "manifest.yaml"
@@ -180,33 +155,6 @@ class DataLoader:
                 break
 
         return map_data
-
-    def load_maps(self, location_dir: Path) -> List[Dict[str, Any]]:
-        """Load all maps for a location (legacy - supports maps/ directory)."""
-        maps = []
-        maps_dir = location_dir / "maps"
-
-        if not maps_dir.exists():
-            return maps
-
-        # Find all .yaml files (map metadata)
-        for map_file in maps_dir.glob("*.yaml"):
-            with open(map_file, 'r') as f:
-                map_data = yaml.safe_load(f)
-
-            map_slug = map_file.stem
-            map_data['slug'] = map_slug
-
-            # Check for corresponding image file
-            for ext in ['.png', '.jpg', '.jpeg', '.gif']:
-                img_file = maps_dir / f"{map_slug}{ext}"
-                if img_file.exists():
-                    map_data['image_path'] = str(img_file.relative_to(self.data_dir))
-                    break
-
-            maps.append(map_data)
-
-        return maps
 
     def load_terminals(self, location_dir: Path) -> List[Dict[str, Any]]:
         """Load all comm terminals for a location."""
@@ -424,8 +372,6 @@ class DataLoader:
                 candidate = campaign_dir / slug
                 if candidate.is_dir() and (candidate / "location.yaml").exists():
                     return self.load_location_recursive(candidate)
-
-        return None
 
         return None
 
@@ -761,9 +707,3 @@ def load_all_locations() -> List[Dict[str, Any]]:
     """Load all locations from data directory."""
     loader = get_loader()
     return loader.load_all_locations()
-
-
-def load_location(location_slug: str) -> Dict[str, Any]:
-    """Load a specific location by slug."""
-    loader = get_loader()
-    return loader.load_location(location_slug)

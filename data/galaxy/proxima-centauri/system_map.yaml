@@ -42,7 +42,6 @@ bodies:
 
     # Interaction
     clickable: true
-    has_orbit_map: true
     tidally_locked: true
 
     info:
@@ -61,7 +60,6 @@ bodies:
     color: 0x5A7A9A  # Icy blue-grey
 
     clickable: true
-    has_orbit_map: false
 
     info:
       description: "Cold super-Earth, likely icy surface"

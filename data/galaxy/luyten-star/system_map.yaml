@@ -24,7 +24,6 @@ bodies:
     atmosphere_color: 0xB0C4DE
     atmosphere_intensity: 0.35
     clickable: true
-    has_orbit_map: true
     info:
       description: "Established colony world with multiple orbital facilities"
       population: "~45,000"

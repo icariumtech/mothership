@@ -57,7 +57,6 @@ bodies:
     atmosphere_color: 0x87CEEB
     atmosphere_intensity: 0.4
     clickable: true
-    has_orbit_map: true
     info:
       description: "Humanity's homeworld"
       population: "8.2 billion"
@@ -72,7 +71,6 @@ bodies:
     size: 1.2
     color: 0xCD5C5C
     clickable: true
-    has_orbit_map: false
     info:
       description: "Red planet, early terraforming in progress"
       population: "~450,000"
@@ -104,7 +102,6 @@ bodies:
     ring_outer: 5.8
     ring_color: 0xE6C9A8
     clickable: true
-    has_orbit_map: true
     info:
       description: "Ringed gas giant with major settlements on Titan"
       population: "~135,000 (moons/stations)"

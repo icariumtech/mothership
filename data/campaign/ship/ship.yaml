@@ -1,6 +1,5 @@
 class: Hargrave-Class Light Freighter
 name: USCSS Morrigan
-slug: ship
 location_slug: phoebe
 crew_capacity: 12
 crew_count: 7

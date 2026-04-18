@@ -13,6 +13,8 @@ from typing import Dict, List, Any
 class DataLoader:
     """Loads campaign data from the data/ directory structure."""
 
+    SHIP_YAML_PATH = 'campaign/ship/ship.yaml'
+
     def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
         self.galaxy_dir = self.data_dir / "galaxy"
@@ -370,7 +372,7 @@ class DataLoader:
             campaign_dir = self.data_dir / "campaign"
             if campaign_dir.exists():
                 candidate = campaign_dir / slug
-                if candidate.is_dir() and (candidate / "location.yaml").exists():
+                if candidate.is_dir() and (candidate / "ship.yaml").exists():
                     return self.load_location_recursive(candidate)
 
         return None
@@ -572,9 +574,36 @@ class DataLoader:
                 body = parts[2].strip()
         return {'slug': slug, 'title': title, 'content': body}
 
+    def load_deckplan(self, location_dir) -> Dict[str, Any]:
+        """Load deckplan.yaml from a location directory.
+
+        Returns dict with keys:
+          - decks: list of deck dicts sorted by level (ascending)
+          - hull: top-level hull dict (or None if not present)
+          - total_decks: len(decks)
+
+        Replaces load_encounter_manifest() for locations using the new deckplan format.
+        """
+        deckplan_path = Path(location_dir) / 'deckplan.yaml'
+        if not deckplan_path.exists():
+            return {'decks': [], 'hull': None, 'total_decks': 0}
+
+        with open(deckplan_path) as f:
+            data = yaml.safe_load(f)
+
+        decks = data.get('decks', [])
+        decks_sorted = sorted(decks, key=lambda d: d.get('level', 0))
+        hull = data.get('hull', None)
+
+        return {
+            'decks': decks_sorted,
+            'hull': hull,
+            'total_decks': len(decks_sorted),
+        }
+
     def load_ship_status(self) -> Dict[str, Any]:
-        """Load ship status from data/campaign/ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        """Load ship status from data/campaign/ship/ship.yaml."""
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         if not ship_file.exists():
             return None
         with open(ship_file, 'r') as f:
@@ -582,14 +611,14 @@ class DataLoader:
         return ship_data
 
     def _save_ship_yaml(self, ship_data: dict) -> None:
-        """Write ship data back to data/campaign/ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        """Write ship data back to data/campaign/ship/ship.yaml."""
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'w') as f:
             yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
     def save_ship_location(self, location_slug: str) -> None:
-        """Write the galactic location_slug back to data/campaign/ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        """Write the galactic location_slug back to data/campaign/ship/ship.yaml."""
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data['location_slug'] = location_slug
@@ -597,7 +626,7 @@ class DataLoader:
 
     def save_ship_system(self, system_name: str, fields: dict) -> None:
         """Update a ship system's fields (status, condition, info) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         systems = ship_data.setdefault('systems', {})
@@ -606,7 +635,7 @@ class DataLoader:
 
     def save_ship_integrity(self, field: str, values: dict) -> None:
         """Update hull, armor, or other integrity fields (current, max) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data.setdefault(field, {}).update(values)
@@ -614,7 +643,7 @@ class DataLoader:
 
     def save_ship_resource(self, resource_name: str, values: dict) -> None:
         """Update a resource value (fuel, food, o2, cryopods, escape_pods) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         resources = ship_data.setdefault('resources', {})
@@ -623,7 +652,7 @@ class DataLoader:
 
     def save_ship_cargo(self, items: list) -> None:
         """Replace the cargo items list in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data.setdefault('cargo', {})['items'] = list(items)
@@ -631,7 +660,7 @@ class DataLoader:
 
     def save_ship_stat(self, stat_name: str, value: int) -> None:
         """Update a ship stat (thrusters, battle, systems) in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         ship_data.setdefault('stats', {})[stat_name] = value
@@ -639,7 +668,7 @@ class DataLoader:
 
     def save_system_power(self, system_name: str, allocated: int) -> None:
         """Update a system's power.allocated in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         systems = ship_data.setdefault('systems', {})
@@ -648,7 +677,7 @@ class DataLoader:
 
     def save_system_fault_indicator(self, system_name: str, index: int, active: bool) -> None:
         """Toggle a fault indicator's active state for a system in ship.yaml."""
-        ship_file = self.data_dir / "campaign" / "ship.yaml"
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
         with open(ship_file, 'r') as f:
             ship_data = yaml.safe_load(f) or {}
         systems = ship_data.setdefault('systems', {})

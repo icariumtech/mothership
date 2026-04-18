@@ -271,11 +271,41 @@ def build_active_view_payload(state: dict) -> dict:
     loader = DataLoader()
     ship_dir = loader.data_dir / "campaign" / "ship"
     if ship_dir.exists():
-        ship_map = loader.load_map(ship_dir)
-        if ship_map:
-            response['ship_deck_data'] = ship_map
-            manifest = ship_map.get('manifest', {})
-            response['ship_deck_total_decks'] = manifest.get('total_decks', 1)
+        deckplan = loader.load_deckplan(ship_dir)
+        if deckplan and deckplan.get('decks'):
+            decks = deckplan['decks']
+            # Find default deck or use first
+            default_deck = next(
+                (d for d in decks if d.get('default')),
+                decks[0] if decks else None
+            )
+            if default_deck:
+                # Build MultiDeckMapData shape expected by EncounterMapDisplay
+                manifest = {
+                    'name': 'USCSS Morrigan',
+                    'facility_type': 'ship',
+                    'total_decks': deckplan['total_decks'],
+                    'decks': [
+                        {'id': d['id'], 'name': d['name'], 'level': d.get('level', 1),
+                         'default': d.get('default', False)}
+                        for d in decks
+                    ],
+                    'hull': deckplan.get('hull'),
+                }
+                current_deck = {
+                    'deck_id': default_deck['id'],
+                    'name': default_deck['name'],
+                    'unit_size': default_deck.get('unit_size', 30),
+                    'rooms': default_deck.get('rooms', []),
+                }
+                response['ship_deck_data'] = {
+                    'is_multi_deck': True,
+                    'manifest': manifest,
+                    'current_deck': current_deck,
+                    'current_deck_id': default_deck['id'],
+                    'slug': 'deckplan',
+                }
+                response['ship_deck_total_decks'] = deckplan['total_decks']
 
     return response
 

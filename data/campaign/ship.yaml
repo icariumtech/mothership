@@ -14,7 +14,7 @@ systems:
     display_name: Comms
     icon: intercom
     power:
-      allocated: 2
+      allocated: 1
       max: 3
     status: ONLINE
     subsystems:
@@ -33,7 +33,7 @@ systems:
       label: Jump Drive Calibration Error
     icon: jumpdrive
     power:
-      allocated: 2
+      allocated: 1
       max: 5
     status: ONLINE
     subsystems:
@@ -49,7 +49,7 @@ systems:
     display_name: Life Support
     icon: ventillation
     power:
-      allocated: 3
+      allocated: 1
       max: 4
     status: ONLINE
     subsystems:
@@ -64,7 +64,7 @@ systems:
     display_name: medbay
     icon: medbay
     power:
-      allocated: 2
+      allocated: 1
       max: 3
     status: ONLINE
     subsystems:
@@ -72,7 +72,7 @@ systems:
     - TOOLS
     - SERGICAL BED
   reactor:
-    condition: 12
+    condition: 30
     display_name: Reactor
     icon: reactor core
     power_capacity: 12
@@ -84,7 +84,7 @@ systems:
     display_name: Weapons
     icon: weapon system
     power:
-      allocated: 3
+      allocated: 1
       max: 4
     status: ONLINE
     subsystems:

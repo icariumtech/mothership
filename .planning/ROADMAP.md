@@ -147,6 +147,7 @@ Plans:
 | 13. Atmospheric UI Animations | 5/5 | Complete   | 2026-03-28 |
 | 14. Rework Bridge STATUS Tab | 3/3 | Complete   | 2026-04-07 |
 | 15. Data Directory Audit + Bug Fixes | 1/1 | ✓ Complete | 2026-04-18 |
+| 16. Ship Data Consolidation | 1/1 | ✓ Complete | 2026-04-18 |
 
 ### Phase 7: Grid-based encounter map redesign
 

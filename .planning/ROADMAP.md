@@ -267,7 +267,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 16-01-PLAN.md — Move ship.yaml, create deckplan.yaml, add SHIP_YAML_PATH constant, update find_location_by_slug and views.py
+- [x] 16-01-PLAN.md — Move ship.yaml, create deckplan.yaml, add SHIP_YAML_PATH constant, update find_location_by_slug and views.py
 
 ### Phase 17: Characters Per-Entity Files
 

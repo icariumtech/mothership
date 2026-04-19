@@ -3,7 +3,7 @@ name: "Marcus Chen"
 callsign: "Wrench"
 role: "Engineer"
 class: "Teamster"
-portrait: "/data/campaign/NPCs/images/ewan_mcgregor.png"
+portrait: "/static/portraits/chen.png"
 
 stats:
   strength: 8

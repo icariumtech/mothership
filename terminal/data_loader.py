@@ -3,11 +3,14 @@ Data loader for campaign data from filesystem.
 
 Loads locations, maps, comm terminals, and messages from the data/ directory.
 """
+import logging
 import os
 import yaml
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any
+
+logger = logging.getLogger(__name__)
 
 
 class DataLoader:
@@ -446,11 +449,18 @@ class DataLoader:
         crew = []
         seen_ids = set()
         for path in sorted(crew_dir.glob('*.yaml')):
-            with open(path) as f:
-                character = yaml.safe_load(f)
+            try:
+                with open(path) as f:
+                    character = yaml.safe_load(f)
+            except (OSError, yaml.YAMLError) as e:
+                logger.warning(f"Skipping crew file {path}: {e}")
+                continue
             if character is None:
                 continue
             char_id = character.get('id')
+            if char_id is None:
+                logger.warning(f"Crew file {path} has no 'id' field — skipping")
+                continue
             if char_id in seen_ids:
                 logger.warning(f"Duplicate crew id '{char_id}' in {path} — skipping")
                 continue
@@ -468,11 +478,18 @@ class DataLoader:
         npcs = []
         seen_ids = set()
         for path in sorted(npcs_dir.glob('*.yaml')):
-            with open(path) as f:
-                npc = yaml.safe_load(f)
+            try:
+                with open(path) as f:
+                    npc = yaml.safe_load(f)
+            except (OSError, yaml.YAMLError) as e:
+                logger.warning(f"Skipping NPC file {path}: {e}")
+                continue
             if npc is None:
                 continue
             npc_id = npc.get('id')
+            if npc_id is None:
+                logger.warning(f"NPC file {path} has no 'id' field — skipping")
+                continue
             if npc_id in seen_ids:
                 logger.warning(f"Duplicate NPC id '{npc_id}' in {path} — skipping")
                 continue

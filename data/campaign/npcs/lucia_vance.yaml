@@ -1,0 +1,8 @@
+id: "lucia_vance"
+name: "Dr. Lucia Vance"
+role: "Station Director"
+faction: "Weyland-Yutani"
+location: "Veil Station"
+portrait: "/data/campaign/NPCs/images/lucia_vance.png"
+status: "ACTIVE"
+description: "Oversees all operations aboard Veil Station. Calm under pressure but known to prioritize corporate interests over crew safety. Has extensive knowledge of xenobiological containment protocols."

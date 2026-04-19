@@ -1,0 +1,29 @@
+id: "sarah_kim"
+name: "Lt. Sarah Kim"
+role: "Security Chief"
+class: "Marine"
+portrait: "/static/portraits/kim.png"
+
+stats:
+  strength: 7
+  speed: 7
+  intellect: 5
+  combat: 9
+
+saves:
+  sanity: 35
+  fear: 50
+  body: 50
+
+stress: 3
+health:
+  current: 10
+  max: 14
+wounds: 1
+armor: 3
+
+background: "Colonial Marine"
+motivation: "Protect the crew"
+
+status: "ACTIVE"
+description: "Former Colonial Marine, two combat tours. Left military service under unclear circumstances. Fiercely loyal to those she trusts."

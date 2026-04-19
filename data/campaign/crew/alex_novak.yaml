@@ -1,0 +1,29 @@
+id: "alex_novak"
+name: "Alex Novak"
+role: "Pilot"
+class: "Teamster"
+portrait: "/static/portraits/novak.png"
+
+stats:
+  strength: 5
+  speed: 8
+  intellect: 6
+  combat: 5
+
+saves:
+  sanity: 50
+  fear: 30
+  body: 35
+
+stress: 0
+health:
+  current: 10
+  max: 10
+wounds: 0
+armor: 0
+
+background: "Commercial Pilot"
+motivation: "See what's out there"
+
+status: "ACTIVE"
+description: "Hotshot pilot with nerves of steel. Has a reputation for getting ships out of impossible situations."

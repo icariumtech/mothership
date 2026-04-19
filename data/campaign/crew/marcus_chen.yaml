@@ -1,0 +1,30 @@
+id: "marcus_chen"
+name: "Marcus Chen"
+callsign: "Wrench"
+role: "Engineer"
+class: "Teamster"
+portrait: "/data/campaign/NPCs/images/ewan_mcgregor.png"
+
+stats:
+  strength: 8
+  speed: 5
+  intellect: 7
+  combat: 5
+
+saves:
+  sanity: 40
+  fear: 40
+  body: 45
+
+stress: 1
+health:
+  current: 12
+  max: 12
+wounds: 0
+armor: 1
+
+background: "Ship Mechanic"
+motivation: "Keep the ship flying"
+
+status: "ACTIVE"
+description: "Veteran mechanic with 15 years experience on commercial haulers. Can fix anything with duct tape and determination."

@@ -434,28 +434,52 @@ class DataLoader:
         return star_map_data
 
     def load_crew(self) -> List[Dict[str, Any]]:
-        """Load campaign crew roster from data/campaign/crew.yaml."""
-        crew_file = self.data_dir / "campaign" / "crew.yaml"
+        """Load crew from per-entity files in campaign/crew/.
 
-        if not crew_file.exists():
+        Returns list of crew dicts. Each file in crew/ is one character
+        (no wrapper key). IDs must be unique.
+        """
+        crew_dir = self.data_dir / 'campaign' / 'crew'
+        if not crew_dir.exists():
             return []
 
-        with open(crew_file, 'r') as f:
-            crew_data = yaml.safe_load(f)
+        crew = []
+        seen_ids = set()
+        for path in sorted(crew_dir.glob('*.yaml')):
+            with open(path) as f:
+                character = yaml.safe_load(f)
+            if character is None:
+                continue
+            char_id = character.get('id')
+            if char_id in seen_ids:
+                logger.warning(f"Duplicate crew id '{char_id}' in {path} — skipping")
+                continue
+            seen_ids.add(char_id)
+            crew.append(character)
 
-        return crew_data.get('crew', []) if crew_data else []
+        return crew
 
     def load_npcs(self) -> List[Dict[str, Any]]:
-        """Load campaign NPC roster from data/campaign/npcs.yaml."""
-        npcs_file = self.data_dir / "campaign" / "npcs.yaml"
-
-        if not npcs_file.exists():
+        """Load NPCs from per-entity files in campaign/npcs/."""
+        npcs_dir = self.data_dir / 'campaign' / 'npcs'
+        if not npcs_dir.exists():
             return []
 
-        with open(npcs_file, 'r') as f:
-            npcs_data = yaml.safe_load(f)
+        npcs = []
+        seen_ids = set()
+        for path in sorted(npcs_dir.glob('*.yaml')):
+            with open(path) as f:
+                npc = yaml.safe_load(f)
+            if npc is None:
+                continue
+            npc_id = npc.get('id')
+            if npc_id in seen_ids:
+                logger.warning(f"Duplicate NPC id '{npc_id}' in {path} — skipping")
+                continue
+            seen_ids.add(npc_id)
+            npcs.append(npc)
 
-        return npcs_data.get('npcs', []) if npcs_data else []
+        return npcs
 
     def load_system_map(self, system_slug: str) -> Dict[str, Any]:
         """Load solar system visualization for a star system."""

@@ -277,7 +277,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 17-01-PLAN.md — Split crew + NPC files, update load_crew/load_npcs with glob + id uniqueness check
+- [x] 17-01-PLAN.md — Split crew + NPC files, update load_crew/load_npcs with glob + id uniqueness check
 
 ### Phase 18: Locations Flat Directory
 

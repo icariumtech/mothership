@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 16 complete, ready to plan Phase 17
-last_updated: "2026-04-18T12:00:00.000Z"
-last_activity: 2026-04-18 -- Phase 16 execution complete (1/1 plans)
+stopped_at: Phase 17 complete, ready to plan Phase 18
+last_updated: "2026-04-20T00:00:00.000Z"
+last_activity: 2026-04-20 -- Phase 17 execution complete (1/1 plans)
 progress:
   total_phases: 20
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 46
-  completed_plans: 41
-  percent: 89
+  completed_plans: 42
+  percent: 91
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 16 — Ship Data Consolidation
+**Current focus:** Phase 18 — Locations Flat Directory
 
 ## Current Position
 
-Phase: 17 — READY TO PLAN
-Plan: 0 of 1
-Status: Phase 16 complete, Phase 17 not started
-Last activity: 2026-04-18 -- Phase 16 execution complete (1/1 plans)
+Phase: 18 — READY TO PLAN
+Plan: 0 of 2
+Status: Phase 17 complete, Phase 18 not started
+Last activity: 2026-04-20 -- Phase 17 execution complete (1/1 plans)
 
-Progress: [█████████░] 89% (41/46 plans complete)
+Progress: [█████████░] 91% (42/46 plans complete)
 
 ## Performance Metrics
 

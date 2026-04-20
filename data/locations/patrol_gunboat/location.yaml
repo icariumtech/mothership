@@ -1,0 +1,16 @@
+name: "USCSS Patrol Gunboat"
+type: "ship"
+description: ""
+status: "OPERATIONAL"
+
+parent_type: orbit
+body_slug: tau-ceti-f
+system_slug: tau-ceti
+
+orbital:
+  radius: 32
+  period: 90
+  angle: 135
+  inclination: 0
+  size: 1.5
+  icon_type: station

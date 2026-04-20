@@ -25,19 +25,49 @@ class DataLoader:
         self.systems_dir = self.galaxy_dir
 
     def load_all_locations(self) -> List[Dict[str, Any]]:
-        """Load all locations from the data directory, building hierarchy from nested dirs."""
-        locations = []
+        """Load all visitable locations from data/locations/.
 
-        if not self.systems_dir.exists():
+        Each location is a directory containing location.yaml.
+        Returns list of location dicts with 'slug' and 'directory' keys added.
+        Falls back to galaxy tree scan if data/locations/ does not exist.
+        """
+        locations_dir = self.data_dir / 'locations'
+        if locations_dir.exists():
+            locations = []
+            for location_dir in sorted(locations_dir.iterdir()):
+                if not location_dir.is_dir():
+                    continue
+                if location_dir.name.startswith(('.', '__')):
+                    continue
+                location_yaml = location_dir / 'location.yaml'
+                if not location_yaml.exists():
+                    continue
+
+                with open(location_yaml) as f:
+                    loc = yaml.safe_load(f) or {}
+
+                loc['slug'] = location_dir.name
+                loc['directory'] = str(location_dir)
+
+                # Load map/terminals for compatibility
+                loc['map'] = self.load_map(location_dir)
+                loc['has_map'] = loc['map'] is not None
+                loc['maps'] = [loc['map']] if loc['map'] else []
+                loc['terminals'] = self.load_terminals(location_dir)
+                loc['children'] = []
+
+                locations.append(loc)
             return locations
 
-        # Load all systems (solar systems are top level)
+        # Fallback: legacy galaxy tree scan
+        locations = []
+        if not self.systems_dir.exists():
+            return locations
         for system_dir in self.systems_dir.iterdir():
             if system_dir.is_dir() and system_dir.name != '__pycache__':
                 location_data = self.load_location_recursive(system_dir)
                 if location_data:
                     locations.append(location_data)
-
         return locations
 
     def load_location_recursive(self, location_dir: Path) -> Dict[str, Any]:

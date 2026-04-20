@@ -1,0 +1,20 @@
+name: "Orbital Research Platform Alpha"
+type: "station"
+is_orbital: true
+description: "Orbital research station maintaining geosynchronous position above Eden Research facility"
+coordinates: "Orbit: 400km altitude"
+status: "OPERATIONAL"
+crew_capacity: 35
+orbit_type: "Geosynchronous"
+
+parent_type: orbit
+body_slug: trappist-1e
+system_slug: trappist-1
+
+orbital:
+  radius: 28
+  period: 75
+  angle: 180
+  inclination: 0
+  size: 1.2
+  icon_type: station

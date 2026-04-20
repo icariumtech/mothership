@@ -229,7 +229,7 @@ def build_active_view_payload(state: dict) -> dict:
                 if len(location_path) >= 1:
                     response['location_data']['system_slug'] = location_path[0]
                 if len(location_path) >= 2:
-                    response['location_data']['parent_slug'] = location_path[0]
+                    response['location_data']['parent_slug'] = location_path[1]
 
             # For multi-deck maps, load the current deck's map data
             if location.get('directory'):

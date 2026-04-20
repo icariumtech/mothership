@@ -584,19 +584,23 @@ class DataLoader:
         for loc in all_locations:
             if loc.get('body_slug') != body_slug:
                 continue
-            orbital_block = loc.get('orbital', {})
-            if not orbital_block:
-                continue
-
             parent_type = loc.get('parent_type', 'orbit')
-            entry = {
-                'slug': loc['slug'],
-                'name': loc.get('name', loc['slug']),
-                **orbital_block,
-            }
+            orbital_block = loc.get('orbital', {})
             if parent_type == 'orbit':
+                if not orbital_block:
+                    continue
+                entry = {
+                    'slug': loc['slug'],
+                    'name': loc.get('name', loc['slug']),
+                    **orbital_block,
+                }
                 orbital_stations.append(entry)
             elif parent_type == 'surface':
+                entry = {
+                    'slug': loc['slug'],
+                    'name': loc.get('name', loc['slug']),
+                    **orbital_block,
+                }
                 surface_markers.append(entry)
 
         orbit_data['orbital_stations'] = orbital_stations

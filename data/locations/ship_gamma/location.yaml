@@ -1,0 +1,17 @@
+name: "Ship Gamma"
+type: "ship"
+description: "Heavy freighter in orbit around Planet Y"
+coordinates: "Planet Y High Orbit"
+status: "DOCKED"
+
+parent_type: orbit
+body_slug: kepler-442c
+system_slug: kepler-442
+
+orbital:
+  radius: 35
+  period: 100
+  angle: 60
+  inclination: 0
+  size: 1.5
+  icon_type: station

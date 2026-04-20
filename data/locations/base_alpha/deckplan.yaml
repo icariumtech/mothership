@@ -1,0 +1,64 @@
+name: "Base Alpha"
+facility_type: "station"
+total_decks: 1
+
+decks:
+  - id: "main"
+    name: "Main Level"
+    level: 1
+    default: true
+    unit_size: 40
+    description: "Primary mining operations floor"
+
+    rooms:
+      - id: command_center
+        name: "COMMAND CENTER"
+        rects:
+          - {x: 0, y: 0, w: 6, h: 4}
+        doors:
+          - {wall: east, position: 1, type: blast_door, status: CLOSED}
+          - {wall: south, position: 2, type: standard, status: OPEN}
+        description: "Primary operations and communications hub"
+        type: bridge
+
+      - id: main_corridor
+        name: ""
+        rects:
+          - {x: 6, y: 1, w: 8, h: 2}
+          - {x: 9, y: 3, w: 2, h: 4}
+        doors: []
+        type: corridor
+
+      - id: mining_control
+        name: "MINING CONTROL"
+        rects:
+          - {x: 14, y: 0, w: 5, h: 4}
+        doors:
+          - {wall: west, position: 1, type: blast_door, status: CLOSED}
+        description: "Drill operation monitoring and control"
+        type: bridge
+
+      - id: equipment_bay
+        name: "EQUIPMENT BAY"
+        rects:
+          - {x: 7, y: 7, w: 6, h: 3}
+          - {x: 7, y: 10, w: 3, h: 2}
+        doors:
+          - {wall: north, position: 2, type: standard, status: OPEN}
+        description: "Heavy equipment storage and maintenance"
+        type: cargo
+
+      - id: med_station
+        name: "MED STATION"
+        rects:
+          - {x: 14, y: 5, w: 4, h: 3}
+        doors:
+          - {wall: west, position: 1, type: standard, status: CLOSED}
+        description: "Emergency medical treatment"
+        type: medical
+
+    metadata:
+      author: "GM"
+      created: "2183-08-01"
+      version: 1
+      tags: ["facility", "mining", "base"]

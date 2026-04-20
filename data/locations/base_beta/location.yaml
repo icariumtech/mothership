@@ -1,0 +1,9 @@
+name: "Base Beta"
+type: "station"
+description: "Secondary research outpost"
+coordinates: "Planet X Surface - South Hemisphere"
+status: "OPERATIONAL"
+
+parent_type: surface
+body_slug: kepler-442b
+system_slug: kepler-442

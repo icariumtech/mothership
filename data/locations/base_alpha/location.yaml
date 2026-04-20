@@ -1,0 +1,9 @@
+name: "Base Alpha"
+type: "station"
+description: "Primary mining operations base"
+coordinates: "Planet X Surface - North Hemisphere"
+status: "OPERATIONAL"
+
+parent_type: surface
+body_slug: kepler-442b
+system_slug: kepler-442

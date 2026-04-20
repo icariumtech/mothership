@@ -81,32 +81,5 @@ moons:
       description: "Second largest moon of Saturn"
       type: "Mining Operations"
 
-# Orbital stations
-orbital_stations:
-  - name: "Cronos Station"
-    location_slug: "cronos-station"
-    orbital_radius: 28
-    orbital_period: 60
-    orbital_angle: 0
-    inclination: 5.0
-    size: 1.5
-    icon_type: "station"
-    info:
-      description: "Primary orbital hub for Saturn operations"
-      population: "~8,500"
-      type: "Research/Commercial"
-      status: "OPERATIONAL"
-
-  - name: "Ring Mining Platform Alpha"
-    location_slug: "ring-mining-alpha"
-    orbital_radius: 30
-    orbital_period: 70
-    orbital_angle: 120
-    inclination: 0.0
-    size: 1.2
-    icon_type: "station"
-    info:
-      description: "Ice harvesting facility within ring system"
-      population: "~350"
-      type: "Mining Platform"
-      status: "OPERATIONAL"
+# orbital_stations and surface_markers are now self-registered from data/locations/
+# load_orbit_map() injects them at runtime from location.yaml orbital: blocks

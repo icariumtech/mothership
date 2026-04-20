@@ -235,37 +235,47 @@ def build_active_view_payload(state: dict) -> dict:
             if location.get('directory'):
                 from pathlib import Path
                 location_dir = Path(location['directory'])
-                manifest = loader.load_encounter_manifest(location_dir)
-                if manifest:
-                    response['encounter_total_decks'] = manifest.get('total_decks', 1)
+                deckplan = loader.load_deckplan(location_dir)
+                if deckplan and deckplan.get('decks'):
+                    decks = deckplan['decks']
+                    response['encounter_total_decks'] = deckplan['total_decks']
                     # Get current deck ID (or use default)
                     current_deck_id = state.get('encounter_deck_id', '')
                     if not current_deck_id:
                         # Find default deck or use first deck
                         default_deck = next(
-                            (d for d in manifest.get('decks', []) if d.get('default')),
-                            manifest['decks'][0] if manifest.get('decks') else None
+                            (d for d in decks if d.get('default')),
+                            decks[0] if decks else None
                         )
                         if default_deck:
                             current_deck_id = default_deck.get('id', '')
 
-                    # Load the specific deck's map data
+                    # Build manifest-compatible structure for the frontend
+                    manifest = {
+                        'name': deckplan.get('name', location.get('name', '')),
+                        'facility_type': deckplan.get('facility_type', location.get('type', '')),
+                        'total_decks': deckplan['total_decks'],
+                        'decks': [
+                            {'id': d['id'], 'name': d.get('name', d['id']),
+                             'level': d.get('level', 1), 'default': d.get('default', False)}
+                            for d in decks
+                        ],
+                        'hull': deckplan.get('hull'),
+                    }
+
                     if current_deck_id:
-                        deck_data = loader.load_deck_map(location_dir, current_deck_id)
-                        if deck_data:
-                            # Include the full multi-deck map structure in location_data
+                        # Find deck data inline from deckplan (rooms already loaded)
+                        current_deck = next(
+                            (d for d in decks if d.get('id') == current_deck_id), None
+                        )
+                        if current_deck:
                             response['location_data']['map'] = {
                                 'is_multi_deck': True,
                                 'manifest': manifest,
-                                'current_deck': deck_data,
+                                'current_deck': current_deck,
                                 'current_deck_id': current_deck_id,
                             }
-
-                        # Find current deck name from manifest
-                        for deck in manifest.get('decks', []):
-                            if deck.get('id') == current_deck_id:
-                                response['encounter_deck_name'] = deck.get('name', '')
-                                break
+                            response['encounter_deck_name'] = current_deck.get('name', '')
 
     # Always include ship deck map data so GM console can render it regardless of player view
     loader = DataLoader()
@@ -399,58 +409,30 @@ def get_system_map_json(request, system_slug):
     system_map = loader.load_system_map(system_slug)
 
     if system_map:
-        # Enhance each body with facility counts
+        # Count facilities per body from data/locations/
+        from collections import defaultdict
+        surface_counts = defaultdict(int)
+        orbital_counts = defaultdict(int)
+        for loc in loader.load_all_locations():
+            if loc.get('system_slug') == system_slug:
+                body = loc.get('body_slug')
+                if body:
+                    if loc.get('parent_type') == 'orbit':
+                        orbital_counts[body] += 1
+                    else:
+                        surface_counts[body] += 1
+
+        # Enhance each body with facility counts and orbit map presence
         bodies = system_map.get('bodies', [])
         for body in bodies:
             location_slug = body.get('location_slug')
             if location_slug:
-                # Count surface facilities and orbital stations
-                surface_count = 0
-                orbital_count = 0
-
-                # Path to planet directory
                 planet_dir = Path(settings.BASE_DIR) / 'data' / 'galaxy' / system_slug / location_slug
-
-                if planet_dir.exists():
-                    # Check for orbit map
-                    orbit_map_file = planet_dir / 'orbit_map.yaml'
-                    body['has_orbit_map'] = orbit_map_file.exists()
-
-                    # Check each subdirectory (potential facility)
-                    for subdir in planet_dir.iterdir():
-                        if subdir.is_dir() and subdir.name not in ['comms', 'map', 'maps']:
-                            # Check the facility's location.yaml to determine type
-                            facility_yaml = subdir / 'location.yaml'
-                            if facility_yaml.exists():
-                                try:
-                                    with open(facility_yaml, 'r') as f:
-                                        facility_data = yaml.safe_load(f)
-                                        facility_type = facility_data.get('type', '').lower()
-
-                                        # Orbital stations are type "station" with is_orbital flag
-                                        # or have "orbital" in their name/description
-                                        is_orbital = facility_data.get('is_orbital', False)
-
-                                        if is_orbital or 'orbital' in facility_type:
-                                            orbital_count += 1
-                                        else:
-                                            # Everything else is surface (base, ship, city, etc.)
-                                            surface_count += 1
-                                except Exception:
-                                    # If we can't read it, assume it's a surface facility
-                                    surface_count += 1
-                            else:
-                                # No location.yaml, assume surface facility
-                                surface_count += 1
-                else:
-                    # Planet directory doesn't exist
-                    body['has_orbit_map'] = False
-
-                # Add counts to body data
-                body['surface_facility_count'] = surface_count
-                body['orbital_station_count'] = orbital_count
+                orbit_map_file = planet_dir / 'orbit_map.yaml'
+                body['has_orbit_map'] = orbit_map_file.exists()
+                body['surface_facility_count'] = surface_counts.get(location_slug, 0)
+                body['orbital_station_count'] = orbital_counts.get(location_slug, 0)
             else:
-                # No location slug means no facilities and no orbit map
                 body['surface_facility_count'] = 0
                 body['orbital_station_count'] = 0
                 body['has_orbit_map'] = False

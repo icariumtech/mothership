@@ -381,15 +381,35 @@ class DataLoader:
         return message_data
 
     def find_location_by_slug(self, slug: str, locations: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Find a location by slug.
+
+        Priority:
+        1. data/locations/{slug}/ — flat locations (O(1) path check)
+        2. data/campaign/{slug}/ — campaign ship (ship.yaml)
+        3. Galaxy tree traversal — celestial bodies (recursive)
+
+        Slug disambiguation rule: locations/ wins over galaxy/ if the same slug
+        appears in both. Collisions are avoided by convention — galaxy slugs use
+        astronomical names, location slugs use facility names.
         """
-        Find a location by slug anywhere in the hierarchy.
-        Searches recursively through all locations and their children.
-        Falls back to data/campaign/ subdirectories for locations not in the galaxy tree.
-        """
+        # 1. Check data/locations/ (flat locations)
+        loc_dir = self.data_dir / 'locations' / slug
+        if loc_dir.exists() and (loc_dir / 'location.yaml').exists():
+            return self.load_location_recursive(loc_dir)
+
+        # Only do the remaining lookups at the top level (not during recursive child searches)
         is_top_level = locations is None
         if is_top_level:
             locations = self.load_all_locations()
 
+            # 2. Check campaign directory (campaign ship)
+            campaign_dir = self.data_dir / "campaign"
+            if campaign_dir.exists():
+                candidate = campaign_dir / slug
+                if candidate.is_dir() and (candidate / "ship.yaml").exists():
+                    return self.load_location_recursive(candidate)
+
+        # 3. Fall back to galaxy tree for celestial bodies
         for location in locations:
             if location['slug'] == slug:
                 return location
@@ -400,21 +420,28 @@ class DataLoader:
                 if found:
                     return found
 
-        # Only check campaign directory at the top level, not during recursive child searches
-        if is_top_level:
-            campaign_dir = self.data_dir / "campaign"
-            if campaign_dir.exists():
-                candidate = campaign_dir / slug
-                if candidate.is_dir() and (candidate / "ship.yaml").exists():
-                    return self.load_location_recursive(candidate)
-
         return None
 
     def get_location_path(self, slug: str, locations: List[Dict[str, Any]] = None, path: List[str] = None) -> List[str]:
-        """
-        Get the full hierarchical path to a location as a list of slugs.
+        """Get the full hierarchical path to a location as a list of slugs.
+
+        For flat locations (data/locations/): reconstructs [system_slug, body_slug, slug]
+        from self-describing fields — no filesystem traversal needed.
+
+        For celestial bodies (data/galaxy/): retains recursive tree traversal.
+
         Returns: ['sol', 'earth', 'research_base_alpha'] for a base on Earth in Sol system.
         """
+        # Check data/locations/ first (O(1) path check)
+        loc_dir = self.data_dir / 'locations' / slug
+        if loc_dir.exists() and (loc_dir / 'location.yaml').exists():
+            with open(loc_dir / 'location.yaml') as f:
+                loc = yaml.safe_load(f) or {}
+            system_slug = loc.get('system_slug', '')
+            body_slug = loc.get('body_slug', '')
+            return [s for s in [system_slug, body_slug, slug] if s]
+
+        # Fall back to galaxy tree traversal for celestial bodies
         if locations is None:
             locations = self.load_all_locations()
         if path is None:
@@ -435,24 +462,19 @@ class DataLoader:
         return None
 
     def get_location_by_path(self, path_slugs: List[str]) -> Dict[str, Any]:
-        """
-        Get a location by following a path of slugs.
+        """Get a location by path slug list.
+
         Example: ['sol', 'earth', 'research_base_alpha'] -> location data for Research Base Alpha
+
+        Resolves via find_location_by_slug(path_slugs[-1]) so flat locations in
+        data/locations/ are found correctly. The leading path elements provide
+        disambiguation context but the final slug is the authoritative identifier.
         """
         if not path_slugs:
             return None
 
-        # Start at systems level (universe dir)
-        location_dir = self.systems_dir
-
-        # Navigate through the path
-        for slug in path_slugs:
-            location_dir = location_dir / slug
-            if not location_dir.exists():
-                return None
-
-        # Load the final location
-        return self.load_location_recursive(location_dir)
+        # Resolve via slug lookup — works for both flat locations and galaxy tree
+        return self.find_location_by_slug(path_slugs[-1])
 
     def load_star_map(self) -> Dict[str, Any]:
         """Load the star map visualization data (galaxy-level view)."""
@@ -539,14 +561,48 @@ class DataLoader:
             return yaml.safe_load(f)
 
     def load_orbit_map(self, system_slug: str, body_slug: str) -> Dict[str, Any]:
-        """Load orbital visualization for a planet/body."""
+        """Load orbital visualization for a planet/body.
+
+        Loads base orbit_map.yaml then injects locations that self-register
+        via their parent_type/body_slug fields in data/locations/.
+        The injected entries replace any static orbital_stations/surface_markers
+        in the YAML file.
+        """
         orbit_map_file = self.systems_dir / system_slug / body_slug / "orbit_map.yaml"
 
         if not orbit_map_file.exists():
             return None
 
         with open(orbit_map_file, 'r') as f:
-            return yaml.safe_load(f)
+            orbit_data = yaml.safe_load(f) or {}
+
+        # Inject locations that orbit or surface this body
+        all_locations = self.load_all_locations()
+        orbital_stations = []
+        surface_markers = []
+
+        for loc in all_locations:
+            if loc.get('body_slug') != body_slug:
+                continue
+            orbital_block = loc.get('orbital', {})
+            if not orbital_block:
+                continue
+
+            parent_type = loc.get('parent_type', 'orbit')
+            entry = {
+                'slug': loc['slug'],
+                'name': loc.get('name', loc['slug']),
+                **orbital_block,
+            }
+            if parent_type == 'orbit':
+                orbital_stations.append(entry)
+            elif parent_type == 'surface':
+                surface_markers.append(entry)
+
+        orbit_data['orbital_stations'] = orbital_stations
+        orbit_data['surface_markers'] = surface_markers
+
+        return orbit_data
 
     def load_sessions(self) -> List[Dict[str, Any]]:
         """Load all session logs from data/campaign/sessions/ directory."""

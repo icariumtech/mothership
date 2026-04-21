@@ -586,20 +586,32 @@ class DataLoader:
                 continue
             parent_type = loc.get('parent_type', 'orbit')
             orbital_block = loc.get('orbital', {})
+            base_entry = {
+                'slug': loc['slug'],
+                'name': loc.get('name', loc['slug']),
+                'location_slug': loc['slug'],
+            }
             if parent_type == 'orbit':
                 if not orbital_block:
                     continue
+                # Map compact orbital keys to the orbital_* names the frontend expects
                 entry = {
-                    'slug': loc['slug'],
-                    'name': loc.get('name', loc['slug']),
-                    **orbital_block,
+                    **base_entry,
+                    'orbital_radius': orbital_block.get('radius'),
+                    'orbital_period': orbital_block.get('period'),
+                    'orbital_angle': orbital_block.get('angle', 0),
+                    'inclination': orbital_block.get('inclination', 0),
+                    'size': orbital_block.get('size', 1.5),
+                    'icon_type': orbital_block.get('icon_type', 'station'),
                 }
                 orbital_stations.append(entry)
             elif parent_type == 'surface':
+                surface_block = loc.get('surface', {})
                 entry = {
-                    'slug': loc['slug'],
-                    'name': loc.get('name', loc['slug']),
-                    **orbital_block,
+                    **base_entry,
+                    'latitude': surface_block.get('latitude', loc.get('latitude')),
+                    'longitude': surface_block.get('longitude', loc.get('longitude')),
+                    'marker_type': surface_block.get('marker_type', orbital_block.get('icon_type', 'base')),
                 }
                 surface_markers.append(entry)
 

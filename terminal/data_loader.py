@@ -25,19 +25,41 @@ class DataLoader:
         self.systems_dir = self.galaxy_dir
 
     def load_all_locations(self) -> List[Dict[str, Any]]:
-        """Load all visitable locations from data/locations/.
+        """Load all visitable locations, organized as a galaxy hierarchy.
 
-        Each location is a directory containing location.yaml.
-        Returns list of location dicts with 'slug' and 'directory' keys added.
-        Falls back to galaxy tree scan if data/locations/ does not exist.
+        Builds the tree from the galaxy directory (systems → planets/bodies),
+        then injects non-celestial locations from data/locations/ under their
+        parent bodies using system_slug + body_slug fields.
         """
+        # Build base galaxy tree (celestial bodies: systems, planets, moons)
+        galaxy_tree = []
+        if self.systems_dir.exists():
+            for system_dir in sorted(self.systems_dir.iterdir()):
+                if system_dir.is_dir() and not system_dir.name.startswith(('.', '__')):
+                    location_data = self.load_location_recursive(system_dir)
+                    if location_data:
+                        galaxy_tree.append(location_data)
+
+        # Build slug-indexed lookup for fast injection: {system_slug: {body_slug: node}}
+        def index_tree(nodes, index, parent_slug=None):
+            for node in nodes:
+                slug = node.get('slug')
+                if parent_slug is not None:
+                    index.setdefault(parent_slug, {})[slug] = node
+                index_tree(node.get('children', []), index, slug)
+
+        # Two-level index: system → body
+        system_index = {node['slug']: node for node in galaxy_tree}
+        body_index = {}
+        for sys_node in galaxy_tree:
+            for body_node in sys_node.get('children', []):
+                body_index[body_node['slug']] = body_node
+
+        # Load and inject flat locations
         locations_dir = self.data_dir / 'locations'
         if locations_dir.exists():
-            locations = []
             for location_dir in sorted(locations_dir.iterdir()):
-                if not location_dir.is_dir():
-                    continue
-                if location_dir.name.startswith(('.', '__')):
+                if not location_dir.is_dir() or location_dir.name.startswith(('.', '__')):
                     continue
                 location_yaml = location_dir / 'location.yaml'
                 if not location_yaml.exists():
@@ -48,27 +70,23 @@ class DataLoader:
 
                 loc['slug'] = location_dir.name
                 loc['directory'] = str(location_dir)
-
-                # Load map/terminals for compatibility
                 loc['map'] = self.load_map(location_dir)
                 loc['has_map'] = loc['map'] is not None
                 loc['maps'] = [loc['map']] if loc['map'] else []
                 loc['terminals'] = self.load_terminals(location_dir)
                 loc['children'] = []
 
-                locations.append(loc)
-            return locations
+                system_slug = loc.get('system_slug')
+                body_slug = loc.get('body_slug')
 
-        # Fallback: legacy galaxy tree scan
-        locations = []
-        if not self.systems_dir.exists():
-            return locations
-        for system_dir in self.systems_dir.iterdir():
-            if system_dir.is_dir() and system_dir.name != '__pycache__':
-                location_data = self.load_location_recursive(system_dir)
-                if location_data:
-                    locations.append(location_data)
-        return locations
+                if body_slug and body_slug in body_index:
+                    body_index[body_slug].setdefault('children', []).append(loc)
+                elif system_slug and system_slug in system_index:
+                    system_index[system_slug].setdefault('children', []).append(loc)
+                else:
+                    galaxy_tree.append(loc)
+
+        return galaxy_tree
 
     def load_location_recursive(self, location_dir: Path) -> Dict[str, Any]:
         """Recursively load a location and all nested child locations."""

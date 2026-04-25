@@ -1629,6 +1629,31 @@ def api_encounter_map_data(request, location_slug):
         return JsonResponse({'error': 'Location not found'}, status=404)
 
     map_data = location.get('map')
+
+    # Deckplan fallback: locations using deckplan.yaml have no map/ directory
+    if not map_data and location.get('directory'):
+        from pathlib import Path
+        location_dir = Path(location['directory'])
+        deckplan = loader.load_deckplan(location_dir)
+        if deckplan and deckplan.get('decks'):
+            decks = deckplan['decks']
+            default_deck = next((d for d in decks if d.get('default')), decks[0])
+            manifest = {
+                'name': deckplan.get('name', location.get('name', '')),
+                'facility_type': deckplan.get('facility_type', location.get('type', '')),
+                'total_decks': deckplan['total_decks'],
+                'decks': [{'id': d['id'], 'name': d.get('name', d['id']),
+                            'level': d.get('level', 1), 'default': d.get('default', False)}
+                           for d in decks],
+                'hull': deckplan.get('hull'),
+            }
+            map_data = {
+                'is_multi_deck': True,
+                'manifest': manifest,
+                'current_deck': {**default_deck, 'deck_id': default_deck['id']},
+                'current_deck_id': default_deck['id'],
+            }
+
     if not map_data:
         return JsonResponse({'error': 'No map data for location'}, status=404)
 
@@ -1638,15 +1663,23 @@ def api_encounter_map_data(request, location_slug):
     # Handle optional deck_id query param - fall back to active_view encounter_deck_id
     requested_deck_id = request.GET.get('deck_id') or active_view.get('encounter_deck_id', '')
 
-    # If it's a multi-deck map and a specific deck is requested (or stored in active_view)
+    # If a specific deck is requested, find it in the deckplan or old-format manifest
     if map_data.get('is_multi_deck') and requested_deck_id:
         if location.get('directory'):
             from pathlib import Path
             location_dir = Path(location['directory'])
-            deck_data = loader.load_deck_map(location_dir, requested_deck_id)
-            if deck_data:
-                map_data['current_deck'] = deck_data
-                map_data['current_deck_id'] = requested_deck_id
+            # Try deckplan first (inline rooms), fall back to old load_deck_map
+            deckplan = loader.load_deckplan(location_dir)
+            if deckplan and deckplan.get('decks'):
+                deck = next((d for d in deckplan['decks'] if d['id'] == requested_deck_id), None)
+                if deck:
+                    map_data['current_deck'] = {**deck, 'deck_id': deck['id']}
+                    map_data['current_deck_id'] = requested_deck_id
+            else:
+                deck_data = loader.load_deck_map(location_dir, requested_deck_id)
+                if deck_data:
+                    map_data['current_deck'] = deck_data
+                    map_data['current_deck_id'] = requested_deck_id
 
     # Add room visibility state
     map_data['room_visibility'] = active_view.get('encounter_room_visibility') or {}
@@ -1672,6 +1705,34 @@ def api_encounter_all_decks(request, location_slug):
         return JsonResponse({'error': 'Location not found'}, status=404)
 
     map_data = location.get('map')
+
+    # Deckplan fallback: locations using deckplan.yaml have no map/ directory
+    if not map_data and location.get('directory'):
+        from pathlib import Path
+        location_dir = Path(location['directory'])
+        deckplan = loader.load_deckplan(location_dir)
+        if deckplan and deckplan.get('decks'):
+            decks = deckplan['decks']
+            manifest = {
+                'name': deckplan.get('name', location.get('name', '')),
+                'facility_type': deckplan.get('facility_type', location.get('type', '')),
+                'total_decks': deckplan['total_decks'],
+                'decks': [{'id': d['id'], 'name': d.get('name', d['id']),
+                            'level': d.get('level', 1), 'default': d.get('default', False)}
+                           for d in decks],
+                'hull': deckplan.get('hull'),
+            }
+            active_view = get_state()
+            return JsonResponse({
+                'is_multi_deck': True,
+                'manifest': manifest,
+                'decks': [{'id': d['id'], 'name': d.get('name', d['id']),
+                            'level': d.get('level', 1), 'rooms': d.get('rooms', [])}
+                           for d in sorted(decks, key=lambda d: d.get('level', 0))],
+                'room_visibility': active_view.get('encounter_room_visibility') or {},
+                'current_deck_id': active_view.get('encounter_deck_id', ''),
+            })
+
     if not map_data:
         return JsonResponse({'error': 'No map data for location'}, status=404)
 
@@ -1691,7 +1752,7 @@ def api_encounter_all_decks(request, location_slug):
             'room_visibility': active_view.get('encounter_room_visibility') or {},
         })
 
-    # Load all decks from manifest
+    # Load all decks from manifest (old map/ directory format)
     manifest = map_data.get('manifest', {})
     decks_data = []
 

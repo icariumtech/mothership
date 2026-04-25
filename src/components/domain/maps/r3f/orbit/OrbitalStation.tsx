@@ -12,6 +12,7 @@ import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useIsPaused } from '../hooks/useSceneStore';
 import type { StationData } from '@/types/orbitMap';
+import { getOrbitIconSvg } from './OrbitIcons';
 
 // Constants from legacy OrbitScene
 const DEFAULT_SIZE = 1.5;
@@ -47,29 +48,24 @@ export function OrbitalStation({
   const size = station.size ?? DEFAULT_SIZE;
 
   // Create station texture and material with fade support
-  const { texture, material } = useMemo(() => {
+  const { texture, material, canvas } = useMemo(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = 32;
-    canvas.height = 32;
+    canvas.width = 64;
+    canvas.height = 64;
     const ctx = canvas.getContext('2d')!;
 
-    // Black background
+    // Default: square-within-square fallback
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, 32, 32);
-
-    // Amber border
+    ctx.fillRect(0, 0, 64, 64);
     ctx.strokeStyle = STATION_COLOR;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(4, 4, 24, 24);
-
-    // Amber center fill
+    ctx.lineWidth = 4;
+    ctx.strokeRect(8, 8, 48, 48);
     ctx.fillStyle = STATION_COLOR;
-    ctx.fillRect(8, 8, 16, 16);
+    ctx.fillRect(16, 16, 32, 32);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.needsUpdate = true;
 
-    // Create material with _baseOpacity for scene fade
     const mat = new THREE.SpriteMaterial({
       map: tex,
       transparent: true,
@@ -77,8 +73,36 @@ export function OrbitalStation({
     });
     (mat as any)._baseOpacity = 1.0;
 
-    return { texture: tex, material: mat };
+    return { texture: tex, material: mat, canvas };
   }, []);
+
+  // Async SVG icon load — overwrites canvas once image is ready
+  useEffect(() => {
+    if (!station.icon_type) return;
+    const svg = getOrbitIconSvg(station.icon_type);
+    if (!svg) return;
+
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    let cancelled = false;
+
+    img.onload = () => {
+      if (cancelled) return;
+      const ctx = canvas.getContext('2d')!;
+      ctx.clearRect(0, 0, 64, 64);
+      ctx.drawImage(img, 0, 0, 64, 64);
+      URL.revokeObjectURL(url);
+      texture.needsUpdate = true;
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(url);
+    };
+  }, [station.icon_type, canvas, texture]);
 
   // Cleanup texture and material on unmount
   useEffect(() => {

@@ -9,6 +9,7 @@ import { useRef, useMemo, useCallback, useEffect } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { SurfaceMarkerData } from '@/types/orbitMap';
+import { getOrbitIconSvg } from './OrbitIcons';
 
 // Constants
 const MARKER_SIZE = 2;
@@ -61,33 +62,28 @@ export function SurfaceMarker({
   const spriteRef = useRef<THREE.Sprite>(null);
 
   // Create marker texture and material with fade support
-  const { texture, material } = useMemo(() => {
+  const { texture, material, canvas } = useMemo(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = 24;
-    canvas.height = 24;
+    canvas.width = 64;
+    canvas.height = 64;
     const ctx = canvas.getContext('2d')!;
 
-    // Black circle background
+    // Default: circle with center square fallback
     ctx.fillStyle = '#000000';
     ctx.beginPath();
-    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.arc(32, 32, 28, 0, Math.PI * 2);
     ctx.fill();
-
-    // Teal circle outline
     ctx.strokeStyle = MARKER_COLOR;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.arc(32, 32, 28, 0, Math.PI * 2);
     ctx.stroke();
-
-    // Teal center square
     ctx.fillStyle = MARKER_COLOR;
-    ctx.fillRect(8, 8, 8, 8);
+    ctx.fillRect(20, 20, 24, 24);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.needsUpdate = true;
 
-    // Create material with _baseOpacity for scene fade
     const mat = new THREE.SpriteMaterial({
       map: tex,
       transparent: true,
@@ -95,8 +91,36 @@ export function SurfaceMarker({
     });
     (mat as any)._baseOpacity = 1.0;
 
-    return { texture: tex, material: mat };
+    return { texture: tex, material: mat, canvas };
   }, []);
+
+  // Async SVG icon load via marker_type — overwrites canvas once ready
+  useEffect(() => {
+    if (!marker.marker_type) return;
+    const svg = getOrbitIconSvg(marker.marker_type);
+    if (!svg) return;
+
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    let cancelled = false;
+
+    img.onload = () => {
+      if (cancelled) return;
+      const ctx = canvas.getContext('2d')!;
+      ctx.clearRect(0, 0, 64, 64);
+      ctx.drawImage(img, 0, 0, 64, 64);
+      URL.revokeObjectURL(url);
+      texture.needsUpdate = true;
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(url);
+    };
+  }, [marker.marker_type, canvas, texture]);
 
   // Cleanup texture and material on unmount
   useEffect(() => {

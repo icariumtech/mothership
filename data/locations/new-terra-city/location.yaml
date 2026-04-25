@@ -2,6 +2,10 @@ name: "New Terra City"
 type: "base"
 parent_body: "tau-ceti-e"
 coordinates: "23.5°N 45.2°E"
+surface:
+  latitude: 23.5
+  longitude: 45.2
+  marker_type: colony
 status: "OPERATIONAL"
 population: 125000
 established: "2168"

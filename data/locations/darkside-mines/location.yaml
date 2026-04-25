@@ -2,6 +2,9 @@ name: "Darkside Mining Complex"
 type: "base"
 parent_body: "ross-128-b"
 coordinates: "Dark Side Hemisphere"
+surface:
+  latitude: -15.0
+  longitude: 180.0
 status: "OPERATIONAL"
 crew_capacity: 2000
 current_population: 1780

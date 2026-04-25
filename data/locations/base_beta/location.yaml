@@ -2,6 +2,9 @@ name: "Base Beta"
 type: "station"
 description: "Secondary research outpost"
 coordinates: "Planet X Surface - South Hemisphere"
+surface:
+  latitude: -41.0
+  longitude: 173.0
 status: "OPERATIONAL"
 
 parent_type: surface

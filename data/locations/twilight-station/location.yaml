@@ -2,6 +2,9 @@ name: "Twilight Research Station"
 type: "base"
 parent_body: "proxima-b"
 coordinates: "Terminator Zone, 0.0°N 90.0°W"
+surface:
+  latitude: 0.0
+  longitude: -90.0
 status: "OPERATIONAL"
 crew_capacity: 150
 current_population: 142

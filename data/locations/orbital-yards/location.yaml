@@ -24,4 +24,4 @@ orbital:
   angle: 90
   inclination: 0
   size: 2.0
-  icon_type: shipyard
+  icon_type: station

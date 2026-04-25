@@ -50,7 +50,7 @@ export function StarMapPanel({
   const renderGalaxyList = () => (
     <>
       {starMapData && starMapData.systems.length > 0 ? (
-        starMapData.systems.map((system, index) => (
+        starMapData.systems.filter(s => s.label !== false).map((system, index) => (
           <div
             key={system.name}
             className={`star-system-row ${selectedSystem === system.name ? 'selected' : ''}`}

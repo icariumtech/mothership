@@ -2,6 +2,9 @@ name: "Base Alpha"
 type: "station"
 description: "Primary mining operations base"
 coordinates: "Planet X Surface - North Hemisphere"
+surface:
+  latitude: 52.0
+  longitude: 14.0
 status: "OPERATIONAL"
 
 parent_type: surface

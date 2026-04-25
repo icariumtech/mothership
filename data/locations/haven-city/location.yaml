@@ -2,6 +2,9 @@ name: "Haven City"
 type: "base"
 parent_body: "luyten-b"
 coordinates: "12°S 87°E"
+surface:
+  latitude: -12.0
+  longitude: 87.0
 status: "OPERATIONAL"
 population: 38000
 established: "2170"

@@ -420,12 +420,18 @@ class DataLoader:
         if is_top_level:
             locations = self.load_all_locations()
 
-            # 2. Check campaign directory (campaign ship)
+            # 2. Check campaign directory for ship matching by slug field
             campaign_dir = self.data_dir / "campaign"
             if campaign_dir.exists():
-                candidate = campaign_dir / slug
-                if candidate.is_dir() and (candidate / "ship.yaml").exists():
-                    return self.load_location_recursive(candidate)
+                for subdir in sorted(campaign_dir.iterdir()):
+                    if not subdir.is_dir():
+                        continue
+                    ship_yaml = subdir / "ship.yaml"
+                    if ship_yaml.exists():
+                        with open(ship_yaml) as f:
+                            ship_data = yaml.safe_load(f) or {}
+                        if ship_data.get('slug') == slug:
+                            return self.load_location_recursive(subdir)
 
         # 3. Fall back to galaxy tree for celestial bodies
         for location in locations:

@@ -50,7 +50,7 @@ class Command(BaseCommand):
             locations_data = loader.load_all_locations()
 
         if not locations_data or not locations_data[0]:
-            self.stdout.write(self.style.ERROR('No locations found in data/locations/'))
+            self.stdout.write(self.style.ERROR('No locations found in data/galaxy/ or data/ships/'))
             return
 
         # Sync each location

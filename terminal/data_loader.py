@@ -27,11 +27,13 @@ class DataLoader:
     def load_all_locations(self) -> List[Dict[str, Any]]:
         """Load all visitable locations, organized as a galaxy hierarchy.
 
-        Builds the tree from the galaxy directory (systems → planets/bodies),
-        then injects non-celestial locations from data/locations/ under their
-        parent bodies using system_slug + body_slug fields.
+        Builds the tree from the galaxy directory (systems → planets/bodies →
+        nested permanent installations like bases and orbital stations), then
+        injects mobile ships from data/ships/ under their current parent body
+        using their system_slug + body_slug pointer fields.
         """
-        # Build base galaxy tree (celestial bodies: systems, planets, moons)
+        # Build base galaxy tree — recursion picks up celestial bodies AND
+        # any permanent installation directories nested under a body.
         galaxy_tree = []
         if self.systems_dir.exists():
             for system_dir in sorted(self.systems_dir.iterdir()):
@@ -40,14 +42,6 @@ class DataLoader:
                     if location_data:
                         galaxy_tree.append(location_data)
 
-        # Build slug-indexed lookup for fast injection: {system_slug: {body_slug: node}}
-        def index_tree(nodes, index, parent_slug=None):
-            for node in nodes:
-                slug = node.get('slug')
-                if parent_slug is not None:
-                    index.setdefault(parent_slug, {})[slug] = node
-                index_tree(node.get('children', []), index, slug)
-
         # Two-level index: system → body
         system_index = {node['slug']: node for node in galaxy_tree}
         body_index = {}
@@ -55,25 +49,25 @@ class DataLoader:
             for body_node in sys_node.get('children', []):
                 body_index[body_node['slug']] = body_node
 
-        # Load and inject flat locations
-        locations_dir = self.data_dir / 'locations'
-        if locations_dir.exists():
-            for location_dir in sorted(locations_dir.iterdir()):
-                if not location_dir.is_dir() or location_dir.name.startswith(('.', '__')):
+        # Load mobile ships and inject under their current parent body
+        ships_dir = self.data_dir / 'ships'
+        if ships_dir.exists():
+            for ship_dir in sorted(ships_dir.iterdir()):
+                if not ship_dir.is_dir() or ship_dir.name.startswith(('.', '__')):
                     continue
-                location_yaml = location_dir / 'location.yaml'
+                location_yaml = ship_dir / 'location.yaml'
                 if not location_yaml.exists():
                     continue
 
                 with open(location_yaml) as f:
                     loc = yaml.safe_load(f) or {}
 
-                loc['slug'] = location_dir.name
-                loc['directory'] = str(location_dir)
-                loc['map'] = self.load_map(location_dir)
+                loc['slug'] = ship_dir.name
+                loc['directory'] = str(ship_dir)
+                loc['map'] = self.load_map(ship_dir)
                 loc['has_map'] = loc['map'] is not None
                 loc['maps'] = [loc['map']] if loc['map'] else []
-                loc['terminals'] = self.load_terminals(location_dir)
+                loc['terminals'] = self.load_terminals(ship_dir)
                 loc['children'] = []
 
                 system_slug = loc.get('system_slug')
@@ -402,16 +396,17 @@ class DataLoader:
         """Find a location by slug.
 
         Priority:
-        1. data/locations/{slug}/ — flat locations (O(1) path check)
+        1. data/ships/{slug}/ — mobile ships (O(1) path check)
         2. data/campaign/{slug}/ — campaign ship (ship.yaml)
-        3. Galaxy tree traversal — celestial bodies (recursive)
+        3. Galaxy tree traversal — celestial bodies and nested permanent
+           installations (recursive)
 
-        Slug disambiguation rule: locations/ wins over galaxy/ if the same slug
+        Slug disambiguation rule: ships/ wins over galaxy/ if the same slug
         appears in both. Collisions are avoided by convention — galaxy slugs use
-        astronomical names, location slugs use facility names.
+        astronomical names, ship slugs use vessel names.
         """
-        # 1. Check data/locations/ (flat locations)
-        loc_dir = self.data_dir / 'locations' / slug
+        # 1. Check data/ships/ (mobile ships)
+        loc_dir = self.data_dir / 'ships' / slug
         if loc_dir.exists() and (loc_dir / 'location.yaml').exists():
             return self.load_location_recursive(loc_dir)
 
@@ -449,15 +444,16 @@ class DataLoader:
     def get_location_path(self, slug: str, locations: List[Dict[str, Any]] = None, path: List[str] = None) -> List[str]:
         """Get the full hierarchical path to a location as a list of slugs.
 
-        For flat locations (data/locations/): reconstructs [system_slug, body_slug, slug]
-        from self-describing fields — no filesystem traversal needed.
+        For mobile ships (data/ships/): reconstructs [system_slug, body_slug, slug]
+        from the ship's pointer fields — no filesystem traversal needed.
 
-        For celestial bodies (data/galaxy/): retains recursive tree traversal.
+        For celestial bodies and permanent installations (data/galaxy/): uses
+        recursive tree traversal.
 
         Returns: ['sol', 'earth', 'research_base_alpha'] for a base on Earth in Sol system.
         """
-        # Check data/locations/ first (O(1) path check)
-        loc_dir = self.data_dir / 'locations' / slug
+        # Check data/ships/ first (O(1) path check)
+        loc_dir = self.data_dir / 'ships' / slug
         if loc_dir.exists() and (loc_dir / 'location.yaml').exists():
             with open(loc_dir / 'location.yaml') as f:
                 loc = yaml.safe_load(f) or {}
@@ -587,8 +583,9 @@ class DataLoader:
     def load_orbit_map(self, system_slug: str, body_slug: str) -> Dict[str, Any]:
         """Load orbital visualization for a planet/body.
 
-        Loads base orbit_map.yaml then injects locations that self-register
-        via their parent_type/body_slug fields in data/locations/.
+        Loads base orbit_map.yaml then injects child locations of the body —
+        permanent installations nested under data/galaxy/<system>/<body>/ and
+        any mobile ships from data/ships/ currently pointing at this body.
         The injected entries replace any static orbital_stations/surface_markers
         in the YAML file.
         """
@@ -600,13 +597,24 @@ class DataLoader:
         with open(orbit_map_file, 'r') as f:
             orbit_data = yaml.safe_load(f) or {}
 
-        # Inject locations that orbit or surface this body
+        # Look up the body node in the assembled tree and walk its children
         all_locations = self.load_all_locations()
+        body_node = None
+        for sys_node in all_locations:
+            if sys_node.get('slug') == system_slug:
+                for child in sys_node.get('children', []):
+                    if child.get('slug') == body_slug:
+                        body_node = child
+                        break
+                break
+
         orbital_stations = []
         surface_markers = []
+        body_children = body_node.get('children', []) if body_node else []
 
-        for loc in all_locations:
-            if loc.get('body_slug') != body_slug:
+        for loc in body_children:
+            # Skip celestial children (moons) — they don't use parent_type
+            if loc.get('type') in ('moon', 'planet', 'star'):
                 continue
             parent_type = loc.get('parent_type', 'orbit')
             orbital_block = loc.get('orbital', {})

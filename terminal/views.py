@@ -409,7 +409,7 @@ def get_system_map_json(request, system_slug):
     system_map = loader.load_system_map(system_slug)
 
     if system_map:
-        # Count facilities per body from data/locations/
+        # Count facilities per body from the assembled location tree
         from collections import defaultdict
         surface_counts = defaultdict(int)
         orbital_counts = defaultdict(int)

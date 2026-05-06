@@ -74,4 +74,4 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 | Ant Design for layout/forms | Rapid development, consistent components | — Pending |
 
 ---
-*Last updated: 2026-04-17 — Phase 12 complete: GRID-01..10 requirements checked off, ROADMAP checkboxes synced, dead code removed*
+*Last updated: 2026-05-06 — Phase 19 complete: DATA_DIRECTORY_GUIDE.md fully rewritten to document live state after Phases 15–18 (four-way data split, deckplan.yaml schema, self-registration pattern, per-entity character files)*

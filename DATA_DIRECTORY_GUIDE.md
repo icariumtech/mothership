@@ -81,6 +81,11 @@ does not need to change.
 > `body_slug: tau-ceti-E` (capital E) will NOT match the directory `tau-ceti-e`.
 > Always use lowercase-with-hyphens exactly matching the directory name.
 
+> **Depth limitation:** `body_slug` injection resolves against direct children of system nodes
+> only (planets, not moons). Pointing `body_slug` at a moon slug will silently fall back to
+> `system_slug` lookup or the galaxy tree root — no error is raised. Only top-level bodies
+> (planets) are valid `body_slug` targets.
+
 ---
 
 ## 3. File Types Reference
@@ -97,8 +102,10 @@ does not need to change.
 | `{id}.yaml` | Individual crew member | `data/campaign/crew/` |
 | `{id}.yaml` | Individual NPC | `data/campaign/npcs/` |
 
-No `manifest.yaml` — it no longer exists. Multi-deck maps use a `decks:` list in a single
-`deckplan.yaml`.
+No `manifest.yaml` for new-format locations — multi-deck maps use a `decks:` list in a single
+`deckplan.yaml`. The old `manifest.yaml` + individual deck file format still exists for legacy
+locations (e.g. `data/galaxy/tau-ceti/somnus/map/manifest.yaml`) and is still loaded by
+`data_loader.py:load_encounter_manifest()`.
 
 ---
 
@@ -302,7 +309,7 @@ decks:
     name: Main Deck        # required: display name
     level: 1               # required: sort key — 1 = lowest deck
     default: true          # optional: first deck shown when location loads
-    unit_size: 30          # optional: pixels per grid cell (default 40)
+    unit_size: 30          # optional: pixels per grid cell (default 30)
     rooms:                 # required: list of room entries
       ...
 ```
@@ -697,7 +704,7 @@ Docked at 0600. Facility systems nominal.
 
 ```yaml
 name: "JANUS"
-designation: "Computerized Heuristic Autonomous Resource Operations Network"
+designation: "Joint Autonomous Networked Universal System"
 version: "3.7.2"
 
 personality:

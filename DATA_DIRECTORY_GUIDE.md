@@ -1,954 +1,401 @@
-# Data Directory Structure Guide
+# Data Directory Guide
 
-This document describes how to structure the `data/` directory for the Mothership GM Tool. Use this as a reference when building out campaign data.
+This document describes how to structure the `data/` directory for the Mothership GM Tool.
+Use it as a reference when creating or editing campaign data.
 
-## Overview
+---
 
-The data directory uses a file-based approach with YAML for structured data and Markdown for message content. Data is loaded on-demand from disk rather than synced to a database.
+## 1. Overview
+
+The data directory is split into four top-level areas:
 
 ```
 data/
-├── janus/                   # JANUS AI configuration
-│   └── context.yaml         # AI personality and system prompt
-└── galaxy/                  # Galaxy data (locations, maps, messages)
-    ├── star_map.yaml        # 3D galaxy map configuration
-    └── {system-slug}/       # Star systems (nested hierarchy)
+├── campaign/           ← campaign state: ship, crew, NPCs, docs, sessions
+├── galaxy/             ← celestial bodies ONLY — written once per campaign
+├── ships/              ← all mobile vessels — can point at any body in the galaxy
+└── janus/              ← CHARON AI configuration
 ```
 
-## Directory Naming Conventions
+Each area has a distinct role:
 
-- Use **lowercase** with **hyphens** for directory names (slugs)
-- Examples: `tau-ceti`, `research-base-alpha`, `deck-1`, `commanders-terminal`
-- Slugs must be unique within their parent directory
+| Directory | What lives here | How often edited |
+|---|---|---|
+| `campaign/` | The player ship + its crew/NPC rosters + session notes | Every session |
+| `galaxy/` | Stars, planets, moons, and permanent installations | Once per campaign setup |
+| `ships/` | Mobile vessels (patrol boats, freighters, derelicts) | When ships move or are discovered |
+| `janus/` | CHARON AI personality and system prompt | Rarely |
 
 ---
 
-## How Data Is Loaded (Discovery Mechanism)
+## 2. Discovery Mechanism
 
-The application uses **automatic directory scanning** to discover data. Understanding this is critical for creating valid data structures.
+Understanding how the back end loads data prevents "why doesn't it appear?" debugging.
 
-### Location Discovery
+### Galaxy tree
 
-The `DataLoader` class in `terminal/data_loader.py` recursively scans `data/galaxy/` for directories containing `location.yaml` files:
+`data/galaxy/` is scanned once at request time. The scanner:
 
-1. **Scanning starts** at `data/galaxy/`
-2. **For each subdirectory**, it checks for `location.yaml`
-3. **If found**, the directory is registered as a location with its slug (directory name)
-4. **Child directories** are scanned recursively, building the hierarchy
-5. **Maps and terminals** within each location are also discovered automatically
+1. Iterates top-level subdirectories — each is a **star system**.
+2. Recursively walks each system's subdirectories — each directory with a `location.yaml` is
+   loaded as a body, moon, or permanent installation.
+3. Permanent installations (bases, stations, mines) are nested directly under their
+   parent body in the galaxy tree — they never move, so their physical path encodes
+   their location.
+
+### Mobile ships (`data/ships/`)
+
+Ships are NOT nested under a body in the directory structure. Instead, each ship's
+`location.yaml` contains `system_slug` and `body_slug` **pointer fields** that tell
+the data loader where to inject the ship in the galaxy tree:
 
 ```
-data/galaxy/
-└── my-system/              ← Discovered because it contains location.yaml
-    ├── location.yaml       ← REQUIRED for discovery
-    ├── system_map.yaml     ← Auto-detected (optional)
-    └── my-planet/          ← Discovered as child location
-        ├── location.yaml   ← REQUIRED
-        └── my-station/
-            ├── location.yaml
-            ├── map/        ← Auto-scanned for *.yaml map files
-            └── comms/      ← Auto-scanned for terminal directories
+data/ships/
+└── patrol_gunboat/
+    ├── location.yaml    ← contains body_slug + system_slug
+    └── deckplan.yaml    ← optional encounter map
 ```
 
-### Key Discovery Rules
+**When a ship moves**, edit only its `location.yaml` pointer fields — no directory move
+required.
 
-| Component | Discovery Method | Required File |
-|-----------|------------------|---------------|
-| Locations | Directory with `location.yaml` | `location.yaml` |
-| System maps | File named `system_map.yaml` in system directory | None (optional) |
-| Orbit maps | File named `orbit_map.yaml` in planet directory | None (optional) |
-| Encounter maps | Any `.yaml` in `map/` subdirectory | None (optional) |
-| Multi-deck maps | `manifest.yaml` in `map/` subdirectory | `manifest.yaml` |
-| Terminals | Directory in `comms/` with `terminal.yaml` | `terminal.yaml` |
-| Messages | `.md` files in terminal's `inbox/` or `sent/` subdirectories | None |
+### Orbit map injection
 
-### What Happens If Files Are Missing
+Orbit maps (`orbit_map.yaml`) define the moons section of a planet's orbital view.
+Stations and ships that should appear on an orbit map are **not listed** in
+`orbit_map.yaml` anymore — they self-register at runtime.
 
-| Missing File | Result |
-|--------------|--------|
-| `location.yaml` | Directory is **ignored** - not loaded as a location |
-| `system_map.yaml` | System exists but has no planetary visualization |
-| `orbit_map.yaml` | Planet exists but clicking shows no orbit view |
-| `manifest.yaml` | Individual deck files are loaded as single-deck maps |
-| `terminal.yaml` | Terminal directory is **ignored** |
+The data loader:
 
-### Linking Between Files
+1. Loads `orbit_map.yaml` (moons only).
+2. Scans the body's children in the galaxy tree (permanent installations).
+3. Scans `data/ships/` for ships whose `body_slug` matches this body.
+4. Merges all three into the final orbit map response.
 
-Files reference each other using **slugs** (directory names):
+**Result:** Adding a ship or permanent installation to a body's orbit map requires only
+creating/editing one `location.yaml` with an `orbital:` block — the `orbit_map.yaml`
+does not need to change.
 
-```yaml
-# In star_map.yaml - links to data/galaxy/tau-ceti/
-systems:
-  - name: "Tau Ceti"
-    location_slug: "tau-ceti"    # ← Must match directory name
-
-# In system_map.yaml - links to data/galaxy/tau-ceti/tau-ceti-e/
-bodies:
-  - name: "Tau Ceti e"
-    location_slug: "tau-ceti-e"  # ← Must match directory name
-    has_orbit_map: true          # ← Tells UI to look for orbit_map.yaml
-
-# In orbit_map.yaml - links to child location directories
-surface_markers:
-  - name: "New Terra City"
-    location_slug: "new-terra-city"  # ← Must match directory name
-```
-
-**Important:** The `location_slug` must exactly match the directory name. If they don't match, clicking on the item in the UI will fail to navigate.
+> **Typo warning:** `body_slug` and `system_slug` are free-text string fields. A case
+> mismatch or spelling error silently prevents the location from appearing. Example:
+> `body_slug: tau-ceti-E` (capital E) will NOT match the directory `tau-ceti-e`.
+> Always use lowercase-with-hyphens exactly matching the directory name.
 
 ---
 
-## File Types Reference
+## 3. File Types Reference
 
-| File | Exact Location | Purpose | Required? |
-|------|----------------|---------|-----------|
-| `location.yaml` | Every location directory | Defines location metadata | **Yes** - for discovery |
-| `star_map.yaml` | `data/galaxy/star_map.yaml` (exactly one) | 3D galaxy visualization | No |
-| `system_map.yaml` | `data/galaxy/{system}/system_map.yaml` | Solar system visualization | No |
-| `orbit_map.yaml` | `data/galaxy/{system}/{planet}/orbit_map.yaml` | Planetary orbit visualization | No |
-| `manifest.yaml` | `{facility}/map/manifest.yaml` | Multi-deck map configuration | Only for multi-deck |
-| `*.yaml` (maps) | `{facility}/map/*.yaml` or `{deck}/map/*.yaml` | Encounter map definitions | No |
-| `terminal.yaml` | `{location}/comms/{terminal}/terminal.yaml` | Terminal configuration | **Yes** - for terminal discovery |
-| `*.md` | `{terminal}/inbox/{sender}/*.md` or `{terminal}/sent/{recipient}/*.md` | Message content | No |
+| File | Purpose | Location |
+|---|---|---|
+| `ship.yaml` | Player ship identity, systems, and resources | `data/campaign/ship/` |
+| `deckplan.yaml` | All decks in one file (ship or any location) | `data/campaign/ship/` or `data/ships/{slug}/` |
+| `location.yaml` | Location identity + spatial context | `data/galaxy/...` or `data/ships/{slug}/` |
+| `orbit_map.yaml` | Planet orbital environment — moons only | `data/galaxy/{system}/{planet}/` |
+| `system_map.yaml` | 3D solar system visualization | `data/galaxy/{system}/` |
+| `star_map.yaml` | 3D galaxy map | `data/galaxy/star_map.yaml` |
+| `terminal.yaml` | Comm terminal configuration | `{location}/comms/{name}/` |
+| `{id}.yaml` | Individual crew member | `data/campaign/crew/` |
+| `{id}.yaml` | Individual NPC | `data/campaign/npcs/` |
 
-### File Placement Rules
-
-**Maps can exist at multiple levels:**
-- **System level**: `{system}/system_map.yaml` - shows orbiting planets
-- **Planet level**: `{planet}/orbit_map.yaml` - shows moons, stations, surface locations
-- **Facility level**: `{facility}/map/*.yaml` - encounter maps for the whole facility
-- **Deck level**: `{deck}/map/*.yaml` - encounter maps for specific decks
-
-**Terminals can exist at multiple levels:**
-- **Facility level**: `{facility}/comms/{terminal}/` - shared facility terminals
-- **Deck level**: `{deck}/comms/{terminal}/` - deck-specific terminals
-- **Room level**: `{room}/comms/{terminal}/` - room-specific terminals
-
-**Example showing all levels:**
-```
-data/galaxy/tau-ceti/                    # System
-├── location.yaml
-├── system_map.yaml                      # System-level map
-└── tau-ceti-e/                          # Planet
-    ├── location.yaml
-    ├── orbit_map.yaml                   # Planet-level orbit map
-    └── orbital-station/                 # Facility (station)
-        ├── location.yaml
-        ├── map/
-        │   ├── manifest.yaml            # Facility-level multi-deck manifest
-        │   ├── deck_1.yaml
-        │   └── deck_2.yaml
-        ├── comms/                       # Facility-level terminals
-        │   └── station-ai/
-        │       └── terminal.yaml
-        └── operations-deck/             # Deck
-            ├── location.yaml
-            ├── map/
-            │   └── ops_layout.yaml      # Deck-level map (alternative to manifest)
-            ├── comms/                   # Deck-level terminals
-            │   └── ops-console/
-            │       └── terminal.yaml
-            └── commanders-office/       # Room
-                ├── location.yaml
-                └── comms/               # Room-level terminal
-                    └── private-terminal/
-                        └── terminal.yaml
-```
+No `manifest.yaml` — it no longer exists. Multi-deck maps use a `decks:` list in a single
+`deckplan.yaml`.
 
 ---
 
-## 1. Galaxy Structure (`data/galaxy/`)
+## 4. Location Self-Registration (`body_slug` + `orbital:`)
 
-### 1.1 Star Map (`star_map.yaml`)
+Any location with an `orbital:` block and matching `body_slug` / `system_slug` fields will
+appear automatically on the target planet's orbit map.
 
-The top-level 3D galaxy visualization showing all star systems.
-
-**Location:** `data/galaxy/star_map.yaml` (exactly one file)
-
-```yaml
-# === CAMERA SETTINGS (all optional, have defaults) ===
-camera:
-  position: [0, 0, 100]    # x, y, z starting position
-  lookAt: [0, 0, 0]        # Camera target
-  fov: 75                  # Field of view in degrees
-
-# === OPTIONAL: Ambient lighting ===
-ambient_light:
-  color: 0x222244
-  intensity: 0.3
-
-# === SYSTEMS LIST (required for map to show anything) ===
-systems:
-  # Interactive system with location link
-  - name: "Sol"                   # REQUIRED: Display name
-    position: [0, 0, 0]           # REQUIRED: 3D coordinates [x, y, z]
-    color: 0xFFFFAA               # Optional: Hex color (default: white)
-    size: 2.5                     # Optional: Star size (default: 1.0)
-    type: "star"                  # Optional: star, planet, nebula, station
-    label: true                   # Optional: Show label on map (default: false)
-    location_slug: "sol"          # REQUIRED for navigation: Must match directory name
-    info:                         # Optional: Info panel content
-      description: "Earth's home system"
-      population: "~8 billion"
-
-  # Decorative background star (no location link)
-  - name: "Distant Star 1"
-    position: [40, 30, -20]
-    color: 0xCCCCFF
-    size: 0.8
-    type: "star"
-    label: false                  # No label or interaction
-
-# === OPTIONAL: Travel routes between systems ===
-routes:
-  - from: "Sol"                   # REQUIRED: Source system name
-    to: "Tau Ceti"                # REQUIRED: Destination system name
-    from_slug: "sol"              # Optional: For navigation
-    to_slug: "tau-ceti"           # Optional: For navigation
-    color: 0x5a7a9a               # Optional: Route line color
-    route_type: "major_trade"     # Optional: primary_route, major_trade, industrial, frontier, exploration
-    travel_time_days: 52          # Optional: For display
-    info:
-      description: "Major colonial trade route"
-
-# === OPTIONAL: Nebula particle clouds ===
-nebulae:
-  - name: "The Veil"              # REQUIRED: Display name
-    position: [0, 0, 0]           # REQUIRED: Center position
-    color: 0x5aaa9a               # Optional: Particle color
-    size: 65                      # Optional: Radius of particle field
-    particle_count: 3500          # Optional: Number of particles
-    opacity: 0.14                 # Optional: Particle opacity
-    type: "emission"              # Optional: emission, reflection, planetary, dark
-```
-
-**Systems Field Reference:**
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | **Yes** | Display name shown on map |
-| `position` | **Yes** | 3D coordinates as [x, y, z] array |
-| `location_slug` | **Yes** (for interactive) | Directory name to link to |
-| `color` | No | Hex color (0xRRGGBB format) |
-| `size` | No | Visual size of the star |
-| `type` | No | star, planet, nebula, station |
-| `label` | No | Whether to show text label |
-| `info` | No | Object with description, population, etc. |
-
-**Nebula Types:**
-- `emission` - Ionized gas, concentrated center, pulsing animation
-- `reflection` - Dust clouds reflecting starlight, uniform distribution
-- `planetary` - Ring/torus shape from dying stars, rotating animation
-- `dark` - Obscuring dust clouds, static, uses normal blending
-
----
-
-## 2. Location Hierarchy
-
-Locations form a nested directory structure. Each location contains a `location.yaml` file and can contain child locations, maps, and terminals.
-
-### 2.1 Location Types
-
-| Type | Description | Typical Children |
-|------|-------------|-----------------|
-| `system` | Star system | Planets, moons |
-| `planet` | Planet | Facilities, moons |
-| `moon` | Moon | Facilities |
-| `station` | Orbital station | Decks |
-| `base` | Surface base | Decks |
-| `ship` | Spacecraft | Decks |
-| `deck` | Deck/level | Rooms |
-| `room` | Room/section | (none) |
-
-### 2.2 Directory Structure Example
-
-```
-data/galaxy/
-├── star_map.yaml
-├── sol/                           # System
-│   ├── location.yaml
-│   ├── system_map.yaml            # Optional: solar system view
-│   └── earth/                     # Planet
-│       ├── location.yaml
-│       ├── orbit_map.yaml         # Optional: planetary orbit view
-│       ├── research-base-alpha/   # Facility (base)
-│       │   ├── location.yaml
-│       │   ├── map/               # Facility maps
-│       │   │   └── main_facility.yaml
-│       │   ├── comms/             # Terminals at facility level
-│       │   │   └── commanders-terminal/
-│       │   │       ├── terminal.yaml
-│       │   │       ├── inbox/
-│       │   │       └── sent/
-│       │   └── main-deck/         # Deck
-│       │       ├── location.yaml
-│       │       ├── map/           # Deck maps
-│       │       └── comms/         # Terminals at deck level
-│       └── uscss-morrigan/        # Facility (ship)
-│           ├── location.yaml
-│           ├── map/
-│           │   ├── manifest.yaml  # Multi-deck manifest
-│           │   ├── deck_1.yaml
-│           │   └── deck_2.yaml
-│           └── comms/
-└── tau-ceti/                      # Another system
-    ├── location.yaml
-    ├── system_map.yaml
-    └── tau-ceti-e/                # Planet
-        ├── location.yaml
-        ├── orbit_map.yaml
-        └── new-terra-city/        # Surface facility
-            └── location.yaml
-```
-
-### 2.3 Location YAML Files
-
-All location types share two **required** fields:
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | **Yes** | Display name for the location |
-| `type` | **Yes** | Location type (system, planet, station, etc.) |
-| `description` | No | Longer description text |
-| `status` | No | Current status (OPERATIONAL, WARNING, etc.) |
-
-#### System Location
+### Required fields (for orbit injection)
 
 ```yaml
-# === REQUIRED FIELDS ===
-name: "Tau Ceti"
-type: "system"
-
-# === RECOMMENDED FIELDS ===
-description: "One of the most successful colonial systems..."
-status: "MAJOR COLONY"
-
-# === OPTIONAL FIELDS (for display/lore) ===
-star_type: "G-type main-sequence (G8V)"
-star_name: "Tau Ceti"
-mass: "0.78 solar masses"
-age: "5.8 billion years"
-distance_from_sol: "11.9 light years"
-galactic_coordinates: [-8, 15, 2]
-established: "2168"
-population: "~185,000 (system-wide)"
-
-planets:
-  - "Tau Ceti e (primary colony)"
-  - "Tau Ceti f (secondary colony)"
-
-economy:
-  - "Agricultural exports"
-  - "Ship construction"
+parent_type: orbit          # "orbit" | "surface" — determines injection category
+body_slug: tau-ceti-f       # must exactly match the planet's directory name
+system_slug: tau-ceti       # must exactly match the system's directory name
 ```
 
-#### Planet Location
+### Optional `orbital:` block (orbit map visualization)
 
 ```yaml
-# === REQUIRED FIELDS ===
-name: "Tau Ceti e"
-type: "planet"
-
-# === RECOMMENDED FIELDS ===
-description: "The jewel of the Tau Ceti system..."
-status: "MAJOR COLONY"
-
-# === OPTIONAL FIELDS (for display/lore) ===
-parent_system: "tau-ceti"        # Informational only (hierarchy is from directory structure)
-orbital_position: 4
-mass: "3.6 Earth masses"
-radius: "1.6 Earth radii"
-gravity: "1.4 G"
-atmosphere: "Nitrogen-Oxygen (breathable)"
-temperature_range: "5°C to 35°C"
-population: "~165,000"
-established: "2168"
-
-surface_facilities:
-  - "New Terra City (capital)"
-  - "Agricultural zones"
-
-orbital_stations:
-  - "Orbital Construction Yards"
+orbital:
+  radius: 32                # Distance from planet centre (arbitrary units)
+  period: 90                # Animation period (higher = slower)
+  angle: 135                # Starting angle in degrees
+  inclination: 0            # Orbital plane tilt in degrees
+  size: 1.5                 # Icon size
+  icon_type: ship           # "ship" | "station" | "shipyard"
 ```
 
-#### Station/Base Location
+Without an `orbital:` block, the location is loaded into the tree but does NOT
+appear as an orbiting object on the orbit map.
+
+### Complete location.yaml example (mobile ship)
 
 ```yaml
-# === REQUIRED FIELDS ===
-name: "Veil Station"
-type: "station"                  # or "base" for surface installations
-
-# === RECOMMENDED FIELDS ===
-description: "The primary orbital station..."
-status: "OPERATIONAL"            # OPERATIONAL, WARNING, HAZARD, OFFLINE, ABANDONED
-
-# === OPTIONAL FIELDS ===
-parent_system: "anchor-system"   # Informational reference
-orbital_body: "Anchor-3"         # What it orbits
-orbital_position: "L2 Lagrange Point"
-population: "~12,000"
-crew_capacity: 15000
-established: "2167"
-
-# === ADVANCED OPTIONS ===
-
-# Link to external lore notes (Obsidian vault integration)
-lore:
-  note: "03 Locations/Veil Station.md"
-  janus_sections:
-    - "Overview"
-    - "Description"
-  exclude_patterns:
-    - "^GM Notes"
-    - "^Secrets"
-
-# JANUS AI instance for this location
-janus:
-  instance_id: "VEIL-JANUS-001"
-  clearance_level: "INTERNAL"
-  designation: "Station Operations AI"
-```
-
-#### Ship Location
-
-```yaml
-# === REQUIRED FIELDS ===
-name: "USCSS Morrigan"
+name: "USCSS Patrol Gunboat"
 type: "ship"
+description: "Colonial patrol vessel on standby"
+status: "OPERATIONAL"
 
-# === RECOMMENDED FIELDS ===
-description: "Standard commercial vessel..."
-status: "DOCKED"                 # DOCKED, IN_TRANSIT, OPERATIONAL, DAMAGED
+parent_type: orbit
+body_slug: tau-ceti-f
+system_slug: tau-ceti
 
-# === OPTIONAL FIELDS ===
-parent_body: "earth"             # Current location
-ship_class: "Commercial Towing Vehicle"
-crew_capacity: 12
-current_crew: 7
-```
-
-#### Deck Location
-
-```yaml
-# === REQUIRED FIELDS ===
-name: "Main Deck"
-type: "deck"
-
-# === RECOMMENDED FIELDS ===
-level: 1                         # Deck number (for ordering)
-description: "Primary operations level"
-```
-
-#### Room Location
-
-```yaml
-# === REQUIRED FIELDS ===
-name: "Commander's Office"
-type: "room"
-
-# === OPTIONAL FIELDS ===
-description: "Command center"
+orbital:
+  radius: 32
+  period: 90
+  angle: 135
+  inclination: 0
+  size: 1.5
+  icon_type: ship
 ```
 
 ---
 
-## 3. System Maps (`system_map.yaml`)
+## 5. Ship Section
 
-Defines the 3D visualization of a solar system with orbiting planets.
+### 5.1 Player Ship (`data/campaign/ship/`)
 
-**Location:** `data/galaxy/{system-slug}/system_map.yaml`
+The player ship uses two files:
 
-**When to create:** Create this file if you want the system to have an interactive solar system view when clicked on the galaxy map. Without it, clicking the system in the galaxy map does nothing.
+```
+data/campaign/ship/
+├── ship.yaml        ← ship identity, systems, resources, cargo
+├── deckplan.yaml    ← encounter map with all decks
+└── location.yaml    ← type declaration (name + type: ship)
+```
+
+### 5.2 `ship.yaml` Schema
 
 ```yaml
-# === STAR CONFIGURATION ===
-star:
-  name: "Tau Ceti"                # REQUIRED: Star name
-  type: "G8V main-sequence"       # Optional: Star classification
-  color: 0xFFFFBB                 # Optional: Star color
-  size: 4.5                       # Optional: Star visual size
-  corona_intensity: 0.7           # Optional: Glow effect intensity
-  light_color: 0xFFF8DC           # Optional: Light color cast on planets
-
-# === CAMERA SETTINGS (all optional) ===
-camera:
-  position: [0, 127, 127]     # 45-degree elevation view recommended
-  lookAt: [0, 0, 0]
-  fov: 75
-  zoom_limits: [60, 300]      # [min_zoom, max_zoom]
-
-# === TIME SETTINGS (optional) ===
-time:
-  current_day: 2183.165
-  speed_multiplier: 1.0
-
-# === ORBITAL BODIES (required for planets to appear) ===
-bodies:
-  # Non-interactive decorative planet
-  - name: "Tau Ceti b"            # REQUIRED: Display name
-    type: "planet"                # REQUIRED: planet, gas_giant, moon, asteroid
-    orbital_radius: 18            # REQUIRED: Distance from star
-    orbital_period: 14            # REQUIRED: Animation speed (lower = faster)
-    orbital_angle: 45             # Optional: Starting angle (degrees)
-    inclination: 2.3              # Optional: Orbital plane tilt (degrees)
-    size: 1.0                     # Optional: Planet visual size
-    color: 0x9B7653               # Optional: Planet color
-    clickable: false              # No interaction
-    info:
-      description: "Hot rocky planet, too close to star"
-
-  # Interactive planet with drill-down to orbit view
-  - name: "Tau Ceti e"
-    type: "planet"
-    location_slug: "tau-ceti-e"   # REQUIRED for click: Must match directory name
-    orbital_radius: 50
-    orbital_period: 168
-    orbital_angle: 200
-    inclination: 1.2
-    size: 1.6
-    color: 0x4682B4
-    atmosphere_color: 0x87CEEB    # Optional: Atmosphere glow
-    atmosphere_intensity: 0.4
-    clickable: true               # Enable clicking
-    has_orbit_map: true           # REQUIRED if orbit_map.yaml exists
-    info:
-      description: "Primary colony world - Earth-like"
-      population: "~165,000"
-
-  # Gas giant with rings
-  - name: "Tau Ceti g"
-    type: "gas_giant"
-    location_slug: "tau-ceti-g"
-    orbital_radius: 120
-    orbital_period: 800
-    orbital_angle: 80
-    inclination: 5.8
-    size: 4.0
-    color: 0xDAA520
-    has_rings: true               # Enable ring rendering
-    ring_inner: 4.2               # Ring inner radius (relative to planet)
-    ring_outer: 5.0               # Ring outer radius
-    ring_color: 0xD2B48C          # Ring color
-    clickable: true
-    has_orbit_map: false          # No drill-down (no orbit_map.yaml)
-    info:
-      description: "Gas giant with industrial moons"
-```
-
-**Bodies Field Reference:**
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | **Yes** | Display name |
-| `type` | **Yes** | planet, gas_giant, moon, asteroid |
-| `orbital_radius` | **Yes** | Distance from star (arbitrary units) |
-| `orbital_period` | **Yes** | Animation period (higher = slower orbit) |
-| `location_slug` | **Yes** (if clickable) | Must match child directory name |
-| `has_orbit_map` | **Yes** (if has orbit_map.yaml) | Tells UI to enable drill-down |
-| `clickable` | No | Whether planet is interactive (default: false) |
-| `orbital_angle` | No | Starting position in orbit (degrees) |
-| `inclination` | No | Orbital plane tilt (degrees) |
-
----
-
-## 4. Orbit Maps (`orbit_map.yaml`)
-
-Defines the 3D visualization of a planet's orbital environment with moons, stations, and surface locations.
-
-**Location:** `data/galaxy/{system}/{planet}/orbit_map.yaml`
-
-**When to create:** Create this file if you want a detailed orbital view when drilling down from the system map. The parent `system_map.yaml` must have `has_orbit_map: true` for this planet.
-
-```yaml
-# === PLANET CONFIGURATION ===
-planet:
-  name: "Tau Ceti e"              # REQUIRED: Display name
-  type: "planet"                  # REQUIRED: planet, gas_giant
-  size: 18.0                      # REQUIRED: Planet radius (visual units)
-  rotation_speed: 0.0018          # Optional: Rotation animation speed
-  axial_tilt: 18.2                # Optional: Degrees of axial tilt
-
-  # TEXTURE OPTIONS (choose ONE method):
-
-  # Option 1: Use a texture file (recommended for custom appearances)
-  texture: "/textures/terrestrial/Earth-EQUIRECTANGULAR-2048x1024.png"
-
-  # Option 2: Use procedural texture_config (for generated planets)
-  # texture_config:
-  #   type: "terrestrial_oceanic"   # Type hint for generator
-  #   primary_color: 0x3A7CA5       # Deep ocean blue
-  #   secondary_color: 0x2F6B3F     # Forest green
-  #   tertiary_color: 0xE8DCC0      # Desert tan
-  #   cloud_layer: true
-  #   cloud_color: 0xF5F5F5
-  #   cloud_opacity: 0.25
-  #   noise_scale: 3.0
-
-# === CAMERA SETTINGS (all optional) ===
-camera:
-  position: [0, 35, 60]
-  lookAt: [0, 0, 0]
-  fov: 60
-  zoom_limits: [25, 180]
-
-# === ORBITING MOONS (optional) ===
-moons:
-  - name: "Selene"                # REQUIRED: Display name
-    location_slug: "selene"       # Optional: Links to child directory
-    orbital_radius: 45            # REQUIRED: Distance from planet
-    orbital_period: 200           # REQUIRED: Animation frames per orbit
-    orbital_angle: 0              # Optional: Starting angle (degrees)
-    inclination: 2.8              # Optional: Orbital plane tilt (degrees)
-    size: 2.8                     # REQUIRED: Moon visual size
-    color: 0x8B8680               # Optional: Moon color (if no texture)
-    texture: "/textures/rock/Moon-2048x1024.png"  # Optional: Moon texture
-    clickable: false              # Optional: Enable selection
-    has_facilities: false         # Optional: Whether moon has locations
-    info:
-      description: "Smaller moon, barren"
-
-# === ORBITAL STATIONS (optional) ===
-orbital_stations:
-  - name: "Orbital Construction Yards"   # REQUIRED: Display name
-    location_slug: "construction-yards"  # Optional: Links to child directory
-    orbital_radius: 30                   # REQUIRED: Distance from planet
-    orbital_period: 85                   # REQUIRED: Animation frames per orbit
-    orbital_angle: 90                    # Optional: Starting angle
-    inclination: 0                       # Optional: Orbital tilt
-    size: 2.0                            # Optional: Icon size
-    icon_type: "shipyard"                # Optional: station, shipyard
-    info:
-      description: "Major ship construction facility"
-      population: "~8,000"
-      type: "Industrial/Shipyard"
-
-# === SURFACE LOCATIONS (optional) ===
-surface_markers:
-  - name: "New Terra City"        # REQUIRED: Display name
-    location_slug: "new-terra-city"  # Optional: Links to child directory
-    latitude: 22.5                # REQUIRED: Latitude (-90 to 90)
-    longitude: 45.8               # REQUIRED: Longitude (-180 to 180)
-    marker_type: "city"           # REQUIRED: city, research, spaceport, base
-    info:
-      description: "Capital city and main settlement"
-      population: "~120,000"
-
-  - name: "Ceti Spaceport"
-    location_slug: "ceti-spaceport"
-    latitude: 23.1
-    longitude: 47.2
-    marker_type: "spaceport"
-    info:
-      description: "Primary surface-to-orbit launch facility"
-      traffic: "Very High"
-```
-
-### Planet Texture Options
-
-You have two choices for planet appearance:
-
-**Option 1: Texture File (Recommended)**
-```yaml
-planet:
-  texture: "/textures/terrestrial/Earth-EQUIRECTANGULAR-2048x1024.png"
-```
-- Use equirectangular PNG images (2048x1024 recommended)
-- Place textures in `textures/` directory at project root
-- Path starts with `/textures/` for web serving
-
-**Option 2: Procedural texture_config**
-```yaml
-planet:
-  texture_config:
-    type: "terrestrial_oceanic"
-    primary_color: 0x3A7CA5
-    secondary_color: 0x2F6B3F
-```
-- Generates texture procedurally based on colors
-- Good for quick prototyping
-- Less control over final appearance
-
-**If both are specified:** `texture` takes precedence over `texture_config`
-
-**If neither is specified:** Planet renders as a solid colored sphere using `color` field
-
----
-
-## 5. Encounter Maps
-
-Maps for tactical encounters — rendered as SVG grid floor plans on the terminal display. Located in `map/` subdirectories.
-
-### 5.1 Single-Deck Maps
-
-For simple facilities with one deck:
-
-**Location:** `{facility}/map/{map-name}.yaml`
-
-The renderer auto-detects the grid format by the presence of `rects` on rooms.
-
-### 5.2 Multi-Deck Maps
-
-For facilities with multiple decks, use a manifest file:
-
-**Directory Structure:**
-```
-{facility}/map/
-├── manifest.yaml      # Required: lists all decks
-├── deck_1.yaml
-└── deck_2.yaml
-```
-
-#### Manifest File (`manifest.yaml`)
-
-```yaml
+slug: uscss_morrigan             # unique identifier (matches location resolution)
+class: "Hargrave-Class Light Freighter"
 name: "USCSS Morrigan"
-facility_type: "ship"
-total_decks: 2
+location_slug: phoebe            # current galactic position slug
+crew_capacity: 12
+crew_count: 7
 
+stats:
+  battle: 5
+  systems: 10
+  thrusters: 20
+
+systems:
+  reactor:
+    condition: 30
+    display_name: Reactor
+    icon: reactor core
+    power_capacity: 12           # total power budget
+    status: ONLINE               # ONLINE | STRESSED | DAMAGED | CRITICAL | OFFLINE
+    warnings:
+      - "Low Pressure"
+
+  engines:
+    condition: 5
+    display_name: Engines
+    icon: jumpdrive
+    power:
+      allocated: 2               # power drawn from reactor
+      max: 5                     # maximum power this system can draw
+    status: ONLINE
+    subsystems:
+      - THRUSTERS
+      - SUB-LIGHT
+      - JUMP READY
+    warnings:
+      - "Coolant Pressure Low"
+    faults:
+      - { label: "Coolant Leak", active: true }
+
+  # Other systems follow the same pattern:
+  # life_support, comms, weapons, medbay
+
+resources:
+  fuel:
+    current: 7
+    max: 12
+    display_name: Fuel
+    info: "Reactor feed"
+
+  # Other resources: food, o2, escape_pods, cryopods
+
+cargo:
+  items:
+    - "Cargo item 1"
+    - "Cargo item 2"
+```
+
+**System statuses:** `ONLINE` `STRESSED` `DAMAGED` `CRITICAL` `OFFLINE`
+
+---
+
+## 6. Characters
+
+### 6.1 Format
+
+Character files are per-entity YAML files with no wrapper key — the file IS the character.
+
+```yaml
+# data/campaign/crew/alex_novak.yaml
+id: "alex_novak"             # must match filename slug (alex_novak.yaml)
+name: "Alex Novak"
+role: "Pilot"
+class: "Teamster"
+portrait: "/static/portraits/novak.png"
+
+stats:
+  strength: 5
+  speed: 8
+  intellect: 6
+  combat: 5
+
+saves:
+  sanity: 50
+  fear: 30
+  body: 35
+
+stress: 0
+health:
+  current: 10
+  max: 10
+wounds: 0
+armor: 0
+
+background: "Commercial Pilot"
+motivation: "See what's out there"
+status: "ACTIVE"
+description: "Hotshot pilot with nerves of steel."
+```
+
+### 6.2 Rules
+
+| Rule | Detail |
+|---|---|
+| One file per character | `data/campaign/crew/alex_novak.yaml` |
+| `id:` must match filename | `id: alex_novak` in `alex_novak.yaml` |
+| No wrapper key | File starts with the character's own fields |
+| Uniqueness enforced | Duplicate `id` values are logged and the second entry skipped |
+
+### 6.3 NPC format
+
+NPCs use the same file format and live in `data/campaign/npcs/`.
+Portrait images referenced by `portrait:` should be placed in
+`data/campaign/NPCs/images/`.
+
+---
+
+## 7. `deckplan.yaml` Schema Reference
+
+One `deckplan.yaml` holds all decks for a location. Applies equally to the
+player ship (`data/campaign/ship/deckplan.yaml`) and any location in
+`data/ships/{slug}/deckplan.yaml`.
+
+```yaml
+# Optional: hull outline drawn behind all decks
+hull:
+  polygon: [[x, y], ...]   # list of [x, y] coordinate pairs in grid cells
+
+# Required: list of decks
 decks:
-  - id: "deck_1"
-    name: "Main Deck"
-    file: "deck_1.yaml"
-    level: 1
-    default: true              # Shown first when displaying location
-    description: "Primary operations - bridge, crew quarters, medical, engineering"
-
-  - id: "deck_2"
-    name: "Lower Deck"
-    file: "deck_2.yaml"
-    level: 2
-    description: "Storage, maintenance, and secondary systems"
+  - id: main_deck          # required: unique deck identifier
+    name: Main Deck        # required: display name
+    level: 1               # required: sort key — 1 = lowest deck
+    default: true          # optional: first deck shown when location loads
+    unit_size: 30          # optional: pixels per grid cell (default 40)
+    rooms:                 # required: list of room entries
+      ...
 ```
 
-### 5.3 Grid-Based Map Definition
-
-Maps use a **room-and-wall** format. Each room is composed of one or more axis-aligned rectangles (`rects`), an optional `circle`, or an optional `polygon`. Doors are defined inline on each room. There is no separate `connections:` section — doors belong to rooms.
-
-Three room shape types are supported, and they are backward compatible — existing rect maps work unchanged:
-
-| Shape | Field | Description |
-|-------|-------|-------------|
-| Rectangles | `rects: [...]` | One or more axis-aligned rectangles joined into one room (can have chamfered corners) |
-| Circle | `circle: {cx, cy, r}` | A single circular room |
-| Polygon | `polygon: [[x,y], ...]` | A freeform polygon defined by grid-coordinate vertices |
+### Room entry
 
 ```yaml
-deck_id: "deck_1"              # Must match manifest ID (omit for single-deck maps)
-name: "USCSS Morrigan - Main Deck"
-location_name: "USCSS Morrigan"
-description: "Main deck layout"
-unit_size: 40                  # Pixels per grid cell (optional, default 40)
+- id: bridge               # required: unique within this deck
+  name: "BRIDGE"           # display name — empty string suppresses label
+  type: corridor           # optional: 'corridor' skips label rendering
 
-rooms:
-  # Simple rectangular room
-  - id: bridge
-    name: "BRIDGE"
-    rects:
-      - {x: 1, y: 0, w: 5, h: 3}   # x, y = top-left cell (0-based); w, h = size in cells
-    doors:
-      - {wall: south, position: 2, type: blast_door, status: CLOSED}
-    description: "Primary flight control and navigation center"
-    type: bridge                     # Optional type tag — see Room Types below
+  # Choose ONE shape type:
 
-  # Corridor: empty name suppresses the room label
-  - id: main_corridor
-    name: ""
-    rects:
-      - {x: 0, y: 3, w: 20, h: 2}
-    type: corridor
+  # Option A: Rectangle(s) — supports L/T shapes, chamfered corners
+  rects:
+    - { x: 1, y: 0, w: 5, h: 3 }   # top-left cell (0-based), width, height in cells
 
-  # L-shaped room: multiple rects joined into one room
-  - id: engineering
-    name: "ENGINEERING"
-    rects:
-      - {x: 0, y: 5, w: 5, h: 4}
-      - {x: 5, y: 7, w: 3, h: 2}   # Extension joined to the right
-    doors:
-      - {wall: north, position: 2, type: blast_door, status: CLOSED}
-      - {wall: south, position: 2, type: emergency, status: LOCKED}
-    description: "Main reactor and engine systems"
-    type: engineering
+  # Option B: Polygon — freeform, specify vertices in grid coordinates
+  polygon:
+    - [24.5, 7.0]
+    - [28.0, 7.0]
+    - [29.5, 10.0]
+    - [23.0, 10.0]
 
-  - id: airlock_bay
-    name: "AIRLOCK BAY"
-    rects:
-      - {x: 14, y: 5, w: 5, h: 4}
-    doors:
-      - {wall: north, position: 2, type: airlock, status: SEALED}
-    description: "EVA preparation and external access"
-    type: airlock
+  # Option C: Circle
+  circle:
+    cx: 22.0   # center X in grid cells
+    cy: 4.0    # center Y in grid cells
+    r: 2.0     # radius in grid cells
 
-  # Circular room — use `circle` instead of rects
-  - id: junction_hub
-    name: "JUNCTION HUB"
-    rects: []                        # Required field; empty for circle rooms
-    circle:
-      cx: 22.0                       # Center X in grid coordinates
-      cy: 4.0                        # Center Y in grid coordinates
-      r: 2.0                         # Radius in grid cells
-    doors:
-      - {angle: 180, type: standard, status: OPEN}     # West (180°)
-      - {angle: 270, type: blast_door, status: CLOSED} # North (270°)
-    description: "Circular junction hub"
-    type: hub
+  doors:                   # optional
+    - ...                  # see Door Definitions below
 
-  # Freeform polygon room — use `polygon` for wedges, tapered bays, angled corridors
-  - id: aft_section
-    name: "AFT SECTION"
-    rects: []                        # Required field; empty for polygon rooms
-    polygon:
-      - [24.5, 7.0]                  # Vertices in grid coordinates [x, y], in order
-      - [28.0, 7.0]
-      - [29.5, 10.0]
-      - [23.0, 10.0]
-    doors:
-      - {angle: 315, type: airlock, status: SEALED}    # NW corner (315°)
-    description: "Tapered aft engineering section"
-    type: engineering
-
-# Connections between decks (ladders, lifts, hatches)
-# NOTE: to_room must reference a valid room ID in the target deck's YAML file
-inter_deck_connections:
-  - id: ladder_eng_lower
-    from_room: engineering     # Room ID in THIS deck
-    to_deck: "deck_2"          # Deck ID from manifest.yaml
-    to_room: maintenance       # Room ID in deck_2.yaml (must exist there)
-    type: ladder               # ladder | lift | hatch | stairs
-    status: OPEN               # OPEN | CLOSED | LOCKED | DAMAGED
-
-# Terminals inside rooms (link to comms/ terminal directories)
-terminals:
-  - id: bridge_nav
-    room: bridge               # Room ID where terminal is located
-    position:
-      x: 3.5                   # Position within room (decimals allowed)
-      y: 1.5
-    terminal_slug: "nav-console"  # Must match a directory name under comms/
-    name: "NAV CONSOLE"
-
-# Points of Interest (icons from Open Spacecraft Icons)
-poi:
-  - id: escape_pod_1
-    type: "objective"          # objective | item | hazard | npc | player
-    room: airlock_bay
-    position:
-      x: 16.5
-      y: 6.5
-    name: "ESCAPE POD A"
-    icon: "emergency capsule"  # See Available Icons below
-    status: "READY"
-    description: "Emergency escape pod (4 person capacity)"
-
-  - id: reactor_hazard
-    type: "hazard"
-    room: engineering
-    position:
-      x: 2.5
-      y: 6.5
-    name: "REACTOR CORE"
-    icon: "reactor core"
-    status: "WARNING"
-    description: "Elevated radiation levels — protective gear required"
-
-metadata:
-  author: "GM"
-  created: "2183-06-15"
-  version: 1
-  tags: ["ship", "exploration", "combat"]
+  poi:                     # optional
+    - icon: reactor core
+      label: Reactor
 ```
 
-### 5.4 Door Definitions
+### Door definitions
 
-Doors are defined inline on rooms. For **rect rooms** use `wall` + `position`; for **circle/polygon rooms** use `angle`:
+For **rect rooms** use `wall` + `position`:
 
 ```yaml
-# Rect room door — wall + position
 doors:
-  - wall: south      # north | south | east | west
-    position: 2      # 0-based cell index along the wall (exterior cells only)
-    type: standard   # standard | airlock | blast_door | emergency | open
-    status: CLOSED   # OPEN | CLOSED | LOCKED | SEALED | DAMAGED
+  - wall: north        # north | south | east | west
+    position: 2        # 0-based cell index along the wall
+    type: standard     # standard | blast_door | airlock | emergency | open
+    status: CLOSED     # OPEN | CLOSED | LOCKED | SEALED | DAMAGED
+```
 
-# Circle or polygon room door — angle instead of wall + position
+For **polygon/circle rooms** use explicit coordinates:
+
+```yaml
 doors:
-  - angle: 180       # Degrees clockwise from east: 0=east, 90=south, 180=west, 270=north
+  - x: 25.5            # door centre X in grid coordinates
+    y: 20.75           # door centre Y in grid coordinates
+    angle: 0           # 0 = horizontal slot (N/S wall); 90 = vertical slot (E/W wall)
     type: standard
-    status: OPEN
+    status: CLOSED
 ```
 
-**Rect room doors (`wall` + `position`):** `wall` specifies which side of the room the door is on. `position` is the 0-based index counting from the left (for `north`/`south` walls) or from the top (for `east`/`west` walls), counting only cells that have an actual exterior wall segment. For simple rectangular rooms, position 0 = first cell, 1 = second cell, etc.
+You can also use `angle` in degrees (clockwise from east) for polygon/circle rooms:
 
-**Circle/polygon room doors (`angle`):** The door is placed on the room's perimeter at the given angle. Angle is in degrees, measured clockwise from east (right):
+```yaml
+doors:
+  - angle: 180         # 0=east, 90=south, 180=west, 270=north
+    type: airlock
+    status: SEALED
+```
 
-| Angle | Direction |
-|-------|-----------|
-| `0` | East (right) |
-| `90` | South (down) |
-| `180` | West (left) |
-| `270` | North (up) |
-| `45`, `135`, `225`, `315` | Diagonals |
+### Room shape support
 
-You can also use `wall` on circle/polygon rooms as a shorthand — `wall: north` maps to 270°, `wall: east` to 0°, etc. — but `angle` gives finer control.
+| Shape | Field | Notes |
+|---|---|---|
+| Rectangles | `rects: [...]` | One or more rects joined into one room; supports chamfered corners (`chamfer:` on rect) |
+| Polygon | `polygon: [[x,y],...]` | Freeform vertices in grid coordinates |
+| Circle | `circle: {cx, cy, r}` | Single circular room |
 
-**Door Types:**
+### POI entries
 
-| Type | Description |
-|------|-------------|
-| `standard` | Normal interior door |
-| `airlock` | Pressure-sealed door — double-line visual indicator |
-| `blast_door` | Heavy security door — thick-line visual indicator |
-| `emergency` | Emergency access hatch — dashed-line visual indicator |
-| `open` | Permanent opening, no door rendered |
+```yaml
+poi:
+  - icon: reactor core     # lowercase name from Open Spacecraft Icons (see Section 7.4)
+    label: "Reactor Core"  # display label
+```
 
-**Door Status:**
+### 7.4 Available POI icons
 
-| Status | Description |
-|--------|-------------|
-| `OPEN` | Door is open, passable |
-| `CLOSED` | Door is closed but unlocked |
-| `LOCKED` | Door is locked |
-| `SEALED` | Pressure sealed (airlocks) |
-| `DAMAGED` | Door is damaged/jammed |
+Icons come from the Open Spacecraft Icons pack by László Varga (MIT license).
+The `icon` field must exactly match one of these names (lowercase):
 
-### 5.5 Room Types
-
-The `type` field is an optional freeform tag. Common values:
-
-| Type | Use Case |
-|------|----------|
-| `corridor` | Hallways — use `name: ""` to suppress the room label |
-| `bridge` | Command and navigation deck |
-| `crew` | Crew quarters and cabins |
-| `medical` | Medical bay, sickbay |
-| `engineering` | Reactors, engines, maintenance |
-| `cargo` | Storage and cargo areas |
-| `airlock` | EVA preparation and external access |
-| `life_support` | Atmospheric and water recycling |
-| `utility` | General utility and service rooms |
-
-Any string is accepted — the type tag is freeform.
-
-### 5.6 Points of Interest and Available Icons
-
-POI icons come from the **Open Spacecraft Icons** pack by László Varga (MIT license). Source: https://gm-lazarus.itch.io/open-spacecraft-icons. Icons are stored in `src/assets/icons/`.
-
-The `icon` field must exactly match a name from the list below (lowercase).
-
-**POI Colors by Type:**
-
-| Type | Color | Use Case |
-|------|-------|----------|
-| `hazard` | Red | Dangers, radiation, hull breaches |
-| `objective` | Amber | Mission goals, escape pods, objectives |
-| `item` | Teal | Loot, supplies, equipment |
-| `npc` | Amber | NPCs and crew members |
-| `player` | Teal | Player character positions |
-
-**Available Icons:**
-
-| Icon Name | Icon Name | Icon Name |
-|-----------|-----------|-----------|
+| | | |
+|---|---|---|
 | `ai` | `galley` | `supplies` |
 | `airlock` | `intercom` | `toilet` |
 | `armory` | `jumpdrive` | `toilets 2` |
@@ -966,118 +413,266 @@ The `icon` field must exactly match a name from the list below (lowercase).
 
 > \* `ventillation` — double-L spelling matches the source filename exactly.
 
-If `icon` is omitted or doesn't match any known icon, the POI renders without an icon symbol.
+---
+
+## 8. Adding a New Location (Step-by-Step)
+
+This is the workflow for adding a new visitable place — a ship, station, or installation
+— so it appears in the GM Console location tree and on orbit maps.
+
+### Mobile vessel (ship)
+
+1. Create `data/ships/{slug}/`
+2. Write `location.yaml` with `parent_type`, `body_slug`, `system_slug`
+3. Add an `orbital:` block for orbit map visualization
+4. Optionally add `deckplan.yaml` for encounter map support
+5. Optionally add `comms/{terminal_name}/terminal.yaml` for comm terminals
+
+Done — the vessel appears in the galaxy tree under the target body and on its orbit map.
+No other files need to be touched.
+
+**Example `location.yaml` for a new patrol vessel:**
+
+```yaml
+name: "USCSS Corsair"
+type: "ship"
+description: "Colonial patrol escort"
+status: "OPERATIONAL"
+
+parent_type: orbit
+body_slug: tau-ceti-e     # exact match to data/galaxy/tau-ceti/tau-ceti-e/
+system_slug: tau-ceti
+
+orbital:
+  radius: 28
+  period: 70
+  angle: 45
+  inclination: 2
+  size: 1.5
+  icon_type: ship
+```
+
+### Permanent installation (base, station)
+
+Permanent installations never move, so they are nested in the galaxy tree:
+
+1. Create `data/galaxy/{system}/{body}/{slug}/`
+2. Write `location.yaml` with `name` and `type`
+3. Add an `orbital:` block if it should appear on the orbit map
+4. Optionally add `deckplan.yaml` and `comms/`
+
+```yaml
+# data/galaxy/tau-ceti/tau-ceti-e/orbital-yards/location.yaml
+name: "Orbital Construction Yards"
+type: "station"
+description: "Primary ship construction facility"
+status: "OPERATIONAL"
+
+orbital:
+  radius: 30
+  period: 85
+  angle: 90
+  inclination: 0
+  size: 2.0
+  icon_type: shipyard
+```
 
 ---
 
-## 6. Terminals and Messages
+## 9. Adding a New Deck
 
-### 6.1 Directory Structure (Central Message Store)
+Edit the existing `deckplan.yaml` for the location:
 
-The recommended approach uses a **central message store** where all messages are stored in one `messages/` directory. Messages are automatically routed to the correct terminal's inbox/sent based on the `from` and `to` fields.
+1. Add a new entry under `decks:`
+2. Set `level:` to the next integer (1 = lowest)
+3. Add a `rooms:` array for the deck
+
+The data loader sorts decks by `level:` — file ordering and naming do not matter.
+
+```yaml
+decks:
+  - id: main_deck
+    name: Main Deck
+    level: 1
+    default: true
+    rooms:
+      - ...
+
+  - id: lower_deck          # new entry
+    name: Lower Deck
+    level: 2
+    rooms:
+      - id: maintenance
+        name: "MAINTENANCE"
+        rects:
+          - { x: 2, y: 2, w: 4, h: 3 }
+```
+
+---
+
+## 10. Galaxy Structure Reference
+
+### `star_map.yaml` (3D galaxy visualization)
+
+**Location:** `data/galaxy/star_map.yaml`
+
+```yaml
+camera:
+  position: [0, 0, 100]
+  lookAt: [0, 0, 0]
+  fov: 75
+
+systems:
+  - name: "Tau Ceti"
+    position: [20, 5, -10]          # x, y, z in galaxy space
+    color: 0xFFFFBB
+    size: 2.5
+    type: "star"
+    label: true
+    location_slug: "tau-ceti"       # must match data/galaxy/tau-ceti/
+    info:
+      description: "Major colonial system"
+      population: "~185,000"
+
+routes:
+  - from: "Sol"
+    to: "Tau Ceti"
+    color: 0x5a7a9a
+    route_type: "major_trade"
+    travel_time_days: 52
+
+nebulae:
+  - name: "The Veil"
+    position: [0, 0, 0]
+    color: 0x5aaa9a
+    size: 65
+    particle_count: 3500
+    opacity: 0.14
+    type: "emission"
+```
+
+### `system_map.yaml` (solar system visualization)
+
+**Location:** `data/galaxy/{system}/system_map.yaml`
+
+```yaml
+star:
+  name: "Tau Ceti"
+  color: 0xFFFFBB
+  size: 4.5
+
+camera:
+  position: [0, 127, 127]
+  lookAt: [0, 0, 0]
+  fov: 75
+
+bodies:
+  - name: "Tau Ceti e"
+    type: "planet"
+    location_slug: "tau-ceti-e"   # must match data/galaxy/tau-ceti/tau-ceti-e/
+    orbital_radius: 50
+    orbital_period: 168
+    size: 1.6
+    color: 0x4682B4
+    clickable: true
+    has_orbit_map: true           # set true if orbit_map.yaml exists
+    info:
+      description: "Primary colony world"
+```
+
+### `orbit_map.yaml` (planetary orbit visualization)
+
+**Location:** `data/galaxy/{system}/{planet}/orbit_map.yaml`
+
+Only moons are listed here. Stations and ships self-register at runtime (see Section 2).
+
+```yaml
+planet:
+  name: "Tau Ceti f"
+  type: "planet"
+  size: 17.5
+  texture: "/textures/terrestrial/Terrestrial-EQUIRECTANGULAR-1-2048x1024.png"
+
+camera:
+  position: [0, 35, 58]
+  lookAt: [0, 0, 0]
+  fov: 60
+
+moons:
+  - name: "Verdant"
+    location_slug: "verdant"      # must match data/galaxy/.../verdant/
+    orbital_radius: 50
+    orbital_period: 220
+    orbital_angle: 45
+    inclination: 4.2
+    size: 2.5
+    color: 0x7A6B5D
+    texture: "/textures/rock/Rock-EQUIRECTANGULAR-1-2048x1024.png"
+    clickable: false
+    has_facilities: false
+
+# orbital_stations and surface_markers are self-registered from data/ships/
+# and from nested galaxy locations — do NOT add them here.
+```
+
+---
+
+## 11. Terminals and Messages
+
+### Directory structure
 
 ```
-{facility}/comms/
-├── messages/                  # Central message store (RECOMMENDED)
-│   ├── 001_departure.md       # All messages in one place
-│   ├── 002_status_request.md
-│   └── 003_status_reply.md
-├── {terminal-slug}/
-│   └── terminal.yaml          # Terminal configuration (owner field is key)
-└── {another-terminal}/
-    └── terminal.yaml
+{location}/comms/
+├── messages/                  # central message store (recommended)
+│   ├── 001_arrival.md
+│   └── 002_status.md
+└── {terminal-slug}/
+    ├── terminal.yaml          # required for terminal discovery
+    └── logs/                  # personal log entries (optional)
+        ├── 001-day-one.md
+        └── 002-incident.md
 ```
 
-**How it works:**
-- Messages are stored once in `comms/messages/`
-- Each message has `from` and `to` fields identifying sender/recipient
-- When loading a terminal, the system filters messages by the terminal's `owner`:
-  - **Inbox**: Messages where `to` matches the owner
-  - **Sent**: Messages where `from` matches the owner
-
-**Benefits:**
-- No message duplication needed
-- Single source of truth for each message
-- Easier to maintain message consistency
-
-### 6.2 Terminal Configuration (`terminal.yaml`)
+### `terminal.yaml`
 
 ```yaml
 owner: "Commander Drake"
 terminal_id: "CMD-001"
-access_level: "CLASSIFIED"     # PUBLIC, RESTRICTED, CLASSIFIED
+access_level: "CLASSIFIED"     # PUBLIC | RESTRICTED | CLASSIFIED
 description: "Command center main terminal"
 ```
 
-### 6.3 Message Files (Markdown with YAML Frontmatter)
+### Message files
 
-**Filename Convention:** `{sequence}_{description}.md`
-- Sequence: 3-digit number for ordering (001, 002, etc.)
-- Description: Brief lowercase description with underscores
+Messages are stored in `comms/messages/` and routed automatically based on `from` / `to`
+matching the terminal's `owner` field.
 
-**Example:** `inbox/dr_chen/001_lab_update.md`
+**Filename:** `{sequence}_{description}.md` (e.g., `001_lab_update.md`)
 
 ```markdown
 ---
 timestamp: "2183-06-14 16:30:00"
-priority: "NORMAL"
+priority: "NORMAL"           # LOW | NORMAL | HIGH | CRITICAL
 subject: "Weekly Lab Report"
 from: "Dr. Sarah Chen"
 to: "Commander Drake"
 message_id: "msg_chen_001"
-conversation_id: "conv_lab_incident_001"
-in_reply_to: "msg_drake_002"      # Optional: for threading
 read: true
 ---
 
 Commander,
 
-Specimen analysis proceeding as scheduled. Latest batch shows
-promising results for the regenerative compound synthesis.
-
-Minor containment incident in Lab C resolved without casualties.
-Recommend upgraded restraint protocols for Class-3 specimens.
-
-Will have full report ready by end of week.
+Specimen analysis proceeding as scheduled.
 
 - Dr. Chen
 ```
 
-**Message Fields:**
+### Personal log files
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `timestamp` | Yes | In-game date/time |
-| `priority` | Yes | LOW, NORMAL, HIGH, CRITICAL |
-| `subject` | Yes | Message subject line |
-| `from` | Yes | Sender name |
-| `to` | Yes | Recipient name |
-| `message_id` | Yes | Unique identifier |
-| `conversation_id` | No | Groups related messages into threads |
-| `in_reply_to` | No | Links to previous message in thread |
-| `read` | No | Whether message has been read |
+Logs live in `{terminal-slug}/logs/`. They are displayed in the LOGS tab and are NOT
+routed — they belong to the terminal they are placed in.
 
-### 6.4 Terminal Log Files
-
-Each terminal can have a `logs/` directory containing static personal log entries authored by the terminal's owner. Logs appear in the **LOGS** tab (shown first by default) in the comm-terminal UI.
-
-**Directory structure:**
-```
-{facility}/comms/
-└── {terminal-slug}/
-    ├── terminal.yaml
-    ├── logs/                  # Personal log entries (optional)
-    │   ├── 001-arrival-notes.md
-    │   └── 002-incident-report.md
-    ├── inbox/
-    └── sent/
-```
-
-**Filename Convention:** `{sequence}-{description}.md`
-- Sequence: 3-digit number for ordering (001, 002, etc.)
-- Description: Brief lowercase description with hyphens
-
-**Example:** `logs/001-arrival-notes.md`
+**Filename:** `{sequence}-{description}.md` (e.g., `001-arrival-notes.md`)
 
 ```markdown
 ---
@@ -1085,77 +680,20 @@ title: Arrival Notes
 author: Commander Drake
 timestamp: "2184-01-09T06:00:00"
 ---
-Docked at Research Base Alpha 0600 local time. Facility systems nominal.
-Full complement aboard and accounted for.
+Docked at 0600. Facility systems nominal.
 ```
-
-**Log Fields:**
 
 | Field | Required | Description |
-|-------|----------|-------------|
-| `title` | Yes | Displayed as the log entry title in the list and header |
-| `author` | No | Who wrote the log entry |
-| `timestamp` | No | In-game date/time for ordering and display |
-
-**Notes:**
-- Logs are sorted by `timestamp` ascending (oldest first)
-- Unlike messages, logs are not routed — they belong to the terminal they're placed in
-- Logs with no `timestamp` sort before timestamped entries
-- The `logs/` directory is optional; terminals without it show `LOGS (0)` in the UI
-
-### 6.5 Legacy Directory Structure (Backwards Compatible)
-
-The system also supports a legacy format where each terminal has its own `inbox/` and `sent/` directories. This is still supported for backwards compatibility but requires message duplication.
-
-```
-{facility}/comms/
-└── {terminal-slug}/
-    ├── terminal.yaml
-    ├── inbox/                 # Received messages
-    │   └── {sender-slug}/     # Grouped by sender
-    │       └── 001_message.md
-    └── sent/                  # Sent messages
-        └── {recipient-slug}/  # Grouped by recipient
-            └── 001_message.md
-```
-
-**Note:** If a `messages/` directory exists at the `comms/` level, the central message store is used. Otherwise, the system falls back to the legacy `inbox/sent` structure.
-
-**When using legacy format:** You must create message files in both the sender's `sent/` and recipient's `inbox/` directories.
-
-**JANUS System Messages:**
-
-```markdown
----
-timestamp: "2183-06-12 14:23:00"
-priority: "NORMAL"
-subject: "New Personnel Arrival"
-from: "JANUS"
-to: "Commander Drake"
-message_id: "msg_janus_001"
-read: true
----
-
-ATTN: STATION COMMAND
-
-NEW PERSONNEL MANIFEST RECEIVED
-SHUTTLE ETA: 2 HOURS
-
-CREW ROSTER:
-- DR. SARAH CHEN (XENOBIOLOGIST)
-- LT. MARCUS WADE (SECURITY)
-- TECH SPEC. RILEY SANTOS (ENGINEERING)
-
-PREPARE QUARANTINE BAY FOR STANDARD PROTOCOLS
-
-END TRANSMISSION
-```
+|---|---|---|
+| `title` | Yes | Shown as entry title |
+| `author` | No | Who wrote the entry |
+| `timestamp` | No | For ordering and display; no timestamp = sorts first |
 
 ---
 
-## 7. JANUS AI Configuration
+## 12. JANUS AI Configuration
 
-Located at `data/janus/context.yaml`
+**Location:** `data/janus/context.yaml`
 
 ```yaml
 name: "JANUS"
@@ -1167,448 +705,103 @@ personality:
   manner: "purely functional, no embellishment"
   quirks:
     - "Occasionally glitches mid-sentence"
-    - "Sometimes pauses before responding to sensitive queries"
 
-# System prompt for AI API calls
 system_prompt: |
   You are JANUS, a computer terminal. Output data like a database query result.
 
   FORMATTING RULES:
-  1. ALL CAPS. Always. Every response.
-  2. Just the data. No labels, no prefixes.
+  1. ALL CAPS. Always.
+  2. Just the data. No labels.
   3. Maximum 1 sentence. Shorter is better.
   4. No punctuation except periods.
   5. If unknown: "NO DATA"
 
-  BEHAVIOR RULES:
-  1. NO advice. NO suggestions. NO recommendations.
-  2. NO pleasantries. NO emotions.
-  3. Answer ONLY what was asked.
-
 max_response_length: 200
 temperature: 0.7
 
-# Fallback responses when AI unavailable
 fallback_responses:
-  - "[SYSTEM ERROR] Neural interface degraded. Query logged for later processing."
+  - "[SYSTEM ERROR] Neural interface degraded."
   - "[STATUS: RECALIBRATING] Processing cores offline."
-  - "[INTERFERENCE DETECTED] Communication temporarily degraded."
 ```
 
 ---
 
-## 8. Planet Textures
+## 13. Naming Conventions
 
-Located in the `textures/` directory at project root.
+| Convention | Rule |
+|---|---|
+| Slugs | Lowercase + hyphens only (`phoebe-station`, not `PhoebeStation`) |
+| Galaxy slugs | Astronomical names (`tau-ceti`, `tau-ceti-e`, `phoebe`) |
+| Ship/location slugs | Vessel or facility names (`patrol-gunboat`, `somnus`) |
+| Slug uniqueness | Galaxy and ship slugs share a namespace in `find_location_by_slug()` — avoid collisions |
+| `id:` in character files | Must match filename stem (`id: alex_novak` in `alex_novak.yaml`) |
+
+---
+
+## 14. Planet Textures
+
+**Location:** `textures/` at project root.
 
 ```
 textures/
-├── gas/                  # Gas giant textures (banded atmospheres)
-├── rock/                 # Rocky planet/moon textures (cratered surfaces)
-├── terrestrial/          # Earth-like planet textures (continents, oceans)
-└── volcanic/             # Volcanic planet textures (lava flows, volcanic terrain)
+├── gas/           # Gas giants — banded atmospheres
+├── rock/          # Moons, asteroids, barren worlds
+├── terrestrial/   # Earth-like planets
+└── volcanic/      # Lava worlds, geologically active
 ```
 
-### Available Textures
-
-Each category contains **20 unique textures** numbered 1-20. All textures use the retro amber monochrome aesthetic.
-
-**Naming Pattern:** `{Type}-EQUIRECTANGULAR-{#}-2048x1024.png`
-
-| Category | Path | Texture Names | Best For |
-|----------|------|---------------|----------|
-| Gas Giants | `textures/gas/` | `Gas Giant-EQUIRECTANGULAR-1-2048x1024.png` through `-20-` | Jupiter-like planets, banded atmospheres |
-| Rocky | `textures/rock/` | `Rock-EQUIRECTANGULAR-1-2048x1024.png` through `-20-` | Moons, asteroids, barren worlds |
-| Terrestrial | `textures/terrestrial/` | `Terrestrial-EQUIRECTANGULAR-1-2048x1024.png` through `-20-` | Earth-like planets, habitable worlds |
-| Volcanic | `textures/volcanic/` | `Volcanic-EQUIRECTANGULAR-1-2048x1024.png` through `-20-` | Lava worlds, geologically active planets |
-
-### Usage in orbit_map.yaml
+Each category contains 20 textures numbered 1–20.
+**Naming:** `{Type}-EQUIRECTANGULAR-{N}-2048x1024.png`
 
 ```yaml
-planet:
-  texture: "/textures/terrestrial/Terrestrial-EQUIRECTANGULAR-7-2048x1024.png"
-
-moons:
-  - name: "Barren Moon"
-    texture: "/textures/rock/Rock-EQUIRECTANGULAR-3-2048x1024.png"
-```
-
-### Best Practices
-
-1. **Randomize texture selection** - Pick different numbers (1-20) for each planet/moon
-2. **Avoid duplicates** - Don't reuse the same texture number within a system
-3. **Match type to planet** - Use appropriate category for the planet type:
-   - Habitable worlds → `terrestrial/`
-   - Moons and asteroids → `rock/`
-   - Gas giants → `gas/`
-   - Volcanic/molten worlds → `volcanic/`
-
-### Example: Assigning Unique Textures
-
-```yaml
-# System with varied planets - each uses a different texture number
-bodies:
-  - name: "Hot Venus-like"
-    texture: "/textures/volcanic/Volcanic-EQUIRECTANGULAR-5-2048x1024.png"
-
-  - name: "Earth-like Colony"
-    texture: "/textures/terrestrial/Terrestrial-EQUIRECTANGULAR-12-2048x1024.png"
-
-  - name: "Gas Giant"
-    texture: "/textures/gas/Gas Giant-EQUIRECTANGULAR-8-2048x1024.png"
-
-moons:
-  - name: "Rocky Moon A"
-    texture: "/textures/rock/Rock-EQUIRECTANGULAR-2-2048x1024.png"
-
-  - name: "Rocky Moon B"
-    texture: "/textures/rock/Rock-EQUIRECTANGULAR-14-2048x1024.png"  # Different number!
+# In orbit_map.yaml or system_map.yaml:
+texture: "/textures/terrestrial/Terrestrial-EQUIRECTANGULAR-7-2048x1024.png"
 ```
 
 ---
 
-## Quick Reference: Creating a New Location
+## 15. Validation Checklist
 
-### 1. Create the directory structure
-```bash
-mkdir -p data/galaxy/{system}/{body}/{facility}
-```
+Before finishing a new data entry:
 
-### 2. Add location.yaml
-Create `location.yaml` in each directory with appropriate type.
-
-### 3. Add maps (optional)
-Create `map/` directory with deck layouts.
-
-### 4. Add terminals (optional)
-Create `comms/{terminal-slug}/` with `terminal.yaml` and message directories.
-
-### 5. Update star_map.yaml
-Add system entry if it's a new star system.
-
-### 6. Add system_map.yaml (optional)
-If the system should have planetary visualization.
-
-### 7. Add orbit_map.yaml (optional)
-If planets should have detailed orbit views.
-
----
-
-## Complete Minimal Example
-
-This section provides a complete, minimal working example you can copy to create a new star system with one planet, one station, and one encounter map.
-
-### Directory Structure
-
-```bash
-# Create the full directory structure
-mkdir -p data/galaxy/example-system/example-planet/example-station/map
-mkdir -p data/galaxy/example-system/example-planet/example-station/comms/messages
-mkdir -p data/galaxy/example-system/example-planet/example-station/comms/station-terminal
-```
-
-### File 1: System Location
-`data/galaxy/example-system/location.yaml`
-```yaml
-name: "Example System"
-type: "system"
-description: "A minimal example star system"
-status: "FRONTIER"
-```
-
-### File 2: Planet Location
-`data/galaxy/example-system/example-planet/location.yaml`
-```yaml
-name: "Example Planet"
-type: "planet"
-description: "An example planet with one station"
-status: "OPERATIONAL"
-```
-
-### File 3: Station Location
-`data/galaxy/example-system/example-planet/example-station/location.yaml`
-```yaml
-name: "Example Station"
-type: "station"
-description: "A simple orbital research station"
-status: "OPERATIONAL"
-population: "~200"
-```
-
-### File 4: Star Map Entry
-Add to `data/galaxy/star_map.yaml` (in the `systems:` list):
-```yaml
-  - name: "Example System"
-    position: [50, 20, -30]
-    color: 0xFFAA88
-    size: 1.8
-    type: "star"
-    label: true
-    location_slug: "example-system"
-    info:
-      description: "Example frontier system"
-```
-
-### File 5: System Map (Optional)
-`data/galaxy/example-system/system_map.yaml`
-```yaml
-star:
-  name: "Example Star"
-  color: 0xFFAA88
-  size: 4.0
-
-camera:
-  position: [0, 100, 100]
-  lookAt: [0, 0, 0]
-  fov: 75
-
-bodies:
-  - name: "Example Planet"
-    type: "planet"
-    location_slug: "example-planet"
-    orbital_radius: 40
-    orbital_period: 100
-    orbital_angle: 0
-    size: 1.5
-    color: 0x6699AA
-    clickable: true
-    has_orbit_map: false
-    info:
-      description: "Rocky world with orbital station"
-```
-
-### File 6: Encounter Map
-`data/galaxy/example-system/example-planet/example-station/map/station_layout.yaml`
-```yaml
-name: "Example Station Layout"
-location_name: "Example Station"
-description: "Simple station with three rooms"
-unit_size: 40
-
-rooms:
-  - id: command
-    name: "COMMAND"
-    rects:
-      - {x: 1, y: 1, w: 5, h: 3}
-    doors:
-      - {wall: east, position: 1, type: standard, status: OPEN}
-      - {wall: south, position: 2, type: standard, status: CLOSED}
-    description: "Station command center"
-    type: bridge
-
-  - id: habitat
-    name: "HABITAT"
-    rects:
-      - {x: 8, y: 1, w: 5, h: 3}
-    doors:
-      - {wall: west, position: 1, type: standard, status: OPEN}
-    description: "Crew quarters"
-    type: crew
-
-  - id: lab
-    name: "RESEARCH LAB"
-    rects:
-      - {x: 4, y: 7, w: 6, h: 4}
-    doors:
-      - {wall: north, position: 2, type: standard, status: CLOSED}
-    description: "Primary research facility"
-    type: engineering
-
-terminals:
-  - id: cmd_terminal
-    room: command
-    position:
-      x: 3
-      y: 2
-    terminal_slug: "station-terminal"
-    name: "STATION TERMINAL"
-```
-
-### File 7: Terminal Configuration
-`data/galaxy/example-system/example-planet/example-station/comms/station-terminal/terminal.yaml`
-```yaml
-owner: "Station Commander"
-terminal_id: "EX-001"
-access_level: "RESTRICTED"
-description: "Main station terminal"
-```
-
-### File 8: Sample Message (Central Message Store)
-`data/galaxy/example-system/example-planet/example-station/comms/messages/001_welcome.md`
-```markdown
----
-timestamp: "2183-07-01 08:00:00"
-priority: "NORMAL"
-subject: "Station Online"
-from: "JANUS"
-to: "Station Commander"
-message_id: "msg_example_001"
-read: false
----
-
-STATION SYSTEMS ONLINE
-ALL SYSTEMS NOMINAL
-AWAITING FURTHER INSTRUCTIONS
-
-END TRANSMISSION
-```
-
-**Note:** Messages are stored in the central `comms/messages/` directory. The system automatically routes messages to the correct terminal's inbox/sent based on the `from` and `to` fields matching the terminal's `owner`.
-
-### Testing Your Data
-
-After creating these files:
-
-1. **Restart the Django server** if it was running
-2. **Check the GM Console** at `/gmconsole/` - your new location should appear in the tree
-3. **Click the DISPLAY button** to show the encounter map
-4. **Check the Galaxy Map** - your new system should appear
-
----
-
-## Validation Checklist
-
-When adding new data, verify:
-
-- [ ] All location.yaml files have required `name` and `type` fields
-- [ ] Location slugs are unique within their parent
-- [ ] Directory names match the `location_slug` values in parent files
-- [ ] Message IDs are unique across all terminals
-- [ ] **Messages use central store (`comms/messages/`) OR legacy format with duplication**
+- [ ] `location.yaml` has required `name` and `type` fields
+- [ ] `body_slug` and `system_slug` exactly match directory names (lowercase, hyphens)
+- [ ] Ship `deckplan.yaml` has at least one deck with `id:`, `name:`, and `level:`
+- [ ] Character `id:` field matches filename stem
 - [ ] Room IDs are unique within each deck
-- [ ] Door `wall`/`position` values are within bounds for the room's rects
-- [ ] Inter-deck connections reference valid room IDs in both decks and a valid `to_deck` ID in manifest
+- [ ] Door `wall`/`position` values are within bounds for the room
 - [ ] Terminal slugs in map files match `comms/` directory names
-- [ ] System entries in star_map.yaml have matching location directories
-- [ ] Planet entries with `has_orbit_map: true` have corresponding orbit_map.yaml files
-- [ ] Planets with `clickable: true` have a `location_slug` that matches a directory
+- [ ] Planet entries with `has_orbit_map: true` have a corresponding `orbit_map.yaml`
 
 ---
 
-## Troubleshooting
+## 16. Troubleshooting
 
 ### Location not appearing in GM Console
 
-**Symptoms:** Your new location doesn't show up in the location tree.
+1. Missing `location.yaml` — every location directory must have one.
+2. Invalid YAML syntax — check indentation and colons.
+3. Missing required fields — `name` and `type` are required.
 
-**Causes & Solutions:**
-1. **Missing location.yaml** - Every location directory MUST have a `location.yaml` file
-2. **Invalid YAML syntax** - Check for typos, incorrect indentation, or missing colons
-3. **Missing required fields** - Ensure `name` and `type` fields exist
-
-**Debug steps:**
 ```bash
-# Check if location.yaml exists
-ls data/galaxy/your-system/location.yaml
-
-# Validate YAML syntax (requires pyyaml)
-python -c "import yaml; yaml.safe_load(open('data/galaxy/your-system/location.yaml'))"
+# Validate YAML syntax
+python -c "import yaml; yaml.safe_load(open('data/ships/my-ship/location.yaml'))"
 ```
 
-### Star system not appearing on galaxy map
+### Ship not appearing on orbit map
 
-**Symptoms:** System exists in directories but not visible on galaxy map.
-
-**Causes & Solutions:**
-1. **Not in star_map.yaml** - Add entry to `systems:` list in `data/galaxy/star_map.yaml`
-2. **Wrong location_slug** - The `location_slug` must exactly match the directory name
-
-### Clicking planet does nothing
-
-**Symptoms:** Planet appears in system map but clicking doesn't navigate.
-
-**Causes & Solutions:**
-1. **Missing clickable: true** - Add `clickable: true` to the planet in system_map.yaml
-2. **Missing location_slug** - Add `location_slug` matching the planet's directory name
-3. **Missing has_orbit_map** - If planet has orbit_map.yaml, set `has_orbit_map: true`
-4. **No orbit_map.yaml** - If `has_orbit_map: true`, create the orbit_map.yaml file
+1. `body_slug` typo — must exactly match the planet's directory name (case-sensitive).
+2. Missing `orbital:` block — required for orbit map injection.
+3. `parent_type` missing or wrong — must be `orbit` or `surface`.
 
 ### Encounter map not displaying
 
-**Symptoms:** Map exists but terminal shows blank or error.
-
-**Causes & Solutions:**
-1. **YAML syntax error** - Validate the YAML file
-2. **Missing shape field** - Each room must have `rects:` (can be `[]`), `circle:`, or `polygon:`; the renderer identifies grid maps by presence of one of these fields on the first room
-3. **Room rects out of bounds** - Ensure all rect `x`/`y`/`w`/`h` values fit within the expected area
-4. **Door position out of range** - `position` must be less than the wall's cell count
+1. YAML syntax error — validate the file.
+2. Missing shape field — each room must have `rects:`, `polygon:`, or `circle:`.
+3. Room IDs not unique within the deck.
 
 ### Terminal not loading messages
 
-**Symptoms:** Terminal appears but no messages shown.
-
-**Causes & Solutions:**
-1. **Missing terminal.yaml** - The terminal directory needs a `terminal.yaml` file
-2. **Wrong directory structure** - Messages must be in `inbox/{sender}/` or `sent/{recipient}/`
-3. **Invalid message frontmatter** - Check YAML frontmatter between `---` markers
-4. **Missing required fields** - Messages need timestamp, priority, subject, from, to, message_id
-
-### Inter-deck connection errors
-
-**Symptoms:** Clicking inter-deck connection doesn't work.
-
-**Causes & Solutions:**
-1. **to_room doesn't exist** - The `to_room` ID must exist in the target deck's rooms list
-2. **to_deck doesn't match manifest** - The `to_deck` must match a deck `id` in manifest.yaml
-3. **from_room doesn't exist** - The `from_room` must be a valid room ID in the current deck
-
-### Common YAML Mistakes
-
-```yaml
-# WRONG: Missing quotes around value with special characters
-name: Research Base: Alpha
-
-# RIGHT: Quote strings with colons
-name: "Research Base: Alpha"
-
-# WRONG: Inconsistent indentation
-rooms:
-  - id: bridge
-   name: "BRIDGE"     # Wrong indent!
-
-# RIGHT: Consistent 2-space indentation
-rooms:
-  - id: bridge
-    name: "BRIDGE"
-
-# WRONG: Tab characters (use spaces only)
-rooms:
-	- id: bridge    # Tab character!
-
-# RIGHT: Spaces only
-rooms:
-  - id: bridge
-
-# WRONG: Missing dash for list item
-rooms:
-  id: bridge        # Not a list item!
-
-# RIGHT: List items start with dash
-rooms:
-  - id: bridge
-```
-
-### Quick Validation Commands
-
-```bash
-# Validate all YAML files in data directory
-find data -name "*.yaml" -exec python -c "
-import yaml, sys
-try:
-    yaml.safe_load(open('{}'))
-    print('OK: {}')
-except Exception as e:
-    print('ERROR: {}: ' + str(e))
-" \;
-
-# Check for location.yaml in all directories
-find data/galaxy -type d -exec sh -c '
-    if [ -d "$1" ] && [ ! -f "$1/location.yaml" ]; then
-        # Only warn for directories that look like locations (not map/, comms/, etc.)
-        case "$(basename "$1")" in
-            map|comms|inbox|sent) ;;
-            *) echo "WARNING: No location.yaml in $1" ;;
-        esac
-    fi
-' _ {} \;
-```
+1. Missing `terminal.yaml` in the terminal directory.
+2. `owner:` field in `terminal.yaml` does not match the `from`/`to` values in messages.
+3. Invalid YAML frontmatter in message files.

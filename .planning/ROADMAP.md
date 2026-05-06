@@ -293,7 +293,7 @@ Plans:
 
 **Goal:** Fully rewrite the data directory guide to document the live state after Phases 15–18.
 **Depends on:** Phase 18
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 19-01-PLAN.md — Full guide rewrite: new structure, deckplan schema, self-registration pattern, step-by-step workflows
+- [x] 19-01-PLAN.md — Full guide rewrite: new structure, deckplan schema, self-registration pattern, step-by-step workflows

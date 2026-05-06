@@ -14,7 +14,7 @@ systems:
     display_name: Comms
     icon: intercom
     power:
-      allocated: 1
+      allocated: 0
       max: 3
     status: ONLINE
     subsystems:
@@ -33,7 +33,7 @@ systems:
       label: Jump Drive Calibration Error
     icon: jumpdrive
     power:
-      allocated: 1
+      allocated: 2
       max: 5
     status: ONLINE
     subsystems:
@@ -49,7 +49,7 @@ systems:
     display_name: Life Support
     icon: ventillation
     power:
-      allocated: 1
+      allocated: 0
       max: 4
     status: ONLINE
     subsystems:
@@ -64,7 +64,7 @@ systems:
     display_name: medbay
     icon: medbay
     power:
-      allocated: 1
+      allocated: 0
       max: 3
     status: ONLINE
     subsystems:
@@ -84,7 +84,7 @@ systems:
     display_name: Weapons
     icon: weapon system
     power:
-      allocated: 1
+      allocated: 3
       max: 4
     status: ONLINE
     subsystems:

@@ -21,11 +21,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **STAT-04**: Crew count and capacity displayed
 - [x] **STAT-05**: System status changes animate visually (e.g., OPERATIONAL to WARNING transition)
 - [x] **STAT-06**: GM can toggle system states from the GM Console
-- [ ] **STAT-10**: STATUS tab uses dual terminal-readout panel layout (left=systems, right=resources) floating over full-screen deck map with semi-transparent backgrounds and chamfered corners
-- [ ] **STAT-11**: Reactor added as 5th ship system (SystemData shape: status/condition/info) in YAML, TypeScript types, and Django backend
-- [ ] **STAT-12**: Ship resource tracking for fuel, food, O2, cryopods, and escape pods with current/max values stored in ship.yaml and served via SSE
-- [ ] **STAT-13**: GM can modify reactor status/condition and all resource values from BridgeView panel using system controls and InputNumber spinners
-- [ ] **STAT-14**: Status change-flash animation (600ms row highlight on SSE update) and typewriter stagger-in animation (80ms sequential row reveal on tab load)
+- [x] **STAT-10**: STATUS tab uses dual terminal-readout panel layout (left=systems, right=resources) floating over full-screen deck map with semi-transparent backgrounds and chamfered corners
+- [x] **STAT-11**: Reactor added as 5th ship system (SystemData shape: status/condition/info) in YAML, TypeScript types, and Django backend
+- [x] **STAT-12**: Ship resource tracking for fuel, food, O2, cryopods, and escape pods with current/max values stored in ship.yaml and served via SSE
+- [x] **STAT-13**: GM can modify reactor status/condition and all resource values from BridgeView panel using system controls and InputNumber spinners
+- [x] **STAT-14**: Status change-flash animation (600ms row highlight on SSE update) and typewriter stagger-in animation (80ms sequential row reveal on tab load)
 
 ### Encounter Tokens
 

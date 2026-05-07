@@ -77,6 +77,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **GMUI-STANDBY**: StandbyView shows animated standby state when no active encounter
 - [x] **GMUI-DISPLAY**: DISPLAY button in ViewRail opens/controls the player-facing terminal display
 
+### Atmospheric Animations (Phase 13)
+
+- [x] **ANIM-VIEW**: View-to-view transitions use glitch-out / dark-frame / fade-in animation sequence via the `useViewTransition` hook; `ViewStatusOverlay` displays a per-view typewriter boot label during fade-in
+- [x] **ANIM-OVERLAY**: Dialog overlays (CharonDialog, DocumentDialog, CommTerminalDialog) animate in with CRT-style entrance effects and fade-out with scale-down on dismiss
+- [x] **ANIM-ROOM**: Encounter room reveal plays a CRT digital flicker animation; tokens in newly revealed rooms cascade in with ~200ms delay; multi-room reveals stagger 75ms apart
+- [x] **ANIM-BRIDGE**: Bridge view panels animate in with a staggered fade-slide sequence (~100ms per item, ~1.2s total) on view load
+
 ### Player Ship Map (Phase 10)
 
 - [x] **SHIP-01**: Campaign ship deck map visible in BRIDGE mode (player STATUS tab and GM right panel); GM can set ship galactic position from Locations panel via right-click "Set Ship Here"

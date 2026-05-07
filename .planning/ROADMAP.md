@@ -250,12 +250,12 @@ Plans:
 **Requirements:** STAT-10, STAT-11, STAT-12, STAT-13, STAT-14, GRID-01..10, ANIM-VIEW, ANIM-OVERLAY, ANIM-ROOM, ANIM-BRIDGE
 **Gap Closure:** Closes all gaps from v1.0-MILESTONE-AUDIT.md (security, unregistered reqs, missing verification artifacts)
 **Depends on:** Phase 12
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 20-01-PLAN.md — Security + tech debt: @login_required on api_set_ship_location, intentionally-public docstring on api_bridge_selection, remove getRoomVisibility/setRoomVisibility exports
-- [ ] 20-02-PLAN.md — REQUIREMENTS.md updates: flip STAT-10..14 checkboxes, register ANIM-* section, update traceability + coverage count to 51
-- [ ] 20-03-PLAN.md — VERIFICATION.md authoring: 6 new files (phases 04, 05, 07, 08, 10, 13) + PORT-03 deviation note appended to 11-VERIFICATION.md (Phase 14 untouched per Pitfall 3)
+- [x] 20-01-PLAN.md — Security + tech debt: @login_required on api_set_ship_location, intentionally-public docstring on api_bridge_selection, remove getRoomVisibility/setRoomVisibility exports
+- [x] 20-02-PLAN.md — REQUIREMENTS.md updates: flip STAT-10..14 checkboxes, register ANIM-* section, update traceability + coverage count to 51
+- [x] 20-03-PLAN.md — VERIFICATION.md authoring: 6 new files (phases 04, 05, 07, 08, 10, 13) + PORT-03 deviation note appended to 11-VERIFICATION.md (Phase 14 untouched per Pitfall 3)
 
 ### Phase 15: Data Directory Audit + Bug Fixes
 

@@ -21,11 +21,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **STAT-04**: Crew count and capacity displayed
 - [x] **STAT-05**: System status changes animate visually (e.g., OPERATIONAL to WARNING transition)
 - [x] **STAT-06**: GM can toggle system states from the GM Console
-- [ ] **STAT-10**: STATUS tab uses dual terminal-readout panel layout (left=systems, right=resources) floating over full-screen deck map with semi-transparent backgrounds and chamfered corners
-- [ ] **STAT-11**: Reactor added as 5th ship system (SystemData shape: status/condition/info) in YAML, TypeScript types, and Django backend
-- [ ] **STAT-12**: Ship resource tracking for fuel, food, O2, cryopods, and escape pods with current/max values stored in ship.yaml and served via SSE
-- [ ] **STAT-13**: GM can modify reactor status/condition and all resource values from BridgeView panel using system controls and InputNumber spinners
-- [ ] **STAT-14**: Status change-flash animation (600ms row highlight on SSE update) and typewriter stagger-in animation (80ms sequential row reveal on tab load)
+- [x] **STAT-10**: STATUS tab uses dual terminal-readout panel layout (left=systems, right=resources) floating over full-screen deck map with semi-transparent backgrounds and chamfered corners
+- [x] **STAT-11**: Reactor added as 5th ship system (SystemData shape: status/condition/info) in YAML, TypeScript types, and Django backend
+- [x] **STAT-12**: Ship resource tracking for fuel, food, O2, cryopods, and escape pods with current/max values stored in ship.yaml and served via SSE
+- [x] **STAT-13**: GM can modify reactor status/condition and all resource values from BridgeView panel using system controls and InputNumber spinners
+- [x] **STAT-14**: Status change-flash animation (600ms row highlight on SSE update) and typewriter stagger-in animation (80ms sequential row reveal on tab load)
 
 ### Encounter Tokens
 
@@ -76,6 +76,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **GMUI-CHARON**: CharonView provides full-screen CHARON AI terminal in GM console
 - [x] **GMUI-STANDBY**: StandbyView shows animated standby state when no active encounter
 - [x] **GMUI-DISPLAY**: DISPLAY button in ViewRail opens/controls the player-facing terminal display
+
+### Atmospheric Animations (Phase 13)
+
+- [x] **ANIM-VIEW**: View-to-view transitions use glitch-out / dark-frame / fade-in animation sequence via the `useViewTransition` hook; `ViewStatusOverlay` displays a per-view typewriter boot label during fade-in
+- [x] **ANIM-OVERLAY**: Dialog overlays (CharonDialog, DocumentDialog, CommTerminalDialog) animate in with CRT-style entrance effects and fade-out with scale-down on dismiss
+- [x] **ANIM-ROOM**: Encounter room reveal plays a CRT digital flicker animation; tokens in newly revealed rooms cascade in with ~200ms delay; multi-room reveals stagger 75ms apart
+- [x] **ANIM-BRIDGE**: Bridge view panels animate in with a staggered fade-slide sequence (~100ms per item, ~1.2s total) on view load
 
 ### Player Ship Map (Phase 10)
 
@@ -147,11 +154,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-04 | Phase 2 | Pending |
 | STAT-05 | Phase 2 | Pending |
 | STAT-06 | Phase 2 | Complete |
-| STAT-10 | Phase 14 | Pending |
-| STAT-11 | Phase 14 | Pending |
-| STAT-12 | Phase 14 | Pending |
-| STAT-13 | Phase 14 | Pending |
-| STAT-14 | Phase 14 | Pending |
+| STAT-10 | Phase 14 | Complete |
+| STAT-11 | Phase 14 | Complete |
+| STAT-12 | Phase 14 | Complete |
+| STAT-13 | Phase 14 | Complete |
+| STAT-14 | Phase 14 | Complete |
 | TOKN-01 | Phase 3 | Pending |
 | TOKN-02 | Phase 3 | Pending |
 | TOKN-03 | Phase 3 | Pending |
@@ -188,10 +195,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GMUI-STANDBY | Phase 8 | Complete |
 | GMUI-DISPLAY | Phase 8 | Complete |
 | SHIP-01 | Phase 10 | Complete |
+| ANIM-VIEW | Phase 13 | Complete |
+| ANIM-OVERLAY | Phase 13 | Complete |
+| ANIM-ROOM | Phase 13 | Complete |
+| ANIM-BRIDGE | Phase 13 | Complete |
 
 **Coverage:**
-- v1 requirements: 47 total (29 original + 12 GMUI-* + 1 SHIP-01 + 5 STAT-10..14; AUDI-01..03 moved to v2)
-- Mapped to phases: 47
+- v1 requirements: 51 total (29 original + 12 GMUI-* + 1 SHIP-01 + 5 STAT-10..14 + 4 ANIM-*; AUDI-01..03 moved to v2)
+- Mapped to phases: 51
 - Unmapped: 0
 
 **Phase 09 gap closures (integration fixes):**

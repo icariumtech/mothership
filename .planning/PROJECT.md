@@ -74,4 +74,4 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 | Ant Design for layout/forms | Rapid development, consistent components | — Pending |
 
 ---
-*Last updated: 2026-05-06 — Phase 19 complete: DATA_DIRECTORY_GUIDE.md fully rewritten to document live state after Phases 15–18 (four-way data split, deckplan.yaml schema, self-registration pattern, per-entity character files)*
+*Last updated: 2026-05-07 — Phase 20 complete: All v1.0 audit gaps closed — `api_set_ship_location` secured with `@login_required`, `encounterApi.ts` dead exports removed, REQUIREMENTS.md backfilled with STAT-10..14 and ANIM-* entries (51 total), 6 VERIFICATION.md files authored for phases 04/05/07/08/10/13, PORT-03 design deviation noted in Phase 11 VERIFICATION.md*

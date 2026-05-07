@@ -491,7 +491,7 @@ Step 2.6 SKIPPED — this phase makes no use of external tools, services, or CLI
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`api_ship_update_stat` at line 1945 is `@csrf_exempt`-only and writes to ship.yaml**
    - What we know: This endpoint (`POST /api/gm/ship-status/stat/`) writes `thrusters`, `battle`, `systems` stats to ship.yaml. It has the same security profile as `api_set_ship_location`. The audit did not flag it.

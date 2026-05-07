@@ -120,5 +120,36 @@ Three human verification items remain for runtime/visual confirmation but do not
 
 ---
 
+## PORT-03 Design Deviation Note
+
+**Added:** 2026-05-07 (Phase 20 audit closure, D-02)
+
+**Status:** Accepted — requirement remains `[x]` in REQUIREMENTS.md.
+
+### Original Requirement
+PORT-03: "Portrait appears as overlay during encounter view"
+
+### Phase 11 Implementation
+Phase 11 satisfied PORT-03 by wiring `NPCPortraitOverlay` into GM `EncounterView.tsx` (verified above in Goal Achievement Truth #1 and Requirements Coverage table).
+
+### Subsequent Design Revert
+Commit `750bd89` intentionally removed the overlay from GM `EncounterView` with the message:
+> "Portrait overlays are not needed on the GM screen. The toggle controls in the NPC Portraits slide-out panel remain so portraits still display on the player terminal."
+
+### Current State (post-revert)
+- **Player terminal** (`SharedConsole.tsx`): `NPCPortraitOverlay` renders when `encounter_active_portraits.length > 0`. ✅
+- **GM `StandbyView.tsx`**: `NPCPortraitOverlay` present. ✅
+- **GM `EncounterView.tsx`**: `NPCPortraitOverlay` intentionally absent. ⚠ (deviation from original requirement wording)
+
+### Resolution per Phase 20 D-02
+Per CONTEXT.md decision D-02:
+> "PORT-03 is `[x]` and stays `[x]`. Add a brief note in Phase 11's VERIFICATION.md documenting the accepted design deviation (GM-only overlay, not player-facing). Do NOT re-open PORT-03 or change its `[x]` status."
+
+The user has accepted this as a design decision — portraits are surfaced to players on the player terminal (which is the audience that needs to see NPC portraits during gameplay) and to the GM via the StandbyView and the slide-out toggle controls. The GM does not need the overlay layered over the encounter map. The Phase 11 wiring (verified above) demonstrates that the integration was implementable; the subsequent revert is a UX choice, not a missing capability.
+
+No code change needed. PORT-03 remains satisfied.
+
+---
+
 _Verified: 2026-03-24_
 _Verifier: Claude (gsd-verifier)_

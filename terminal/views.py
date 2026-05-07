@@ -673,8 +673,20 @@ def api_show_terminal(request):
 def api_bridge_selection(request):
     """
     Public API endpoint to update the player's current bridge map selection.
+
+    INTENTIONALLY UNAUTHENTICATED: Called by the player terminal at
+    `/terminal/`, which is itself an unauthenticated route. Adding
+    `@login_required` here would return a 302 redirect for player
+    sessions and break bridge map navigation.
+
+    Writes ephemeral in-memory state only (view_slug / bridge_tab /
+    bridge_map_mode / bridge_label) — no persistent data side effect.
+    The audit flagged this as low-severity (no persistent write); the
+    resolution is documentation, not authentication. See Phase 20
+    RESEARCH.md Pattern 2 for the full caller list.
+
     Called by the player terminal when navigating the bridge galaxy/system/orbit map.
-    POST: { location_slug?: string, tab?: string }
+    POST: { location_slug?: string, tab?: string, map_mode?: string, label?: string }
     """
     import json
 
@@ -703,6 +715,7 @@ def api_bridge_selection(request):
 
 
 @csrf_exempt
+@login_required
 def api_set_ship_location(request):
     """GM action: set the ship's current galactic position. Writes to ship.yaml + broadcasts SSE."""
     import json

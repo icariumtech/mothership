@@ -237,8 +237,6 @@ export const encounterApi = {
   getAllDecks,
   switchLevel,
   toggleRoom,
-  getRoomVisibility,
-  setRoomVisibility,
   showAllRooms,
   hideAllRooms,
   setDoorStatus,
@@ -252,3 +250,9 @@ export const encounterApi = {
 };
 
 export type { DeckWithRooms, AllDecksResponse };
+
+// getRoomVisibility is retained (not exported) per D-03 — the endpoint exists
+// but is no longer part of the public encounterApi surface. Void reference
+// prevents TS6133 "declared but never read" until a future plan decides to
+// expose or remove it.
+void getRoomVisibility;

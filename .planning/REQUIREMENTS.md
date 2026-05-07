@@ -154,11 +154,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-04 | Phase 2 | Pending |
 | STAT-05 | Phase 2 | Pending |
 | STAT-06 | Phase 2 | Complete |
-| STAT-10 | Phase 14 | Pending |
-| STAT-11 | Phase 14 | Pending |
-| STAT-12 | Phase 14 | Pending |
-| STAT-13 | Phase 14 | Pending |
-| STAT-14 | Phase 14 | Pending |
+| STAT-10 | Phase 14 | Complete |
+| STAT-11 | Phase 14 | Complete |
+| STAT-12 | Phase 14 | Complete |
+| STAT-13 | Phase 14 | Complete |
+| STAT-14 | Phase 14 | Complete |
 | TOKN-01 | Phase 3 | Pending |
 | TOKN-02 | Phase 3 | Pending |
 | TOKN-03 | Phase 3 | Pending |
@@ -195,10 +195,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GMUI-STANDBY | Phase 8 | Complete |
 | GMUI-DISPLAY | Phase 8 | Complete |
 | SHIP-01 | Phase 10 | Complete |
+| ANIM-VIEW | Phase 13 | Complete |
+| ANIM-OVERLAY | Phase 13 | Complete |
+| ANIM-ROOM | Phase 13 | Complete |
+| ANIM-BRIDGE | Phase 13 | Complete |
 
 **Coverage:**
-- v1 requirements: 47 total (29 original + 12 GMUI-* + 1 SHIP-01 + 5 STAT-10..14; AUDI-01..03 moved to v2)
-- Mapped to phases: 47
+- v1 requirements: 51 total (29 original + 12 GMUI-* + 1 SHIP-01 + 5 STAT-10..14 + 4 ANIM-*; AUDI-01..03 moved to v2)
+- Mapped to phases: 51
 - Unmapped: 0
 
 **Phase 09 gap closures (integration fixes):**

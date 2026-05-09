@@ -312,3 +312,106 @@ export function isGridEncounterMap(mapData: unknown): mapData is GridEncounterMa
     Array.isArray(firstRoom.polygon)
   );
 }
+
+// ============================================================
+// Phase 21: canonical Door model (top-level, replaces nested DoorDef)
+// ------------------------------------------------------------
+// These types are the *new* canonical door model introduced in Phase 21.
+// They live alongside the legacy DoorDef / GridRoom.doors structure for
+// the duration of plans 21-02..21-04. The renderer continues to consume
+// DoorDef until plan 21-03 adopts the canonical model. Authored YAML can
+// arrive in either of two relational/positional forms (B-rel / B-pos)
+// and is normalized into the canonical Door at load time by
+// `doorNormalizer` (see src/components/domain/encounter/doors/).
+// ============================================================
+
+/**
+ * Canonical Door — top-level, used by roomGeometry, mapView, renderer.
+ *
+ * Invariant (enforced at normalize time): `(x, y)` lies on the shared
+ * edge of `(roomA, roomB)` within a small epsilon. When `roomB` is
+ * `null` the door connects `roomA` to the exterior (e.g. an airlock
+ * onto space) and `(x, y)` lies on `roomA`'s exterior boundary.
+ */
+export interface Door {
+  /** Stable identifier — explicit from authored YAML, or derived as
+   *  `${roomA}__${roomB|exterior}__${index}` by the normalizer. */
+  id: string;
+  /** Door center, grid coordinates. */
+  x: number;
+  y: number;
+  /** Door slot orientation in degrees. Any value, supporting diagonal
+   *  doors. Convention: 0 = horizontal slot (N/S wall), 90 = vertical
+   *  slot (E/W wall). The normalizer derives this from edge geometry
+   *  for B-rel inputs and preserves authored values for B-pos inputs. */
+  angle: number;
+  /** Door width in grid cells. Default 1. Fractional values allowed. */
+  width: number;
+  /** First (always-present) endpoint room id. */
+  roomA: string;
+  /** Second endpoint room id, or `null` for exterior doors. */
+  roomB: string | null;
+  type: DoorType;
+  status: DoorStatus;
+}
+
+/**
+ * Authored relational door — primary YAML form.
+ *
+ * Humans, AI, and tools like `svg_to_map.py` write this shape. It is a
+ * *relational* statement of intent: the door sits on the shared edge of
+ * `rooms`, `along` fraction of the way along that edge. Easy for humans
+ * to write, easy for LLMs to generate, robust to small geometric edits.
+ *
+ * Single-element `rooms` list = exterior door (e.g. `[bridge]`).
+ */
+export interface AuthoredDoorRel {
+  id?: string;
+  /** Endpoint room ids. `[a, b]` = interior door, `[a]` = exterior door. */
+  rooms: [string, string] | [string];
+  /** Fraction along the shared edge, 0..1. Door center sits here. */
+  along: number;
+  /** Door width in grid cells. Default 1. */
+  width?: number;
+  type: DoorType;
+  status: DoorStatus;
+}
+
+/**
+ * Authored position-override door — escape hatch for fine control.
+ *
+ * Used when `(x, y, angle)` are known explicitly (e.g. from
+ * `svg_to_map.py --detect-doors`, or for unusual door geometry the
+ * relational form can't express cleanly). The normalizer still
+ * validates that `(x, y)` lies on a shared edge of `rooms`.
+ */
+export interface AuthoredDoorPos {
+  id?: string;
+  rooms: [string, string] | [string];
+  position: { x: number; y: number; angle: number };
+  width?: number;
+  type: DoorType;
+  status: DoorStatus;
+}
+
+/** Tagged union of authored YAML door shapes. */
+export type AuthoredDoor = AuthoredDoorRel | AuthoredDoorPos;
+
+/** Type guard: distinguishes B-pos (with explicit position) from B-rel. */
+export function isAuthoredDoorPos(d: AuthoredDoor): d is AuthoredDoorPos {
+  return 'position' in d;
+}
+
+/**
+ * Error type thrown by `doorNormalizer` when authored YAML fails to
+ * resolve / validate. The offending authored entry is attached so
+ * callers can surface useful messages in the UI / logs.
+ */
+export class DoorNormalizationError extends Error {
+  public readonly authored: AuthoredDoor;
+  constructor(message: string, authored: AuthoredDoor) {
+    super(message);
+    this.name = 'DoorNormalizationError';
+    this.authored = authored;
+  }
+}

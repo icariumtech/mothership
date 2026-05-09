@@ -3,8 +3,15 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1–20 (shipped 2026-05-07)
+- 🚧 **v2** — Phase 21 onward
 
 ## Phases
+
+### v2 (in progress)
+
+- [ ] Phase 21: Encounter Geometry Deepening (5 plans) — planned 2026-05-08
+  - Lift `EncounterMapRenderer.tsx` (1895 LOC) into a four-module geometry stack (`polygon2d`, `roomGeometry`, `gridProjection`, `mapView`); rework door model to top-level canonical `Door`; extract reveal-cascade scheduler. Adds Vitest infrastructure. Future iso/rotation view becomes a one-line projection swap.
+  - See `.planning/phases/21-encounter-geometry-deepening/`
 
 <details>
 <summary>✅ v1.0 MVP (Phases 1–20) — SHIPPED 2026-05-07</summary>

@@ -9,10 +9,9 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import {
+  Door,
   GridEncounterMapData,
   GridRoom,
-  GridRect,
-  DoorDef,
   DoorStatus,
   DoorStatusState,
   HullDef,
@@ -22,6 +21,7 @@ import {
   TokenType,
 } from '../../../types/encounterMap';
 import { getGridCell } from '../../../utils/svgCoordinates';
+import { pointInPolygon } from '../../../utils/polygon2d';
 import { ENCOUNTER_ICONS, iconSymbolId } from './EncounterIcons';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
@@ -29,6 +29,10 @@ import { TokenLayer, tokenTouchActive } from './TokenLayer';
 import { TokenPopup } from './TokenPopup';
 import { RoomContextMenu } from './RoomContextMenu';
 import { DoorStatusPopup } from '../../gm/DoorStatusPopup';
+import { topDownProjection } from './geometry/gridProjection';
+import { makeMapView } from './geometry/mapView';
+import { extractAuthoredDoorsFromRooms, doorEndpoints } from './geometry/roomGeometry';
+import { normalizeDoor, normalizeDoors } from './doors/doorNormalizer';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
@@ -109,395 +113,12 @@ const MAX_ZOOM = 3;
 const WALL_THICKNESS = 5;
 
 // -------------------------------------------------------------------
-// getRectPolygonPoints — SVG polygon points for a GridRect with optional
-// diagonal chamfer (8-point octagon when chamfer > 0, plain 4-point rect otherwise)
+// All inline geometry helpers were removed in plan 21-03. They now live in:
+//   - polygon2d (pointInPolygon, polygonAreaCentroid, octagonFromRect, etc.)
+//   - geometry/roomGeometry (roomLabelGrid, roomWallEdges, doorEndpoints, etc.)
+//   - geometry/mapView (the renderer's seam — SVG-space queries)
+//   - doors/doorNormalizer (legacy → canonical Door conversion)
 // -------------------------------------------------------------------
-function getRectPolygonPoints(rect: GridRect, us: number): string {
-  const rawChamfer = rect.chamfer ?? 0;
-  // Clamp: chamfer can be at most half the smaller dimension (leaving a flat face)
-  const c = Math.min(rawChamfer, rect.w / 2 - 0.01, rect.h / 2 - 0.01) * us;
-  const x  = rect.x * us;
-  const y  = rect.y * us;
-  const x2 = (rect.x + rect.w) * us;
-  const y2 = (rect.y + rect.h) * us;
-
-  if (c <= 0) {
-    return `${x},${y} ${x2},${y} ${x2},${y2} ${x},${y2}`;
-  }
-  return [
-    `${x + c},${y}`,      // top edge — left of top-right chamfer
-    `${x2 - c},${y}`,     // top edge — right of top-left chamfer
-    `${x2},${y + c}`,     // right edge — below top-right chamfer
-    `${x2},${y2 - c}`,    // right edge — above bottom-right chamfer
-    `${x2 - c},${y2}`,    // bottom edge — right of bottom-right chamfer
-    `${x + c},${y2}`,     // bottom edge — left of bottom-left chamfer
-    `${x},${y2 - c}`,     // left edge — above bottom-left chamfer
-    `${x},${y + c}`,      // left edge — below top-left chamfer
-  ].join(' ');
-}
-
-// -------------------------------------------------------------------
-// getDoorAngleRad — converts DoorDef wall or angle field to radians
-// Angle convention: 0=east, π/2=south (SVG Y-down), π=west, -π/2=north
-// -------------------------------------------------------------------
-function getDoorAngleRad(door: import('../../../types/encounterMap').DoorDef): number {
-  if (door.angle !== undefined) return (door.angle * Math.PI) / 180;
-  switch (door.wall) {
-    case 'east':  return 0;
-    case 'south': return Math.PI / 2;
-    case 'west':  return Math.PI;
-    case 'north': return -Math.PI / 2;
-    default:      return 0;
-  }
-}
-
-// -------------------------------------------------------------------
-// pointInPolygon — ray-casting test (grid coords)
-// -------------------------------------------------------------------
-function pointInPolygon(px: number, py: number, polygon: [number, number][]): boolean {
-  let inside = false;
-  const n = polygon.length;
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    const [xi, yi] = polygon[i];
-    const [xj, yj] = polygon[j];
-    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
-// -------------------------------------------------------------------
-// getPolygonBoundaryPoint — ray from polygon centroid at `angle` radians,
-// returns intersection point with the nearest polygon edge (grid coords).
-// -------------------------------------------------------------------
-function getPolygonBoundaryPoint(polygon: [number, number][], angle: number): [number, number] {
-  const n = polygon.length;
-  const cx = polygon.reduce((s, [x]) => s + x, 0) / n;
-  const cy = polygon.reduce((s, [, y]) => s + y, 0) / n;
-  const dx = Math.cos(angle);
-  const dy = Math.sin(angle);
-  let minT = Infinity;
-  for (let i = 0; i < n; i++) {
-    const [x1, y1] = polygon[i];
-    const [x2, y2] = polygon[(i + 1) % n];
-    const ex = x2 - x1, ey = y2 - y1;
-    const denom = dx * ey - dy * ex;
-    if (Math.abs(denom) < 1e-10) continue;
-    const t = ((x1 - cx) * ey - (y1 - cy) * ex) / denom;
-    const s = ((x1 - cx) * dy - (y1 - cy) * dx) / denom;
-    if (t >= 0 && s >= -1e-10 && s <= 1 + 1e-10) minT = Math.min(minT, t);
-  }
-  if (!isFinite(minT)) minT = 2;
-  return [cx + minT * dx, cy + minT * dy];
-}
-
-// -------------------------------------------------------------------
-// Wall-segment edge type
-// -------------------------------------------------------------------
-interface Edge { x1: number; y1: number; x2: number; y2: number; }
-
-// -------------------------------------------------------------------
-// computeBoundingBox — derive SVG canvas from room geometry + optional hull
-// Always computed from ALL rooms (visible and hidden) so the canvas
-// doesn't shift when rooms are revealed/hidden.
-// When a hull polygon is provided its coordinates are included so the
-// hull is never clipped by the viewport.
-// -------------------------------------------------------------------
-function computeBoundingBox(rooms: GridRoom[], us: number, padding = 2, hull?: HullDef) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const room of rooms) {
-    for (const rect of room.rects ?? []) {
-      minX = Math.min(minX, rect.x);
-      minY = Math.min(minY, rect.y);
-      maxX = Math.max(maxX, rect.x + rect.w);
-      maxY = Math.max(maxY, rect.y + rect.h);
-    }
-    if (room.circle) {
-      const { cx, cy, r } = room.circle;
-      minX = Math.min(minX, cx - r);
-      minY = Math.min(minY, cy - r);
-      maxX = Math.max(maxX, cx + r);
-      maxY = Math.max(maxY, cy + r);
-    }
-    if (room.polygon) {
-      for (const [px, py] of room.polygon) {
-        minX = Math.min(minX, px);
-        minY = Math.min(minY, py);
-        maxX = Math.max(maxX, px);
-        maxY = Math.max(maxY, py);
-      }
-    }
-  }
-  if (hull) {
-    for (const [px, py] of hull.polygon) {
-      minX = Math.min(minX, px);
-      minY = Math.min(minY, py);
-      maxX = Math.max(maxX, px);
-      maxY = Math.max(maxY, py);
-    }
-  }
-  if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 10; maxY = 10; }
-  return {
-    originX: (minX - padding) * us,
-    originY: (minY - padding) * us,
-    svgWidth: (maxX - minX + padding * 2) * us,
-    svgHeight: (maxY - minY + padding * 2) * us,
-  };
-}
-
-// -------------------------------------------------------------------
-// computeRoomWalls — wall-segment algorithm
-// Count cell-edge occurrences; edges that appear exactly once are
-// exterior wall segments (adjacent-room shared edges appear twice).
-// -------------------------------------------------------------------
-function computeRoomWalls(rects: GridRect[], us: number): Edge[] {
-  const edgeCounts = new Map<string, number>();
-  const addEdges = (rect: GridRect) => {
-    for (let cx = rect.x; cx < rect.x + rect.w; cx++) {
-      const top = `H:${cx}:${rect.y}`;
-      const bot = `H:${cx}:${rect.y + rect.h}`;
-      edgeCounts.set(top, (edgeCounts.get(top) || 0) + 1);
-      edgeCounts.set(bot, (edgeCounts.get(bot) || 0) + 1);
-    }
-    for (let cy = rect.y; cy < rect.y + rect.h; cy++) {
-      const left = `V:${rect.x}:${cy}`;
-      const right = `V:${rect.x + rect.w}:${cy}`;
-      edgeCounts.set(left, (edgeCounts.get(left) || 0) + 1);
-      edgeCounts.set(right, (edgeCounts.get(right) || 0) + 1);
-    }
-  };
-  for (const rect of rects) addEdges(rect);
-  const walls: Edge[] = [];
-  for (const [key, count] of edgeCounts) {
-    if (count !== 1) continue;
-    const [orient, gxStr, gyStr] = key.split(':');
-    const gx = parseInt(gxStr), gy = parseInt(gyStr);
-    if (orient === 'H') {
-      walls.push({ x1: gx * us, y1: gy * us, x2: (gx + 1) * us, y2: gy * us });
-    } else {
-      walls.push({ x1: gx * us, y1: gy * us, x2: gx * us, y2: (gy + 1) * us });
-    }
-  }
-  return walls;
-}
-
-// -------------------------------------------------------------------
-// polygonAreaCentroid — area-weighted centroid via shoelace formula.
-// More accurate than vertex average for irregular/concave polygons.
-// -------------------------------------------------------------------
-function polygonAreaCentroid(pts: [number, number][]): { cx: number; cy: number } {
-  let area = 0;
-  let cx = 0;
-  let cy = 0;
-  const n = pts.length;
-  for (let i = 0; i < n; i++) {
-    const [x0, y0] = pts[i];
-    const [x1, y1] = pts[(i + 1) % n];
-    const cross = x0 * y1 - x1 * y0;
-    area += cross;
-    cx += (x0 + x1) * cross;
-    cy += (y0 + y1) * cross;
-  }
-  area /= 2;
-  cx /= 6 * area;
-  cy /= 6 * area;
-  return { cx, cy };
-}
-
-// -------------------------------------------------------------------
-// getRoomLabelPosition — visual center of the room, any shape type
-// -------------------------------------------------------------------
-function getRoomLabelPosition(room: GridRoom, us: number): { x: number; y: number } {
-  if ((room.rects ?? []).length > 0) {
-    const minX = Math.min(...room.rects.map(r => r.x));
-    const minY = Math.min(...room.rects.map(r => r.y));
-    const maxX = Math.max(...room.rects.map(r => r.x + r.w));
-    const maxY = Math.max(...room.rects.map(r => r.y + r.h));
-    return { x: ((minX + maxX) / 2) * us, y: ((minY + maxY) / 2) * us };
-  }
-  if (room.circle) {
-    return { x: room.circle.cx * us, y: room.circle.cy * us };
-  }
-  if (room.polygon && room.polygon.length > 0) {
-    const { cx, cy } = polygonAreaCentroid(room.polygon);
-    return { x: cx * us, y: cy * us };
-  }
-  return { x: 0, y: 0 };
-}
-
-// -------------------------------------------------------------------
-// getAdjacentCellForDoor — returns the grid cell on the other side of a door
-// Used to determine if a door should be shown when the adjacent room is visible.
-// -------------------------------------------------------------------
-function getAdjacentCellForDoor(room: GridRoom, door: DoorDef): { x: number; y: number } {
-  // New explicit-position format: push one cell outward from centroid through door
-  if (door.x !== undefined && door.y !== undefined) {
-    let cx = door.x, cy = door.y;
-    if (room.polygon && room.polygon.length > 0) {
-      const c = polygonAreaCentroid(room.polygon); cx = c.cx; cy = c.cy;
-    } else if (room.circle) {
-      cx = room.circle.cx; cy = room.circle.cy;
-    } else {
-      const rects = room.rects ?? [];
-      cx = (Math.min(...rects.map(r => r.x)) + Math.max(...rects.map(r => r.x + r.w))) / 2;
-      cy = (Math.min(...rects.map(r => r.y)) + Math.max(...rects.map(r => r.y + r.h))) / 2;
-    }
-    const dx = door.x - cx, dy = door.y - cy;
-    const len = Math.hypot(dx, dy) || 1;
-    return { x: Math.round(door.x + dx / len), y: Math.round(door.y + dy / len) };
-  }
-  if (room.circle) {
-    const { cx, cy, r } = room.circle;
-    const angle = getDoorAngleRad(door);
-    return {
-      x: Math.round(cx + (r + 0.5) * Math.cos(angle)),
-      y: Math.round(cy + (r + 0.5) * Math.sin(angle)),
-    };
-  }
-  if (room.polygon && room.polygon.length > 0) {
-    const { cx: pcx, cy: pcy } = polygonAreaCentroid(room.polygon);
-    const angle = getDoorAngleRad(door);
-    const maxR = Math.max(...room.polygon.map(([x, y]) => Math.hypot(x - pcx, y - pcy)));
-    return {
-      x: Math.round(pcx + (maxR + 0.5) * Math.cos(angle)),
-      y: Math.round(pcy + (maxR + 0.5) * Math.sin(angle)),
-    };
-  }
-  const rects = room.rects ?? [];
-  if (door.wall === 'north') {
-    const minY = Math.min(...rects.map(r => r.y));
-    const wallRects = rects.filter(r => r.y === minY);
-    const cells = wallRects.flatMap(r => {
-      const c = Math.ceil(r.chamfer ?? 0);
-      return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
-    }).sort((a, b) => a - b);
-    const cellX = cells[door.position ?? 0] ?? cells[0] ?? 0;
-    return { x: cellX, y: minY - 1 };
-  } else if (door.wall === 'south') {
-    const maxY = Math.max(...rects.map(r => r.y + r.h));
-    const wallRects = rects.filter(r => r.y + r.h === maxY);
-    const cells = wallRects.flatMap(r => {
-      const c = Math.ceil(r.chamfer ?? 0);
-      return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
-    }).sort((a, b) => a - b);
-    const cellX = cells[door.position ?? 0] ?? cells[0] ?? 0;
-    return { x: cellX, y: maxY };
-  } else if (door.wall === 'west') {
-    const minX = Math.min(...rects.map(r => r.x));
-    const wallRects = rects.filter(r => r.x === minX);
-    const cells = wallRects.flatMap(r => {
-      const c = Math.ceil(r.chamfer ?? 0);
-      return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
-    }).sort((a, b) => a - b);
-    const cellY = cells[door.position ?? 0] ?? cells[0] ?? 0;
-    return { x: minX - 1, y: cellY };
-  } else { // east
-    const maxX = Math.max(...rects.map(r => r.x + r.w));
-    const wallRects = rects.filter(r => r.x + r.w === maxX);
-    const cells = wallRects.flatMap(r => {
-      const c = Math.ceil(r.chamfer ?? 0);
-      return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
-    }).sort((a, b) => a - b);
-    const cellY = cells[door.position ?? 0] ?? cells[0] ?? 0;
-    return { x: maxX, y: cellY };
-  }
-}
-
-// -------------------------------------------------------------------
-// getDoorBothAdjacentCells — returns the two cells on either side of a door.
-// For explicit-position doors (x/y/angle format) uses angle to derive cells
-// directly, avoiding the centroid-direction rounding error in getAdjacentCellForDoor.
-// -------------------------------------------------------------------
-function getDoorBothAdjacentCells(door: DoorDef): Array<{ x: number; y: number }> | null {
-  if (door.x === undefined || door.y === undefined) return null;
-  const angle = door.angle ?? 0;
-  if (angle === 0) {
-    // Horizontal slot (N/S wall): door.y is at an integer wall boundary
-    const wallY = Math.round(door.y);
-    const cellX = Math.floor(door.x);
-    return [
-      { x: cellX, y: wallY - 1 }, // cell above the wall
-      { x: cellX, y: wallY },     // cell below the wall
-    ];
-  } else {
-    // Vertical slot (E/W wall): door.x is at an integer wall boundary
-    const wallX = Math.round(door.x);
-    const cellY = Math.floor(door.y);
-    return [
-      { x: wallX - 1, y: cellY }, // cell left of the wall
-      { x: wallX,     y: cellY }, // cell right of the wall
-    ];
-  }
-}
-
-// -------------------------------------------------------------------
-// getDoorSVGPosition — map wall+position or angle to SVG coordinates
-// -------------------------------------------------------------------
-function getDoorSVGPosition(
-  room: GridRoom, door: DoorDef, us: number
-): { x: number; y: number; orientation: 'horizontal' | 'vertical' } {
-  // Helper: angle → orientation (horizontal = top/bottom, vertical = left/right)
-  const angleToOrientation = (angle: number): 'horizontal' | 'vertical' => {
-    const a = Math.abs(angle % Math.PI);
-    return (a < Math.PI / 4 || a > (3 * Math.PI) / 4) ? 'vertical' : 'horizontal';
-  };
-
-  // New explicit-position format: x/y in grid coords, angle=0 horizontal, 90 vertical
-  if (door.x !== undefined && door.y !== undefined) {
-    const orientation = Math.abs((door.angle ?? 0) % 180) > 45 ? 'vertical' : 'horizontal';
-    return { x: door.x * us, y: door.y * us, orientation };
-  }
-
-  if (room.circle) {
-    const { cx, cy, r } = room.circle;
-    const angle = getDoorAngleRad(door);
-    return {
-      x: (cx + r * Math.cos(angle)) * us,
-      y: (cy + r * Math.sin(angle)) * us,
-      orientation: angleToOrientation(angle),
-    };
-  }
-
-  if (room.polygon && room.polygon.length > 0) {
-    const angle = getDoorAngleRad(door);
-    const [bx, by] = getPolygonBoundaryPoint(room.polygon, angle);
-    return { x: bx * us, y: by * us, orientation: angleToOrientation(angle) };
-  }
-
-  const rects = room.rects ?? [];
-  if (door.wall === 'north' || door.wall === 'south') {
-    const targetY = door.wall === 'north'
-      ? Math.min(...rects.map(r => r.y))
-      : Math.max(...rects.map(r => r.y + r.h));
-    const wallY = targetY * us;
-    const wallRects = rects.filter(r =>
-      door.wall === 'north' ? r.y === targetY : r.y + r.h === targetY
-    );
-    // Skip chamfered corner cells: leftmost and rightmost `ceil(chamfer)` columns
-    const cells = wallRects.flatMap(r => {
-      const c = Math.ceil(r.chamfer ?? 0);
-      return Array.from({ length: Math.max(0, r.w - c * 2) }, (_, i) => r.x + c + i);
-    }).sort((a, b) => a - b);
-    const cellX = cells[door.position ?? 0] ?? cells[0] ?? 0;
-    return { x: (cellX + 0.5) * us, y: wallY, orientation: 'horizontal' };
-  } else {
-    const targetX = door.wall === 'west'
-      ? Math.min(...rects.map(r => r.x))
-      : Math.max(...rects.map(r => r.x + r.w));
-    const wallX = targetX * us;
-    const wallRects = rects.filter(r =>
-      door.wall === 'west' ? r.x === targetX : r.x + r.w === targetX
-    );
-    // Skip chamfered corner cells: topmost and bottommost `ceil(chamfer)` rows
-    const cells = wallRects.flatMap(r => {
-      const c = Math.ceil(r.chamfer ?? 0);
-      return Array.from({ length: Math.max(0, r.h - c * 2) }, (_, i) => r.y + c + i);
-    }).sort((a, b) => a - b);
-    const cellY = cells[door.position ?? 0] ?? cells[0] ?? 0;
-    return { x: wallX, y: (cellY + 0.5) * us, orientation: 'vertical' };
-  }
-}
 
 export function EncounterMapRenderer({
   mapData,
@@ -564,18 +185,70 @@ export function EncounterMapRenderer({
   const lastTouchDistance = useRef<number | null>(null);
   const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
 
-  // SVG dimensions — always computed from ALL rooms + hull (never filtered by visibility)
+  // unit_size — pixels per grid cell (default 40 if YAML omits it)
   const unitSize = mapData.unit_size ?? 40;
-  const { originX, originY, svgWidth, svgHeight } = useMemo(
-    () => computeBoundingBox(mapData.rooms, unitSize, viewPadding, effectiveHull),
-    [mapData.rooms, effectiveHull, unitSize, viewPadding]
-  );
 
-  // Hull SVG polygon points string (grid coords → pixel coords)
+  // Projection + mapView — the renderer's seam to all SVG-space queries.
+  // After plan 21-03 the renderer never multiplies by unitSize directly;
+  // everything goes through `view`. Switching to an iso projection later
+  // is a one-line constructor change here.
+  const projection = useMemo(
+    () => topDownProjection({ unitSize }),
+    [unitSize]
+  );
+  const view = useMemo(() => makeMapView(projection), [projection]);
+
+  // Canonical Door[] derived from legacy GridRoom.doors via the
+  // doorNormalizer adapter. After plan 21-04 the YAML will arrive as
+  // top-level mapData.doors[] and this extraction step disappears; until
+  // then we absorb the legacy nested format at load.
+  const canonicalDoors: Door[] = useMemo(() => {
+    if (!mapData.rooms || mapData.rooms.length === 0) return [];
+    const authored = extractAuthoredDoorsFromRooms(mapData.rooms);
+    if (authored.length === 0) return [];
+    try {
+      return normalizeDoors(authored, mapData.rooms);
+    } catch (err) {
+      // Defensive: a single bad authored entry should not blank the map.
+      // The normalizer's exterior-style adapter shouldn't trip, but if it
+      // does we fall back to per-door normalization, dropping bad entries.
+      const out: Door[] = [];
+      for (let i = 0; i < authored.length; i++) {
+        try {
+          // normalizeDoors enforces overlap detection across the whole
+          // set; per-entry path here uses normalizeDoor (no overlap check)
+          // for resilience against single bad entries.
+          out.push(normalizeDoor(authored[i], mapData.rooms, i));
+        } catch {
+          // skip the bad door rather than blank the entire map
+        }
+      }
+      console.warn('[EncounterMapRenderer] door normalization warning:', err);
+      return out;
+    }
+  }, [mapData.rooms]);
+
+  // SVG dimensions — always computed from ALL rooms + hull (never filtered by visibility)
+  const { originX, originY, svgWidth, svgHeight } = useMemo(() => {
+    const bb = view.bbox(mapData.rooms, effectiveHull, viewPadding);
+    return {
+      originX: bb.originX,
+      originY: bb.originY,
+      svgWidth: bb.width,
+      svgHeight: bb.height,
+    };
+  }, [view, mapData.rooms, effectiveHull, viewPadding]);
+
+  // Hull SVG polygon points string — projected via mapView
   const hullSvgPoints = useMemo(() => {
     if (!effectiveHull) return null;
-    return effectiveHull.polygon.map(([x, y]) => `${x * unitSize},${y * unitSize}`).join(' ');
-  }, [effectiveHull, unitSize]);
+    return effectiveHull.polygon
+      .map(([x, y]) => {
+        const sp = view.project({ gx: x, gy: y });
+        return `${sp.x},${sp.y}`;
+      })
+      .join(' ');
+  }, [effectiveHull, view]);
 
   // Check if a room is visible (default to true if no visibility state)
   const isRoomVisible = useCallback((roomId: string): boolean => {
@@ -691,15 +364,17 @@ export function EncounterMapRenderer({
   }, []);
 
   // -------------------------------------------------------------------
-  // Get effective door status: runtime override > YAML default
+  // Get effective door status: runtime override > authored default.
+  // Door id is canonical (extractAuthoredDoorsFromRooms preserves the
+  // legacy `${room.id}_door_${index}` form so persisted overrides keep
+  // working across the canonical-Door switch).
   // -------------------------------------------------------------------
-  const getEffectiveDoorStatus = useCallback((room: GridRoom, doorIndex: number): DoorStatus => {
-    const id = `${room.id}_door_${doorIndex}`;
-    return (doorStatus?.[id] as DoorStatus) || (room.doors?.[doorIndex]?.status as DoorStatus) || 'CLOSED';
+  const getEffectiveDoorStatus = useCallback((door: Door): DoorStatus => {
+    return (doorStatus?.[door.id] as DoorStatus) || door.status || 'CLOSED';
   }, [doorStatus]);
 
   // -------------------------------------------------------------------
-  // Find room containing a grid cell
+  // Find room containing a grid cell. Uses pointInPolygon from polygon2d.
   // -------------------------------------------------------------------
   const findRoomAtCell = useCallback((gridX: number, gridY: number): GridRoom | null => {
     // Cell center point for circle/polygon containment tests
@@ -711,7 +386,8 @@ export function EncounterMapRenderer({
         return (px - cx) ** 2 + (py - cy) ** 2 <= r * r;
       }
       if (room.polygon && room.polygon.length > 0) {
-        return pointInPolygon(px, py, room.polygon);
+        const poly = room.polygon.map(([x, y]) => ({ x, y }));
+        return pointInPolygon({ x: px, y: py }, poly);
       }
       return (room.rects ?? []).some(r => gridX >= r.x && gridX < r.x + r.w && gridY >= r.y && gridY < r.y + r.h);
     }) ?? null;
@@ -726,12 +402,12 @@ export function EncounterMapRenderer({
   }, [tokens]);
 
   // -------------------------------------------------------------------
-  // Door right-click handler — opens DoorStatusPopup at cursor position
+  // Door right-click handler — opens DoorStatusPopup at cursor position.
+  // Operates on the canonical Door (door.id is the persisted identifier).
   // -------------------------------------------------------------------
   const handleDoorClick = useCallback((
     e: React.MouseEvent,
-    room: GridRoom,
-    doorIndex: number,
+    door: Door,
   ) => {
     if (!isGM || !onDoorStatusChange) return;
     e.stopPropagation();
@@ -739,12 +415,11 @@ export function EncounterMapRenderer({
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    const id = `${room.id}_door_${doorIndex}`;
     setSelectedDoor({
-      id,
+      id: door.id,
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
-      status: getEffectiveDoorStatus(room, doorIndex),
+      status: getEffectiveDoorStatus(door),
     });
   }, [isGM, onDoorStatusChange, getEffectiveDoorStatus]);
 
@@ -1091,13 +766,13 @@ export function EncounterMapRenderer({
       (isGM && !animState && !visible) ? 'room-gm-dim' : '',
     ].filter(Boolean).join(' ');
 
-    const label = room.name ? getRoomLabelPosition(room, unitSize) : null;
+    const label = room.name ? view.labelPosition(room) : null;
     const labelEl = label && (isGM || visible) ? (
       <text
         x={label.x}
         y={label.y}
         className="encounter-map__room-label"
-        fontSize={unitSize * 0.45}
+        fontSize={view.unitSize * 0.45}
         fill="#8b7355"
         textAnchor="middle"
         dominantBaseline="middle"
@@ -1108,10 +783,12 @@ export function EncounterMapRenderer({
 
     // === Circular room ===
     if (room.circle) {
-      const { cx, cy, r } = room.circle;
-      const svgCx = cx * unitSize;
-      const svgCy = cy * unitSize;
-      const svgR = r * unitSize;
+      const center = view.project({ gx: room.circle.cx, gy: room.circle.cy });
+      // Circle radius scales with horizontal unit size (top-down projection;
+      // for iso projections circles would render as ellipses — out of scope).
+      const svgCx = center.x;
+      const svgCy = center.y;
+      const svgR = room.circle.r * view.unitSize;
       return (
         <g
           key={room.id}
@@ -1147,7 +824,12 @@ export function EncounterMapRenderer({
 
     // === Freeform polygon room ===
     if (room.polygon && room.polygon.length > 0) {
-      const points = room.polygon.map(([x, y]) => `${x * unitSize},${y * unitSize}`).join(' ');
+      const points = room.polygon
+        .map(([x, y]) => {
+          const sp = view.project({ gx: x, gy: y });
+          return `${sp.x},${sp.y}`;
+        })
+        .join(' ');
       return (
         <g
           key={room.id}
@@ -1184,7 +866,19 @@ export function EncounterMapRenderer({
     // === Rect room (plain + chamfered) ===
     const plainRects = (room.rects ?? []).filter(r => (r.chamfer ?? 0) === 0);
     const chamferedRects = (room.rects ?? []).filter(r => (r.chamfer ?? 0) > 0);
-    const walls = computeRoomWalls(plainRects, unitSize);
+    const walls = view.wallEdges(plainRects);
+
+    // Pre-compute SVG coords for each rect (used by floor + hit targets)
+    const plainRectSvg = plainRects.map((rect) => {
+      const tl = view.project({ gx: rect.x, gy: rect.y });
+      const br = view.project({ gx: rect.x + rect.w, gy: rect.y + rect.h });
+      return {
+        x: Math.min(tl.x, br.x),
+        y: Math.min(tl.y, br.y),
+        w: Math.abs(br.x - tl.x),
+        h: Math.abs(br.y - tl.y),
+      };
+    });
 
     return (
       <g
@@ -1194,13 +888,13 @@ export function EncounterMapRenderer({
         style={animState ? { animationDelay: `${staggerDelay}ms` } : undefined}
       >
         {/* Floor fill — plain rects */}
-        {plainRects.map((rect, i) => (
+        {plainRectSvg.map((r, i) => (
           <rect
             key={`floor-p-${i}`}
-            x={rect.x * unitSize}
-            y={rect.y * unitSize}
-            width={rect.w * unitSize}
-            height={rect.h * unitSize}
+            x={r.x}
+            y={r.y}
+            width={r.w}
+            height={r.h}
             fill={COLORS.bgRoom}
             className="encounter-map__floor"
           />
@@ -1210,7 +904,7 @@ export function EncounterMapRenderer({
         {chamferedRects.map((rect, i) => (
           <polygon
             key={`floor-c-${i}`}
-            points={getRectPolygonPoints(rect, unitSize)}
+            points={view.roomChamferedPolygonPoints(rect)}
             fill={COLORS.bgRoom}
             className="encounter-map__floor"
           />
@@ -1220,8 +914,8 @@ export function EncounterMapRenderer({
         {walls.map((wall, i) => (
           <line
             key={`wall-${i}`}
-            x1={wall.x1} y1={wall.y1}
-            x2={wall.x2} y2={wall.y2}
+            x1={wall.from.x} y1={wall.from.y}
+            x2={wall.to.x}   y2={wall.to.y}
             stroke={COLORS.hullFill}
             strokeWidth={WALL_THICKNESS}
             strokeLinecap="square"
@@ -1233,7 +927,7 @@ export function EncounterMapRenderer({
         {chamferedRects.map((rect, i) => (
           <polygon
             key={`wall-c-${i}`}
-            points={getRectPolygonPoints(rect, unitSize)}
+            points={view.roomChamferedPolygonPoints(rect)}
             fill="none"
             stroke={COLORS.hullFill}
             strokeWidth={WALL_THICKNESS}
@@ -1243,13 +937,13 @@ export function EncounterMapRenderer({
         ))}
 
         {/* Invisible hit targets — GM right-click, player tap (only if description) */}
-        {isGM && plainRects.map((rect, i) => (
+        {isGM && plainRectSvg.map((r, i) => (
           <rect
             key={`hit-p-${i}`}
-            x={rect.x * unitSize}
-            y={rect.y * unitSize}
-            width={rect.w * unitSize}
-            height={rect.h * unitSize}
+            x={r.x}
+            y={r.y}
+            width={r.w}
+            height={r.h}
             fill="transparent"
             style={{ cursor: 'context-menu' }}
             onContextMenu={(e) => handleRoomContextMenu(e, room)}
@@ -1259,20 +953,20 @@ export function EncounterMapRenderer({
         {isGM && chamferedRects.map((rect, i) => (
           <polygon
             key={`hit-c-${i}`}
-            points={getRectPolygonPoints(rect, unitSize)}
+            points={view.roomChamferedPolygonPoints(rect)}
             fill="transparent"
             style={{ cursor: 'context-menu' }}
             onContextMenu={(e) => handleRoomContextMenu(e, room)}
             className="encounter-map__room"
           />
         ))}
-        {!isGM && room.name && plainRects.map((rect, i) => (
+        {!isGM && room.name && plainRectSvg.map((r, i) => (
           <rect
             key={`hit-p-${i}`}
-            x={rect.x * unitSize}
-            y={rect.y * unitSize}
-            width={rect.w * unitSize}
-            height={rect.h * unitSize}
+            x={r.x}
+            y={r.y}
+            width={r.w}
+            height={r.h}
             fill="transparent"
             pointerEvents="all"
             style={{ cursor: 'pointer' }}
@@ -1284,7 +978,7 @@ export function EncounterMapRenderer({
         {!isGM && room.name && chamferedRects.map((rect, i) => (
           <polygon
             key={`hit-c-${i}`}
-            points={getRectPolygonPoints(rect, unitSize)}
+            points={view.roomChamferedPolygonPoints(rect)}
             fill="transparent"
             pointerEvents="all"
             style={{ cursor: 'pointer' }}
@@ -1306,8 +1000,9 @@ export function EncounterMapRenderer({
   const renderPoi = (poi: import('../../../types/encounterMap').PoiData) => {
     if (!isGM && !isRoomVisible(poi.room)) return null;
 
-    const cx = poi.position.x * unitSize;
-    const cy = poi.position.y * unitSize;
+    const center = view.project({ gx: poi.position.x, gy: poi.position.y });
+    const cx = center.x;
+    const cy = center.y;
 
     // Resolve icon: prefer poi.icon name, fall back to poi.type
     const iconName = ENCOUNTER_ICONS[poi.icon] ? poi.icon
@@ -1650,41 +1345,49 @@ export function EncounterMapRenderer({
           {mapData.rooms.map(renderRoom)}
         </g>
 
-        {/* Door symbols — rendered above room floors and walls */}
+        {/* Door symbols — rendered above room floors and walls.
+            Iterates the canonical Door[] (extracted from legacy nested
+            doors at load by extractAuthoredDoorsFromRooms + normalizeDoors).
+            Door visibility uses ref-by-id checks against roomA/roomB —
+            no spatial lookup. For legacy (one-room-only) entries, falls
+            back to a doorEndpoints-based spatial check. */}
         <g className="encounter-map__doors">
-          {mapData.rooms.flatMap(room =>
-            (room.doors || []).map((door, i) => {
-              if (!isGM) {
-                // Show door if either the owning room OR any adjacent room/corridor is visible
-                if (!isRoomVisible(room.id)) {
-                  const bothCells = getDoorBothAdjacentCells(door);
-                  let otherSideVisible: boolean;
-                  if (bothCells) {
-                    // Explicit-position door: check both cells, skip the owning room itself
-                    otherSideVisible = bothCells.some(cell => {
-                      const adj = findRoomAtCell(cell.x, cell.y);
-                      return adj && adj.id !== room.id && isRoomVisible(adj.id);
-                    });
-                  } else {
-                    // Legacy wall+position format: single outward cell
-                    const adjCell = getAdjacentCellForDoor(room, door);
-                    const adjRoom = findRoomAtCell(adjCell.x, adjCell.y);
-                    otherSideVisible = !!(adjRoom && isRoomVisible(adjRoom.id));
-                  }
+          {canonicalDoors.map((door) => {
+            // Visibility: door is shown when any of its endpoint rooms is visible
+            // (or, for legacy single-room doors, when the cell on the other side
+            // belongs to a visible room).
+            if (!isGM) {
+              const aVisible = isRoomVisible(door.roomA);
+              const bVisible = door.roomB ? isRoomVisible(door.roomB) : false;
+              if (!aVisible && !bVisible) {
+                if (door.roomB === null) {
+                  // Legacy adapter emits exterior-style doors when the YAML
+                  // has only one-room nesting; spatial fallback decides if
+                  // the other side is a visible room/corridor.
+                  const [aCell, otherCell] = doorEndpoints(door, mapData.rooms);
+                  const candidates = otherCell ? [aCell, otherCell] : [aCell];
+                  const otherSideVisible = candidates.some(cell => {
+                    const adj = findRoomAtCell(cell.gx, cell.gy);
+                    return adj && adj.id !== door.roomA && isRoomVisible(adj.id);
+                  });
                   if (!otherSideVisible) return null;
+                } else {
+                  return null;
                 }
               }
-              const pos = getDoorSVGPosition(room, door, unitSize);
-              const style = CONNECTION_STYLES[door.type] || CONNECTION_STYLES.standard;
-              const contextMenuHandler = (isGM && onDoorStatusChange)
-                ? (e: React.MouseEvent) => handleDoorClick(e, room, i)
-                : undefined;
-              return renderDoorSymbol(
-                pos.x, pos.y, door.type, getEffectiveDoorStatus(room, i),
-                style, pos.orientation, `door-${room.id}-${i}`, contextMenuHandler
-              );
-            })
-          )}
+            }
+            const svgPos = view.doorPosition(door);
+            const orientation: 'horizontal' | 'vertical' =
+              Math.abs((door.angle % 180 + 180) % 180 - 90) < 45 ? 'vertical' : 'horizontal';
+            const styleEntry = CONNECTION_STYLES[door.type] || CONNECTION_STYLES.standard;
+            const contextMenuHandler = (isGM && onDoorStatusChange)
+              ? (e: React.MouseEvent) => handleDoorClick(e, door)
+              : undefined;
+            return renderDoorSymbol(
+              svgPos.x, svgPos.y, door.type, getEffectiveDoorStatus(door),
+              styleEntry, orientation, `door-${door.id}`, contextMenuHandler
+            );
+          })}
         </g>
 
         {/* POI layer — rendered above doors */}

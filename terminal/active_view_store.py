@@ -20,6 +20,13 @@ _state: dict = {
     'encounter_level': 1,
     'encounter_deck_id': '',
     'encounter_room_visibility': {},
+    # Phase 21 plan 21-04: door id format is canonical `Door.id`, derived by
+    # `doorNormalizer` from the authored YAML's explicit `id:` field. The
+    # YAML migration preserved the legacy `${room.id}_door_${index}` form so
+    # any pre-21-04 in-memory entries continue to resolve without explicit
+    # migration. Door status is in-process only (no DB persistence after the
+    # ActiveView model deletion in migration 0017), so a fresh process starts
+    # empty regardless.
     'encounter_door_status': {},
     'encounter_tokens_by_location': {},
     'encounter_active_portraits': [],

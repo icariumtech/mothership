@@ -377,55 +377,68 @@ def convert(
         corridors.append({"id": cid, "polygon": poly})
         print(f"  Corridor '{cid}': {len(poly)} vertices")
 
-    # Door detection
+    # Door detection — emits TOP-LEVEL canonical doors.
+    #
+    # Default form: B-rel `{rooms: [a, b], along: 0.5, ...}` — the door sits
+    # at the midpoint of the shared edge. Easy for humans/AI to read.
+    #
+    # Override form: B-pos `{rooms: [a, b], position: {x, y, angle}, ...}` —
+    # used when two areas share MORE THAN ONE disjoint edge (the default
+    # B-rel form is ambiguous in that case because the doorNormalizer picks
+    # the longest shared run, so multiple `along` values would all resolve
+    # to the same long-edge midpoint and trigger overlap detection).
+    top_level_doors: list[dict] = []
     if detect_doors:
-        all_others = {r["id"]: r["polygon"] for r in rooms + corridors}
-        corridor_polys = {c["id"]: c["polygon"] for c in corridors}
-
-        # Rooms: detect doors to any neighbour (room or corridor)
-        for room in rooms:
-            detected: list[dict] = []
-            poly_a = room["polygon"]
-            for other_id, other_poly in all_others.items():
-                if other_id == room["id"]:
+        all_areas = {r["id"]: r["polygon"] for r in rooms + corridors}
+        seen_pairs: set[tuple[str, str]] = set()
+        # Stable iteration order: rooms first (in declared order), then corridors.
+        ordered_ids = [r["id"] for r in rooms] + [c["id"] for c in corridors]
+        for a_id in ordered_ids:
+            poly_a = all_areas[a_id]
+            for b_id in ordered_ids:
+                if a_id == b_id:
                     continue
-                for (mid, length), (p1, p2) in _shared_edges_with_segments(poly_a, other_poly):
-                    detected.append(
+                pair = tuple(sorted([a_id, b_id]))
+                if pair in seen_pairs:
+                    continue
+                shared = _shared_edges_with_segments(poly_a, all_areas[b_id])
+                if not shared:
+                    continue
+                seen_pairs.add(pair)
+                # If there's exactly one shared edge, emit B-rel (along: 0.5).
+                # If multiple, emit B-pos for each so positions stay distinct.
+                if len(shared) == 1:
+                    top_level_doors.append(
                         {
-                            "x": round(mid[0] * 4) / 4,
-                            "y": round(mid[1] * 4) / 4,
-                            "angle": edge_slot_angle(p1, p2),
+                            "rooms": [a_id, b_id],
+                            "along": 0.5,
                             "type": "standard",
                             "status": "CLOSED",
-                            "_to": other_id,
                         }
                     )
-            detected.sort(key=lambda d: (d["y"], d["x"]))
-            room["doors"] = detected
-
-        # Corridors: detect doors only to other corridors (room→corridor already
-        # captured on the room side; adding it here would render duplicate doors)
-        for corr in corridors:
-            detected = []
-            poly_a = corr["polygon"]
-            for other_id, other_poly in corridor_polys.items():
-                if other_id == corr["id"]:
-                    continue
-                for (mid, length), (p1, p2) in _shared_edges_with_segments(poly_a, other_poly):
-                    detected.append(
-                        {
-                            "x": round(mid[0] * 4) / 4,
-                            "y": round(mid[1] * 4) / 4,
-                            "angle": edge_slot_angle(p1, p2),
-                            "type": "standard",
-                            "status": "CLOSED",
-                            "_to": other_id,
-                        }
-                    )
-            detected.sort(key=lambda d: (d["y"], d["x"]))
-            corr["doors"] = detected
-
-        print(f"\nDoor detection complete.")
+                else:
+                    for (mid, _length), (p1, p2) in shared:
+                        top_level_doors.append(
+                            {
+                                "rooms": [a_id, b_id],
+                                "position": {
+                                    "x": round(mid[0] * 4) / 4,
+                                    "y": round(mid[1] * 4) / 4,
+                                    "angle": edge_slot_angle(p1, p2),
+                                },
+                                "type": "standard",
+                                "status": "CLOSED",
+                            }
+                        )
+        # Stable order on output: by sorted room-pair, then by along/x/y.
+        def sort_key(d: dict):
+            pair = tuple(sorted(d["rooms"]))
+            if "along" in d:
+                return (pair, 0, d["along"], 0.0)
+            p = d["position"]
+            return (pair, 1, p["y"], p["x"])
+        top_level_doors.sort(key=sort_key)
+        print(f"\nDoor detection complete: {len(top_level_doors)} doors emitted.")
 
     # Write output
     map_dir = os.path.join(location_dir, "map")
@@ -467,17 +480,6 @@ def convert(
             f.write(f'  - id: {room["id"]}\n')
             f.write(f'    name: "{room["name"]}"\n')
             f.write(f'    polygon: {fmt_polygon(room["polygon"])}\n')
-
-            if detect_doors and room.get("doors"):
-                f.write("    doors:\n")
-                for d in room["doors"]:
-                    f.write(
-                        f'      - {{x: {fv(d["x"])}, y: {fv(d["y"])}, angle: {d["angle"]},'
-                        f' type: {d["type"]}, status: {d["status"]}}}  # → {d["_to"]}\n'
-                    )
-            else:
-                f.write("    # doors: []\n")
-
             f.write("    # description: \"\"\n")
             f.write("    # type: \"\"\n")
             f.write("\n")
@@ -487,14 +489,29 @@ def convert(
             f.write('    name: ""\n')
             f.write(f'    polygon: {fmt_polygon(corr["polygon"])}\n')
             f.write("    type: corridor\n")
-            if detect_doors and corr.get("doors"):
-                f.write("    doors:\n")
-                for d in corr["doors"]:
-                    f.write(
-                        f'      - {{x: {fv(d["x"])}, y: {fv(d["y"])}, angle: {d["angle"]},'
-                        f' type: {d["type"]}, status: {d["status"]}}}  # → {d["_to"]}\n'
-                    )
             f.write("\n")
+
+        # Top-level canonical doors block (Phase 21 canonical model — B-rel
+        # by default, B-pos when ambiguous). Loaders pass this through to
+        # the frontend doorNormalizer which validates it against geometry.
+        if detect_doors and top_level_doors:
+            f.write("doors:\n")
+            for d in top_level_doors:
+                a, b = d["rooms"][0], d["rooms"][1]
+                if "along" in d:
+                    f.write(
+                        f'  - {{rooms: [{a}, {b}], along: {d["along"]},'
+                        f' type: {d["type"]}, status: {d["status"]}}}\n'
+                    )
+                else:
+                    p = d["position"]
+                    f.write(
+                        f'  - {{rooms: [{a}, {b}],'
+                        f' position: {{x: {fv(p["x"])}, y: {fv(p["y"])}, angle: {p["angle"]}}},'
+                        f' type: {d["type"]}, status: {d["status"]}}}\n'
+                    )
+        elif detect_doors:
+            f.write("# doors: []\n")
 
     print(f"Written: {deck_path}")
 

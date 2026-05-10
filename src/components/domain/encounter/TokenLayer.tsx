@@ -9,20 +9,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { TokenState, TokenData, RoomData, GridRoom } from '../../../types/encounterMap';
 import { Token } from './Token';
 import { screenToSVG, snapToGrid } from '@/utils/svgCoordinates';
-
-// Ray-casting point-in-polygon test (grid coords)
-function pointInPolygon(px: number, py: number, polygon: [number, number][]): boolean {
-  let inside = false;
-  const n = polygon.length;
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    const [xi, yi] = polygon[i];
-    const [xj, yj] = polygon[j];
-    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
+import { pointInPolygon } from '@/utils/polygon2d';
 
 interface RoomVisibilityState {
   [roomId: string]: boolean;
@@ -150,7 +137,8 @@ export function TokenLayer({
         const { cx, cy, r } = gr.circle;
         if ((px - cx) ** 2 + (py - cy) ** 2 <= r * r) return room;
       } else if (gr.polygon && gr.polygon.length > 0) {
-        if (pointInPolygon(px, py, gr.polygon)) return room;
+        const poly = gr.polygon.map(([x, y]) => ({ x, y }));
+        if (pointInPolygon({ x: px, y: py }, poly)) return room;
       } else if ('rects' in room) {
         const hit = (gr.rects ?? []).some(r =>
           gridX >= r.x && gridX < r.x + r.w &&

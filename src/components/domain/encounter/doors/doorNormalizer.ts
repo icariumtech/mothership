@@ -260,9 +260,23 @@ function roomBoundary(room: GridRoom): Seg[] {
  * expose an `edge` discriminator on the authored door for ambiguous cases.)
  */
 function findSharedEdge(roomA: GridRoom, roomB: GridRoom): Seg | null {
+  const runs = findAllSharedEdges(roomA, roomB);
+  if (runs.length === 0) return null;
+  runs.sort((a, b) => segmentLength(b) - segmentLength(a));
+  return runs[0] ?? null;
+}
+
+/**
+ * Return every maximal connected shared-edge run between two rooms (in arbitrary
+ * order). Used by `resolveBPos` to accept doors on *any* shared edge, not just
+ * the longest one — the B-pos form's explicit (x, y, angle) is the user's
+ * disambiguator. `resolveBRel` still uses `findSharedEdge` (longest run) because
+ * the relational `along` parameter is unambiguous only when one shared edge
+ * exists.
+ */
+function findAllSharedEdges(roomA: GridRoom, roomB: GridRoom): Seg[] {
   const aBoundary = roomBoundary(roomA);
   const bBoundary = roomBoundary(roomB);
-  // Collect overlap segments.
   const overlaps: Seg[] = [];
   for (const sa of aBoundary) {
     for (const sb of bBoundary) {
@@ -272,13 +286,8 @@ function findSharedEdge(roomA: GridRoom, roomB: GridRoom): Seg | null {
       }
     }
   }
-  if (overlaps.length === 0) return null;
-  // Merge collinear adjacent overlaps into connected runs, then return the
-  // longest run. This handles the rect-room case where each shared cell-edge
-  // is reported as a unit segment.
-  const runs = mergeCollinearAdjacent(overlaps);
-  runs.sort((a, b) => segmentLength(b) - segmentLength(a));
-  return runs[0] ?? null;
+  if (overlaps.length === 0) return [];
+  return mergeCollinearAdjacent(overlaps);
 }
 
 /**
@@ -588,21 +597,29 @@ function resolveBPos(
       );
     }
   } else {
-    const shared = findSharedEdge(roomA, roomB);
-    if (!shared) {
+    const runs = findAllSharedEdges(roomA, roomB);
+    if (runs.length === 0) {
       throw new DoorNormalizationError(
         `rooms '${roomA.id}' and '${roomB.id}' share no boundary`,
         authored,
       );
     }
-    const proj = projectOntoSeg(center, shared);
-    if (proj.perpDist > EPS * 100) {
+    // The door's explicit (x, y) is the disambiguator when multiple shared
+    // edges exist — accept the door if it lies on ANY shared run.
+    let best: { run: Seg; perp: number } | null = null;
+    for (const run of runs) {
+      const proj = projectOntoSeg(center, run);
+      if (best === null || proj.perpDist < best.perp) {
+        best = { run, perp: proj.perpDist };
+      }
+    }
+    if (!best || best.perp > EPS * 100) {
       throw new DoorNormalizationError(
         `door position (${x}, ${y}) does not lie on shared edge of '${roomA.id}' and '${roomB.id}'`,
         authored,
       );
     }
-    const edgeLen = segmentLength(shared);
+    const edgeLen = segmentLength(best.run);
     if (width > edgeLen + EPS) {
       throw new DoorNormalizationError(
         `door width ${width} exceeds shared edge length ${edgeLen}`,
@@ -681,6 +698,10 @@ interface OverlapEntry {
   width: number;
   edgeLen: number;
   id: string;
+  /** Discriminator for the specific shared-edge run this door lies on — two
+   *  doors on different runs of the same room pair must NOT be considered
+   *  overlapping even if their `along` values collide. */
+  runKey: string;
 }
 
 function detectOverlap(
@@ -714,20 +735,32 @@ function detectOverlap(
       width: authored.width ?? 1,
       edgeLen,
       id: doors[i].id,
+      runKey: 'longest', // B-rel always resolves to the longest shared run
     });
   }
-  for (const [, entries] of groups) {
-    entries.sort((p, q) => p.along - q.along);
-    for (let i = 1; i < entries.length; i++) {
-      const prev = entries[i - 1];
-      const curr = entries[i];
-      const prevHalf = prev.width / (2 * prev.edgeLen);
-      const currHalf = curr.width / (2 * curr.edgeLen);
-      if (prev.along + prevHalf > curr.along - currHalf + EPS) {
-        throw new DoorNormalizationError(
-          `doors '${prev.id}' and '${curr.id}' overlap on shared edge`,
-          authoredList[curr.authoredIndex],
-        );
+  // Bucket by (pair, runKey) — doors on different shared-edge runs of the
+  // same room pair must not be considered overlapping.
+  for (const [pair, entries] of groups) {
+    const byRun = new Map<string, OverlapEntry[]>();
+    for (const e of entries) {
+      const k = `${pair}::${e.runKey}`;
+      const arr = byRun.get(k) ?? [];
+      arr.push(e);
+      byRun.set(k, arr);
+    }
+    for (const runEntries of byRun.values()) {
+      runEntries.sort((p, q) => p.along - q.along);
+      for (let i = 1; i < runEntries.length; i++) {
+        const prev = runEntries[i - 1];
+        const curr = runEntries[i];
+        const prevHalf = prev.width / (2 * prev.edgeLen);
+        const currHalf = curr.width / (2 * curr.edgeLen);
+        if (prev.along + prevHalf > curr.along - currHalf + EPS) {
+          throw new DoorNormalizationError(
+            `doors '${prev.id}' and '${curr.id}' overlap on shared edge`,
+            authoredList[curr.authoredIndex],
+          );
+        }
       }
     }
   }
@@ -793,18 +826,31 @@ function bPosToEntry(
       width: authored.width ?? 1,
       edgeLen: perim,
       id: door.id,
+      runKey: 'exterior',
     };
   }
   const rb = rooms.find((r) => r.id === bId);
   if (!rb) return null;
-  const shared = findSharedEdge(ra, rb);
-  if (!shared) return null;
-  const proj = projectOntoSeg({ x: door.x, y: door.y }, shared);
+  const runs = findAllSharedEdges(ra, rb);
+  if (runs.length === 0) return null;
+  // Pick the run that best matches the door's explicit position — overlap
+  // detection should not flag doors on different shared edges as colliding.
+  let best: { run: Seg; t: number; perp: number } | null = null;
+  for (const run of runs) {
+    const proj = projectOntoSeg({ x: door.x, y: door.y }, run);
+    if (best === null || proj.perpDist < best.perp) {
+      best = { run, t: proj.t, perp: proj.perpDist };
+    }
+  }
+  if (!best) return null;
+  // Discriminator: start-point of the chosen run, rounded for stability.
+  const runKey = `${best.run.a.x.toFixed(4)},${best.run.a.y.toFixed(4)}->${best.run.b.x.toFixed(4)},${best.run.b.y.toFixed(4)}`;
   return {
     authoredIndex: index,
-    along: proj.t,
+    along: best.t,
     width: authored.width ?? 1,
-    edgeLen: segmentLength(shared),
+    edgeLen: segmentLength(best.run),
     id: door.id,
+    runKey,
   };
 }

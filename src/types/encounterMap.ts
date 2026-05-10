@@ -247,33 +247,19 @@ export interface GridRect {
   chamfer?: number;  // diagonal corner cut in grid-cell units (0 = square corners, 1 = 1-cell cut)
 }
 
-/** Cardinal wall sides for door attachment */
+/** Cardinal wall sides for door attachment (legacy — retained for any
+ *  remaining authored references; canonical doors use grid-space (x, y, angle)). */
 export type WallSide = 'north' | 'south' | 'east' | 'west';
 
-/** A door attached to a specific wall of a room */
-export interface DoorDef {
-  // Explicit position format (preferred for polygon/circle rooms):
-  x?: number;        // door center x in grid coords
-  y?: number;        // door center y in grid coords
-  angle?: number;    // when x/y present: door slot orientation — 0=horizontal (N/S wall), 90=vertical (E/W wall)
-                     // when x/y absent: legacy direction-from-centroid (deprecated)
-
-  // Rect-room format:
-  wall?: WallSide;      // cardinal wall
-  position?: number;    // 0-based cell index along the wall
-
-  type: DoorType;       // standard | airlock | blast_door | emergency
-  status: DoorStatus;   // OPEN | CLOSED | LOCKED | SEALED
-}
-
-/** A room composed of one or more grid rectangles, a circle, or a freeform polygon */
+/** A room composed of one or more grid rectangles, a circle, or a freeform polygon.
+ *  Doors are NOT nested under the room — they live at the map root as a
+ *  top-level `doors:` array of `AuthoredDoor` (see GridEncounterMapData). */
 export interface GridRoom {
   id: string;
   name: string;         // empty string = corridor/hallway (no label rendered)
   rects: GridRect[];    // list of axis-aligned rectangles (may be empty for circle/polygon rooms)
   circle?: { cx: number; cy: number; r: number };  // circular room (grid coords)
   polygon?: [number, number][];                      // freeform polygon vertices (grid coords)
-  doors?: DoorDef[];
   description?: string;
   type?: string;        // optional tag: corridor | bridge | cargo | medical | etc.
 }
@@ -292,6 +278,13 @@ export interface GridEncounterMapData {
   unit_size?: number;   // pixels per cell — default 40 if omitted
   hull?: HullDef;       // optional ship/structure outer frame polygon
   rooms: GridRoom[];
+  /**
+   * Top-level canonical doors (Phase 21 schema). YAML carries the authored
+   * AuthoredDoor shapes (B-rel or B-pos); the frontend's `doorNormalizer`
+   * validates each entry into a canonical `Door`. Plan 21-04 made this the
+   * single source of truth — doors are no longer nested under GridRoom.
+   */
+  doors?: AuthoredDoor[];
   terminals?: TerminalData[];
   poi?: PoiData[];
   metadata?: MapMetadata;
@@ -314,15 +307,13 @@ export function isGridEncounterMap(mapData: unknown): mapData is GridEncounterMa
 }
 
 // ============================================================
-// Phase 21: canonical Door model (top-level, replaces nested DoorDef)
+// Phase 21: canonical Door model (top-level)
 // ------------------------------------------------------------
-// These types are the *new* canonical door model introduced in Phase 21.
-// They live alongside the legacy DoorDef / GridRoom.doors structure for
-// the duration of plans 21-02..21-04. The renderer continues to consume
-// DoorDef until plan 21-03 adopts the canonical model. Authored YAML can
-// arrive in either of two relational/positional forms (B-rel / B-pos)
-// and is normalized into the canonical Door at load time by
-// `doorNormalizer` (see src/components/domain/encounter/doors/).
+// Maps carry a top-level `doors: AuthoredDoor[]` array. The frontend's
+// `doorNormalizer` validates each authored entry (B-rel or B-pos) into
+// the canonical `Door` shape used by the renderer. Doors are NOT nested
+// under rooms — the legacy `GridRoom.doors[]` and `DoorDef` were removed
+// in plan 21-04 once all maps had migrated to the top-level schema.
 // ============================================================
 
 /**

@@ -31,7 +31,7 @@ import { RoomContextMenu } from './RoomContextMenu';
 import { DoorStatusPopup } from '../../gm/DoorStatusPopup';
 import { topDownProjection } from './geometry/gridProjection';
 import { makeMapView } from './geometry/mapView';
-import { extractAuthoredDoorsFromRooms, doorEndpoints } from './geometry/roomGeometry';
+import { doorEndpoints } from './geometry/roomGeometry';
 import { normalizeDoor, normalizeDoors } from './doors/doorNormalizer';
 import './EncounterMapRenderer.css';
 
@@ -198,20 +198,18 @@ export function EncounterMapRenderer({
   );
   const view = useMemo(() => makeMapView(projection), [projection]);
 
-  // Canonical Door[] derived from legacy GridRoom.doors via the
-  // doorNormalizer adapter. After plan 21-04 the YAML will arrive as
-  // top-level mapData.doors[] and this extraction step disappears; until
-  // then we absorb the legacy nested format at load.
+  // Canonical Door[] derived from top-level mapData.doors via doorNormalizer.
+  // After plan 21-04 the YAML carries `doors:` at the map root (canonical
+  // AuthoredDoor shape); the legacy nested room.doors[] adapter is gone.
   const canonicalDoors: Door[] = useMemo(() => {
     if (!mapData.rooms || mapData.rooms.length === 0) return [];
-    const authored = extractAuthoredDoorsFromRooms(mapData.rooms);
+    const authored = mapData.doors ?? [];
     if (authored.length === 0) return [];
     try {
       return normalizeDoors(authored, mapData.rooms);
     } catch (err) {
       // Defensive: a single bad authored entry should not blank the map.
-      // The normalizer's exterior-style adapter shouldn't trip, but if it
-      // does we fall back to per-door normalization, dropping bad entries.
+      // Fall back to per-door normalization, dropping bad entries.
       const out: Door[] = [];
       for (let i = 0; i < authored.length; i++) {
         try {
@@ -226,7 +224,7 @@ export function EncounterMapRenderer({
       console.warn('[EncounterMapRenderer] door normalization warning:', err);
       return out;
     }
-  }, [mapData.rooms]);
+  }, [mapData.rooms, mapData.doors]);
 
   // SVG dimensions — always computed from ALL rooms + hull (never filtered by visibility)
   const { originX, originY, svgWidth, svgHeight } = useMemo(() => {
@@ -365,9 +363,10 @@ export function EncounterMapRenderer({
 
   // -------------------------------------------------------------------
   // Get effective door status: runtime override > authored default.
-  // Door id is canonical (extractAuthoredDoorsFromRooms preserves the
-  // legacy `${room.id}_door_${index}` form so persisted overrides keep
-  // working across the canonical-Door switch).
+  // Door id is canonical. Plan 21-04's migration preserved the legacy
+  // `${room.id}_door_${index}` id form on every existing map so any
+  // persisted runtime overrides in DoorStatusState continue to resolve
+  // after the data layer flipped to the top-level `doors:` shape.
   // -------------------------------------------------------------------
   const getEffectiveDoorStatus = useCallback((door: Door): DoorStatus => {
     return (doorStatus?.[door.id] as DoorStatus) || door.status || 'CLOSED';
@@ -1346,11 +1345,11 @@ export function EncounterMapRenderer({
         </g>
 
         {/* Door symbols — rendered above room floors and walls.
-            Iterates the canonical Door[] (extracted from legacy nested
-            doors at load by extractAuthoredDoorsFromRooms + normalizeDoors).
+            Iterates the canonical Door[] (normalized from top-level
+            mapData.doors by doorNormalizer at load).
             Door visibility uses ref-by-id checks against roomA/roomB —
-            no spatial lookup. For legacy (one-room-only) entries, falls
-            back to a doorEndpoints-based spatial check. */}
+            no spatial lookup. If a door's roomB is null (exterior) the
+            doorEndpoints helper resolves the cell on the other side. */}
         <g className="encounter-map__doors">
           {canonicalDoors.map((door) => {
             // Visibility: door is shown when any of its endpoint rooms is visible

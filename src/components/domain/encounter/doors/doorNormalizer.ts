@@ -749,13 +749,21 @@ function detectOverlap(
       byRun.set(k, arr);
     }
     for (const runEntries of byRun.values()) {
-      runEntries.sort((p, q) => p.along - q.along);
+      // Convert to absolute arc-length offsets (grid cells along the edge)
+      // before comparing. This eliminates the parametric-origin mismatch
+      // between B-rel `along` fractions (relative to shared edge) and B-pos
+      // `along` fractions (relative to the specific run segment). All entries
+      // in a single run bucket share the same `edgeLen`, but expressing
+      // positions as absolute offsets is more robust and easier to reason about.
+      runEntries.sort((p, q) => (p.along * p.edgeLen) - (q.along * q.edgeLen));
       for (let i = 1; i < runEntries.length; i++) {
         const prev = runEntries[i - 1];
         const curr = runEntries[i];
-        const prevHalf = prev.width / (2 * prev.edgeLen);
-        const currHalf = curr.width / (2 * curr.edgeLen);
-        if (prev.along + prevHalf > curr.along - currHalf + EPS) {
+        const prevCenter = prev.along * prev.edgeLen;
+        const currCenter = curr.along * curr.edgeLen;
+        const prevHalf = prev.width / 2;
+        const currHalf = curr.width / 2;
+        if (prevCenter + prevHalf > currCenter - currHalf + EPS) {
           throw new DoorNormalizationError(
             `doors '${prev.id}' and '${curr.id}' overlap on shared edge`,
             authoredList[curr.authoredIndex],

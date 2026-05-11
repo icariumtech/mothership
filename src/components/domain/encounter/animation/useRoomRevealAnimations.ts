@@ -77,17 +77,22 @@ export function useRoomRevealAnimations({
     const prev = prevVisibilityRef.current;
     const prevMapKey = prevMapIdentityRef.current;
 
-    // Always update refs to track the latest state
-    prevVisibilityRef.current = visibility;
-    prevMapIdentityRef.current = mapIdentity;
-
     if (!enabled) {
+      // Update refs before cancelling so a re-enable picks up the current state.
+      prevVisibilityRef.current = visibility;
+      prevMapIdentityRef.current = mapIdentity;
       cancelAll();
       return;
     }
 
     // scheduleReveal handles: mapIdentity changed → [], prev/curr undefined → []
     const steps = scheduleReveal(prev, visibility, rooms, mapIdentity, prevMapKey);
+
+    // Update refs after scheduleReveal so the previous state is stable for the
+    // duration of the call. This prevents a stale-ref clobber if React
+    // batches multiple renders before the effect runs.
+    prevVisibilityRef.current = visibility;
+    prevMapIdentityRef.current = mapIdentity;
 
     if (steps.length === 0) return;
 

@@ -1359,30 +1359,6 @@ export function EncounterMapRenderer({
               const aVisible = isRoomVisible(door.roomA);
               const bVisible = door.roomB ? isRoomVisible(door.roomB) : false;
               if (!aVisible && !bVisible) {
-                // Diagnostic for 21-04 player door reveal regression:
-                // tests show data + filter logic are correct in isolation.
-                // Flag ANOMALIES — cases where one endpoint of this door is
-                // a corridor that the GM is currently revealing, but the
-                // renderer sees it as hidden. If this fires, roomVisibility
-                // state is not in sync with the GM's reveal action.
-                // Remove once the regression is root-caused.
-                if (roomVisibility) {
-                  const revealedRooms = Object.entries(roomVisibility)
-                    .filter(([, v]) => v === true).map(([k]) => k);
-                  const touchesRevealed =
-                    revealedRooms.includes(door.roomA) ||
-                    (door.roomB !== null && revealedRooms.includes(door.roomB));
-                  if (touchesRevealed) {
-                    console.warn(
-                      '[EncounterMapRenderer 21-04] ANOMALY — door touching revealed room is being dropped',
-                      { id: door.id, roomA: door.roomA, roomB: door.roomB,
-                        aVisible, bVisible,
-                        roomVisibilityA: roomVisibility[door.roomA],
-                        roomVisibilityB: door.roomB ? roomVisibility[door.roomB] : 'N/A',
-                        revealedRooms }
-                    );
-                  }
-                }
                 if (door.roomB === null) {
                   // Legacy adapter emits exterior-style doors when the YAML
                   // has only one-room nesting; spatial fallback decides if

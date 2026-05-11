@@ -302,12 +302,7 @@ def build_active_view_payload(state: dict) -> dict:
                     ],
                     'hull': deckplan.get('hull'),
                 }
-                current_deck = {
-                    'deck_id': default_deck['id'],
-                    'name': default_deck['name'],
-                    'unit_size': default_deck.get('unit_size', 30),
-                    'rooms': default_deck.get('rooms', []),
-                }
+                current_deck = {**default_deck, 'deck_id': default_deck['id']}
                 response['ship_deck_data'] = {
                     'is_multi_deck': True,
                     'manifest': manifest,

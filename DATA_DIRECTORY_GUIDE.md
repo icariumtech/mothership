@@ -340,8 +340,8 @@ decks:
     cy: 4.0    # center Y in grid cells
     r: 2.0     # radius in grid cells
 
-  doors:                   # optional
-    - ...                  # see Door Definitions below
+  # NOTE: doors live at the deck root (top-level `doors:` array), NOT
+  # under individual rooms. See "Door definitions" below.
 
   poi:                     # optional
     - icon: reactor core
@@ -350,35 +350,53 @@ decks:
 
 ### Door definitions
 
-For **rect rooms** use `wall` + `position`:
+**Phase 21 canonical schema (current):** doors are a top-level `doors:`
+array on the deck, with each entry naming the two rooms it connects.
+Two authored forms are supported. The frontend's `doorNormalizer`
+validates every entry against the room geometry at load time.
+
+Place this block at the same indent level as `rooms:` on the deck:
 
 ```yaml
 doors:
-  - wall: north        # north | south | east | west
-    position: 2        # 0-based cell index along the wall
-    type: standard     # standard | blast_door | airlock | emergency | open
-    status: CLOSED     # OPEN | CLOSED | LOCKED | SEALED | DAMAGED
-```
+  # B-rel — relational form, preferred when one shared edge exists
+  - rooms: [bridge, mess]            # endpoint rooms (single-element list = exterior door)
+    along: 0.5                       # fraction 0..1 along the shared edge (default centre)
+    width: 1                         # optional, in grid cells (default 1)
+    type: standard                   # standard | blast_door | airlock | emergency | open
+    status: CLOSED                   # OPEN | CLOSED | LOCKED | SEALED | DAMAGED
 
-For **polygon/circle rooms** use explicit coordinates:
-
-```yaml
-doors:
-  - x: 25.5            # door centre X in grid coordinates
-    y: 20.75           # door centre Y in grid coordinates
-    angle: 0           # 0 = horizontal slot (N/S wall); 90 = vertical slot (E/W wall)
+  # B-pos — position-override form, used when two rooms share multiple
+  # disjoint edges (e.g. an L-pair touching on two sides) or for any
+  # other case where the relational `along` is ambiguous. The explicit
+  # (x, y, angle) disambiguates which shared edge the door sits on.
+  - rooms: [steerage, corridor_3]
+    position: { x: 24.5, y: 18.25, angle: 90 }
     type: standard
     status: CLOSED
-```
 
-You can also use `angle` in degrees (clockwise from east) for polygon/circle rooms:
-
-```yaml
-doors:
-  - angle: 180         # 0=east, 90=south, 180=west, 270=north
-    type: airlock
+  # Optional explicit id — useful for stable references in persisted
+  # door-status state. Omit and the normalizer derives
+  # `${roomA}__${roomB|exterior}__${index}` automatically.
+  - id: emergency_seal
+    rooms: [reactor]                 # single-element = exterior door
+    along: 0.25
+    type: emergency
     status: SEALED
 ```
+
+Door slot orientation: `angle: 0` = horizontal slot (N/S wall),
+`angle: 90` = vertical slot (E/W wall). Any value between is allowed
+to support diagonal doors. The B-rel form derives the angle from the
+shared edge automatically.
+
+> **Migration note (Phase 21 plan 21-04):** legacy maps used to nest
+> a `doors:` array under each room (with `wall`+`position` for rect
+> rooms or explicit `x`/`y`/`angle` for polygon rooms). All shipped
+> maps under `data/galaxy/`, `data/ships/`, and `data/campaign/` were
+> migrated to the top-level form by `tools/migrate_doors_to_canonical.py`.
+> Door ids of the form `${room.id}_door_${index}` were preserved so
+> persisted runtime door-status overrides continue to resolve.
 
 ### Room shape support
 
@@ -776,7 +794,7 @@ Before finishing a new data entry:
 - [ ] Ship `deckplan.yaml` has at least one deck with `id:`, `name:`, and `level:`
 - [ ] Character `id:` field matches filename stem
 - [ ] Room IDs are unique within each deck
-- [ ] Door `wall`/`position` values are within bounds for the room
+- [ ] Each top-level door's `rooms:` lists exist on the deck; `along` (B-rel) or `position` (B-pos) lies on a shared edge
 - [ ] Terminal slugs in map files match `comms/` directory names
 - [ ] Planet entries with `has_orbit_map: true` have a corresponding `orbit_map.yaml`
 

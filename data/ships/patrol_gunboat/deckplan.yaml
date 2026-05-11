@@ -1,108 +1,161 @@
-name: "USCSS Patrol Gunboat"
-facility_type: "ship"
+name: USCSS Patrol Gunboat
+facility_type: ship
 total_decks: 1
 unit_size: 30
-
 hull:
   polygon:
+  - [39.5, 20.75]
+  - [39.5, 26.75]
+  - [32.5, 27.75]
+  - [31.5, 30.75]
+  - [30.5, 31.75]
+  - [29.5, 31.75]
+  - [28.5, 30.75]
+  - [27.5, 31.75]
+  - [23.5, 31.75]
+  - [22.5, 30.75]
+  - [21.5, 31.75]
+  - [20.5, 31.75]
+  - [19.5, 30.75]
+  - [17.5, 27.75]
+  - [11.5, 26.75]
+  - [11.5, 20.75]
+  - [16.5, 16.25]
+  - [19.5, 10.75]
+  - [20.5, 10.75]
+  - [20.5, 9.75]
+  - [22.5, 5.75]
+  - [22.5, 3.75]
+  - [25.5, 0.75]
+  - [28.5, 3.75]
+  - [28.5, 5.75]
+  - [30.5, 9.75]
+  - [30.5, 10.75]
+  - [31.5, 10.75]
+  - [34.5, 16.75]
+decks:
+- id: main_deck
+  name: Main Deck
+  level: 1
+  default: true
+  unit_size: 30
+  rooms:
+  - id: engineering
+    name: ENGINEERING
+    polygon:
+    - [20.5, 20.75]
+    - [30.5, 20.75]
+    - [30.5, 29.75]
+    - [20.5, 29.75]
+  - id: steerage
+    name: STEERAGE
+    polygon:
+    - [20.5, 19.75]
+    - [24.5, 19.75]
+    - [24.5, 16.75]
+    - [20.5, 16.75]
+  - id: cargo_bay
+    name: CARGO BAY
+    polygon:
+    - [26.5, 16.75]
+    - [30.5, 16.75]
+    - [30.5, 19.75]
+    - [26.5, 19.75]
+  - id: lounge
+    name: LOUNGE
+    polygon:
+    - [20.5, 14.75]
+    - [20.5, 10.25]
+    - [24.5, 10.25]
+    - [24.5, 14.75]
+  - id: computer
+    name: COMPUTER
+    polygon:
+    - [26.5, 10.25]
+    - [30.5, 10.25]
+    - [30.5, 14.75]
+    - [26.5, 14.75]
+  - id: bridge
+    name: BRIDGE
+    polygon:
+    - [26.5, 10.25]
+    - [28.25, 9.0]
+    - [28.25, 5.0]
+    - [27.5, 4.0]
+    - [26.5, 3.5]
+    - [24.5, 3.5]
+    - [23.75, 3.75]
+    - [22.5, 5.0]
+    - [22.5, 9.0]
+    - [24.5, 10.25]
+  - id: corridor_1
+    name: ''
+    polygon:
+    - [20.5, 14.75]
+    - [18.5, 14.75]
+    - [18.5, 22.75]
+    - [12.5, 22.75]
+    - [12.5, 20.75]
+    - [11.5, 20.75]
+    - [11.5, 26.75]
+    - [12.5, 26.75]
+    - [12.5, 23.75]
+    - [18.5, 23.75]
+    - [18.5, 25.75]
+    - [20.5, 25.75]
+    - [20.5, 24.75]
+    - [19.5, 24.75]
+    - [19.5, 15.75]
+    - [20.5, 15.75]
+    type: corridor
+  - id: corridor_2
+    name: ''
+    polygon:
+    - [30.5, 14.75]
+    - [32.5, 14.75]
+    - [32.5, 22.75]
+    - [38.5, 22.75]
+    - [38.5, 20.75]
     - [39.5, 20.75]
     - [39.5, 26.75]
-    - [32.5, 27.75]
-    - [31.5, 30.75]
-    - [30.5, 31.75]
-    - [29.5, 31.75]
-    - [28.5, 30.75]
-    - [27.5, 31.75]
-    - [23.5, 31.75]
-    - [22.5, 30.75]
-    - [21.5, 31.75]
-    - [20.5, 31.75]
-    - [19.5, 30.75]
-    - [17.5, 27.75]
-    - [11.5, 26.75]
-    - [11.5, 20.75]
-    - [16.5, 16.25]
-    - [19.5, 10.75]
-    - [20.5, 10.75]
-    - [20.5, 9.75]
-    - [22.5, 5.75]
-    - [22.5, 3.75]
-    - [25.5, 0.75]
-    - [28.5, 3.75]
-    - [28.5, 5.75]
-    - [30.5, 9.75]
-    - [30.5, 10.75]
-    - [31.5, 10.75]
-    - [34.5, 16.75]
-
-decks:
-  - id: "main_deck"
-    name: "Main Deck"
-    level: 1
-    default: true
-    unit_size: 30
-
-    rooms:
-      - id: engineering
-        name: "ENGINEERING"
-        polygon: [[20.5,20.75], [30.5,20.75], [30.5,29.75], [20.5,29.75]]
-        doors:
-          - {x: 25.5, y: 20.75, angle: 0, type: standard, status: CLOSED}
-          - {x: 20.5, y: 25.25, angle: 90, type: standard, status: CLOSED}
-          - {x: 30.5, y: 25.25, angle: 90, type: standard, status: CLOSED}
-
-      - id: steerage
-        name: "STEERAGE"
-        polygon: [[20.5,19.75], [24.5,19.75], [24.5,16.75], [20.5,16.75]]
-        doors:
-          - {x: 22.5, y: 16.75, angle: 0, type: standard, status: CLOSED}
-          - {x: 24.5, y: 18.25, angle: 90, type: standard, status: CLOSED}
-
-      - id: cargo_bay
-        name: "CARGO BAY"
-        polygon: [[26.5,16.75], [30.5,16.75], [30.5,19.75], [26.5,19.75]]
-        doors:
-          - {x: 28.5, y: 16.75, angle: 0, type: standard, status: CLOSED}
-          - {x: 26.5, y: 18.25, angle: 90, type: standard, status: CLOSED}
-
-      - id: lounge
-        name: "LOUNGE"
-        polygon: [[20.5,14.75], [20.5,10.25], [24.5,10.25], [24.5,14.75]]
-        doors:
-          - {x: 24.5, y: 12.5, angle: 90, type: standard, status: CLOSED}
-          - {x: 22.5, y: 14.75, angle: 0, type: standard, status: CLOSED}
-
-      - id: computer
-        name: "COMPUTER"
-        polygon: [[26.5,10.25], [30.5,10.25], [30.5,14.75], [26.5,14.75]]
-        doors:
-          - {x: 26.5, y: 12.5, angle: 90, type: standard, status: CLOSED}
-          - {x: 28.5, y: 14.75, angle: 0, type: standard, status: CLOSED}
-
-      - id: bridge
-        name: "BRIDGE"
-        polygon: [[26.5,10.25], [28.25,9], [28.25,5], [27.5,4], [26.5,3.5], [24.5,3.5], [23.75,3.75], [22.5,5], [22.5,9], [24.5,10.25]]
-        doors:
-          - {x: 25.5, y: 10.25, angle: 0, type: standard, status: CLOSED}
-
-      - id: corridor_1
-        name: ""
-        polygon: [[20.5,14.75], [18.5,14.75], [18.5,22.75], [12.5,22.75], [12.5,20.75], [11.5,20.75], [11.5,26.75], [12.5,26.75], [12.5,23.75], [18.5,23.75], [18.5,25.75], [20.5,25.75], [20.5,24.75], [19.5,24.75], [19.5,15.75], [20.5,15.75]]
-        type: corridor
-        doors:
-          - {x: 20.5, y: 15.25, angle: 90, type: standard, status: CLOSED}
-
-      - id: corridor_2
-        name: ""
-        polygon: [[30.5,14.75], [32.5,14.75], [32.5,22.75], [38.5,22.75], [38.5,20.75], [39.5,20.75], [39.5,26.75], [38.5,26.75], [38.5,23.75], [32.5,23.75], [32.5,25.75], [30.5,25.75], [30.5,24.75], [31.5,24.75], [31.5,15.75], [30.5,15.75]]
-        type: corridor
-        doors:
-          - {x: 30.5, y: 15.25, angle: 90, type: standard, status: CLOSED}
-
-      - id: corridor_3
-        name: ""
-        polygon: [[20.5,14.75], [20.5,16.75], [24.5,16.75], [24.5,20.75], [26.5,20.75], [26.5,16.75], [30.5,16.75], [30.5,14.75], [26.5,14.75], [26.5,10.25], [24.5,10.25], [24.5,14.75]]
-        type: corridor
-        doors:
-          - {x: 20.5, y: 15.25, angle: 90, type: standard, status: CLOSED}
-          - {x: 30.5, y: 15.25, angle: 90, type: standard, status: CLOSED}
+    - [38.5, 26.75]
+    - [38.5, 23.75]
+    - [32.5, 23.75]
+    - [32.5, 25.75]
+    - [30.5, 25.75]
+    - [30.5, 24.75]
+    - [31.5, 24.75]
+    - [31.5, 15.75]
+    - [30.5, 15.75]
+    type: corridor
+  - id: corridor_3
+    name: ''
+    polygon:
+    - [20.5, 14.75]
+    - [20.5, 16.75]
+    - [24.5, 16.75]
+    - [24.5, 20.75]
+    - [26.5, 20.75]
+    - [26.5, 16.75]
+    - [30.5, 16.75]
+    - [30.5, 14.75]
+    - [26.5, 14.75]
+    - [26.5, 10.25]
+    - [24.5, 10.25]
+    - [24.5, 14.75]
+    type: corridor
+  doors:
+  - {id: engineering_door_0, rooms: [engineering, corridor_3], type: standard, status: CLOSED, along: 0.5}
+  - {id: engineering_door_1, rooms: [engineering, corridor_1], type: standard, status: CLOSED, along: 0.5}
+  - {id: engineering_door_2, rooms: [engineering, corridor_2], type: standard, status: CLOSED, along: 0.5}
+  - {id: steerage_door_0, rooms: [steerage, corridor_3], type: standard, status: CLOSED, position: {x: 22.5, y: 16.75, angle: 0}}
+  - {id: steerage_door_1, rooms: [steerage, corridor_3], type: standard, status: CLOSED, position: {x: 24.5, y: 18.25, angle: 90}}
+  - {id: cargo_bay_door_0, rooms: [cargo_bay, corridor_3], type: standard, status: CLOSED, position: {x: 28.5, y: 16.75, angle: 0}}
+  - {id: cargo_bay_door_1, rooms: [cargo_bay, corridor_3], type: standard, status: CLOSED, position: {x: 26.5, y: 18.25, angle: 90}}
+  - {id: lounge_door_0, rooms: [lounge, corridor_3], type: standard, status: CLOSED, position: {x: 24.5, y: 12.5, angle: 90}}
+  - {id: lounge_door_1, rooms: [lounge, corridor_3], type: standard, status: CLOSED, position: {x: 22.5, y: 14.75, angle: 0}}
+  - {id: computer_door_0, rooms: [computer, corridor_3], type: standard, status: CLOSED, position: {x: 26.5, y: 12.5, angle: 90}}
+  - {id: computer_door_1, rooms: [computer, corridor_3], type: standard, status: CLOSED, position: {x: 28.5, y: 14.75, angle: 0}}
+  - {id: bridge_door_0, rooms: [bridge, corridor_3], type: standard, status: CLOSED, along: 0.5}
+  - {id: corridor_1_door_0, rooms: [corridor_1, corridor_3], type: standard, status: CLOSED, along: 0.5}
+  - {id: corridor_2_door_0, rooms: [corridor_2, corridor_3], type: standard, status: CLOSED, along: 0.5}

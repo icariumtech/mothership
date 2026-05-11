@@ -1,4 +1,5 @@
 # terminal/active_view_store.py
+import copy
 import threading
 
 _lock = threading.Lock()
@@ -35,7 +36,7 @@ _state: dict = {
 
 def get_state() -> dict:
     with _lock:
-        return dict(_state)
+        return copy.deepcopy(_state)
 
 
 def update_state(**kwargs) -> dict:

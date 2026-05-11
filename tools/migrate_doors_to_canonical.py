@@ -573,7 +573,12 @@ def _maybe_int(v: float) -> Any:
 def _dedup_key(entry: dict, pos: dict) -> str:
     rooms = entry.get("rooms", [])
     pair = "__".join(sorted(rooms)) if len(rooms) >= 2 else f"{rooms[0]}__ext"
-    return f"{pair}|{round(pos['x'], 2)}|{round(pos['y'], 2)}|{pos['angle']}"
+    # Round to nearest 0.5 cell — the same shared edge computed from either
+    # room-side can produce positions that differ by up to ~1 cell due to
+    # wall-coordinate off-by-one in legacy YAML. Using 0.5-cell tolerance
+    # prevents near-identical doors from surviving dedup and triggering
+    # DoorNormalizationError at runtime.
+    return f"{pair}|{round(pos['x'] * 2) / 2}|{round(pos['y'] * 2) / 2}|{pos['angle']}"
 
 
 def migrate_file(path: Path, *, dry_run: bool = False) -> int:
@@ -681,6 +686,14 @@ def _mark_compact(data: Any) -> Any:
 
 
 def _dump_with_compact_doors(data: dict) -> str:
+    # NOTE: yaml.safe_dump re-serialises the entire document, which normalises
+    # all floating-point values (e.g. `4.0` → `4`, `4` → `4`) and reformats
+    # block-style lists even for sections that were not modified by migration.
+    # This is intentional — the migration is a one-time idempotent operation and
+    # the normalised output is canonical. Running it a second time on an already-
+    # migrated file produces no further diffs (since nested `doors:` lists are
+    # absent after the first run). Do NOT add ad-hoc formatting fixes here; if
+    # representation fidelity matters, switch to ruamel.yaml (round-trip loader).
     marked = _mark_compact(data)
     return yaml.safe_dump(
         marked,

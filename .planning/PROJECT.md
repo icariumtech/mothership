@@ -10,15 +10,15 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 
 ## Current State
 
-**Shipped:** v1.0 MVP (2026-05-07)
+**Shipped:** v1.0 MVP (2026-05-07) · **Active:** v2.0 geometry deepening
 
-- 19 phases complete · 49 plans · 51/51 v1 requirements satisfied
-- ~171,577 LOC (TypeScript + Python)
+- 21 phases complete · 5 plans (phase 21) · v2.0 in progress
+- ~171,577 LOC (TypeScript + Python) — EncounterMapRenderer −392 LOC (−21%) after phase 21
 - Tech stack: Django 5.2.7, React 19, TypeScript, Vite 5.4, React Three Fiber 9.0, Zustand, GSAP, Ant Design 6.1
 - Data: YAML/Markdown files, flat location directory, per-entity character files
 
 Key systems shipped in v1.0:
-- Grid-based encounter maps with wall-segment rendering and room reveal
+- Grid-based encounter maps with wall-segment rendering and room reveal (Phase 21: geometry deepened — canonical Door model, pure roomGeometry/mapView/polygon2d modules, doorNormalizer, scheduleReveal hook, all YAML maps migrated)
 - GM Console redesigned as view-driven architecture (ViewRail/ToolRail/SlideOutPanel)
 - Real-time SSE push replacing 2s polling; ActiveView in-memory store
 - Atmospheric CRT animations across all player-facing transitions
@@ -105,4 +105,4 @@ Key systems shipped in v1.0:
 | api_bridge_selection intentionally public | Player terminal is the caller; player auth not yet implemented; ephemeral write-only, low risk | ✓ Accepted |
 
 ---
-*Last updated: 2026-05-07 after v1.0 milestone*
+*Last updated: 2026-05-11 after Phase 21 (Encounter Geometry Deepening)*

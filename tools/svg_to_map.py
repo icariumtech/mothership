@@ -56,14 +56,33 @@ _TOKEN_RE = re.compile(
     r"[MmLlHhVvZz]|[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?"
 )
 
+# SVG curve/arc commands that parse_path_d does not handle.
+_CURVE_CMD_RE = re.compile(r"[CcSsQqTtAa]")
 
-def parse_path_d(d: str) -> list[tuple[float, float]]:
+
+def parse_path_d(d: str, *, label: str = "") -> list[tuple[float, float]]:
     """Parse SVG path 'd' attribute into absolute (x, y) polygon vertices.
 
     Supports M m L l H h V v Z z commands.
     After 'm', subsequent implicit pairs are treated as 'l' (relative lineto).
     Closing duplicate vertex and consecutive duplicates are removed.
+
+    Emits a warning to stderr and returns an empty vertex list if the path
+    contains curve or arc commands (C c S s Q q T t A a) — these would
+    silently garble the polygon if not caught here. Re-export the SVG from
+    Inkscape with "Object to Path" + straight segments only.
     """
+    curve_match = _CURVE_CMD_RE.search(d)
+    if curve_match:
+        ctx = f" (label: {label!r})" if label else ""
+        print(
+            f"WARNING: SVG path{ctx} contains unsupported curve command "
+            f"'{curve_match.group()}' — skipping. "
+            "Re-export with straight segments only (Path > Object to Path, "
+            "then Extensions > Generate from Path > ... or Inkscape 'Flatten Beziers').",
+            file=sys.stderr,
+        )
+        return []
     tokens = _TOKEN_RE.findall(d)
     vertices: list[tuple[float, float]] = []
     cx = cy = 0.0
@@ -348,7 +367,7 @@ def convert(
     hull_poly: list[tuple[float, float]] | None = None
     hull_paths = get_layer_paths(root, "Hull")
     if hull_paths:
-        raw = parse_path_d(hull_paths[0].get("d", ""))
+        raw = parse_path_d(hull_paths[0].get("d", ""), label="Hull")
         hull_poly = remove_collinear(verts_to_grid(raw, unit))
         print(f"Hull: {len(hull_poly)} vertices")
     else:
@@ -358,7 +377,7 @@ def convert(
     rooms: list[dict] = []
     for path in get_layer_paths(root, "Rooms"):
         label = get_ink_label(path) or path.get("id", "room")
-        raw = parse_path_d(path.get("d", ""))
+        raw = parse_path_d(path.get("d", ""), label=label)
         poly = remove_collinear(verts_to_grid(raw, unit))
         rooms.append({"id": to_snake(label), "name": label.upper(), "polygon": poly})
         xs = [p[0] for p in poly]
@@ -372,7 +391,7 @@ def convert(
     for i, path in enumerate(get_layer_paths(root, "Corridors")):
         label = get_ink_label(path)
         cid = to_snake(label) if label else f"corridor_{i + 1}"
-        raw = parse_path_d(path.get("d", ""))
+        raw = parse_path_d(path.get("d", ""), label=cid)
         poly = remove_collinear(verts_to_grid(raw, unit))
         corridors.append({"id": cid, "polygon": poly})
         print(f"  Corridor '{cid}': {len(poly)} vertices")

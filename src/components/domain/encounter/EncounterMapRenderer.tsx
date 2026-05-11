@@ -33,6 +33,7 @@ import { topDownProjection } from './geometry/gridProjection';
 import { makeMapView } from './geometry/mapView';
 import { doorEndpoints } from './geometry/roomGeometry';
 import { normalizeDoor, normalizeDoors } from './doors/doorNormalizer';
+import { playerDoorVisible } from './doors/doorVisibility';
 import { useRoomRevealAnimations } from './animation/useRoomRevealAnimations';
 import './EncounterMapRenderer.css';
 
@@ -222,7 +223,10 @@ export function EncounterMapRenderer({
           // skip the bad door rather than blank the entire map
         }
       }
-      console.warn('[EncounterMapRenderer] door normalization warning:', err);
+      console.error(
+        `[EncounterMapRenderer] ${authored.length - out.length} door(s) dropped due to normalization errors:`,
+        err,
+      );
       return out;
     }
   }, [mapData.rooms, mapData.doors]);
@@ -1262,9 +1266,11 @@ export function EncounterMapRenderer({
             // (or, for legacy single-room doors, when the cell on the other side
             // belongs to a visible room).
             if (!isGM) {
-              const aVisible = isRoomVisible(door.roomA);
-              const bVisible = door.roomB ? isRoomVisible(door.roomB) : false;
-              if (!aVisible && !bVisible) {
+              // Common path: delegate to shared predicate (also used in tests).
+              const visible = roomVisibility
+                ? playerDoorVisible(door, roomVisibility)
+                : true;
+              if (!visible) {
                 if (door.roomB === null) {
                   // Legacy adapter emits exterior-style doors when the YAML
                   // has only one-room nesting; spatial fallback decides if

@@ -18,9 +18,9 @@ import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
 
 import { normalizeDoors } from '../doorNormalizer';
+import { playerDoorVisible } from '../doorVisibility';
 import type {
   AuthoredDoor,
-  Door,
   GridRoom,
   RoomVisibilityState,
 } from '../../../../../types/encounterMap';
@@ -59,27 +59,8 @@ function loadDeck(rel: string, deckId: string | null): {rooms: GridRoom[]; doors
   return { rooms: deck.rooms ?? [], doors: deck.doors ?? [] };
 }
 
-/**
- * Player-side visibility filter — copied verbatim from
- * EncounterMapRenderer.tsx lines 1356–1377.
- * Returns true if the door SHOULD render on the player terminal.
- */
-function playerDoorVisible(
-  door: Door,
-  roomVisibility: RoomVisibilityState,
-): boolean {
-  const isRoomVisible = (id: string) => roomVisibility[id] !== false;
-  const aVisible = isRoomVisible(door.roomA);
-  const bVisible = door.roomB ? isRoomVisible(door.roomB) : false;
-  if (!aVisible && !bVisible) {
-    if (door.roomB === null) {
-      // Spatial fallback — not exercised here (only interior doors in test set).
-      return false;
-    }
-    return false;
-  }
-  return true;
-}
+// playerDoorVisible is imported from ../doorVisibility — imported above.
+// Tests reference the actual renderer predicate, not a snapshot copy.
 
 describe('corridor↔room door visibility (player terminal)', () => {
   for (const [rel, deckId, roomId, corridorId] of CASES) {

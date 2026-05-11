@@ -62,10 +62,11 @@ export function polygonAreaCentroid(poly: [number, number][]): GridPoint {
  */
 export function roomLabelGrid(room: GridRoom): GridPoint {
   if ((room.rects ?? []).length > 0) {
-    const minX = Math.min(...room.rects.map((r) => r.x));
-    const minY = Math.min(...room.rects.map((r) => r.y));
-    const maxX = Math.max(...room.rects.map((r) => r.x + r.w));
-    const maxY = Math.max(...room.rects.map((r) => r.y + r.h));
+    const rects = room.rects!; // safe: length > 0 confirmed above
+    const minX = Math.min(...rects.map((r) => r.x));
+    const minY = Math.min(...rects.map((r) => r.y));
+    const maxX = Math.max(...rects.map((r) => r.x + r.w));
+    const maxY = Math.max(...rects.map((r) => r.y + r.h));
     return { gx: (minX + maxX) / 2, gy: (minY + maxY) / 2 };
   }
   if (room.circle) {
@@ -233,10 +234,14 @@ export type DoorWallAxis = 'EW' | 'NS' | 'diagonal';
 export function doorWallAxis(door: Door): DoorWallAxis {
   // Normalize to [0, 180) since slot orientation is mod 180.
   const a = ((door.angle % 180) + 180) % 180;
-  const EPS = 1; // ±1 degree tolerance for floating-point input
+  // ±45° threshold — matches the renderer's inline orientation check so that
+  // doorWallAxis and the renderer always agree on which doors are horizontal
+  // vs vertical. A 1° threshold was too narrow and caused disagreement for
+  // doors authored at angles like 44° or 46°.
+  const EPS = 45;
   if (a < EPS || a > 180 - EPS) return 'EW';
   if (Math.abs(a - 90) < EPS) return 'NS';
-  return 'diagonal';
+  return 'diagonal'; // unreachable with EPS=45, kept for future narrowing
 }
 
 // ---- doorEndpoints ---------------------------------------------------

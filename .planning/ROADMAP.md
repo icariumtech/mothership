@@ -9,7 +9,7 @@
 
 ### v2 (in progress)
 
-- [ ] Phase 21: Encounter Geometry Deepening (5 plans) — planned 2026-05-08
+- [x] Phase 21: Encounter Geometry Deepening (5 plans) — planned 2026-05-08 (completed 2026-05-11)
   - Lift `EncounterMapRenderer.tsx` (1895 LOC) into a four-module geometry stack (`polygon2d`, `roomGeometry`, `gridProjection`, `mapView`); rework door model to top-level canonical `Door`; extract reveal-cascade scheduler. Adds Vitest infrastructure. Future iso/rotation view becomes a one-line projection swap.
   - See `.planning/phases/21-encounter-geometry-deepening/`
 

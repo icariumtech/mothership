@@ -33,6 +33,7 @@ import { topDownProjection } from './geometry/gridProjection';
 import { makeMapView } from './geometry/mapView';
 import { doorEndpoints } from './geometry/roomGeometry';
 import { normalizeDoor, normalizeDoors } from './doors/doorNormalizer';
+import { useRoomRevealAnimations } from './animation/useRoomRevealAnimations';
 import './EncounterMapRenderer.css';
 
 interface EncounterMapRendererProps {
@@ -254,112 +255,16 @@ export function EncounterMapRenderer({
     return roomVisibility[roomId] !== false;
   }, [roomVisibility]);
 
-  // Room animation state: 'revealing' | 'hiding' per room id
-  const [roomAnimState, setRoomAnimState] = useState<Map<string, 'revealing' | 'hiding'>>(new Map());
-
-  // Track previous roomVisibility to detect changes
-  const prevRoomVisibilityRef = useRef<RoomVisibilityState | undefined>(undefined);
-  // Track map identity — when the actual map changes skip animations to prevent flash.
-  // Uses a string key (deck_id + name) rather than array reference because locationData
-  // is recreated on every SSE event, making mapData.rooms always a new reference.
-  const prevMapKeyRef = useRef<string | undefined>(undefined);
-
-  // Per-room clear timers — stored in a ref so effect cleanup cannot cancel them.
-  // A new animation for the same room cancels only that room's previous timer.
-  const roomClearTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-
-  // Sorted room index for cascade stagger delay (Y-ascending)
-  const roomSortedIndex = useMemo(() => {
-    const allRooms = mapData.rooms ?? [];
-    const sorted = [...allRooms].sort((a, b) => {
-      const getY = (room: GridRoom): number => {
-        if ((room.rects ?? []).length > 0) return Math.min(...(room.rects ?? []).map(r => r.y));
-        if (room.circle) return room.circle.cy;
-        if (room.polygon && room.polygon.length > 0) {
-          return room.polygon.reduce((sum, [, y]) => sum + y, 0) / room.polygon.length;
-        }
-        return 0;
-      };
-      return getY(a) - getY(b);
-    });
-    return new Map(sorted.map((room, i) => [room.id, i]));
-  }, [mapData.rooms]);
-
-  // Detect roomVisibility changes and trigger room animations
-  useEffect(() => {
-    const prev = prevRoomVisibilityRef.current;
-    prevRoomVisibilityRef.current = roomVisibility;
-
-    // If the map itself changed, treat current visibility as the new baseline (no animations)
-    const mapKey = `${mapData.deck_id ?? ''}|${mapData.name}`;
-    const mapChanged = prevMapKeyRef.current !== mapKey;
-    prevMapKeyRef.current = mapKey;
-    if (mapChanged) return;
-
-    if (!prev || !roomVisibility || isGM) return;
-
-    const newAnimations = new Map<string, 'revealing' | 'hiding'>();
-    const allRooms = mapData.rooms ?? [];
-
-    // Sort rooms by Y centroid for cascade order (REVEAL ALL / HIDE ALL)
-    const sortedRooms = [...allRooms].sort((a, b) => {
-      const getY = (room: GridRoom): number => {
-        if ((room.rects ?? []).length > 0) return Math.min(...(room.rects ?? []).map(r => r.y));
-        if (room.circle) return room.circle.cy;
-        if (room.polygon && room.polygon.length > 0) {
-          return room.polygon.reduce((sum, [, y]) => sum + y, 0) / room.polygon.length;
-        }
-        return 0;
-      };
-      return getY(a) - getY(b);
-    });
-
-    sortedRooms.forEach((room) => {
-      const wasVisible = prev[room.id] !== false;
-      const nowVisible = roomVisibility[room.id] !== false;
-
-      if (!wasVisible && nowVisible) {
-        newAnimations.set(room.id, 'revealing');
-      } else if (wasVisible && !nowVisible) {
-        newAnimations.set(room.id, 'hiding');
-      }
-    });
-
-    if (newAnimations.size === 0) return;
-
-    setRoomAnimState(prevState => {
-      const next = new Map(prevState);
-      newAnimations.forEach((anim, id) => next.set(id, anim));
-      return next;
-    });
-
-    // Schedule per-room clear timers. Using a ref (not effect cleanup) so that
-    // a redundant re-run of this effect (e.g. from SSE echo with same visibility)
-    // cannot cancel a legitimate in-flight animation.
-    newAnimations.forEach((_, id) => {
-      // Cancel any existing timer for this room before setting a new one
-      const existing = roomClearTimersRef.current.get(id);
-      if (existing !== undefined) clearTimeout(existing);
-
-      const sortedIdx = roomSortedIndex.get(id) ?? 0;
-      const clearDelay = 400 + sortedIdx * 75 + 50; // animation + stagger + buffer
-      const timer = setTimeout(() => {
-        roomClearTimersRef.current.delete(id);
-        setRoomAnimState(prevState => {
-          const next = new Map(prevState);
-          next.delete(id);
-          return next;
-        });
-      }, clearDelay);
-      roomClearTimersRef.current.set(id, timer);
-    });
-  }, [roomVisibility, mapData.deck_id, mapData.name, roomSortedIndex, isGM]);
-
-  // Clear all room timers on unmount
-  useEffect(() => {
-    const timers = roomClearTimersRef.current;
-    return () => { timers.forEach(t => clearTimeout(t)); };
-  }, []);
+  // Room reveal/hide cascade — extracted to animation/useRoomRevealAnimations.
+  // scheduleReveal (pure) computes the per-room steps; the hook owns the timers.
+  // enabled=false (GM view) returns an empty Map and runs no timers.
+  const mapIdentity = `${mapData.deck_id ?? ''}|${mapData.name}`;
+  const roomAnimState = useRoomRevealAnimations({
+    visibility: roomVisibility,
+    rooms: mapData.rooms,
+    mapIdentity,
+    enabled: !isGM,
+  });
 
   // -------------------------------------------------------------------
   // Get effective door status: runtime override > authored default.
@@ -745,16 +650,17 @@ export function EncounterMapRenderer({
   // -------------------------------------------------------------------
   const renderRoom = (room: GridRoom) => {
     const visible = isRoomVisible(room.id);
-    const animState = roomAnimState.get(room.id);
+    const animEntry = roomAnimState.get(room.id);
+    const animState = animEntry?.anim;  // 'revealing' | 'hiding' | undefined
     // Players only see revealed rooms — but keep room in DOM during hide animation
-    if (!isGM && !visible && !animState) return null;
+    if (!isGM && !visible && !animEntry) return null;
     const roomOpacity = isGM && !visible ? 0.25 : 1.0;
-    const sortedIdx = roomSortedIndex.get(room.id) ?? 0;
-    const staggerDelay = animState ? sortedIdx * 75 : 0; // 75ms per room position
+    // animEntry.delayMs is the cascade stagger baked by scheduleReveal
+    const staggerDelay = animEntry ? animEntry.delayMs : 0;
 
     // During animation: omit the opacity prop so CSS animation can control it
     // After animation: restore normal opacity
-    const svgOpacity = animState ? undefined : roomOpacity;
+    const svgOpacity = animEntry ? undefined : roomOpacity;
 
     // Build className for the <g> group
     const roomGroupClass = [

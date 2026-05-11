@@ -31,17 +31,31 @@ export interface UseRoomRevealAnimationsOpts {
 }
 
 /**
- * Returns a Map<roomId, 'revealing'|'hiding'> representing which rooms are
+ * Per-room animation entry returned by the hook.
+ * `delayMs` is the CSS animationDelay to apply (baked-in cascade stagger);
+ * `anim` is the CSS class name discriminant.
+ */
+export interface RoomAnimEntry {
+  anim: RevealAnim;
+  /** CSS animation start delay in ms (baseDelayMs + sortIdx * staggerMs). */
+  delayMs: number;
+}
+
+/**
+ * Returns a Map<roomId, RoomAnimEntry> representing which rooms are
  * currently mid-animation. An entry is present while the CSS animation plays;
  * when the clear timer fires the entry is deleted, restoring normal rendering.
+ *
+ * The renderer applies `animationDelay: ${entry.delayMs}ms` inline so the
+ * stagger cascade plays correctly without a separate sorted-index memo.
  */
 export function useRoomRevealAnimations({
   visibility,
   rooms,
   mapIdentity,
   enabled,
-}: UseRoomRevealAnimationsOpts): Map<string, RevealAnim> {
-  const [animState, setAnimState] = useState<Map<string, RevealAnim>>(new Map());
+}: UseRoomRevealAnimationsOpts): Map<string, RoomAnimEntry> {
+  const [animState, setAnimState] = useState<Map<string, RoomAnimEntry>>(new Map());
 
   // Track previous visibility and mapIdentity across renders
   const prevVisibilityRef = useRef<RoomVisibilityState | undefined>(undefined);
@@ -77,18 +91,17 @@ export function useRoomRevealAnimations({
 
     if (steps.length === 0) return;
 
-    // Apply new anim entries
+    // Apply new anim entries (including delayMs for CSS animationDelay)
     setAnimState(prev => {
       const next = new Map(prev);
       for (const step of steps) {
-        next.set(step.roomId, step.anim);
+        next.set(step.roomId, { anim: step.anim, delayMs: step.delayMs });
       }
       return next;
     });
 
     // Schedule per-room clear timers.
-    // Clear delay = animationDurationMs + stagger delay already baked into delayMs
-    // + the delayMs itself + a small buffer (50ms) so the CSS animation finishes.
+    // Clear delay = CSS animation delay + animationDurationMs + a small buffer.
     for (const step of steps) {
       // Cancel any existing timer for this room before setting a new one
       const existing = clearTimersRef.current.get(step.roomId);

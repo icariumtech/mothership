@@ -313,6 +313,12 @@ def build_active_view_payload(state: dict) -> dict:
     return response
 
 
+def sync_state(**kwargs) -> dict:
+    """Update active view state and broadcast the enriched payload to all SSE clients."""
+    new_state = sync_state(**kwargs)
+    return new_state
+
+
 def api_active_view_stream(request):
     """
     SSE endpoint — streams ActiveView state changes to all connected clients.
@@ -617,8 +623,7 @@ def api_switch_view(request):
                 update_kwargs['encounter_level'] = 1
                 update_kwargs['encounter_deck_id'] = map_data.get('deck_id', '')
 
-    new_state = update_state(**update_kwargs)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(**update_kwargs)
 
     return JsonResponse({
         'success': True,
@@ -643,11 +648,10 @@ def api_show_terminal(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    new_state = update_state(
+    new_state = sync_state(
         overlay_location_slug=data.get('location_slug', ''),
         overlay_terminal_slug=data.get('terminal_slug', ''),
     )
-    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True,
@@ -694,8 +698,7 @@ def api_bridge_selection(request):
         kwargs['bridge_map_mode'] = data['map_mode']
     if 'label' in data:
         kwargs['bridge_label'] = data['label']
-    new_state = update_state(**kwargs)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(**kwargs)
 
     return JsonResponse({'success': True})
 
@@ -739,11 +742,10 @@ def api_hide_terminal(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    new_state = update_state(
+    new_state = sync_state(
         overlay_location_slug='',
         overlay_terminal_slug='',
     )
-    broadcaster.announce(build_active_view_payload(new_state))
 
     return JsonResponse({
         'success': True
@@ -759,8 +761,7 @@ def api_show_doc(request, slug):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    new_state = update_state(overlay_doc_slug=slug)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(overlay_doc_slug=slug)
 
     return JsonResponse({'success': True, 'overlay_doc_slug': slug})
 
@@ -774,8 +775,7 @@ def api_hide_doc(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    new_state = update_state(overlay_doc_slug='')
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(overlay_doc_slug='')
 
     return JsonResponse({'success': True})
 
@@ -910,8 +910,7 @@ def api_janus_switch_mode(request):
     if mode not in ('DISPLAY', 'QUERY'):
         return JsonResponse({'error': 'Invalid mode. Must be DISPLAY or QUERY'}, status=400)
 
-    new_state = update_state(janus_mode=mode)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(janus_mode=mode)
 
     return JsonResponse({'success': True, 'mode': mode})
 
@@ -933,8 +932,7 @@ def api_janus_set_location(request):
 
     location_path = data.get('location_path', '')
 
-    new_state = update_state(janus_location_path=location_path)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(janus_location_path=location_path)
 
     return JsonResponse({'success': True, 'location_path': location_path})
 
@@ -1125,8 +1123,7 @@ def api_janus_toggle_dialog(request):
     else:
         new_dialog_open = not current.get('janus_dialog_open', False)
 
-    new_state = update_state(janus_dialog_open=new_dialog_open)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(janus_dialog_open=new_dialog_open)
 
     return JsonResponse({
         'success': True,
@@ -1155,8 +1152,7 @@ def api_encounter_switch_level(request):
     deck_id = data.get('deck_id', '')
 
     # Don't clear room visibility when switching levels - preserve visibility state
-    new_state = update_state(encounter_level=level, encounter_deck_id=deck_id)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_level=level, encounter_deck_id=deck_id)
 
     return JsonResponse({
         'success': True,
@@ -1194,8 +1190,7 @@ def api_encounter_toggle_room(request):
     else:
         visibility[room_id] = not visibility.get(room_id, True)
 
-    new_state = update_state(encounter_room_visibility=visibility)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_room_visibility=visibility)
 
     return JsonResponse({
         'success': True,
@@ -1227,8 +1222,7 @@ def api_encounter_room_visibility(request):
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
         visibility = data.get('room_visibility', {})
-        new_state = update_state(encounter_room_visibility=visibility)
-        broadcaster.announce(build_active_view_payload(new_state))
+        new_state = sync_state(encounter_room_visibility=visibility)
 
         return JsonResponse({
             'success': True,
@@ -1271,8 +1265,7 @@ def api_encounter_set_door_status(request):
     door_states = dict(current.get('encounter_door_status') or {})
     door_states[connection_id] = door_status
 
-    new_state = update_state(encounter_door_status=door_states)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_door_status=door_states)
 
     return JsonResponse({
         'success': True,
@@ -1343,8 +1336,7 @@ def api_encounter_place_token(request):
     tokens[token_id] = token_data
 
     tokens_by_loc[slug] = tokens
-    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
 
     return JsonResponse({
         'success': True,
@@ -1395,8 +1387,7 @@ def api_encounter_move_token(request):
     tokens[token_id]['room_id'] = room_id
 
     tokens_by_loc[slug] = tokens
-    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
 
     return JsonResponse({
         'success': True,
@@ -1437,8 +1428,7 @@ def api_encounter_remove_token(request):
     del tokens[token_id]
 
     tokens_by_loc[slug] = tokens
-    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
 
     return JsonResponse({
         'success': True,
@@ -1483,8 +1473,7 @@ def api_encounter_update_token_status(request):
     tokens[token_id]['status'] = status
 
     tokens_by_loc[slug] = tokens
-    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
 
     return JsonResponse({
         'success': True,
@@ -1508,8 +1497,7 @@ def api_encounter_clear_tokens(request):
     slug = current.get('location_slug', '')
     tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
     tokens_by_loc[slug] = {}
-    new_state = update_state(encounter_tokens_by_location=tokens_by_loc)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
 
     return JsonResponse({
         'success': True,
@@ -1547,8 +1535,7 @@ def api_encounter_toggle_portrait(request):
     else:
         portraits.append(npc_id)
 
-    new_state = update_state(encounter_active_portraits=portraits)
-    broadcaster.announce(build_active_view_payload(new_state))
+    new_state = sync_state(encounter_active_portraits=portraits)
 
     return JsonResponse({
         'success': True,

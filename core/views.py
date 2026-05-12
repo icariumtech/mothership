@@ -9,8 +9,8 @@ import yaml
 import os
 import json
 from django.conf import settings
-from terminal.active_view_store import get_state, update_state
-from terminal.sse_broadcaster import broadcaster, format_sse
+from core.active_view_store import get_state, update_state
+from core.sse_broadcaster import broadcaster, format_sse
 
 
 def get_janus_location_path(active_view) -> str:
@@ -27,7 +27,7 @@ def get_janus_location_path(active_view) -> str:
     Returns:
         Location path string like "sol/earth/uscss_morrigan" or None
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     # Support both dict and ORM object
     if isinstance(active_view, dict):
@@ -79,7 +79,7 @@ def display_view_react(request):
     React version of the shared terminal display.
     Test endpoint for React migration.
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     # Get current active view from GM console
     active_view = get_state()
@@ -182,7 +182,7 @@ def get_messages_json(request):
 
 def build_active_view_payload(state: dict) -> dict:
     """Build the enriched active-view response dict from raw in-memory state."""
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     response = {
         'location_slug': state.get('location_slug', ''),
@@ -395,7 +395,7 @@ def get_system_map_json(request, system_slug):
     Returns planets, orbits, and structures within a star system.
     Public endpoint - no login required.
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     from pathlib import Path
     from django.conf import settings
     import yaml
@@ -446,7 +446,7 @@ def get_orbit_map_json(request, system_slug, body_slug):
     Returns satellites, stations, and orbital structures.
     Public endpoint - no login required.
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
     orbit_map = loader.load_orbit_map(system_slug, body_slug)
@@ -467,7 +467,7 @@ def gm_console_react(request):
     React version of the GM Console.
     Provides a simpler, standard-widget UI for GM control.
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     ship_data = loader.load_ship_status()
     ship_status_json = json.dumps(ship_data) if ship_data else 'null'
@@ -481,7 +481,7 @@ def api_corporation(request):
     Public endpoint — returns corporation branding data from data/campaign/corporation.yaml.
     GET: /api/corporation/
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     corp_file = loader.data_dir / 'campaign' / 'corporation.yaml'
     if not corp_file.exists():
@@ -499,7 +499,7 @@ def api_locations(request):
     API endpoint to get the location tree for GM Console.
     Returns hierarchical location structure with terminals.
     """
-    from terminal.data_loader import load_all_locations
+    from core.data_loader import load_all_locations
 
     def transform_location(loc):
         """Transform location data for the React frontend."""
@@ -534,7 +534,7 @@ def api_switch_view(request):
     API endpoint to switch the active view.
     POST: { view_type: string, location_slug?: string, view_slug?: string }
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     import json
 
     if request.method != 'POST':
@@ -571,12 +571,12 @@ def api_switch_view(request):
     if new_view_type == 'JANUS_TERMINAL':
         update_kwargs['janus_active_channel'] = 'story'
         # Clear story channel conversation on JANUS_TERMINAL view switch
-        from terminal.janus_session import JanusSessionManager
+        from core.janus_session import JanusSessionManager
         JanusSessionManager.clear_conversation('story')
     elif new_view_type == 'BRIDGE':
         update_kwargs['janus_active_channel'] = 'bridge'
         # Clear bridge channel conversation on BRIDGE view switch
-        from terminal.janus_session import JanusSessionManager
+        from core.janus_session import JanusSessionManager
         JanusSessionManager.clear_conversation('bridge')
     elif new_view_type == 'ENCOUNTER' and new_location_slug:
         update_kwargs['janus_active_channel'] = f'encounter-{new_location_slug}'
@@ -715,7 +715,7 @@ def api_set_ship_location(request):
     """GM action: set the ship's current galactic position. Writes to ship.yaml + broadcasts SSE."""
     import json
 
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -832,7 +832,7 @@ def api_janus_conversation(request):
     Get current JANUS conversation (public for terminal display).
     GET: Returns conversation messages and mode.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     active_view = get_state()
     conversation = JanusSessionManager.get_conversation()
@@ -856,7 +856,7 @@ def api_janus_submit_query(request):
     Public endpoint - players submit queries from shared terminal.
     CSRF exempt since this is called from unauthenticated player terminals.
     """
-    from terminal.janus_session import JanusSessionManager, JanusMessage
+    from core.janus_session import JanusSessionManager, JanusMessage
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -882,7 +882,7 @@ def api_janus_submit_query(request):
     # Generate AI response with location-specific knowledge
     # Derive location from encounter view or fall back to explicit setting
     location_path = get_janus_location_path(active_view)
-    from terminal.janus_ai import get_janus_ai
+    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation()
     response = ai.generate_response(query, conversation)
@@ -955,7 +955,7 @@ def api_janus_send_message(request):
     GM sends message directly to JANUS terminal.
     POST: { content: string }
     """
-    from terminal.janus_session import JanusSessionManager, JanusMessage
+    from core.janus_session import JanusSessionManager, JanusMessage
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -982,7 +982,7 @@ def api_janus_generate(request):
     POST: { prompt: string }
     Returns a pending response for GM approval.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1002,7 +1002,7 @@ def api_janus_generate(request):
     location_path = get_janus_location_path(active_view)
 
     # Generate AI response based on GM's prompt with location knowledge
-    from terminal.janus_ai import get_janus_ai
+    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation()
 
@@ -1031,7 +1031,7 @@ def api_janus_pending(request):
     GM gets list of pending AI responses for approval.
     GET: Returns list of pending responses.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     pending = JanusSessionManager.get_pending_responses()
     return JsonResponse({'pending': pending})
@@ -1043,7 +1043,7 @@ def api_janus_approve(request):
     GM approves a pending response.
     POST: { pending_id: string, modified_content?: string }
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1072,7 +1072,7 @@ def api_janus_reject(request):
     GM rejects a pending response.
     POST: { pending_id: string }
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1100,7 +1100,7 @@ def api_janus_clear(request):
     GM clears the JANUS conversation.
     POST: {}
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1572,7 +1572,7 @@ def api_encounter_token_images(request):
     Get list of available token images from campaign data.
     GET: Returns list of image objects with id, name, type, url, source
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1627,7 +1627,7 @@ def api_encounter_map_data(request, location_slug):
     GET: /api/encounter-map/<location_slug>/
     Optional query param: deck_id - specific deck to load
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
 
@@ -1703,7 +1703,7 @@ def api_encounter_all_decks(request, location_slug):
     Used by GM console to show rooms across all levels.
     GET: /api/encounter-map/<location_slug>/all-decks/
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
 
@@ -1796,7 +1796,7 @@ def api_ship_status(request):
     GET: Returns ship status JSON
     Public endpoint - no login required (terminal needs to read it).
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
     ship_data = loader.load_ship_status()
@@ -1827,7 +1827,7 @@ def api_ship_toggle_system(request):
     status = data.get('status', '').strip()
 
     # Validate system name against what's actually in ship.yaml
-    from terminal.data_loader import DataLoader as _DL
+    from core.data_loader import DataLoader as _DL
     _ship = _DL().load_ship_status() or {}
     valid_systems = list((_ship.get('systems') or {}).keys())
     if system_name not in valid_systems:
@@ -1850,7 +1850,7 @@ def api_ship_toggle_system(request):
         fields['warnings'] = data['warnings']
 
     # Write directly to ship.yaml
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     loader.save_ship_system(system_name, fields)
 
@@ -1888,7 +1888,7 @@ def api_ship_update_fault(request):
     if not system_name:
         return JsonResponse({'error': 'system is required'}, status=400)
 
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     loader.save_system_fault_indicator(system_name, int(index), active)
 
@@ -1934,7 +1934,7 @@ def api_ship_update_integrity(request):
         return JsonResponse({'error': 'Provide at least one of current, max, or info'}, status=400)
 
     # Write directly to ship.yaml
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     loader.save_ship_integrity(field, values)
 
@@ -1973,7 +1973,7 @@ def api_ship_update_stat(request):
     if not isinstance(value, int):
         return JsonResponse({'error': 'value must be an integer'}, status=400)
 
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     loader.save_ship_stat(stat, value)
 
@@ -2004,7 +2004,7 @@ def api_ship_update_resource(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     resource = data.get('resource', '').strip()
-    from terminal.data_loader import DataLoader as _DL
+    from core.data_loader import DataLoader as _DL
     _ship = _DL().load_ship_status() or {}
     valid_resources = list((_ship.get('resources') or {}).keys())
     if resource not in valid_resources:
@@ -2022,7 +2022,7 @@ def api_ship_update_resource(request):
     if not values:
         return JsonResponse({'error': 'Provide at least one value field'}, status=400)
 
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     loader.save_ship_resource(resource, values)
 
@@ -2058,7 +2058,7 @@ def api_ship_update_cargo(request):
     if action not in ('add', 'remove'):
         return JsonResponse({'error': 'action must be "add" or "remove"'}, status=400)
 
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     ship_data = loader.load_ship_status() or {}
     cargo = ship_data.get('cargo', {}) or {}
@@ -2111,7 +2111,7 @@ def api_ship_reactor_power(request):
     if amount is None or not isinstance(amount, int) or amount < 0:
         return JsonResponse({'error': 'amount must be a non-negative integer'}, status=400)
 
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     ship_data = loader.load_ship_status() or {}
     all_systems = ship_data.get('systems', {})
@@ -2168,7 +2168,7 @@ def api_ship_reactor_action(request):
     if action not in valid_actions:
         return JsonResponse({'error': f'action must be one of: {", ".join(valid_actions)}'}, status=400)
 
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
     loader = DataLoader()
     ship_data = loader.load_ship_status() or {}
     reactor = ship_data.get('systems', {}).get('reactor', {})
@@ -2214,7 +2214,7 @@ def api_terminal_data(request, location_slug, terminal_slug):
     Get terminal data including messages for display.
     GET: /api/terminal/<location_slug>/<terminal_slug>/
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
 
@@ -2288,7 +2288,7 @@ def api_janus_channels(request):
     Get list of all active JANUS channels with message counts and unread indicators.
     GET: Returns list of channels with metadata.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
     
     channels = JanusSessionManager.get_all_channels()
     channel_data = []
@@ -2315,7 +2315,7 @@ def api_janus_channel_conversation(request, channel):
     Get conversation for a specific channel (public for player terminals).
     GET: Returns conversation messages for the channel.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
     
     conversation = JanusSessionManager.get_conversation(channel)
     active_view = get_state()
@@ -2336,7 +2336,7 @@ def api_janus_channel_submit(request, channel):
     POST: { query: string }
     Public endpoint - players submit queries from terminals.
     """
-    from terminal.janus_session import JanusSessionManager, JanusMessage
+    from core.janus_session import JanusSessionManager, JanusMessage
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2357,7 +2357,7 @@ def api_janus_channel_submit(request, channel):
     # Generate AI response
     active_view = get_state()
     location_path = get_janus_location_path(active_view)
-    from terminal.janus_ai import get_janus_ai
+    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation(channel)
     response = ai.generate_response(query, conversation)
@@ -2383,7 +2383,7 @@ def api_janus_channel_send(request, channel):
     GM sends message to a specific JANUS channel.
     POST: { content: string }
     """
-    from terminal.janus_session import JanusSessionManager, JanusMessage
+    from core.janus_session import JanusSessionManager, JanusMessage
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2413,7 +2413,7 @@ def api_janus_channel_mark_read(request, channel):
     Mark all messages in a channel as read by GM.
     POST: No body required.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2429,7 +2429,7 @@ def api_janus_channel_pending(request, channel):
     Get pending AI responses for a specific channel.
     GET: Returns pending responses awaiting GM approval.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
     
     pending = JanusSessionManager.get_pending_responses(channel)
     
@@ -2446,7 +2446,7 @@ def api_janus_channel_approve(request, channel):
     Approve a pending AI response for a specific channel.
     POST: { pending_id: string, modified_content?: string }
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2476,7 +2476,7 @@ def api_janus_channel_reject(request, channel):
     Reject a pending AI response for a specific channel.
     POST: { pending_id: string }
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2506,7 +2506,7 @@ def api_janus_channel_generate(request, channel):
     POST: { prompt: string, context_override?: string }
     Returns a pending response for GM approval.
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2526,14 +2526,14 @@ def api_janus_channel_generate(request, channel):
     location_path = None
     if channel.startswith('encounter-'):
         location_slug = channel[len('encounter-'):]
-        from terminal.data_loader import DataLoader
+        from core.data_loader import DataLoader
         loader = DataLoader()
         path_slugs = loader.get_location_path(location_slug)
         if path_slugs:
             location_path = '/'.join(path_slugs)
 
     # Generate AI response with location context
-    from terminal.janus_ai import get_janus_ai
+    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation(channel)
 
@@ -2569,7 +2569,7 @@ def api_janus_channel_clear(request, channel):
     GM clears conversation for a specific channel.
     POST: {}
     """
-    from terminal.janus_session import JanusSessionManager
+    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -2584,7 +2584,7 @@ def api_crew(request):
     GM endpoint — returns crew roster and all NPCs.
     GET: Returns { crew: [...], npcs: [...] }
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
     crew = loader.load_crew()
@@ -2598,7 +2598,7 @@ def api_sessions(request):
     GM endpoint — returns session logs from data/campaign/sessions/.
     GET: Returns sessions list sorted newest-first with frontmatter + body.
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
     sessions = loader.load_sessions()
@@ -2610,7 +2610,7 @@ def api_campaign_docs(request):
     GM endpoint — returns list of campaign docs from data/campaign/docs/.
     GET: Returns [{slug, title}] sorted by filename.
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
     docs = loader.load_campaign_docs()
@@ -2622,7 +2622,7 @@ def api_campaign_doc(request, slug):
     GM endpoint — returns a single campaign doc by slug.
     GET: Returns {slug, title, content} (markdown body, frontmatter stripped).
     """
-    from terminal.data_loader import DataLoader
+    from core.data_loader import DataLoader
 
     loader = DataLoader()
     doc = loader.load_campaign_doc(slug)

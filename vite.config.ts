@@ -16,7 +16,7 @@ export default defineConfig({
   },
 
   build: {
-    outDir: 'terminal/static/js',
+    outDir: 'core/static/js',
     emptyOutDir: false,
     cssCodeSplit: false,  // Inline CSS into JS bundle for simpler Django integration
 

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('terminal', '0003_activeview_overlay_location_slug_and_more'),
+        ('core', '0003_activeview_overlay_location_slug_and_more'),
     ]
 
     operations = [

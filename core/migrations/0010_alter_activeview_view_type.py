@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('terminal', '0009_rename_campaign_dashboard_to_bridge'),
+        ('core', '0009_rename_campaign_dashboard_to_bridge'),
     ]
 
     operations = [

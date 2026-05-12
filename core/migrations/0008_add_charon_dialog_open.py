@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('terminal', '0007_add_charon_location_path'),
+        ('core', '0007_add_charon_location_path'),
     ]
 
     operations = [

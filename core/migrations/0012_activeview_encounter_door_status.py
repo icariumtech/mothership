@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('terminal', '0011_add_encounter_fields'),
+        ('core', '0011_add_encounter_fields'),
     ]
 
     operations = [

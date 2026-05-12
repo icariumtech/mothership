@@ -5,20 +5,20 @@ from django.db import migrations, models
 
 def rename_campaign_dashboard_to_bridge(apps, schema_editor):
     """Update any existing records from CAMPAIGN_DASHBOARD to BRIDGE."""
-    ActiveView = apps.get_model('terminal', 'ActiveView')
+    ActiveView = apps.get_model('core', 'ActiveView')
     ActiveView.objects.filter(view_type='CAMPAIGN_DASHBOARD').update(view_type='BRIDGE')
 
 
 def rename_bridge_to_campaign_dashboard(apps, schema_editor):
     """Reverse: Update records from BRIDGE back to CAMPAIGN_DASHBOARD."""
-    ActiveView = apps.get_model('terminal', 'ActiveView')
+    ActiveView = apps.get_model('core', 'ActiveView')
     ActiveView.objects.filter(view_type='BRIDGE').update(view_type='CAMPAIGN_DASHBOARD')
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('terminal', '0008_add_charon_dialog_open'),
+        ('core', '0008_add_charon_dialog_open'),
     ]
 
     operations = [

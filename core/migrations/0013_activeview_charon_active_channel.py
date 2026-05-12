@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('terminal', '0012_activeview_encounter_door_status'),
+        ('core', '0012_activeview_encounter_door_status'),
     ]
 
     operations = [

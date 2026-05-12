@@ -7,11 +7,11 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from terminal.models import (
+from core.models import (
     Location, ViewInstance, ViewMode, EncounterMap,
     CommTerminal, TerminalMessage
 )
-from terminal.data_loader import get_loader
+from core.data_loader import get_loader
 
 
 class Command(BaseCommand):

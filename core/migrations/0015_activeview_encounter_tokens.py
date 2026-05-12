@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('terminal', '0014_activeview_ship_system_overrides'),
+        ('core', '0014_activeview_ship_system_overrides'),
     ]
 
     operations = [

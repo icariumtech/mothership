@@ -11,6 +11,7 @@ import json
 from django.conf import settings
 from core.active_view_store import get_state, update_state
 from core.sse_broadcaster import broadcaster, format_sse
+from core.data_loader import get_loader
 
 
 def get_janus_location_path(active_view) -> str:
@@ -27,7 +28,6 @@ def get_janus_location_path(active_view) -> str:
     Returns:
         Location path string like "sol/earth/uscss_morrigan" or None
     """
-    from core.data_loader import DataLoader
 
     # Support both dict and ORM object
     if isinstance(active_view, dict):
@@ -41,7 +41,7 @@ def get_janus_location_path(active_view) -> str:
 
     # If in ENCOUNTER view, derive from encounter location
     if view_type == 'ENCOUNTER' and location_slug:
-        loader = DataLoader()
+        loader = get_loader()
         path_slugs = loader.get_location_path(location_slug)
         if path_slugs:
             return '/'.join(path_slugs)
@@ -79,7 +79,6 @@ def display_view_react(request):
     React version of the shared terminal display.
     Test endpoint for React migration.
     """
-    from core.data_loader import DataLoader
 
     # Get current active view from GM console
     active_view = get_state()
@@ -111,7 +110,7 @@ def display_view_react(request):
         pass
 
     # Load crew and NPC data from campaign directory
-    loader = DataLoader()
+    loader = get_loader()
     crew_data = loader.load_crew()
     crew_json = json.dumps(crew_data)
     npcs_data = loader.load_npcs()
@@ -182,7 +181,6 @@ def get_messages_json(request):
 
 def build_active_view_payload(state: dict) -> dict:
     """Build the enriched active-view response dict from raw in-memory state."""
-    from core.data_loader import DataLoader
 
     response = {
         'location_slug': state.get('location_slug', ''),
@@ -207,7 +205,7 @@ def build_active_view_payload(state: dict) -> dict:
     }
 
     # Always include NPC data (portrait overlay needs it without a second request)
-    loader_for_npcs = DataLoader()
+    loader_for_npcs = get_loader()
     npcs = loader_for_npcs.load_npcs()
     response['encounter_npc_data'] = {
         npc['id']: {'id': npc['id'], 'name': npc['name'], 'portrait': npc.get('portrait', '')}
@@ -217,7 +215,7 @@ def build_active_view_payload(state: dict) -> dict:
 
     # ENCOUNTER view: include location metadata and multi-deck map data
     if state.get('view_type') == 'ENCOUNTER' and state.get('location_slug'):
-        loader = DataLoader()
+        loader = get_loader()
         location = loader.find_location_by_slug(state['location_slug'])
         if location:
             response['location_type'] = location.get('type', 'unknown')
@@ -278,7 +276,7 @@ def build_active_view_payload(state: dict) -> dict:
                             response['encounter_deck_name'] = current_deck.get('name', '')
 
     # Always include ship deck map data so GM console can render it regardless of player view
-    loader = DataLoader()
+    loader = get_loader()
     ship_dir = loader.data_dir / "campaign" / "ship"
     if ship_dir.exists():
         deckplan = loader.load_deckplan(ship_dir)
@@ -395,12 +393,11 @@ def get_system_map_json(request, system_slug):
     Returns planets, orbits, and structures within a star system.
     Public endpoint - no login required.
     """
-    from core.data_loader import DataLoader
     from pathlib import Path
     from django.conf import settings
     import yaml
 
-    loader = DataLoader()
+    loader = get_loader()
     system_map = loader.load_system_map(system_slug)
 
     if system_map:
@@ -446,9 +443,8 @@ def get_orbit_map_json(request, system_slug, body_slug):
     Returns satellites, stations, and orbital structures.
     Public endpoint - no login required.
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
     orbit_map = loader.load_orbit_map(system_slug, body_slug)
 
     if orbit_map:
@@ -467,8 +463,7 @@ def gm_console_react(request):
     React version of the GM Console.
     Provides a simpler, standard-widget UI for GM control.
     """
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     ship_data = loader.load_ship_status()
     ship_status_json = json.dumps(ship_data) if ship_data else 'null'
     return render(request, 'terminal/gm_console_react.html', {
@@ -481,8 +476,7 @@ def api_corporation(request):
     Public endpoint — returns corporation branding data from data/campaign/corporation.yaml.
     GET: /api/corporation/
     """
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     corp_file = loader.data_dir / 'campaign' / 'corporation.yaml'
     if not corp_file.exists():
         return JsonResponse({'error': 'Not found'}, status=404)
@@ -499,8 +493,6 @@ def api_locations(request):
     API endpoint to get the location tree for GM Console.
     Returns hierarchical location structure with terminals.
     """
-    from core.data_loader import load_all_locations
-
     def transform_location(loc):
         """Transform location data for the React frontend."""
         return {
@@ -522,7 +514,7 @@ def api_locations(request):
             'children': [transform_location(child) for child in loc.get('children', [])]
         }
 
-    locations = load_all_locations()
+    locations = get_loader().load_all_locations()
     transformed = [transform_location(loc) for loc in locations]
 
     return JsonResponse({'locations': transformed})
@@ -534,7 +526,6 @@ def api_switch_view(request):
     API endpoint to switch the active view.
     POST: { view_type: string, location_slug?: string, view_slug?: string }
     """
-    from core.data_loader import DataLoader
     import json
 
     if request.method != 'POST':
@@ -585,7 +576,7 @@ def api_switch_view(request):
     if is_new_encounter_location:
         # Clear portrait overlays when switching to a new encounter location
         update_kwargs['encounter_active_portraits'] = []
-        loader = DataLoader()
+        loader = get_loader()
         location = loader.find_location_by_slug(new_location_slug)
         if location and location.get('map'):
             map_data = location['map']
@@ -715,7 +706,6 @@ def api_set_ship_location(request):
     """GM action: set the ship's current galactic position. Writes to ship.yaml + broadcasts SSE."""
     import json
 
-    from core.data_loader import DataLoader
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -726,7 +716,7 @@ def api_set_ship_location(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     location_slug = data.get('location_slug', '')
-    loader = DataLoader()
+    loader = get_loader()
     loader.save_ship_location(location_slug)
     # Broadcast updated ship status so all clients see the new location_slug
     try:
@@ -1572,12 +1562,11 @@ def api_encounter_token_images(request):
     Get list of available token images from campaign data.
     GET: Returns list of image objects with id, name, type, url, source
     """
-    from core.data_loader import DataLoader
 
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    loader = DataLoader()
+    loader = get_loader()
     images = []
 
     # Load crew portraits
@@ -1627,9 +1616,8 @@ def api_encounter_map_data(request, location_slug):
     GET: /api/encounter-map/<location_slug>/
     Optional query param: deck_id - specific deck to load
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
 
     # Find location by walking hierarchy
     location = loader.find_location_by_slug(location_slug)
@@ -1703,9 +1691,8 @@ def api_encounter_all_decks(request, location_slug):
     Used by GM console to show rooms across all levels.
     GET: /api/encounter-map/<location_slug>/all-decks/
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
 
     # Find location by walking hierarchy
     location = loader.find_location_by_slug(location_slug)
@@ -1796,9 +1783,8 @@ def api_ship_status(request):
     GET: Returns ship status JSON
     Public endpoint - no login required (terminal needs to read it).
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
     ship_data = loader.load_ship_status()
 
     if not ship_data:
@@ -1827,8 +1813,7 @@ def api_ship_toggle_system(request):
     status = data.get('status', '').strip()
 
     # Validate system name against what's actually in ship.yaml
-    from core.data_loader import DataLoader as _DL
-    _ship = _DL().load_ship_status() or {}
+    _ship = get_loader().load_ship_status() or {}
     valid_systems = list((_ship.get('systems') or {}).keys())
     if system_name not in valid_systems:
         return JsonResponse({
@@ -1850,8 +1835,7 @@ def api_ship_toggle_system(request):
         fields['warnings'] = data['warnings']
 
     # Write directly to ship.yaml
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     loader.save_ship_system(system_name, fields)
 
     # Broadcast updated ship status
@@ -1888,8 +1872,7 @@ def api_ship_update_fault(request):
     if not system_name:
         return JsonResponse({'error': 'system is required'}, status=400)
 
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     loader.save_system_fault_indicator(system_name, int(index), active)
 
     try:
@@ -1934,8 +1917,7 @@ def api_ship_update_integrity(request):
         return JsonResponse({'error': 'Provide at least one of current, max, or info'}, status=400)
 
     # Write directly to ship.yaml
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     loader.save_ship_integrity(field, values)
 
     # Broadcast updated ship status
@@ -1973,8 +1955,7 @@ def api_ship_update_stat(request):
     if not isinstance(value, int):
         return JsonResponse({'error': 'value must be an integer'}, status=400)
 
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     loader.save_ship_stat(stat, value)
 
     try:
@@ -2004,8 +1985,7 @@ def api_ship_update_resource(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     resource = data.get('resource', '').strip()
-    from core.data_loader import DataLoader as _DL
-    _ship = _DL().load_ship_status() or {}
+    _ship = get_loader().load_ship_status() or {}
     valid_resources = list((_ship.get('resources') or {}).keys())
     if resource not in valid_resources:
         return JsonResponse({
@@ -2022,8 +2002,7 @@ def api_ship_update_resource(request):
     if not values:
         return JsonResponse({'error': 'Provide at least one value field'}, status=400)
 
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     loader.save_ship_resource(resource, values)
 
     # Broadcast updated ship status
@@ -2058,8 +2037,7 @@ def api_ship_update_cargo(request):
     if action not in ('add', 'remove'):
         return JsonResponse({'error': 'action must be "add" or "remove"'}, status=400)
 
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     ship_data = loader.load_ship_status() or {}
     cargo = ship_data.get('cargo', {}) or {}
     items = list(cargo.get('items', []))
@@ -2111,8 +2089,7 @@ def api_ship_reactor_power(request):
     if amount is None or not isinstance(amount, int) or amount < 0:
         return JsonResponse({'error': 'amount must be a non-negative integer'}, status=400)
 
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     ship_data = loader.load_ship_status() or {}
     all_systems = ship_data.get('systems', {})
     reactor = all_systems.get('reactor', {})
@@ -2168,8 +2145,7 @@ def api_ship_reactor_action(request):
     if action not in valid_actions:
         return JsonResponse({'error': f'action must be one of: {", ".join(valid_actions)}'}, status=400)
 
-    from core.data_loader import DataLoader
-    loader = DataLoader()
+    loader = get_loader()
     ship_data = loader.load_ship_status() or {}
     reactor = ship_data.get('systems', {}).get('reactor', {})
     current_status = reactor.get('status', 'OFFLINE')
@@ -2214,9 +2190,8 @@ def api_terminal_data(request, location_slug, terminal_slug):
     Get terminal data including messages for display.
     GET: /api/terminal/<location_slug>/<terminal_slug>/
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
 
     # Find location by walking hierarchy
     location = loader.find_location_by_slug(location_slug)
@@ -2526,8 +2501,7 @@ def api_janus_channel_generate(request, channel):
     location_path = None
     if channel.startswith('encounter-'):
         location_slug = channel[len('encounter-'):]
-        from core.data_loader import DataLoader
-        loader = DataLoader()
+        loader = get_loader()
         path_slugs = loader.get_location_path(location_slug)
         if path_slugs:
             location_path = '/'.join(path_slugs)
@@ -2584,9 +2558,8 @@ def api_crew(request):
     GM endpoint — returns crew roster and all NPCs.
     GET: Returns { crew: [...], npcs: [...] }
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
     crew = loader.load_crew()
     npcs = loader.load_npcs()
     return JsonResponse({'crew': crew, 'npcs': npcs})
@@ -2598,9 +2571,8 @@ def api_sessions(request):
     GM endpoint — returns session logs from data/campaign/sessions/.
     GET: Returns sessions list sorted newest-first with frontmatter + body.
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
     sessions = loader.load_sessions()
     return JsonResponse({'sessions': sessions})
 
@@ -2610,9 +2582,8 @@ def api_campaign_docs(request):
     GM endpoint — returns list of campaign docs from data/campaign/docs/.
     GET: Returns [{slug, title}] sorted by filename.
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
     docs = loader.load_campaign_docs()
     return JsonResponse({'docs': docs})
 
@@ -2622,9 +2593,8 @@ def api_campaign_doc(request, slug):
     GM endpoint — returns a single campaign doc by slug.
     GET: Returns {slug, title, content} (markdown body, frontmatter stripped).
     """
-    from core.data_loader import DataLoader
 
-    loader = DataLoader()
+    loader = get_loader()
     doc = loader.load_campaign_doc(slug)
     if doc is None:
         return JsonResponse({'error': 'Not found'}, status=404)

@@ -8,7 +8,7 @@ import os
 import yaml
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -902,9 +902,20 @@ def get_message_by_id(messages: List[Dict[str, Any]], message_id: str) -> Dict[s
 
 
 # Convenience functions
+_loader: Optional[DataLoader] = None
+
+
 def get_loader() -> DataLoader:
-    """Get a DataLoader instance."""
-    return DataLoader()
+    global _loader
+    if _loader is None:
+        _loader = DataLoader()
+    return _loader
+
+
+def set_loader(loader: DataLoader) -> None:
+    """Override the loader — use in tests to inject a fixture loader."""
+    global _loader
+    _loader = loader
 
 
 def load_all_locations() -> List[Dict[str, Any]]:

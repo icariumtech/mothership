@@ -3,10 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from pathlib import Path
 import json
+import uuid
 from core.data_loader import get_loader
 from core.active_view_store import get_state
 from core.sse_broadcaster import broadcaster
-from .active_view import sync_state
+import core.encounter_state as enc
 
 
 @login_required
@@ -27,14 +28,9 @@ def api_encounter_switch_level(request):
     level = data.get('level', 1)
     deck_id = data.get('deck_id', '')
 
-    # Don't clear room visibility when switching levels - preserve visibility state
-    new_state = sync_state(encounter_level=level, encounter_deck_id=deck_id)
+    enc.switch_level(level, deck_id)
 
-    return JsonResponse({
-        'success': True,
-        'level': level,
-        'deck_id': deck_id
-    })
+    return JsonResponse({'success': True, 'level': level, 'deck_id': deck_id})
 
 
 
@@ -59,22 +55,14 @@ def api_encounter_toggle_room(request):
     if not room_id:
         return JsonResponse({'error': 'room_id required'}, status=400)
 
-    current = get_state()
-    visibility = dict(current.get('encounter_room_visibility') or {})
-
-    # If visible is specified, use it; otherwise toggle
-    if 'visible' in data:
-        visibility[room_id] = bool(data['visible'])
-    else:
-        visibility[room_id] = not visibility.get(room_id, True)
-
-    new_state = sync_state(encounter_room_visibility=visibility)
+    explicit_visible = data.get('visible')
+    new_visible, _ = enc.toggle_room(room_id, None if 'visible' not in data else bool(explicit_visible))
 
     return JsonResponse({
         'success': True,
         'room_id': room_id,
-        'visible': visibility[room_id],
-        'room_visibility': visibility
+        'visible': new_visible,
+        'room_visibility': get_state().get('encounter_room_visibility', {}),
     })
 
 
@@ -88,12 +76,9 @@ def api_encounter_room_visibility(request):
     POST: { room_visibility: { room_id: bool, ... } }
     """
 
-    current = get_state()
-
     if request.method == 'GET':
-        return JsonResponse({
-            'room_visibility': current.get('encounter_room_visibility') or {}
-        })
+        current = get_state()
+        return JsonResponse({'room_visibility': current.get('encounter_room_visibility') or {}})
 
     if request.method == 'POST':
         try:
@@ -102,12 +87,8 @@ def api_encounter_room_visibility(request):
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
         visibility = data.get('room_visibility', {})
-        new_state = sync_state(encounter_room_visibility=visibility)
-
-        return JsonResponse({
-            'success': True,
-            'room_visibility': visibility
-        })
+        enc.set_room_visibility(visibility)
+        return JsonResponse({'success': True, 'room_visibility': visibility})
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -136,24 +117,17 @@ def api_encounter_set_door_status(request):
     if not connection_id or not door_status:
         return JsonResponse({'error': 'connection_id and door_status required'}, status=400)
 
-    # Validate door status
-    valid_statuses = ['OPEN', 'CLOSED', 'LOCKED', 'SEALED', 'DAMAGED']
-    if door_status not in valid_statuses:
-        return JsonResponse({
-            'error': f'Invalid door_status. Must be one of: {", ".join(valid_statuses)}'
-        }, status=400)
+    try:
+        enc.set_door_status(connection_id, door_status)
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
-    current = get_state()
-    door_states = dict(current.get('encounter_door_status') or {})
-    door_states[connection_id] = door_status
-
-    new_state = sync_state(encounter_door_status=door_states)
-
+    all_door_status = get_state().get('encounter_door_status', {})
     return JsonResponse({
         'success': True,
         'connection_id': connection_id,
         'door_status': door_status,
-        'all_door_status': door_states
+        'all_door_status': all_door_status,
     })
 
 
@@ -166,7 +140,6 @@ def api_encounter_place_token(request):
     POST: { type: string, name: string, x: int, y: int, image_url?: string, room_id?: string }
     Valid types: player, npc, creature, object
     """
-    import uuid
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -183,25 +156,17 @@ def api_encounter_place_token(request):
     image_url = data.get('image_url', '')
     room_id = data.get('room_id', '')
 
-    # Validate required fields
     if not token_type or not name or x is None or y is None:
         return JsonResponse({'error': 'type, name, x, and y are required'}, status=400)
 
-    # Validate token type
     valid_types = ['player', 'npc', 'creature', 'object']
     if token_type not in valid_types:
-        return JsonResponse({
-            'error': f'Invalid type. Must be one of: {", ".join(valid_types)}'
-        }, status=400)
+        return JsonResponse({'error': f'Invalid type. Must be one of: {", ".join(valid_types)}'}, status=400)
 
-    # Validate coordinates are integers
     if not isinstance(x, int) or not isinstance(y, int):
         return JsonResponse({'error': 'x and y must be integers'}, status=400)
 
-    # Generate token ID
     token_id = uuid.uuid4().hex[:8]
-
-    # Create token data
     token_data = {
         'type': token_type,
         'name': name,
@@ -212,21 +177,10 @@ def api_encounter_place_token(request):
         'room_id': room_id,
     }
 
-    # Store token
-    current = get_state()
-    slug = current.get('location_slug', '')
-    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
-    tokens = dict(tokens_by_loc.get(slug) or {})
-    tokens[token_id] = token_data
+    slug = get_state().get('location_slug', '')
+    tokens = enc.place_token(slug, token_id, token_data)
 
-    tokens_by_loc[slug] = tokens
-    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
-
-    return JsonResponse({
-        'success': True,
-        'token_id': token_id,
-        'tokens': tokens
-    })
+    return JsonResponse({'success': True, 'token_id': token_id, 'tokens': tokens})
 
 
 
@@ -254,32 +208,16 @@ def api_encounter_move_token(request):
     if not token_id or x is None or y is None:
         return JsonResponse({'error': 'token_id, x, and y are required'}, status=400)
 
-    # Validate coordinates are integers
     if not isinstance(x, int) or not isinstance(y, int):
         return JsonResponse({'error': 'x and y must be integers'}, status=400)
 
-    # Update token
-    current = get_state()
-    slug = current.get('location_slug', '')
-    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
-    tokens = dict(tokens_by_loc.get(slug) or {})
-
-    if token_id not in tokens:
+    slug = get_state().get('location_slug', '')
+    try:
+        tokens = enc.move_token(slug, token_id, x, y, room_id)
+    except KeyError:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
-    tokens[token_id] = dict(tokens[token_id])
-    tokens[token_id]['x'] = x
-    tokens[token_id]['y'] = y
-    tokens[token_id]['room_id'] = room_id
-
-    tokens_by_loc[slug] = tokens
-    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
-
-    return JsonResponse({
-        'success': True,
-        'token_id': token_id,
-        'tokens': tokens
-    })
+    return JsonResponse({'success': True, 'token_id': token_id, 'tokens': tokens})
 
 
 
@@ -300,28 +238,16 @@ def api_encounter_remove_token(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     token_id = data.get('token_id')
-
     if not token_id:
         return JsonResponse({'error': 'token_id is required'}, status=400)
 
-    # Remove token
-    current = get_state()
-    slug = current.get('location_slug', '')
-    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
-    tokens = dict(tokens_by_loc.get(slug) or {})
-
-    if token_id not in tokens:
+    slug = get_state().get('location_slug', '')
+    try:
+        tokens = enc.remove_token(slug, token_id)
+    except KeyError:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
-    del tokens[token_id]
-
-    tokens_by_loc[slug] = tokens
-    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
-
-    return JsonResponse({
-        'success': True,
-        'tokens': tokens
-    })
+    return JsonResponse({'success': True, 'tokens': tokens})
 
 
 
@@ -350,26 +276,13 @@ def api_encounter_update_token_status(request):
     if not isinstance(status, list):
         return JsonResponse({'error': 'status must be an array'}, status=400)
 
-    # Update token status
-    current = get_state()
-    slug = current.get('location_slug', '')
-    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
-    tokens = dict(tokens_by_loc.get(slug) or {})
-
-    if token_id not in tokens:
+    slug = get_state().get('location_slug', '')
+    try:
+        tokens = enc.update_token_status(slug, token_id, status)
+    except KeyError:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
-    tokens[token_id] = dict(tokens[token_id])
-    tokens[token_id]['status'] = status
-
-    tokens_by_loc[slug] = tokens
-    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
-
-    return JsonResponse({
-        'success': True,
-        'token_id': token_id,
-        'tokens': tokens
-    })
+    return JsonResponse({'success': True, 'token_id': token_id, 'tokens': tokens})
 
 
 
@@ -384,17 +297,10 @@ def api_encounter_clear_tokens(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    # Clear tokens for current location
-    current = get_state()
-    slug = current.get('location_slug', '')
-    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
-    tokens_by_loc[slug] = {}
-    new_state = sync_state(encounter_tokens_by_location=tokens_by_loc)
+    slug = get_state().get('location_slug', '')
+    enc.clear_tokens(slug)
 
-    return JsonResponse({
-        'success': True,
-        'tokens': {}
-    })
+    return JsonResponse({'success': True, 'tokens': {}})
 
 
 
@@ -420,20 +326,8 @@ def api_encounter_toggle_portrait(request):
     if not npc_id:
         return JsonResponse({'error': 'npc_id required'}, status=400)
 
-    current = get_state()
-    portraits = list(current.get('encounter_active_portraits') or [])
-
-    if npc_id in portraits:
-        portraits.remove(npc_id)
-    else:
-        portraits.append(npc_id)
-
-    new_state = sync_state(encounter_active_portraits=portraits)
-
-    return JsonResponse({
-        'success': True,
-        'active_portraits': portraits,
-    })
+    portraits = enc.toggle_portrait(npc_id)
+    return JsonResponse({'success': True, 'active_portraits': portraits})
 
 
 
@@ -646,7 +540,6 @@ def api_encounter_all_decks(request, location_slug):
                     'rooms': deck_data.get('rooms', []),
                 })
 
-    # Sort decks by level
     decks_data.sort(key=lambda d: d['level'])
 
     return JsonResponse({
@@ -731,4 +624,3 @@ def api_terminal_data(request, location_slug, terminal_slug):
 # =============================================================================
 # JANUS Channel Management (Multi-Channel Support)
 # =============================================================================
-

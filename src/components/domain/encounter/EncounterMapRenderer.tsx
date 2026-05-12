@@ -6,7 +6,8 @@
  * faint background grid, and GM right-click context menu for room visibility.
  */
 
-import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
+import { usePanZoom } from '../../../hooks/usePanZoom';
 import { message } from 'antd';
 import {
   Door,
@@ -25,7 +26,7 @@ import { pointInPolygon } from '../../../utils/polygon2d';
 import { ENCOUNTER_ICONS, iconSymbolId } from './EncounterIcons';
 import { LegendPanel } from './LegendPanel';
 import { LevelIndicator } from './LevelIndicator';
-import { TokenLayer, tokenTouchActive } from './TokenLayer';
+import { TokenLayer } from './TokenLayer';
 import { TokenPopup } from './TokenPopup';
 import { RoomContextMenu } from './RoomContextMenu';
 import { DoorStatusPopup } from '../../gm/DoorStatusPopup';
@@ -73,13 +74,6 @@ interface EncounterMapRendererProps {
   showLegend?: boolean;
 }
 
-// Pan and zoom state
-interface ViewState {
-  panX: number;
-  panY: number;
-  zoom: number;
-}
-
 // V2-1 Color palette
 const COLORS = {
   bgPrimary: '#0a0a0a',
@@ -106,10 +100,6 @@ const CONNECTION_STYLES: Record<string, { stroke: string; doorFill: string }> = 
   emergency: { stroke: COLORS.pathLine, doorFill: COLORS.hazard },
   open: { stroke: COLORS.pathLine, doorFill: COLORS.teal },
 };
-
-// Zoom limits
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 3;
 
 // Wall stroke thickness in pixels (creates the heavy-wall aesthetic)
 const WALL_THICKNESS = 5;
@@ -169,23 +159,9 @@ export function EncounterMapRenderer({
     y: number;
   } | null>(null);
 
-  // Pan and zoom state
-  const [viewState, setViewState] = useState<ViewState>({
-    panX: 0,
-    panY: 0,
-    zoom: 1,
-  });
-
-  // Refs for drag tracking
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-  const viewStart = useRef({ panX: 0, panY: 0 });
-
-  // Touch gesture refs
-  const lastTouchDistance = useRef<number | null>(null);
-  const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
+  const { viewState, containerHandlers, resetView: handleResetView } = usePanZoom(containerRef);
 
   // unit_size — pixels per grid cell (default 40 if YAML omits it)
   const unitSize = mapData.unit_size ?? 40;
@@ -971,185 +947,6 @@ export function EncounterMapRenderer({
     );
   };
 
-  // -------------------------------------------------------------------
-  // Pan/zoom handlers
-  // -------------------------------------------------------------------
-
-  // Wheel zoom handler — attached as native listener with { passive: false }
-  const handleWheel = useCallback((e: WheelEvent) => {
-    e.preventDefault();
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-
-    setViewState((prev) => {
-      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom * zoomDelta));
-      const zoomRatio = newZoom / prev.zoom;
-
-      const newPanX = mouseX - (mouseX - prev.panX) * zoomRatio;
-      const newPanY = mouseY - (mouseY - prev.panY) * zoomRatio;
-
-      return { panX: newPanX, panY: newPanY, zoom: newZoom };
-    });
-  }, []);
-
-  // Mouse down handler for pan start
-  // Note: .encounter-map__room hit targets no longer block panning (left-click now pans)
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest('.encounter-map__door') ||
-        target.closest('.encounter-map__token')) {
-      return;
-    }
-
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY };
-    viewStart.current = { panX: viewState.panX, panY: viewState.panY };
-
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grabbing';
-    }
-  }, [viewState.panX, viewState.panY]);
-
-  // Mouse move handler for panning
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging.current) return;
-
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-
-    setViewState((prev) => ({
-      ...prev,
-      panX: viewStart.current.panX + dx,
-      panY: viewStart.current.panY + dy,
-    }));
-  }, []);
-
-  // Mouse up handler for pan end
-  const handleMouseUp = useCallback(() => {
-    isDragging.current = false;
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grab';
-    }
-  }, []);
-
-  // Effect to handle mouse up outside container
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      isDragging.current = false;
-      if (containerRef.current) {
-        containerRef.current.style.cursor = 'grab';
-      }
-    };
-
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
-
-  // Reset view handler
-  const handleResetView = useCallback(() => {
-    setViewState({ panX: 0, panY: 0, zoom: 1 });
-  }, []);
-
-  // Touch start handler
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (tokenTouchActive) return;
-
-    if (e.touches.length === 1) {
-      isDragging.current = true;
-      dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      viewStart.current = { panX: viewState.panX, panY: viewState.panY };
-    } else if (e.touches.length === 2) {
-      isDragging.current = false;
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
-      lastTouchCenter.current = {
-        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-      };
-    }
-  }, [viewState.panX, viewState.panY]);
-
-  // Touch move handler — attached as native event with { passive: false } to allow preventDefault
-  const touchMoveHandler = useCallback((e: TouchEvent) => {
-    if (tokenTouchActive) return;
-
-    e.preventDefault();
-
-    if (e.touches.length === 1 && isDragging.current) {
-      const dx = e.touches[0].clientX - dragStart.current.x;
-      const dy = e.touches[0].clientY - dragStart.current.y;
-
-      setViewState((prev) => ({
-        ...prev,
-        panX: viewStart.current.panX + dx,
-        panY: viewStart.current.panY + dy,
-      }));
-    } else if (e.touches.length === 2 && lastTouchDistance.current !== null) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      const container = containerRef.current;
-      if (!container || !lastTouchCenter.current) return;
-
-      const rect = container.getBoundingClientRect();
-      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
-      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
-
-      const scale = distance / lastTouchDistance.current;
-
-      setViewState((prev) => {
-        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev.zoom * scale));
-        const zoomRatio = newZoom / prev.zoom;
-
-        const newPanX = centerX - (centerX - prev.panX) * zoomRatio;
-        const newPanY = centerY - (centerY - prev.panY) * zoomRatio;
-
-        return { panX: newPanX, panY: newPanY, zoom: newZoom };
-      });
-
-      lastTouchDistance.current = distance;
-      lastTouchCenter.current = { x: centerX + rect.left, y: centerY + rect.top };
-    }
-  }, []);
-
-  // Attach touchmove as native event listener with { passive: false }
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('touchmove', touchMoveHandler, { passive: false });
-    return () => {
-      container.removeEventListener('touchmove', touchMoveHandler);
-    };
-  }, [touchMoveHandler]);
-
-  // Attach wheel as native event listener with { passive: false } so preventDefault works
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-    };
-  }, [handleWheel]);
-
-  // Touch end handler
-  const handleTouchEnd = useCallback(() => {
-    isDragging.current = false;
-    lastTouchDistance.current = null;
-    lastTouchCenter.current = null;
-  }, []);
 
   // -------------------------------------------------------------------
   // Render
@@ -1158,11 +955,7 @@ export function EncounterMapRenderer({
     <div
       ref={containerRef}
       className="encounter-map-renderer"
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      {...containerHandlers}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       style={{

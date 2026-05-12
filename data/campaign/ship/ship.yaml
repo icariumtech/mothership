@@ -33,7 +33,7 @@ systems:
       label: Jump Drive Calibration Error
     icon: jumpdrive
     power:
-      allocated: 2
+      allocated: 0
       max: 5
     status: ONLINE
     subsystems:
@@ -72,11 +72,11 @@ systems:
     - TOOLS
     - SERGICAL BED
   reactor:
-    condition: 30
+    condition: 0
     display_name: Reactor
     icon: reactor core
     power_capacity: 12
-    status: ONLINE
+    status: OFFLINE
     warnings:
     - Low Pressure
   weapons:
@@ -84,7 +84,7 @@ systems:
     display_name: Weapons
     icon: weapon system
     power:
-      allocated: 3
+      allocated: 0
       max: 4
     status: ONLINE
     subsystems:

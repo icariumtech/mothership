@@ -13,6 +13,292 @@ from typing import Dict, List, Any, Optional
 logger = logging.getLogger(__name__)
 
 
+class _TerminalReader:
+    """Reads comm terminals and messages from the comms/ directory structure.
+
+    All logic for parsing terminals, loading messages, and filtering by
+    recipient/sender lives here. DataLoader holds an instance and delegates.
+    """
+
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir
+
+    def load_terminals(self, location_dir: Path) -> List[Dict[str, Any]]:
+        """Load all comm terminals for a location."""
+        terminals = []
+        comms_dir = location_dir / "comms"
+        if not comms_dir.exists():
+            return terminals
+        for terminal_dir in comms_dir.iterdir():
+            if terminal_dir.is_dir() and terminal_dir.name != 'messages':
+                terminal_data = self.load_terminal(terminal_dir)
+                if terminal_data:
+                    terminals.append(terminal_data)
+        return terminals
+
+    def load_terminal(self, terminal_dir: Path) -> Dict[str, Any]:
+        """Load a single terminal with all its messages (inbox and sent).
+
+        Supports two message storage modes:
+        1. Central message store: All messages in comms/messages/ directory,
+           filtered by terminal owner (inbox = to matches, sent = from matches)
+        2. Legacy mode: Messages in terminal's inbox/ and sent/ subdirectories
+        """
+        terminal_file = terminal_dir / "terminal.yaml"
+        if terminal_file.exists():
+            with open(terminal_file, 'r') as f:
+                terminal_data = yaml.safe_load(f)
+        else:
+            terminal_data = {"owner": terminal_dir.name}
+        terminal_data['slug'] = terminal_dir.name
+        owner = terminal_data.get('owner', '')
+        comms_dir = terminal_dir.parent
+        central_messages_dir = comms_dir / "messages"
+        if central_messages_dir.exists() and central_messages_dir.is_dir():
+            all_messages = self.load_central_messages(central_messages_dir)
+            terminal_data['inbox'] = self.filter_messages_for_recipient(all_messages, owner)
+            terminal_data['sent'] = self.filter_messages_for_sender(all_messages, owner)
+        else:
+            terminal_data['inbox'] = self.load_message_folder(terminal_dir / "inbox")
+            terminal_data['sent'] = self.load_message_folder(terminal_dir / "sent")
+        terminal_data['messages'] = terminal_data['inbox'] + terminal_data['sent']
+        terminal_data['messages'].sort(key=lambda m: m.get('timestamp', ''))
+        terminal_data['logs'] = self.load_logs_folder(terminal_dir / "logs")
+        return terminal_data
+
+    def load_central_messages(self, messages_dir: Path) -> List[Dict[str, Any]]:
+        """Load all messages from a central messages directory."""
+        messages = []
+        if not messages_dir.exists():
+            return messages
+        for message_file in sorted(messages_dir.glob("*.md")):
+            message_data = self.parse_message_file(message_file)
+            if message_data:
+                messages.append(message_data)
+        messages.sort(key=lambda m: m.get('timestamp', ''))
+        return messages
+
+    def filter_messages_for_recipient(self, messages: List[Dict[str, Any]], owner: str) -> List[Dict[str, Any]]:
+        """Filter messages where the owner is the recipient (inbox)."""
+        owner_lower = owner.lower()
+        inbox = []
+        for msg in messages:
+            if owner_lower in msg.get('to', '').lower():
+                msg_copy = msg.copy()
+                msg_copy['folder'] = 'inbox'
+                msg_copy['contact'] = msg.get('from', 'Unknown')
+                inbox.append(msg_copy)
+        inbox.sort(key=lambda m: m.get('timestamp', ''))
+        return inbox
+
+    def filter_messages_for_sender(self, messages: List[Dict[str, Any]], owner: str) -> List[Dict[str, Any]]:
+        """Filter messages where the owner is the sender (sent)."""
+        owner_lower = owner.lower()
+        sent = []
+        for msg in messages:
+            if owner_lower in msg.get('from', '').lower():
+                msg_copy = msg.copy()
+                msg_copy['folder'] = 'sent'
+                msg_copy['contact'] = msg.get('to', 'Unknown')
+                sent.append(msg_copy)
+        sent.sort(key=lambda m: m.get('timestamp', ''))
+        return sent
+
+    def load_message_folder(self, folder_dir: Path) -> List[Dict[str, Any]]:
+        """Load all messages from a folder (inbox or sent), organized by contact."""
+        messages = []
+        if not folder_dir.exists():
+            return messages
+        for contact_dir in folder_dir.iterdir():
+            if contact_dir.is_dir():
+                contact_name = contact_dir.name
+                for message_file in sorted(contact_dir.glob("*.md")):
+                    message_data = self.parse_message_file(message_file)
+                    if message_data:
+                        message_data['folder'] = folder_dir.name
+                        message_data['contact'] = contact_name
+                        messages.append(message_data)
+        messages.sort(key=lambda m: m.get('timestamp', ''))
+        return messages
+
+    def load_logs_folder(self, logs_dir: Path) -> List[Dict[str, Any]]:
+        """Load all log entries from a terminal's logs/ folder."""
+        logs = []
+        if not logs_dir.exists():
+            return logs
+        for log_file in sorted(logs_dir.glob("*.md")):
+            log_data = self.parse_message_file(log_file)
+            if log_data:
+                logs.append(log_data)
+        logs.sort(key=lambda l: l.get('timestamp', ''))
+        return logs
+
+    def parse_message_file(self, message_file: Path) -> Dict[str, Any]:
+        """Parse a message markdown file with YAML frontmatter."""
+        with open(message_file, 'r') as f:
+            content = f.read()
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                frontmatter = yaml.safe_load(parts[1])
+                message_content = parts[2].strip()
+            else:
+                frontmatter = {}
+                message_content = content
+        else:
+            frontmatter = {}
+            message_content = content
+        message_data = {'content': message_content, 'filename': message_file.name, **frontmatter}
+        if 'timestamp' in message_data and isinstance(message_data['timestamp'], str):
+            try:
+                message_data['timestamp'] = datetime.fromisoformat(
+                    message_data['timestamp'].replace(' ', 'T')
+                )
+            except ValueError:
+                pass
+        return message_data
+
+
+class _CampaignReader:
+    """Reads campaign data: crew, NPCs, sessions, and docs from data/campaign/.
+
+    All logic for loading campaign-level files lives here. DataLoader holds an
+    instance and delegates. Callers that need only NPCs or crew can instantiate
+    this class directly in tests without standing up the full DataLoader.
+    """
+
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir
+
+    def load_crew(self) -> List[Dict[str, Any]]:
+        """Load crew from per-entity files in campaign/crew/."""
+        crew_dir = self.data_dir / 'campaign' / 'crew'
+        if not crew_dir.exists():
+            return []
+        crew = []
+        seen_ids: set = set()
+        for path in sorted(crew_dir.glob('*.yaml')):
+            try:
+                with open(path) as f:
+                    character = yaml.safe_load(f)
+            except (OSError, yaml.YAMLError) as e:
+                logger.warning(f"Skipping crew file {path}: {e}")
+                continue
+            if character is None:
+                continue
+            char_id = character.get('id')
+            if char_id is None:
+                logger.warning(f"Crew file {path} has no 'id' field — skipping")
+                continue
+            if char_id in seen_ids:
+                logger.warning(f"Duplicate crew id '{char_id}' in {path} — skipping")
+                continue
+            seen_ids.add(char_id)
+            crew.append(character)
+        return crew
+
+    def load_npcs(self) -> List[Dict[str, Any]]:
+        """Load NPCs from per-entity files in campaign/npcs/."""
+        npcs_dir = self.data_dir / 'campaign' / 'npcs'
+        if not npcs_dir.exists():
+            return []
+        npcs = []
+        seen_ids: set = set()
+        for path in sorted(npcs_dir.glob('*.yaml')):
+            try:
+                with open(path) as f:
+                    npc = yaml.safe_load(f)
+            except (OSError, yaml.YAMLError) as e:
+                logger.warning(f"Skipping NPC file {path}: {e}")
+                continue
+            if npc is None:
+                continue
+            npc_id = npc.get('id')
+            if npc_id is None:
+                logger.warning(f"NPC file {path} has no 'id' field — skipping")
+                continue
+            if npc_id in seen_ids:
+                logger.warning(f"Duplicate NPC id '{npc_id}' in {path} — skipping")
+                continue
+            seen_ids.add(npc_id)
+            npcs.append(npc)
+        return npcs
+
+    def load_sessions(self) -> List[Dict[str, Any]]:
+        """Load all session logs from data/campaign/sessions/ directory."""
+        sessions_dir = self.data_dir / "campaign" / "sessions"
+        if not sessions_dir.exists():
+            return []
+        sessions = []
+        for session_file in sessions_dir.glob("*.md"):
+            session_data = self.parse_session_file(session_file)
+            if session_data:
+                if 'npcs' in session_data:
+                    if isinstance(session_data['npcs'], str):
+                        session_data['npcs'] = [npc.strip() for npc in session_data['npcs'].split(',')]
+                else:
+                    session_data['npcs'] = []
+                if 'date' in session_data:
+                    session_data['date'] = str(session_data['date']).split()[0]
+                sessions.append(session_data)
+        sessions.sort(key=lambda s: s.get('session_number', 0), reverse=True)
+        return sessions
+
+    def parse_session_file(self, session_file: Path) -> Dict[str, Any]:
+        """Parse a session markdown file with YAML frontmatter."""
+        with open(session_file, 'r') as f:
+            content = f.read()
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                frontmatter = yaml.safe_load(parts[1])
+                body_content = parts[2].strip()
+            else:
+                frontmatter = {}
+                body_content = content
+        else:
+            frontmatter = {}
+            body_content = content
+        return {'body': body_content, 'filename': session_file.name, **frontmatter}
+
+    def load_campaign_docs(self) -> List[Dict[str, Any]]:
+        """Load list of campaign docs — returns slug + title only."""
+        docs_dir = self.data_dir / "campaign" / "docs"
+        if not docs_dir.exists():
+            return []
+        docs = []
+        for doc_file in sorted(docs_dir.glob("*.md")):
+            slug = doc_file.stem
+            title = slug.replace('-', ' ').replace('_', ' ').title()
+            with open(doc_file, 'r') as f:
+                content = f.read()
+            if content.startswith('---'):
+                parts = content.split('---', 2)
+                if len(parts) >= 3:
+                    frontmatter = yaml.safe_load(parts[1]) or {}
+                    title = frontmatter.get('title', title)
+            docs.append({'slug': slug, 'title': title})
+        return docs
+
+    def load_campaign_doc(self, slug: str) -> Dict[str, Any]:
+        """Load a single campaign doc by slug. Returns title + body (frontmatter stripped)."""
+        docs_dir = self.data_dir / "campaign" / "docs"
+        doc_file = docs_dir / f"{slug}.md"
+        if not doc_file.exists():
+            return None
+        with open(doc_file, 'r') as f:
+            content = f.read()
+        title = slug.replace('-', ' ').replace('_', ' ').title()
+        body = content
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                frontmatter = yaml.safe_load(parts[1]) or {}
+                title = frontmatter.get('title', title)
+                body = parts[2].strip()
+        return {'slug': slug, 'title': title, 'content': body}
+
+
 class DataLoader:
     """Loads campaign data from the data/ directory structure."""
 
@@ -23,6 +309,8 @@ class DataLoader:
         self.galaxy_dir = self.data_dir / "galaxy"
         # Systems are directly under galaxy/ (no intermediate dirs)
         self.systems_dir = self.galaxy_dir
+        self._terminals = _TerminalReader(self.data_dir)
+        self._campaign = _CampaignReader(self.data_dir)
 
     def load_all_locations(self) -> List[Dict[str, Any]]:
         """Load all visitable locations, organized as a galaxy hierarchy.
@@ -67,7 +355,7 @@ class DataLoader:
                 loc['map'] = self.load_map(ship_dir)
                 loc['has_map'] = loc['map'] is not None
                 loc['maps'] = [loc['map']] if loc['map'] else []
-                loc['terminals'] = self.load_terminals(ship_dir)
+                loc['terminals'] = self._terminals.load_terminals(ship_dir)
                 loc['children'] = []
 
                 system_slug = loc.get('system_slug')
@@ -105,7 +393,7 @@ class DataLoader:
         location_data['maps'] = [location_data['map']] if location_data['map'] else []
 
         # Load comm terminals at this level
-        location_data['terminals'] = self.load_terminals(location_dir)
+        location_data['terminals'] = self._terminals.load_terminals(location_dir)
 
         # Recursively load child locations (subdirectories that aren't 'comms' or 'map')
         location_data['children'] = []
@@ -205,192 +493,35 @@ class DataLoader:
 
     def load_terminals(self, location_dir: Path) -> List[Dict[str, Any]]:
         """Load all comm terminals for a location."""
-        terminals = []
-        comms_dir = location_dir / "comms"
-
-        if not comms_dir.exists():
-            return terminals
-
-        for terminal_dir in comms_dir.iterdir():
-            # Skip the central messages directory - it's not a terminal
-            if terminal_dir.is_dir() and terminal_dir.name != 'messages':
-                terminal_data = self.load_terminal(terminal_dir)
-                if terminal_data:
-                    terminals.append(terminal_data)
-
-        return terminals
+        return self._terminals.load_terminals(location_dir)
 
     def load_terminal(self, terminal_dir: Path) -> Dict[str, Any]:
-        """Load a single terminal with all its messages (inbox and sent).
-
-        Supports two message storage modes:
-        1. Central message store: All messages in comms/messages/ directory,
-           filtered by terminal owner (inbox = to matches, sent = from matches)
-        2. Legacy mode: Messages in terminal's inbox/ and sent/ subdirectories
-        """
-        terminal_file = terminal_dir / "terminal.yaml"
-
-        if terminal_file.exists():
-            with open(terminal_file, 'r') as f:
-                terminal_data = yaml.safe_load(f)
-        else:
-            terminal_data = {"owner": terminal_dir.name}
-
-        terminal_data['slug'] = terminal_dir.name
-        owner = terminal_data.get('owner', '')
-
-        # Check for central message store (comms/messages/ directory)
-        comms_dir = terminal_dir.parent  # This is the comms/ directory
-        central_messages_dir = comms_dir / "messages"
-
-        if central_messages_dir.exists() and central_messages_dir.is_dir():
-            # Use central message store
-            all_messages = self.load_central_messages(central_messages_dir)
-            terminal_data['inbox'] = self.filter_messages_for_recipient(all_messages, owner)
-            terminal_data['sent'] = self.filter_messages_for_sender(all_messages, owner)
-        else:
-            # Fall back to legacy inbox/sent folders
-            terminal_data['inbox'] = self.load_message_folder(terminal_dir / "inbox")
-            terminal_data['sent'] = self.load_message_folder(terminal_dir / "sent")
-
-        # Combine all messages for backwards compatibility
-        terminal_data['messages'] = terminal_data['inbox'] + terminal_data['sent']
-
-        # Sort combined messages by timestamp
-        terminal_data['messages'].sort(key=lambda m: m.get('timestamp', ''))
-
-        # Load logs folder (static, terminal-specific log entries)
-        terminal_data['logs'] = self.load_logs_folder(terminal_dir / "logs")
-
-        return terminal_data
+        """Load a single terminal with all its messages (inbox and sent)."""
+        return self._terminals.load_terminal(terminal_dir)
 
     def load_central_messages(self, messages_dir: Path) -> List[Dict[str, Any]]:
         """Load all messages from a central messages directory."""
-        messages = []
-
-        if not messages_dir.exists():
-            return messages
-
-        # Load all .md files directly in the messages directory
-        for message_file in sorted(messages_dir.glob("*.md")):
-            message_data = self.parse_message_file(message_file)
-            if message_data:
-                messages.append(message_data)
-
-        # Sort messages by timestamp
-        messages.sort(key=lambda m: m.get('timestamp', ''))
-
-        return messages
+        return self._terminals.load_central_messages(messages_dir)
 
     def filter_messages_for_recipient(self, messages: List[Dict[str, Any]], owner: str) -> List[Dict[str, Any]]:
         """Filter messages where the owner is the recipient (inbox)."""
-        inbox = []
-        owner_lower = owner.lower()
-
-        for msg in messages:
-            to_field = msg.get('to', '')
-            # Check if owner name appears in the 'to' field (case-insensitive)
-            if owner_lower in to_field.lower():
-                msg_copy = msg.copy()
-                msg_copy['folder'] = 'inbox'
-                msg_copy['contact'] = msg.get('from', 'Unknown')
-                inbox.append(msg_copy)
-
-        inbox.sort(key=lambda m: m.get('timestamp', ''))
-        return inbox
+        return self._terminals.filter_messages_for_recipient(messages, owner)
 
     def filter_messages_for_sender(self, messages: List[Dict[str, Any]], owner: str) -> List[Dict[str, Any]]:
         """Filter messages where the owner is the sender (sent)."""
-        sent = []
-        owner_lower = owner.lower()
-
-        for msg in messages:
-            from_field = msg.get('from', '')
-            # Check if owner name appears in the 'from' field (case-insensitive)
-            if owner_lower in from_field.lower():
-                msg_copy = msg.copy()
-                msg_copy['folder'] = 'sent'
-                msg_copy['contact'] = msg.get('to', 'Unknown')
-                sent.append(msg_copy)
-
-        sent.sort(key=lambda m: m.get('timestamp', ''))
-        return sent
+        return self._terminals.filter_messages_for_sender(messages, owner)
 
     def load_message_folder(self, folder_dir: Path) -> List[Dict[str, Any]]:
         """Load all messages from a folder (inbox or sent), organized by contact."""
-        messages = []
-
-        if not folder_dir.exists():
-            return messages
-
-        # Iterate through contact directories (e.g., dr_chen, commander_drake)
-        for contact_dir in folder_dir.iterdir():
-            if contact_dir.is_dir():
-                contact_name = contact_dir.name
-
-                # Load all .md files in contact directory
-                for message_file in sorted(contact_dir.glob("*.md")):
-                    message_data = self.parse_message_file(message_file)
-                    if message_data:
-                        # Add folder type (inbox/sent) to message data
-                        message_data['folder'] = folder_dir.name
-                        message_data['contact'] = contact_name
-                        messages.append(message_data)
-
-        # Sort messages by timestamp
-        messages.sort(key=lambda m: m.get('timestamp', ''))
-
-        return messages
+        return self._terminals.load_message_folder(folder_dir)
 
     def load_logs_folder(self, logs_dir: Path) -> List[Dict[str, Any]]:
         """Load all log entries from a terminal's logs/ folder."""
-        logs = []
-
-        if not logs_dir.exists():
-            return logs
-
-        for log_file in sorted(logs_dir.glob("*.md")):
-            log_data = self.parse_message_file(log_file)
-            if log_data:
-                logs.append(log_data)
-
-        logs.sort(key=lambda l: l.get('timestamp', ''))
-        return logs
+        return self._terminals.load_logs_folder(logs_dir)
 
     def parse_message_file(self, message_file: Path) -> Dict[str, Any]:
         """Parse a message markdown file with YAML frontmatter."""
-        with open(message_file, 'r') as f:
-            content = f.read()
-
-        # Split frontmatter and content
-        if content.startswith('---'):
-            parts = content.split('---', 2)
-            if len(parts) >= 3:
-                frontmatter = yaml.safe_load(parts[1])
-                message_content = parts[2].strip()
-            else:
-                frontmatter = {}
-                message_content = content
-        else:
-            frontmatter = {}
-            message_content = content
-
-        message_data = {
-            'content': message_content,
-            'filename': message_file.name,
-            **frontmatter
-        }
-
-        # Convert timestamp string to datetime if present
-        if 'timestamp' in message_data and isinstance(message_data['timestamp'], str):
-            try:
-                message_data['timestamp'] = datetime.fromisoformat(
-                    message_data['timestamp'].replace(' ', 'T')
-                )
-            except ValueError:
-                pass
-
-        return message_data
+        return self._terminals.parse_message_file(message_file)
 
     def find_location_by_slug(self, slug: str, locations: List[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Find a location by slug.
@@ -509,66 +640,12 @@ class DataLoader:
         return star_map_data
 
     def load_crew(self) -> List[Dict[str, Any]]:
-        """Load crew from per-entity files in campaign/crew/.
-
-        Returns list of crew dicts. Each file in crew/ is one character
-        (no wrapper key). IDs must be unique.
-        """
-        crew_dir = self.data_dir / 'campaign' / 'crew'
-        if not crew_dir.exists():
-            return []
-
-        crew = []
-        seen_ids = set()
-        for path in sorted(crew_dir.glob('*.yaml')):
-            try:
-                with open(path) as f:
-                    character = yaml.safe_load(f)
-            except (OSError, yaml.YAMLError) as e:
-                logger.warning(f"Skipping crew file {path}: {e}")
-                continue
-            if character is None:
-                continue
-            char_id = character.get('id')
-            if char_id is None:
-                logger.warning(f"Crew file {path} has no 'id' field — skipping")
-                continue
-            if char_id in seen_ids:
-                logger.warning(f"Duplicate crew id '{char_id}' in {path} — skipping")
-                continue
-            seen_ids.add(char_id)
-            crew.append(character)
-
-        return crew
+        """Load crew from per-entity files in campaign/crew/."""
+        return self._campaign.load_crew()
 
     def load_npcs(self) -> List[Dict[str, Any]]:
         """Load NPCs from per-entity files in campaign/npcs/."""
-        npcs_dir = self.data_dir / 'campaign' / 'npcs'
-        if not npcs_dir.exists():
-            return []
-
-        npcs = []
-        seen_ids = set()
-        for path in sorted(npcs_dir.glob('*.yaml')):
-            try:
-                with open(path) as f:
-                    npc = yaml.safe_load(f)
-            except (OSError, yaml.YAMLError) as e:
-                logger.warning(f"Skipping NPC file {path}: {e}")
-                continue
-            if npc is None:
-                continue
-            npc_id = npc.get('id')
-            if npc_id is None:
-                logger.warning(f"NPC file {path} has no 'id' field — skipping")
-                continue
-            if npc_id in seen_ids:
-                logger.warning(f"Duplicate NPC id '{npc_id}' in {path} — skipping")
-                continue
-            seen_ids.add(npc_id)
-            npcs.append(npc)
-
-        return npcs
+        return self._campaign.load_npcs()
 
     def load_system_map(self, system_slug: str) -> Dict[str, Any]:
         """Load solar system visualization for a star system."""
@@ -654,100 +731,19 @@ class DataLoader:
 
     def load_sessions(self) -> List[Dict[str, Any]]:
         """Load all session logs from data/campaign/sessions/ directory."""
-        sessions_dir = self.data_dir / "campaign" / "sessions"
-
-        if not sessions_dir.exists():
-            return []
-
-        sessions = []
-
-        # Load all .md files from the sessions directory
-        for session_file in sessions_dir.glob("*.md"):
-            session_data = self.parse_session_file(session_file)
-            if session_data:
-                # Normalize npcs field: convert string to list, or ensure it's a list
-                if 'npcs' in session_data:
-                    if isinstance(session_data['npcs'], str):
-                        # Split comma-separated string into list
-                        session_data['npcs'] = [npc.strip() for npc in session_data['npcs'].split(',')]
-                else:
-                    session_data['npcs'] = []
-
-                # Normalize date field: convert to string and take only date part
-                if 'date' in session_data:
-                    date_str = str(session_data['date'])
-                    # Split on space and take first element (date part only)
-                    session_data['date'] = date_str.split()[0]
-
-                sessions.append(session_data)
-
-        # Sort by session_number descending (newest first)
-        sessions.sort(key=lambda s: s.get('session_number', 0), reverse=True)
-
-        return sessions
+        return self._campaign.load_sessions()
 
     def parse_session_file(self, session_file: Path) -> Dict[str, Any]:
         """Parse a session markdown file with YAML frontmatter."""
-        with open(session_file, 'r') as f:
-            content = f.read()
-
-        # Split frontmatter and content
-        if content.startswith('---'):
-            parts = content.split('---', 2)
-            if len(parts) >= 3:
-                frontmatter = yaml.safe_load(parts[1])
-                body_content = parts[2].strip()
-            else:
-                frontmatter = {}
-                body_content = content
-        else:
-            frontmatter = {}
-            body_content = content
-
-        session_data = {
-            'body': body_content,
-            'filename': session_file.name,
-            **frontmatter
-        }
-
-        return session_data
+        return self._campaign.parse_session_file(session_file)
 
     def load_campaign_docs(self) -> List[Dict[str, Any]]:
-        """Load list of campaign docs from data/campaign/docs/ — returns slug + title only."""
-        docs_dir = self.data_dir / "campaign" / "docs"
-        if not docs_dir.exists():
-            return []
-        docs = []
-        for doc_file in sorted(docs_dir.glob("*.md")):
-            slug = doc_file.stem
-            title = slug.replace('-', ' ').replace('_', ' ').title()
-            with open(doc_file, 'r') as f:
-                content = f.read()
-            if content.startswith('---'):
-                parts = content.split('---', 2)
-                if len(parts) >= 3:
-                    frontmatter = yaml.safe_load(parts[1]) or {}
-                    title = frontmatter.get('title', title)
-            docs.append({'slug': slug, 'title': title})
-        return docs
+        """Load list of campaign docs — returns slug + title only."""
+        return self._campaign.load_campaign_docs()
 
     def load_campaign_doc(self, slug: str) -> Dict[str, Any]:
         """Load a single campaign doc by slug. Returns title + body (frontmatter stripped)."""
-        docs_dir = self.data_dir / "campaign" / "docs"
-        doc_file = docs_dir / f"{slug}.md"
-        if not doc_file.exists():
-            return None
-        with open(doc_file, 'r') as f:
-            content = f.read()
-        title = slug.replace('-', ' ').replace('_', ' ').title()
-        body = content
-        if content.startswith('---'):
-            parts = content.split('---', 2)
-            if len(parts) >= 3:
-                frontmatter = yaml.safe_load(parts[1]) or {}
-                title = frontmatter.get('title', title)
-                body = parts[2].strip()
-        return {'slug': slug, 'title': title, 'content': body}
+        return self._campaign.load_campaign_doc(slug)
 
     def load_deckplan(self, location_dir) -> Dict[str, Any]:
         """Load deckplan.yaml from a location directory.

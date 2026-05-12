@@ -5,7 +5,7 @@ import json
 from core.data_loader import get_loader
 from core.active_view_store import get_state
 from core.janus_session import JanusSessionManager, JanusMessage
-from core.janus_ai import get_janus_ai
+from core.janus_controller import JanusController
 from .active_view import sync_state
 
 
@@ -98,29 +98,10 @@ def api_janus_submit_query(request):
     if not query:
         return JsonResponse({'error': 'Query required'}, status=400)
 
-    # Add player query to conversation
-    query_msg = JanusMessage(role='user', content=query)
-    JanusSessionManager.add_message(query_msg)
-
-    # Generate AI response with location-specific knowledge
-    # Derive location from encounter view or fall back to explicit setting
     location_path = get_janus_location_path(active_view)
-    ai = get_janus_ai(location_path=location_path)
-    conversation = JanusSessionManager.get_conversation()
-    response = ai.generate_response(query, conversation)
+    result = JanusController.submit_query(query, location_path)
 
-    # Queue for GM approval
-    pending_id = JanusSessionManager.add_pending_response(
-        query=query,
-        response=response,
-        query_id=query_msg.message_id
-    )
-
-    return JsonResponse({
-        'success': True,
-        'query_id': query_msg.message_id,
-        'pending_id': pending_id,
-    })
+    return JsonResponse({'success': True, **result})
 
 
 
@@ -222,32 +203,11 @@ def api_janus_generate(request):
     if not prompt:
         return JsonResponse({'error': 'Prompt required'}, status=400)
 
-    # Get active JANUS location for knowledge context
-    # Derive location from encounter view or fall back to explicit setting
     active_view = get_state()
     location_path = get_janus_location_path(active_view)
+    result = JanusController.gm_generate(prompt, location_path)
 
-    # Generate AI response based on GM's prompt with location knowledge
-    ai = get_janus_ai(location_path=location_path)
-    conversation = JanusSessionManager.get_conversation()
-
-    # Create a context message for the AI that includes the GM's prompt
-    context_prompt = f"[GM CONTEXT: {prompt}]\n\nGenerate a JANUS response based on this context."
-    response = ai.generate_response(context_prompt, conversation)
-
-    # Queue for GM approval (using prompt as the "query" for reference)
-    import uuid
-    pending_id = JanusSessionManager.add_pending_response(
-        query=f"[GM Prompt] {prompt}",
-        response=response,
-        query_id=str(uuid.uuid4())
-    )
-
-    return JsonResponse({
-        'success': True,
-        'pending_id': pending_id,
-        'response': response,
-    })
+    return JsonResponse({'success': True, **result})
 
 
 
@@ -447,30 +407,11 @@ def api_janus_channel_submit(request, channel):
     if not query:
         return JsonResponse({'error': 'Query required'}, status=400)
     
-    # Add player query to conversation
-    query_msg = JanusMessage(role='user', content=query)
-    JanusSessionManager.add_message(query_msg, channel)
-    
-    # Generate AI response
     active_view = get_state()
     location_path = get_janus_location_path(active_view)
-    ai = get_janus_ai(location_path=location_path)
-    conversation = JanusSessionManager.get_conversation(channel)
-    response = ai.generate_response(query, conversation)
-    
-    # Queue for GM approval
-    pending_id = JanusSessionManager.add_pending_response(
-        query=query,
-        response=response,
-        query_id=query_msg.message_id,
-        channel=channel
-    )
-    
-    return JsonResponse({
-        'success': True,
-        'query_id': query_msg.message_id,
-        'pending_id': pending_id,
-    })
+    result = JanusController.submit_query(query, location_path, channel=channel)
+
+    return JsonResponse({'success': True, **result})
 
 
 
@@ -624,43 +565,17 @@ def api_janus_channel_generate(request, channel):
     if not prompt:
         return JsonResponse({'error': 'Prompt required'}, status=400)
 
-    # Determine location context from channel name
+    # Encounter channels derive location from the channel name itself
     location_path = None
     if channel.startswith('encounter-'):
         location_slug = channel[len('encounter-'):]
-        loader = get_loader()
-        path_slugs = loader.get_location_path(location_slug)
+        path_slugs = get_loader().get_location_path(location_slug)
         if path_slugs:
             location_path = '/'.join(path_slugs)
 
-    # Generate AI response with location context
-    ai = get_janus_ai(location_path=location_path)
-    conversation = JanusSessionManager.get_conversation(channel)
+    result = JanusController.gm_generate(prompt, location_path, channel=channel, context_override=context_override)
 
-    # Build context prompt
-    context_parts = [f"[GM PROMPT: {prompt}]"]
-    if context_override:
-        context_parts.append(f"[GM CONTEXT OVERRIDE: {context_override}]")
-    context_parts.append("\n\nGenerate a JANUS response based on this context.")
-    context_prompt = "\n".join(context_parts)
-
-    response = ai.generate_response(context_prompt, conversation)
-
-    # Queue for GM approval
-    import uuid
-    pending_id = JanusSessionManager.add_pending_response(
-        query=f"[GM Prompt] {prompt}",
-        response=response,
-        query_id=str(uuid.uuid4()),
-        channel=channel
-    )
-
-    return JsonResponse({
-        'success': True,
-        'pending_id': pending_id,
-        'response': response,
-        'channel': channel,
-    })
+    return JsonResponse({'success': True, 'channel': channel, **result})
 
 
 

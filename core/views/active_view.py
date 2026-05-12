@@ -145,7 +145,9 @@ def build_active_view_payload(state: dict) -> dict:
 
 def sync_state(**kwargs) -> dict:
     """Update active view state and broadcast the enriched payload to all SSE clients."""
-    new_state = sync_state(**kwargs)
+    new_state = update_state(**kwargs)
+    payload = build_active_view_payload(new_state)
+    broadcaster.announce(payload)
     return new_state
 
 

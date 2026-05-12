@@ -60,7 +60,6 @@ def build_active_view_payload(state: dict) -> dict:
 
             # For multi-deck maps, load the current deck's map data
             if location.get('directory'):
-                from pathlib import Path
                 location_dir = Path(location['directory'])
                 deckplan = loader.load_deckplan(location_dir)
                 if deckplan and deckplan.get('decks'):

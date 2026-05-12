@@ -407,7 +407,6 @@ def api_encounter_toggle_portrait(request):
     If npc_id is already in encounter_active_portraits, removes it (dismiss).
     If not, appends it (show).
     """
-    import json
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -513,7 +512,6 @@ def api_encounter_map_data(request, location_slug):
 
     # Deckplan fallback: locations using deckplan.yaml have no map/ directory
     if not map_data and location.get('directory'):
-        from pathlib import Path
         location_dir = Path(location['directory'])
         deckplan = loader.load_deckplan(location_dir)
         if deckplan and deckplan.get('decks'):
@@ -547,7 +545,6 @@ def api_encounter_map_data(request, location_slug):
     # If a specific deck is requested, find it in the deckplan or old-format manifest
     if map_data.get('is_multi_deck') and requested_deck_id:
         if location.get('directory'):
-            from pathlib import Path
             location_dir = Path(location['directory'])
             # Try deckplan first (inline rooms), fall back to old load_deck_map
             deckplan = loader.load_deckplan(location_dir)
@@ -590,7 +587,6 @@ def api_encounter_all_decks(request, location_slug):
 
     # Deckplan fallback: locations using deckplan.yaml have no map/ directory
     if not map_data and location.get('directory'):
-        from pathlib import Path
         location_dir = Path(location['directory'])
         deckplan = loader.load_deckplan(location_dir)
         if deckplan and deckplan.get('decks'):
@@ -639,7 +635,6 @@ def api_encounter_all_decks(request, location_slug):
     decks_data = []
 
     if location.get('directory'):
-        from pathlib import Path
         location_dir = Path(location['directory'])
         for deck_info in manifest.get('decks', []):
             deck_data = loader.load_deck_map(location_dir, deck_info['id'])

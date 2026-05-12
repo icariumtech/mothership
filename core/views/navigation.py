@@ -1,10 +1,12 @@
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
+from pathlib import Path
 import json
 from core.data_loader import get_loader
 from core.active_view_store import get_state
 from core.sse_broadcaster import broadcaster
+from core.janus_session import JanusSessionManager
 from .active_view import sync_state, build_active_view_payload
 
 
@@ -14,7 +16,6 @@ def api_switch_view(request):
     API endpoint to switch the active view.
     POST: { view_type: string, location_slug?: string, view_slug?: string }
     """
-    import json
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -50,12 +51,10 @@ def api_switch_view(request):
     if new_view_type == 'JANUS_TERMINAL':
         update_kwargs['janus_active_channel'] = 'story'
         # Clear story channel conversation on JANUS_TERMINAL view switch
-        from core.janus_session import JanusSessionManager
         JanusSessionManager.clear_conversation('story')
     elif new_view_type == 'BRIDGE':
         update_kwargs['janus_active_channel'] = 'bridge'
         # Clear bridge channel conversation on BRIDGE view switch
-        from core.janus_session import JanusSessionManager
         JanusSessionManager.clear_conversation('bridge')
     elif new_view_type == 'ENCOUNTER' and new_location_slug:
         update_kwargs['janus_active_channel'] = f'encounter-{new_location_slug}'
@@ -74,7 +73,6 @@ def api_switch_view(request):
                 # Multi-deck: load all decks and get room IDs
                 manifest = map_data.get('manifest', {})
                 if location.get('directory'):
-                    from pathlib import Path
                     location_dir = Path(location['directory'])
                     for deck_info in manifest.get('decks', []):
                         deck_data = loader.load_deck_map(location_dir, deck_info['id'])
@@ -122,7 +120,6 @@ def api_show_terminal(request):
     API endpoint to show a terminal overlay.
     POST: { location_slug: string, terminal_slug: string }
     """
-    import json
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -164,7 +161,6 @@ def api_bridge_selection(request):
     Called by the player terminal when navigating the bridge galaxy/system/orbit map.
     POST: { location_slug?: string, tab?: string, map_mode?: string, label?: string }
     """
-    import json
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -195,7 +191,6 @@ def api_bridge_selection(request):
 @login_required
 def api_set_ship_location(request):
     """GM action: set the ship's current galactic position. Writes to ship.yaml + broadcasts SSE."""
-    import json
 
 
     if request.method != 'POST':

@@ -117,7 +117,6 @@ def api_broadcast(request):
     API endpoint to send a broadcast message.
     POST: { sender: string, content: string, priority: string }
     """
-    import json
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)

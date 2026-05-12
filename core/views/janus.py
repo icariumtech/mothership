@@ -4,6 +4,8 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from core.data_loader import get_loader
 from core.active_view_store import get_state
+from core.janus_session import JanusSessionManager, JanusMessage
+from core.janus_ai import get_janus_ai
 from .active_view import sync_state
 
 
@@ -53,7 +55,6 @@ def api_janus_conversation(request):
     Get current JANUS conversation (public for terminal display).
     GET: Returns conversation messages and mode.
     """
-    from core.janus_session import JanusSessionManager
 
     active_view = get_state()
     conversation = JanusSessionManager.get_conversation()
@@ -79,7 +80,6 @@ def api_janus_submit_query(request):
     Public endpoint - players submit queries from shared terminal.
     CSRF exempt since this is called from unauthenticated player terminals.
     """
-    from core.janus_session import JanusSessionManager, JanusMessage
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -105,7 +105,6 @@ def api_janus_submit_query(request):
     # Generate AI response with location-specific knowledge
     # Derive location from encounter view or fall back to explicit setting
     location_path = get_janus_location_path(active_view)
-    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation()
     response = ai.generate_response(query, conversation)
@@ -182,7 +181,6 @@ def api_janus_send_message(request):
     GM sends message directly to JANUS terminal.
     POST: { content: string }
     """
-    from core.janus_session import JanusSessionManager, JanusMessage
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -211,7 +209,6 @@ def api_janus_generate(request):
     POST: { prompt: string }
     Returns a pending response for GM approval.
     """
-    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -231,7 +228,6 @@ def api_janus_generate(request):
     location_path = get_janus_location_path(active_view)
 
     # Generate AI response based on GM's prompt with location knowledge
-    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation()
 
@@ -262,7 +258,6 @@ def api_janus_pending(request):
     GM gets list of pending AI responses for approval.
     GET: Returns list of pending responses.
     """
-    from core.janus_session import JanusSessionManager
 
     pending = JanusSessionManager.get_pending_responses()
     return JsonResponse({'pending': pending})
@@ -276,7 +271,6 @@ def api_janus_approve(request):
     GM approves a pending response.
     POST: { pending_id: string, modified_content?: string }
     """
-    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -307,7 +301,6 @@ def api_janus_reject(request):
     GM rejects a pending response.
     POST: { pending_id: string }
     """
-    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -337,7 +330,6 @@ def api_janus_clear(request):
     GM clears the JANUS conversation.
     POST: {}
     """
-    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -392,7 +384,6 @@ def api_janus_channels(request):
     Get list of all active JANUS channels with message counts and unread indicators.
     GET: Returns list of channels with metadata.
     """
-    from core.janus_session import JanusSessionManager
     
     channels = JanusSessionManager.get_all_channels()
     channel_data = []
@@ -421,7 +412,6 @@ def api_janus_channel_conversation(request, channel):
     Get conversation for a specific channel (public for player terminals).
     GET: Returns conversation messages for the channel.
     """
-    from core.janus_session import JanusSessionManager
     
     conversation = JanusSessionManager.get_conversation(channel)
     active_view = get_state()
@@ -444,7 +434,6 @@ def api_janus_channel_submit(request, channel):
     POST: { query: string }
     Public endpoint - players submit queries from terminals.
     """
-    from core.janus_session import JanusSessionManager, JanusMessage
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -465,7 +454,6 @@ def api_janus_channel_submit(request, channel):
     # Generate AI response
     active_view = get_state()
     location_path = get_janus_location_path(active_view)
-    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation(channel)
     response = ai.generate_response(query, conversation)
@@ -493,7 +481,6 @@ def api_janus_channel_send(request, channel):
     GM sends message to a specific JANUS channel.
     POST: { content: string }
     """
-    from core.janus_session import JanusSessionManager, JanusMessage
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -525,7 +512,6 @@ def api_janus_channel_mark_read(request, channel):
     Mark all messages in a channel as read by GM.
     POST: No body required.
     """
-    from core.janus_session import JanusSessionManager
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -543,7 +529,6 @@ def api_janus_channel_pending(request, channel):
     Get pending AI responses for a specific channel.
     GET: Returns pending responses awaiting GM approval.
     """
-    from core.janus_session import JanusSessionManager
     
     pending = JanusSessionManager.get_pending_responses(channel)
     
@@ -562,7 +547,6 @@ def api_janus_channel_approve(request, channel):
     Approve a pending AI response for a specific channel.
     POST: { pending_id: string, modified_content?: string }
     """
-    from core.janus_session import JanusSessionManager
     
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -594,7 +578,6 @@ def api_janus_channel_reject(request, channel):
     Reject a pending AI response for a specific channel.
     POST: { pending_id: string }
     """
-    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -626,7 +609,6 @@ def api_janus_channel_generate(request, channel):
     POST: { prompt: string, context_override?: string }
     Returns a pending response for GM approval.
     """
-    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -652,7 +634,6 @@ def api_janus_channel_generate(request, channel):
             location_path = '/'.join(path_slugs)
 
     # Generate AI response with location context
-    from core.janus_ai import get_janus_ai
     ai = get_janus_ai(location_path=location_path)
     conversation = JanusSessionManager.get_conversation(channel)
 
@@ -690,7 +671,6 @@ def api_janus_channel_clear(request, channel):
     GM clears conversation for a specific channel.
     POST: {}
     """
-    from core.janus_session import JanusSessionManager
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)

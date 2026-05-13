@@ -72,7 +72,7 @@ export function RoomContextMenu({
         gap: '4px',
         zIndex: 100,
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-        minWidth: '120px',
+        minWidth: '160px',
         fontFamily: "'Cascadia Code', 'Courier New', monospace",
       }}
       onClick={(e) => e.stopPropagation()}
@@ -110,11 +110,12 @@ export function RoomContextMenu({
       {/* Room description if present */}
       {room.description && (
         <div style={{
-          color: '#5a5a5a',
-          fontSize: '9px',
+          color: '#9a9a9a',
+          fontSize: '11px',
           letterSpacing: '0.5px',
-          marginBottom: '2px',
-          maxWidth: '140px',
+          lineHeight: '1.5',
+          marginBottom: '4px',
+          maxWidth: '200px',
           wordBreak: 'break-word',
         }}>
           {room.description}

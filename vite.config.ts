@@ -22,7 +22,6 @@ export default defineConfig({
 
     rollupOptions: {
       input: {
-        'test-panel': './src/entries/TestPanel.tsx',
         'shared-console': './src/entries/SharedConsole.tsx',
         'gm-console': './src/entries/GMConsole.tsx',
         'player-console': './src/entries/PlayerConsole.tsx',

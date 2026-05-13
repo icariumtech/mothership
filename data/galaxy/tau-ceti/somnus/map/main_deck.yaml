@@ -5,6 +5,7 @@ unit_size: 30
 rooms:
 - id: engineering
   name: ENGINEERING
+  description: Drive and propulsion systems. Radiation levels nominal. Emergency shutdown panel on the aft bulkhead.
   polygon:
   - [7.0, 10.0]
   - [10.0, 7.0]
@@ -13,6 +14,7 @@ rooms:
   - [7.0, 21.0]
 - id: operations
   name: OPERATIONS
+  description: Ship systems monitoring and crew coordination. Comms array terminal operational.
   polygon:
   - [16.0, 7.0]
   - [19.0, 7.0]
@@ -41,6 +43,7 @@ rooms:
   - [3.0, 54.0]
 - id: computer_core
   name: COMPUTER CORE
+  description: JANUS AI primary processing node. Access restricted. Unauthorized interface attempts logged and reported.
   polygon:
   - [11.0, 38.0]
   - [19.0, 38.0]
@@ -54,6 +57,7 @@ rooms:
   - [11.0, 45.0]
 - id: cyropod_chamber
   name: CYROPOD CHAMBER
+  description: Cryogenic suspension bays for 8 crew. Revival sequence requires 40 min. Bay 3 shows irregular cell membrane degradation — do not use.
   polygon:
   - [11.0, 48.0]
   - [16.0, 48.0]
@@ -98,6 +102,7 @@ rooms:
   - [13.0, 73.0]
 - id: bridge
   name: BRIDGE
+  description: Command and navigation. Full sensor suite. Captain's console has been wiped — last 72 hours of logs unrecoverable.
   polygon:
   - [18.0, 51.0]
   - [22.0, 51.0]

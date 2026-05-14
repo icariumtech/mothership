@@ -12,8 +12,8 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 
 **Shipped:** v1.0 MVP (2026-05-07) · **Active:** v2.0 geometry deepening
 
-- 21 phases complete · 5 plans (phase 21) · v2.0 in progress
-- ~171,577 LOC (TypeScript + Python) — EncounterMapRenderer −392 LOC (−21%) after phase 21
+- 22 phases complete · v2.0 in progress
+- ~171,534 LOC (TypeScript + Python) — EncounterMapRenderer −43 LOC after phase 22 (interaction seams extracted)
 - Tech stack: Django 5.2.7, React 19, TypeScript, Vite 5.4, React Three Fiber 9.0, Zustand, GSAP, Ant Design 6.1
 - Data: YAML/Markdown files, flat location directory, per-entity character files
 

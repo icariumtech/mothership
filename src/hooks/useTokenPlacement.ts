@@ -1,5 +1,4 @@
 import { useCallback, type RefObject } from 'react';
-import { message } from 'antd';
 import { getGridCell } from '@/utils/svgCoordinates';
 import type { TokenType, GridRoom } from '@/types/encounterMap';
 
@@ -35,7 +34,6 @@ export function useTokenPlacement({
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     if (!isGM || !onTokenPlace || !svgRef.current) return;
-    e.preventDefault();
 
     const dataStr = e.dataTransfer.getData('application/json');
     if (!dataStr) return;
@@ -49,17 +47,13 @@ export function useTokenPlacement({
 
     const { gridX, gridY } = getGridCell(svgRef.current, e.clientX, e.clientY, unitSize);
 
-    if (isCellOccupied(gridX, gridY)) {
-      message.warning('Cell is already occupied by another token');
-      return;
-    }
+    if (isCellOccupied(gridX, gridY)) return;
 
     const room = findRoomAtCell(gridX, gridY);
-    if (!room) {
-      message.warning('Token can only be placed inside a room');
-      return;
-    }
+    if (!room) return;
 
+    // Only preventDefault on success — failed drops snap back via browser default
+    e.preventDefault();
     onTokenPlace(template.type, template.name, gridX, gridY, template.imageUrl || '', room.id);
   }, [isGM, onTokenPlace, unitSize, isCellOccupied, findRoomAtCell, svgRef]);
 

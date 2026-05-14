@@ -17,7 +17,7 @@
   - **Goal:** Extract `useExclusivePopover` and `useTokenPlacement` hooks from `EncounterMapRenderer.tsx`, completing the renderer interaction decomposition. After both hooks land, the renderer holds no interaction state machines — all geometry, projection, reveal-cascade, pan/zoom, token placement, and popover coordination sit behind named seams. `usePanZoom` was already extracted ad-hoc after Phase 21.
   - **Plans:** 3 plans
   - Plans:
-    - [ ] 22-01-PLAN.md — Create `useExclusivePopover` hook + wire renderer's four popover slots through it (Wave 1)
+    - [x] 22-01-PLAN.md — Create `useExclusivePopover` hook + wire renderer's four popover slots through it (Wave 1)
     - [ ] 22-02-PLAN.md — Create `useTokenPlacement` hook + wire renderer's drag/drop handlers through it (Wave 2)
     - [ ] 22-03-PLAN.md — Static + human smoke verification, orphan-import cleanup (Wave 3, has checkpoint)
   - See `.planning/phases/22-renderer-interaction-seams/`
@@ -75,4 +75,4 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 19. DATA_DIRECTORY_GUIDE.md Rewrite | v1.0 | 1/1 | ✓ Complete | 2026-05-06 |
 | 20. Audit Closure | v1.0 | 3/3 | ✓ Complete | 2026-05-07 |
 | 21. Encounter Geometry Deepening | v2 | 5/5 | ✓ Complete | 2026-05-11 |
-| 22. Renderer Interaction Seams | v2 | 0/3 | Planned | - |
+| 22. Renderer Interaction Seams | v2 | 1/3 | In Progress|  |

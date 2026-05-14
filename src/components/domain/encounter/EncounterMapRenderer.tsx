@@ -9,7 +9,7 @@
 import React, { useMemo, useCallback, useRef } from 'react';
 import { usePanZoom } from '../../../hooks/usePanZoom';
 import { useExclusivePopover } from '../../../hooks/useExclusivePopover';
-import { message } from 'antd';
+import { useTokenPlacement } from '../../../hooks/useTokenPlacement';
 import {
   Door,
   GridEncounterMapData,
@@ -23,7 +23,6 @@ import {
   TokenStatus,
   TokenType,
 } from '../../../types/encounterMap';
-import { getGridCell } from '../../../utils/svgCoordinates';
 import { pointInPolygon } from '../../../utils/polygon2d';
 import { ENCOUNTER_ICONS, iconSymbolId } from './EncounterIcons';
 import { LegendPanel } from './LegendPanel';
@@ -343,44 +342,14 @@ export function EncounterMapRenderer({
     } });
   }, [isGM, openPopover]);
 
-  // -------------------------------------------------------------------
-  // Token drag-and-drop handlers
-  // -------------------------------------------------------------------
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    if (!isGM || !onTokenPlace) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  }, [isGM, onTokenPlace]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    if (!isGM || !onTokenPlace || !svgRef.current) return;
-    e.preventDefault();
-
-    const dataStr = e.dataTransfer.getData('application/json');
-    if (!dataStr) return;
-
-    let template: { type: TokenType; name: string; imageUrl: string };
-    try {
-      template = JSON.parse(dataStr);
-    } catch {
-      return;
-    }
-
-    const { gridX, gridY } = getGridCell(svgRef.current, e.clientX, e.clientY, unitSize);
-
-    if (isCellOccupied(gridX, gridY)) {
-      message.warning('Cell is already occupied by another token');
-      return;
-    }
-
-    const room = findRoomAtCell(gridX, gridY);
-    if (!room) {
-      message.warning('Token can only be placed inside a room');
-      return;
-    }
-
-    onTokenPlace(template.type, template.name, gridX, gridY, template.imageUrl || '', room.id);
-  }, [isGM, onTokenPlace, unitSize, isCellOccupied, findRoomAtCell]);
+  const { handleDragOver, handleDrop } = useTokenPlacement({
+    svgRef,
+    unitSize,
+    isGM,
+    onTokenPlace,
+    isCellOccupied,
+    findRoomAtCell,
+  });
 
   // -------------------------------------------------------------------
   // Render a door symbol at a specific SVG position

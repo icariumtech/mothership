@@ -6,8 +6,9 @@
  * faint background grid, and GM right-click context menu for room visibility.
  */
 
-import React, { useMemo, useState, useCallback, useRef } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import { usePanZoom } from '../../../hooks/usePanZoom';
+import { useExclusivePopover } from '../../../hooks/useExclusivePopover';
 import { message } from 'antd';
 import {
   Door,
@@ -16,6 +17,7 @@ import {
   DoorStatus,
   DoorStatusState,
   HullDef,
+  PoiData,
   RoomVisibilityState,
   TokenState,
   TokenStatus,
@@ -112,6 +114,16 @@ const WALL_THICKNESS = 5;
 //   - doors/doorNormalizer (legacy → canonical Door conversion)
 // -------------------------------------------------------------------
 
+// -------------------------------------------------------------------
+// Exclusive popover discriminated union — one open slot at a time.
+// Defined here (renderer module scope) so the hook stays generic.
+// -------------------------------------------------------------------
+type EncounterPopover =
+  | { type: 'token'; payload: { id: string; pos: { x: number; y: number } } }
+  | { type: 'door';  payload: { id: string; x: number; y: number; status: DoorStatus } }
+  | { type: 'poi';   payload: { poi: PoiData; x: number; y: number } }
+  | { type: 'room';  payload: { room: GridRoom; x: number; y: number } }
+
 export function EncounterMapRenderer({
   mapData,
   roomVisibility,
@@ -134,30 +146,9 @@ export function EncounterMapRenderer({
 }: EncounterMapRendererProps) {
   // Hull override (manifest-level) takes precedence over per-deck hull
   const effectiveHull = hullProp ?? mapData.hull;
-  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
-  const [selectedTokenPos, setSelectedTokenPos] = useState<{ x: number; y: number } | null>(null);
 
-  // Door popup state
-  const [selectedDoor, setSelectedDoor] = useState<{
-    id: string;
-    x: number;
-    y: number;
-    status: DoorStatus;
-  } | null>(null);
-
-  // POI hover popup state
-  const [poiPopup, setPoiPopup] = useState<{
-    poi: import('../../../types/encounterMap').PoiData;
-    x: number;
-    y: number;
-  } | null>(null);
-
-  // Room context menu state
-  const [contextMenu, setContextMenu] = useState<{
-    room: GridRoom;
-    x: number;
-    y: number;
-  } | null>(null);
+  // Single exclusive-popover state — opening any slot closes all others.
+  const { popover, open: openPopover, close: closePopover } = useExclusivePopover<EncounterPopover>();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -299,13 +290,13 @@ export function EncounterMapRenderer({
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    setSelectedDoor({
+    openPopover({ type: 'door', payload: {
       id: door.id,
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
       status: getEffectiveDoorStatus(door),
-    });
-  }, [isGM, onDoorStatusChange, getEffectiveDoorStatus]);
+    } });
+  }, [isGM, onDoorStatusChange, getEffectiveDoorStatus, openPopover]);
 
   // -------------------------------------------------------------------
   // Room right-click handler — opens context menu (GM only)
@@ -316,12 +307,12 @@ export function EncounterMapRenderer({
     e.stopPropagation();
     const container = containerRef.current;
     const rect = container?.getBoundingClientRect();
-    setContextMenu({
+    openPopover({ type: 'room', payload: {
       room,
       x: e.clientX - (rect?.left || 0),
       y: e.clientY - (rect?.top || 0),
-    });
-  }, [isGM]);
+    } });
+  }, [isGM, openPopover]);
 
   // -------------------------------------------------------------------
   // Room tap handler — shows info popup (player terminal only)
@@ -345,12 +336,12 @@ export function EncounterMapRenderer({
     e.stopPropagation();
     const container = containerRef.current;
     const rect = container?.getBoundingClientRect();
-    setContextMenu({
+    openPopover({ type: 'room', payload: {
       room,
       x: e.clientX - (rect?.left || 0),
       y: e.clientY - (rect?.top || 0),
-    });
-  }, [isGM]);
+    } });
+  }, [isGM, openPopover]);
 
   // -------------------------------------------------------------------
   // Token drag-and-drop handlers
@@ -908,7 +899,7 @@ export function EncounterMapRenderer({
     const handlePoiHover = (e: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      setPoiPopup({ poi, x: e.clientX - rect.left, y: e.clientY - rect.top });
+      openPopover({ type: 'poi', payload: { poi, x: e.clientX - rect.left, y: e.clientY - rect.top } });
     };
 
     return (
@@ -918,7 +909,7 @@ export function EncounterMapRenderer({
         opacity={opacity}
         style={{ color: poiColor, cursor: 'pointer' }}
         onMouseEnter={handlePoiHover}
-        onMouseLeave={() => setPoiPopup(null)}
+        onMouseLeave={() => closePopover()}
         onClick={handlePoiHover}
       >
         {iconName ? (
@@ -1109,11 +1100,10 @@ export function EncounterMapRenderer({
             roomVisibility={roomVisibility}
             isGM={isGM}
             onTokenMove={onTokenMove}
-            selectedTokenId={selectedTokenId}
+            selectedTokenId={popover?.type === 'token' ? popover.payload.id : null}
             onTokenSelect={(id, e) => {
               if (id === null) {
-                setSelectedTokenId(null);
-                setSelectedTokenPos(null);
+                closePopover();
               } else {
                 const token = tokens?.[id];
                 const container = containerRef.current;
@@ -1130,18 +1120,16 @@ export function EncounterMapRenderer({
                     pt.y = tokenTopSvgY;
                     const screenPt = pt.matrixTransform(ctm);
                     const rect = container.getBoundingClientRect();
-                    setSelectedTokenId(id);
-                    setSelectedTokenPos({ x: screenPt.x - rect.left, y: screenPt.y - rect.top });
+                    openPopover({ type: 'token', payload: { id, pos: { x: screenPt.x - rect.left, y: screenPt.y - rect.top } } });
                     return;
                   }
                 }
                 // Fallback: center of container
                 const rect = containerRef.current?.getBoundingClientRect();
-                setSelectedTokenId(id);
-                setSelectedTokenPos({
+                openPopover({ type: 'token', payload: { id, pos: {
                   x: e ? e.clientX - (rect?.left || 0) : (rect?.width || 0) / 2,
                   y: e ? e.clientY - (rect?.top || 0) : (rect?.height || 0) / 3,
-                });
+                } } });
               }
             }}
             mapRooms={mapData.rooms as unknown as import('../../../types/encounterMap').RoomData[]}
@@ -1216,13 +1204,13 @@ export function EncounterMapRenderer({
       </div>
 
       {/* Token popup — rendered outside SVG for proper styling */}
-      {selectedTokenId && tokens?.[selectedTokenId] && selectedTokenPos && (
+      {popover?.type === 'token' && tokens?.[popover.payload.id] && (
         <TokenPopup
-          tokenId={selectedTokenId}
-          data={tokens[selectedTokenId]}
-          x={selectedTokenPos.x}
-          y={selectedTokenPos.y}
-          onClose={() => { setSelectedTokenId(null); setSelectedTokenPos(null); }}
+          tokenId={popover.payload.id}
+          data={tokens[popover.payload.id]}
+          x={popover.payload.pos.x}
+          y={popover.payload.pos.y}
+          onClose={() => closePopover()}
           onRemove={onTokenRemove}
           onStatusToggle={onTokenStatusToggle}
           isGM={isGM}
@@ -1230,17 +1218,17 @@ export function EncounterMapRenderer({
       )}
 
       {/* POI info popup — shown on hover/click */}
-      {poiPopup && (
+      {popover?.type === 'poi' && (
         <div
           style={{
             position: 'absolute',
-            left: poiPopup.x + 14,
-            top: poiPopup.y - 10,
+            left: popover.payload.x + 14,
+            top: popover.payload.y - 10,
             background: 'rgba(10, 10, 10, 0.97)',
             border: `1px solid ${
-              poiPopup.poi.type === 'hazard'    ? COLORS.hazard :
-              poiPopup.poi.type === 'objective' ? COLORS.amber :
-              poiPopup.poi.type === 'item'      ? COLORS.tealBright :
+              popover.payload.poi.type === 'hazard'    ? COLORS.hazard :
+              popover.payload.poi.type === 'objective' ? COLORS.amber :
+              popover.payload.poi.type === 'item'      ? COLORS.tealBright :
               COLORS.teal
             }`,
             padding: '8px 12px',
@@ -1254,47 +1242,47 @@ export function EncounterMapRenderer({
           }}
         >
           <div style={{ color: COLORS.textPrimary, marginBottom: 2, fontWeight: 'bold' }}>
-            {poiPopup.poi.name}
+            {popover.payload.poi.name}
           </div>
-          {poiPopup.poi.status && (
-            <div style={{ color: poiPopup.poi.type === 'hazard' ? COLORS.hazard : COLORS.amber, fontSize: '10px' }}>
-              {poiPopup.poi.status}
+          {popover.payload.poi.status && (
+            <div style={{ color: popover.payload.poi.type === 'hazard' ? COLORS.hazard : COLORS.amber, fontSize: '10px' }}>
+              {popover.payload.poi.status}
             </div>
           )}
-          {poiPopup.poi.description && (
+          {popover.payload.poi.description && (
             <div style={{ color: COLORS.textMuted, fontSize: '10px', marginTop: 4 }}>
-              {poiPopup.poi.description}
+              {popover.payload.poi.description}
             </div>
           )}
         </div>
       )}
 
       {/* Door status popup — rendered outside SVG */}
-      {selectedDoor && onDoorStatusChange && (
+      {popover?.type === 'door' && onDoorStatusChange && (
         <DoorStatusPopup
-          x={selectedDoor.x}
-          y={selectedDoor.y}
-          currentStatus={selectedDoor.status}
+          x={popover.payload.x}
+          y={popover.payload.y}
+          currentStatus={popover.payload.status}
           onSelect={(status) => {
-            onDoorStatusChange(selectedDoor.id, status);
-            setSelectedDoor(null);
+            onDoorStatusChange(popover.payload.id, status);
+            closePopover();
           }}
-          onClose={() => setSelectedDoor(null)}
+          onClose={() => closePopover()}
         />
       )}
 
       {/* Room context menu — GM right-click (with toggle) or player tap (info only) */}
-      {contextMenu && (
+      {popover?.type === 'room' && (
         <RoomContextMenu
-          room={contextMenu.room}
-          isVisible={isGM ? isRoomVisible(contextMenu.room.id) : undefined}
-          x={contextMenu.x}
-          y={contextMenu.y}
+          room={popover.payload.room}
+          isVisible={isGM ? isRoomVisible(popover.payload.room.id) : undefined}
+          x={popover.payload.x}
+          y={popover.payload.y}
           onToggleVisibility={isGM ? () => {
-            onRoomToggle?.(contextMenu.room.id, !isRoomVisible(contextMenu.room.id));
-            setContextMenu(null);
+            onRoomToggle?.(popover.payload.room.id, !isRoomVisible(popover.payload.room.id));
+            closePopover();
           } : undefined}
-          onClose={() => setContextMenu(null)}
+          onClose={() => closePopover()}
         />
       )}
     </div>

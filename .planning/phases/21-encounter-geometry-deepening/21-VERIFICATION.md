@@ -1,23 +1,22 @@
 ---
 phase: 21-encounter-geometry-deepening
-verified: 2026-05-11T20:00:00Z
+verified: 2026-05-13T00:00:00Z
 status: passed
-score: 16/17 must-haves verified
+score: 17/17 must-haves verified
 overrides_applied: 0
+human_verification_closed: 2026-05-13
 human_verification:
   - test: "Run `npm test` from the project root and confirm all 156 tests pass"
-    expected: "156 tests pass across 7 test files (polygon2d=23, gridProjection=23, doorNormalizer=35, roomGeometry=36, migratedMaps=5, corridorDoorVisibility=15, scheduleReveal=19)"
-    why_human: "Plan-05 SUMMARY explicitly documents that `npx vitest run` was not executed due to interactive terminal permission not being granted. The 19 scheduleReveal tests were authored and type-checked only. All 137 pre-plan-05 tests were passing per plan-04 summary. The one unverified item is whether the 19 new scheduleReveal tests pass at runtime (vitest executor, not just tsc)."
+    result: "PASSED — confirmed by user 2026-05-13"
   - test: "Load somnus map and patrol gunboat map in both GM console and player terminal; exercise door status toggle, room reveal cascade, and deck switching"
-    expected: "Rooms render correctly; door visibility tracks roomA/roomB state; reveal cascade animates Y-ascending on player terminal; GM view shows instant changes; no phantom cascade on deck switch; right-click door status (CLOSED/LOCKED) works and persists"
-    why_human: "Visual rendering and real-time behavior cannot be verified programmatically. Plan-03 smoke test was user-approved on 2026-05-09. Plan-05 manual smoke test criteria were documented but not confirmed completed."
+    result: "PASSED — confirmed by user 2026-05-13"
 ---
 
 # Phase 21: Encounter Geometry Deepening Verification Report
 
 **Phase Goal:** Deepen the encounter map geometry layer — extract pure geometry modules, canonical Door model, and refactor the renderer to use them — so the codebase is modular, testable, and ready for future map formats.
 **Verified:** 2026-05-11T20:00:00Z
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
@@ -26,7 +25,7 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Vitest runs via `npm test` and produces a passing test report | ? UNCERTAIN | vitest config exists, 137 tests confirmed passing after plan-04; plan-05's 19 new scheduleReveal tests authored + type-checked but NOT run (SUMMARY explicitly states permission not granted). Full 156-test run requires human. |
+| 1 | Vitest runs via `npm test` and produces a passing test report | VERIFIED | All 156 tests pass — confirmed by user 2026-05-13 |
 | 2 | polygon2d module exports pointInPolygon, polygonAreaCentroid, polygonBoundaryFromRay, octagonFromRect | VERIFIED | All 4 exports confirmed at lines 55, 80, 134, 172 of `src/utils/polygon2d.ts` |
 | 3 | polygon2d has zero domain type imports | VERIFIED | No import statements in polygon2d.ts at all — defines local Point/Polygon/GridRectShape |
 | 4 | gridProjection exports topDownProjection({unitSize}); Projection interface with project/unproject | VERIFIED | Confirmed at lines 19, 25, 38, 67 of gridProjection.ts |
@@ -44,7 +43,7 @@ human_verification:
 | 16 | migrate_doors_to_canonical.py one-shot migration script exists and is substantive | VERIFIED | 767 LOC at tools/migrate_doors_to_canonical.py with 20+ functions |
 | 17 | svg_to_map.py --detect-doors emits B-rel AuthoredDoorRel form | VERIFIED | Lines 401-409 of svg_to_map.py: B-rel as default, B-pos fallback for multi-edge disambiguation |
 
-**Score:** 16/17 truths verified (1 uncertain pending human test run)
+**Score:** 17/17 truths verified
 
 ### Required Artifacts
 
@@ -105,7 +104,7 @@ Step 7b: SKIPPED for server-side checks (cannot start dev server). TypeScript co
 | Legacy adapter removed | `grep "extractAuthoredDoorsFromRooms" EncounterMapRenderer.tsx` | no output | PASS |
 | Cascade plumbing removed | `grep "roomClearTimersRef\|prevRoomVisibilityRef" EncounterMapRenderer.tsx` | no output | PASS |
 | scheduleReveal has no React | `grep "^import.*react" scheduleReveal.ts` | no output | PASS |
-| 156 vitest tests pass at runtime | `npm test` | NOT RUN — plan-05 session did not have permission | SKIP — see human_verification |
+| 156 vitest tests pass at runtime | `npm test` | All 156 tests pass — confirmed by user 2026-05-13 | PASS |
 
 ### Requirements Coverage
 
@@ -141,7 +140,7 @@ Scanned: polygon2d.ts, gridProjection.ts, roomGeometry.ts, mapView.ts, doorNorma
 
 ### Gaps Summary
 
-No BLOCKER gaps found. All must-have artifacts exist, are substantive, and are wired. The single uncertain item (scheduleReveal test runtime) is verified at code level (file exists, substantive, type-clean) but requires a `npm test` run to confirm vitest actually executes all 19 new cases to green. This is a human verification item, not a FAILED truth.
+No gaps. All 17 truths verified, all artifacts present and wired, all human verification items confirmed by user 2026-05-13.
 
 ---
 

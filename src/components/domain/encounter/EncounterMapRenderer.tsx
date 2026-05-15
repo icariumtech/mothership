@@ -626,19 +626,29 @@ export function EncounterMapRenderer({
     ].filter(Boolean).join(' ');
 
     const label = room.name ? view.labelPosition(room) : null;
-    const labelEl = label && (isGM || visible) ? (
-      <text
-        x={label.x}
-        y={label.y}
-        className="encounter-map__room-label"
-        fontSize={view.unitSize * 0.45}
-        fill="#8b7355"
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {room.name}
-      </text>
-    ) : null;
+    const labelEl = label && (isGM || visible) ? (() => {
+      const [odx, ody] = room.label_offset ?? [0, 0];
+      const lx = label.x + odx * unitSize;
+      const ly = label.y + ody * unitSize;
+      // Counter-rotate so label stays upright on maps with a fixed rotation
+      const transform = mapRotation !== 0
+        ? `rotate(${-mapRotation}, ${lx}, ${ly})`
+        : undefined;
+      return (
+        <text
+          x={lx}
+          y={ly}
+          className="encounter-map__room-label"
+          fontSize={view.unitSize * 0.45}
+          fill="#8b7355"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          transform={transform}
+        >
+          {room.name}
+        </text>
+      );
+    })() : null;
 
     // === Circular room ===
     if (room.circle) {

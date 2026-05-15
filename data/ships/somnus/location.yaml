@@ -1,5 +1,16 @@
 name: "USCSS Somnus"
 type: "ship"
 description: "Long-haul sleeper transport carrying 432 colonists in cryogenic stasis — registered to Weyland-Yutani Colonial Transport Division"
-coordinates: "Tau Ceti e orbit"
 status: "OPERATIONAL"
+
+parent_type: orbit
+body_slug: tau-ceti-e
+system_slug: tau-ceti
+
+orbital:
+  radius: 28
+  period: 120
+  angle: 210
+  inclination: 5
+  size: 2.0
+  icon_type: ship

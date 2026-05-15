@@ -208,6 +208,17 @@ export function EncounterMapRenderer({
     };
   }, [view, mapData.rooms, effectiveHull, viewPadding]);
 
+  // Fixed map rotation (YAML-authored, not user-controlled)
+  const mapRotation = mapData.rotation ?? 0;
+  const mapCenterX = originX + svgWidth / 2;
+  const mapCenterY = originY + svgHeight / 2;
+  // For 90/270° rotations the effective bounding box flips W↔H
+  const rotIs90or270 = mapRotation === 90 || mapRotation === 270;
+  const rotViewBoxX = rotIs90or270 ? mapCenterX - svgHeight / 2 : originX;
+  const rotViewBoxY = rotIs90or270 ? mapCenterY - svgWidth / 2 : originY;
+  const rotViewBoxW = rotIs90or270 ? svgHeight : svgWidth;
+  const rotViewBoxH = rotIs90or270 ? svgWidth : svgHeight;
+
   // Hull SVG polygon points string — projected via mapView
   const hullSvgPoints = useMemo(() => {
     if (!effectiveHull) return null;
@@ -349,6 +360,9 @@ export function EncounterMapRenderer({
     onTokenPlace,
     isCellOccupied,
     findRoomAtCell,
+    mapRotation,
+    mapCenterX: mapCenterX,
+    mapCenterY: mapCenterY,
   });
 
   // -------------------------------------------------------------------
@@ -935,7 +949,7 @@ export function EncounterMapRenderer({
       {/* SVG Map */}
       <svg
         ref={svgRef}
-        viewBox={`${originX} ${originY} ${svgWidth} ${svgHeight}`}
+        viewBox={`${rotViewBoxX} ${rotViewBoxY} ${rotViewBoxW} ${rotViewBoxH}`}
         className="encounter-map-renderer__svg"
         preserveAspectRatio="xMidYMid meet"
         style={{
@@ -967,6 +981,10 @@ export function EncounterMapRenderer({
             />
           </pattern>
         </defs>
+
+        {/* Fixed rotation wrapper — rotates all map content around its center.
+            mapRotation is YAML-authored (e.g. 90 for a horizontally-oriented ship). */}
+        <g transform={mapRotation !== 0 ? `rotate(${mapRotation}, ${mapCenterX}, ${mapCenterY})` : undefined}>
 
         {/* Background — fill entire viewBox with faint grid */}
         <rect
@@ -1078,9 +1096,19 @@ export function EncounterMapRenderer({
                 const container = containerRef.current;
                 const svg = svgRef.current;
                 if (token && container && svg) {
-                  // Token top-center in SVG (viewBox) coordinates
-                  const tokenTopSvgX = token.x * unitSize + unitSize / 2;
-                  const tokenTopSvgY = token.y * unitSize + unitSize / 2 - unitSize * 0.4;
+                  // Token top-center in original grid-space SVG coordinates
+                  let tokenTopSvgX = token.x * unitSize + unitSize / 2;
+                  let tokenTopSvgY = token.y * unitSize + unitSize / 2 - unitSize * 0.4;
+                  // Apply map rotation so the point is in viewBox space (the <g> rotates it visually)
+                  if (mapRotation !== 0) {
+                    const rad = (mapRotation * Math.PI) / 180;
+                    const cos = Math.cos(rad);
+                    const sin = Math.sin(rad);
+                    const dx = tokenTopSvgX - mapCenterX;
+                    const dy = tokenTopSvgY - mapCenterY;
+                    tokenTopSvgX = mapCenterX + dx * cos - dy * sin;
+                    tokenTopSvgY = mapCenterY + dx * sin + dy * cos;
+                  }
                   // getScreenCTM includes viewBox + preserveAspectRatio + CSS pan/zoom transform
                   const ctm = svg.getScreenCTM();
                   if (ctm) {
@@ -1102,8 +1130,13 @@ export function EncounterMapRenderer({
               }
             }}
             mapRooms={mapData.rooms as unknown as import('../../../types/encounterMap').RoomData[]}
+            mapRotation={mapRotation}
+            mapCenterX={mapCenterX}
+            mapCenterY={mapCenterY}
           />
         )}
+
+        </g>{/* end fixed rotation wrapper */}
       </svg>
 
       {/* Overlay panels - positioned by CSS Grid */}
@@ -1124,16 +1157,16 @@ export function EncounterMapRenderer({
           zIndex: 1,
         }}
       >
-        {/* Reset view button - top center */}
+        {/* Reset view button - top left */}
         {(viewState.zoom !== 1 || viewState.panX !== 0 || viewState.panY !== 0) && (
           <button
             className="encounter-map__reset-btn"
             onClick={handleResetView}
             title="Reset view"
             style={{
-              gridArea: 'top-center',
+              gridArea: 'top-left',
               alignSelf: 'start',
-              justifySelf: 'center',
+              justifySelf: 'start',
               pointerEvents: 'auto',
               background: 'rgba(15, 21, 21, 0.95)',
               border: '1px solid #4a6b6b',

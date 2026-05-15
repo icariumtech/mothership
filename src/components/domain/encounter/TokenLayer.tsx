@@ -8,7 +8,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { TokenState, TokenData, RoomData, GridRoom } from '../../../types/encounterMap';
 import { Token } from './Token';
-import { screenToSVG, snapToGrid } from '@/utils/svgCoordinates';
+import { screenToSVG, snapToGrid, inverseRotatePoint } from '@/utils/svgCoordinates';
 import { pointInPolygon } from '@/utils/polygon2d';
 
 interface RoomVisibilityState {
@@ -28,6 +28,9 @@ interface TokenLayerProps {
   selectedTokenId?: string | null;
   onTokenSelect?: (id: string | null, e?: React.MouseEvent) => void;
   mapRooms?: (RoomData | GridRoom)[];
+  mapRotation?: number;
+  mapCenterX?: number;
+  mapCenterY?: number;
 }
 
 export function TokenLayer({
@@ -39,6 +42,9 @@ export function TokenLayer({
   selectedTokenId = null,
   onTokenSelect,
   mapRooms = [],
+  mapRotation = 0,
+  mapCenterX = 0,
+  mapCenterY = 0,
 }: TokenLayerProps) {
   // Rendering state (drives JSX)
   const [isDragging, setIsDragging] = useState(false);
@@ -64,6 +70,9 @@ export function TokenLayer({
   const roomVisibilityRef = useRef(roomVisibility);
   const isGMRef = useRef(isGM);
   const unitSizeRef = useRef(unitSize);
+  const mapRotationRef = useRef(mapRotation);
+  const mapCenterXRef = useRef(mapCenterX);
+  const mapCenterYRef = useRef(mapCenterY);
 
   useEffect(() => { tokensRef.current = tokens; }, [tokens]);
   useEffect(() => { onTokenMoveRef.current = onTokenMove; }, [onTokenMove]);
@@ -71,6 +80,9 @@ export function TokenLayer({
   useEffect(() => { selectedTokenIdRef.current = selectedTokenId; }, [selectedTokenId]);
   useEffect(() => { mapRoomsRef.current = mapRooms; }, [mapRooms]);
   useEffect(() => { roomVisibilityRef.current = roomVisibility; }, [roomVisibility]);
+  useEffect(() => { mapRotationRef.current = mapRotation; }, [mapRotation]);
+  useEffect(() => { mapCenterXRef.current = mapCenterX; }, [mapCenterX]);
+  useEffect(() => { mapCenterYRef.current = mapCenterY; }, [mapCenterY]);
   useEffect(() => { isGMRef.current = isGM; }, [isGM]);
   useEffect(() => { unitSizeRef.current = unitSize; }, [unitSize]);
 
@@ -199,7 +211,8 @@ export function TokenLayer({
     // Active drag — update ghost position
     if (!isDraggingRef.current || !dragTokenIdRef.current || !svgElementRef.current) return;
     const svgCoords = screenToSVG(svgElementRef.current, clientX, clientY);
-    const snapped = snapToGrid(svgCoords.x, svgCoords.y, unitSizeRef.current);
+    const unrotated = inverseRotatePoint(svgCoords.x, svgCoords.y, mapRotationRef.current, mapCenterXRef.current, mapCenterYRef.current);
+    const snapped = snapToGrid(unrotated.x, unrotated.y, unitSizeRef.current);
     ghostPositionRef.current = snapped;
     setGhostPosition(snapped);
   }, []); // stable — reads all values from refs
@@ -333,6 +346,7 @@ export function TokenLayer({
               selected={!isActiveDrag && selectedTokenId === id}
               onSelect={isActiveDrag ? undefined : handleTokenSelect}
               onPointerDragStart={isActiveDrag || !tokenDraggable ? undefined : handleTokenPointerDragStart}
+              mapRotation={mapRotation}
             />
           </g>
         );
@@ -351,6 +365,7 @@ export function TokenLayer({
           draggable={false}
           selected={false}
           onSelect={() => {}}
+          mapRotation={mapRotation}
         />
       )}
     </g>

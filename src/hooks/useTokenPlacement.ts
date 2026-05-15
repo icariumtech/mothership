@@ -9,6 +9,9 @@ export interface UseTokenPlacementOpts {
   onTokenPlace?: (type: TokenType, name: string, gridX: number, gridY: number, imageUrl: string, roomId: string) => void;
   isCellOccupied: (gridX: number, gridY: number) => boolean;
   findRoomAtCell: (gridX: number, gridY: number) => GridRoom | null;
+  mapRotation?: number;
+  mapCenterX?: number;
+  mapCenterY?: number;
 }
 
 /**
@@ -25,6 +28,9 @@ export function useTokenPlacement({
   onTokenPlace,
   isCellOccupied,
   findRoomAtCell,
+  mapRotation = 0,
+  mapCenterX = 0,
+  mapCenterY = 0,
 }: UseTokenPlacementOpts) {
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (!isGM || !onTokenPlace) return;
@@ -45,7 +51,7 @@ export function useTokenPlacement({
       return;
     }
 
-    const { gridX, gridY } = getGridCell(svgRef.current, e.clientX, e.clientY, unitSize);
+    const { gridX, gridY } = getGridCell(svgRef.current, e.clientX, e.clientY, unitSize, mapRotation, mapCenterX, mapCenterY);
 
     if (isCellOccupied(gridX, gridY)) return;
 

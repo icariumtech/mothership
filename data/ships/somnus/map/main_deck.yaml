@@ -2,6 +2,7 @@ deck_id: main_deck
 name: Somnus — Main Deck
 location_name: Somnus
 unit_size: 30
+rotation: 90
 rooms:
 - id: engineering
   name: ENGINEERING

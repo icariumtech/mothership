@@ -17,6 +17,7 @@ interface TokenProps {
   selected?: boolean;
   onSelect?: (id: string, e?: React.MouseEvent) => void;
   onPointerDragStart?: (id: string, e: React.PointerEvent<Element>) => void;
+  mapRotation?: number;
 }
 
 // Type-based glow colors (per user decision)
@@ -34,6 +35,7 @@ export function Token({
   draggable = false,
   onSelect,
   onPointerDragStart,
+  mapRotation = 0,
 }: TokenProps) {
   // Calculate center position
   const centerX = data.x * unitSize + unitSize / 2;
@@ -123,8 +125,8 @@ export function Token({
       {/* Token body - image or fallback circle */}
       {hasImage ? (
         <>
-          {/* Clipped image */}
-          <g clipPath={`url(#token-clip-${id})`}>
+          {/* Clipped image — counter-rotated so portrait stays upright on rotated maps */}
+          <g clipPath={`url(#token-clip-${id})`} transform={mapRotation !== 0 ? `rotate(${-mapRotation})` : undefined}>
             <image
               href={data.image_url}
               x={-tokenRadius}
@@ -155,6 +157,7 @@ export function Token({
             stroke={glowColor}
             strokeWidth={strokeWidth}
           />
+          {/* Initial letter — counter-rotated so it stays upright on rotated maps */}
           <text
             x={0}
             y={0}
@@ -165,14 +168,17 @@ export function Token({
             fontFamily="Cascadia Code, monospace"
             fontWeight="bold"
             pointerEvents="none"
+            transform={mapRotation !== 0 ? `rotate(${-mapRotation})` : undefined}
           >
             {initial}
           </text>
         </>
       )}
 
-      {/* Status overlays */}
-      <TokenStatusOverlay status={data.status} tokenRadius={tokenRadius} />
+      {/* Status overlays — counter-rotated so indicators stay upright on rotated maps */}
+      <g transform={mapRotation !== 0 ? `rotate(${-mapRotation})` : undefined}>
+        <TokenStatusOverlay status={data.status} tokenRadius={tokenRadius} />
+      </g>
 
     </g>
   );

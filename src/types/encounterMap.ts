@@ -276,6 +276,7 @@ export interface GridEncounterMapData {
   location_name?: string;
   description?: string;
   unit_size?: number;   // pixels per cell — default 40 if omitted
+  rotation?: number;    // fixed display rotation in degrees (0, 90, 180, 270)
   hull?: HullDef;       // optional ship/structure outer frame polygon
   rooms: GridRoom[];
   /**

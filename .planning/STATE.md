@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 22 context gathered
-last_updated: "2026-05-14T21:18:46.059Z"
+stopped_at: Phase 23 context gathered
+last_updated: "2026-05-16T17:01:08.309Z"
 last_activity: 2026-05-14
 progress:
-  total_phases: 21
-  completed_phases: 20
-  total_plans: 57
-  completed_plans: 56
-  percent: 95
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -44,8 +44,12 @@ Decisions are logged in PROJECT.md Key Decisions table.
 
 See `.planning/milestones/v1.0-ROADMAP.md` for full v1.0 decision log.
 
+### Roadmap Evolution
+
+- Phase 23 added: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
+
 ## Session Continuity
 
-Last session: 2026-05-14T03:32:21.468Z
-Stopped at: Phase 22 context gathered
+Last session: 2026-05-16T17:01:08.300Z
+Stopped at: Phase 23 context gathered
 Next step: Plan v2.0 next phase (UI Audio, or pick from deferred deepening candidates)

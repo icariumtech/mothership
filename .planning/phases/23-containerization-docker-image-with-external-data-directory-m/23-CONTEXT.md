@@ -6,14 +6,15 @@
 <domain>
 ## Phase Boundary
 
-Package the Mothership GM Terminal as a portable Docker image published to GitHub Container Registry (GHCR). Campaign data lives outside the container on an external mounted volume. A remote AI game-master agent can read and write YAML data files via a Django REST API during live play. The homelab server runs `docker compose up` to pull and start the container — no local build required.
+Package the Mothership GM Terminal as a portable Docker image published to GitHub Container Registry (GHCR). Campaign data lives outside the container on an external mounted volume. A remote AI game-master agent connects via MCP (Model Context Protocol) to read and write YAML data files during live play. The homelab server runs `docker compose up` to pull and start both services — no local build required.
 
 This phase builds:
-1. `Dockerfile` — multi-stage build: Vite production build + Django app in a single container
-2. `docker-compose.yml` — homelab deployment: mounts `data/` and `db.sqlite3`, exposes port 8000, sets env vars
+1. `Dockerfile` — multi-stage build: Vite production build + Django app in a single image
+2. `docker-compose.yml` — homelab deployment: two services (`app` on port 8000, `mcp` on port 8001), shared data volume mounts, env vars
 3. GitHub Actions CI workflow — builds and pushes to GHCR on push to main
-4. Django REST API for AI agent data access (file-level read/write + session snapshot)
-5. Entrypoint script for first-run initialization
+4. Django REST API for AI agent data access (file-level read/write + session snapshot) — called internally by the MCP server
+5. FastMCP server — Python MCP server exposing named tools to the campaign AI over HTTP transport
+6. Entrypoint script for first-run initialization
 
 Out of scope: semantic game operation endpoints (future phase), authentication/auth tokens, media/portraits volume (portraits live in `data/`).
 
@@ -42,12 +43,24 @@ Out of scope: semantic game operation endpoints (future phase), authentication/a
 - **D-11:** No in-memory cache for DataLoader — it already reads from disk on every request. AI writes a file → visible on the very next API call. No TTL cache, no invalidation logic needed.
 - **D-12:** Django's `django.core.cache` is used only for JANUS AI conversation state (not campaign data). No changes to JANUS caching behavior.
 
+### MCP Server (Campaign AI Client Interface)
+- **D-13:** FastMCP (Python MCP SDK) server as a separate docker-compose service (`mcp`), using the same Docker image as `app` but a different command. Exposes MCP tools over HTTP transport on port 8001.
+- **D-14:** Campaign AI runs on a remote machine. It connects to the MCP server at `http://homelab-ip:8001` and uses the MCP protocol to interact with game data. HTTP transport (not stdio) because the AI is remote, not co-located.
+- **D-15:** MCP server communicates with Django internally via the REST API at `http://app:8000` (Docker internal network). Clean separation — MCP service calls the same endpoints the AI would otherwise call directly.
+- **D-16:** Four MCP tools exposed to the campaign AI:
+  - `get_session_context()` — current game state snapshot (encounter, tokens, room visibility, ship status, NPC list)
+  - `list_files(dir)` — list files in a data directory
+  - `read_file(path)` — read raw YAML content of a campaign file
+  - `write_file(path, content)` — write YAML content; triggers SSE broadcast to player terminals
+- **D-17:** Both `app` and `mcp` services mount the same `data/` and `db.sqlite3` volumes. Both use the same image tag pulled from GHCR.
+
 ### Claude's Discretion
 - Specific Gunicorn worker count and concurrency settings (tune based on typical player count of ~5)
 - WhiteNoise vs. `collectstatic` approach for serving Vite static files
 - Dockerfile base image choice (python:3.12-slim recommended)
 - Exact GitHub Actions workflow triggers (push to main, manual dispatch)
 - SUPERUSER_USERNAME / SUPERUSER_PASSWORD env var names for first-run entrypoint
+- FastMCP server port (8001 recommended) and whether it needs its own entrypoint command
 
 </decisions>
 
@@ -70,7 +83,11 @@ Out of scope: semantic game operation endpoints (future phase), authentication/a
 ### Project Constraints
 - `CLAUDE.md` — project guidelines; file-based data constraint, Django + React/TS stack is locked
 - `.planning/PROJECT.md` — Key Decisions table; file-based data over DB is a locked decision
-- `requirements.txt` — Python dependencies; `gunicorn` and `gevent` must be added
+- `requirements.txt` — Python dependencies; `gunicorn`, `gevent`, and `mcp` (FastMCP) must be added
+
+### MCP Protocol
+- FastMCP docs: https://github.com/jlowin/fastmcp — Python MCP server framework; use for tool definitions and HTTP transport setup
+- MCP spec HTTP transport uses SSE for server→client streaming; FastMCP handles this automatically
 
 ### Future Phase Reference
 - Semantic game operation endpoints (move-token, reveal-room, update-npc-status) are deferred — do NOT implement in this phase
@@ -93,10 +110,11 @@ Out of scope: semantic game operation endpoints (future phase), authentication/a
 
 ### Integration Points
 - `mothership/settings.py` — add `STATIC_ROOT`, `WHITENOISE_ROOT`, `ALLOWED_HOSTS = ['*']` (or env-driven), `DEBUG = False` for production build
-- `requirements.txt` — add `gunicorn`, `gevent`, `whitenoise`
+- `requirements.txt` — add `gunicorn`, `gevent`, `whitenoise`, `mcp` (FastMCP)
 - New `docker-entrypoint.sh` — runs migrations, optional superuser creation, then `exec gunicorn ...`
 - New `Dockerfile` — two stages: Node (npm ci + npm run build) then Python (copy static output, pip install, copy app)
-- New `docker-compose.yml` — image: ghcr.io/{user}/mothership:latest, volumes, ports, environment
+- New `docker-compose.yml` — two services: `app` (Gunicorn, port 8000) and `mcp` (FastMCP, port 8001); both use same image from GHCR; both mount `data/` and `db.sqlite3`
+- New `mcp_server.py` — FastMCP server defining four tools; calls Django REST API at `http://app:8000` for all operations
 
 </code_context>
 
@@ -104,7 +122,9 @@ Out of scope: semantic game operation endpoints (future phase), authentication/a
 ## Specific Ideas
 
 - The homelab server workflow should be as simple as: `git clone` the docker-compose.yml, create a `data/` directory, set env vars in compose file, `docker compose up -d`.
-- The AI agent interface is explicitly for a future Claude (or other LLM) acting as campaign GM. The file-level API should have a companion `GET /api/gm/data-schema` endpoint that returns the DATA_DIRECTORY_GUIDE summary — giving the AI a map of what files exist and what they mean.
+- The MCP server is the primary interface for the campaign AI. The REST API is the internal implementation that the MCP server calls. The campaign AI should never need to call the REST API directly.
+- Campaign AI connects to MCP at `http://homelab-ip:8001` — add this port to docker-compose.yml `ports:` on the `mcp` service.
+- The file-level API should have a companion `GET /api/gm/data-schema` endpoint that returns the DATA_DIRECTORY_GUIDE summary — giving the AI a map of what files exist and what they mean. Expose this as a `get_data_schema()` MCP tool too.
 - Gevent workers: `gunicorn --worker-class gevent --workers 3 --bind 0.0.0.0:8000 mothership.wsgi:application`
 
 </specifics>

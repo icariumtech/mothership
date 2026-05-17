@@ -1,0 +1,40 @@
+# Mothership GM Terminal — homelab deployment
+# Before first run: touch db.sqlite3 (Docker creates bind-mount targets as directories if missing)
+# Pull latest image: docker compose pull
+# Start services: docker compose up -d
+# Required env vars: SECRET_KEY, DJANGO_SUPERUSER_PASSWORD
+
+services:
+  app:
+    image: ghcr.io/icariumtech/mothership:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./db.sqlite3:/app/db.sqlite3
+    environment:
+      SECRET_KEY: "${SECRET_KEY}"
+      DEBUG: "False"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-*}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      DJANGO_SUPERUSER_USERNAME: "${DJANGO_SUPERUSER_USERNAME:-admin}"
+      DJANGO_SUPERUSER_PASSWORD: "${DJANGO_SUPERUSER_PASSWORD}"
+      DJANGO_SUPERUSER_EMAIL: "${DJANGO_SUPERUSER_EMAIL:-admin@localhost}"
+      DATA_DIR: "/app/data"
+    restart: unless-stopped
+
+  mcp:
+    image: ghcr.io/icariumtech/mothership:latest
+    command: ["python", "mcp_server.py"]
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data:/app/data
+      - ./db.sqlite3:/app/db.sqlite3
+    environment:
+      SECRET_KEY: "${SECRET_KEY}"
+      DEBUG: "False"
+      DATA_DIR: "/app/data"
+    depends_on:
+      - app
+    restart: unless-stopped

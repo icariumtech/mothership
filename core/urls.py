@@ -29,6 +29,13 @@ urlpatterns = [
     path('api/gm/sessions/', views.api_sessions, name='api_sessions'),
     path('api/gm/campaign-docs/', views.api_campaign_docs, name='api_campaign_docs'),
     path('api/gm/campaign-docs/<str:slug>/', views.api_campaign_doc, name='api_campaign_doc'),
+    # GM Data API — AI agent file access (Phase 23, D-07 D-08)
+    # NOTE: api/gm/data/ (no path param) MUST come before api/gm/data/<path:filepath>
+    # so Django matches the list endpoint before trying the file endpoint.
+    path('api/gm/data/', views.api_gm_data_list, name='gm_data_list'),
+    path('api/gm/data/<path:filepath>', views.api_gm_data_file, name='gm_data_file'),
+    path('api/gm/session-context', views.api_gm_session_context, name='gm_session_context'),
+    path('api/gm/data-schema', views.api_gm_data_schema, name='gm_data_schema'),
     path('api/gm/switch-view/', views.api_switch_view, name='api_switch_view'),
     path('api/gm/show-terminal/', views.api_show_terminal, name='api_show_terminal'),
     path('api/gm/broadcast/', views.api_broadcast, name='api_broadcast'),

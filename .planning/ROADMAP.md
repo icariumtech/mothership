@@ -76,18 +76,18 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 20. Audit Closure | v1.0 | 3/3 | ✓ Complete | 2026-05-07 |
 | 21. Encounter Geometry Deepening | v2 | 5/5 | ✓ Complete | 2026-05-11 |
 | 22. Renderer Interaction Seams | v2 | 3/3 | Complete    | 2026-05-14 |
-| 23. Containerization           | v2 | 0/5 | Planned     | —          |
+| 23. Containerization           | v2 | 2/5 | In Progress|  |
 
 ### Phase 23: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 
 **Goal:** Package the Mothership GM Terminal as a portable Docker image published to GHCR. Campaign data lives on an external mounted volume. A remote AI game-master agent connects via MCP to read and write YAML data files during live play. Homelab server runs `docker compose up` — no local build required.
 **Requirements**: D-01–D-17 (see 23-CONTEXT.md)
 **Depends on:** Phase 22
-**Plans:** 5 plans
+**Plans:** 2/5 plans executed
 
 **Wave 1** (parallel — no dependencies):
-- [ ] 23-01-PLAN.md — Django production config: WhiteNoise static serving, env-driven settings, DataLoader DATA_DIR, Gunicorn gevent config, SSE announce_generic method
-- [ ] 23-02-PLAN.md — Dockerfile multi-stage build (Vite → Django) + docker-entrypoint.sh first-run init
+- [x] 23-01-PLAN.md — Django production config: WhiteNoise static serving, env-driven settings, DataLoader DATA_DIR, Gunicorn gevent config, SSE announce_generic method
+- [x] 23-02-PLAN.md — Dockerfile multi-stage build (Vite → Django) + docker-entrypoint.sh first-run init
 
 **Wave 2** *(blocked on Wave 1 — 23-01)*:
 - [ ] 23-03-PLAN.md — GM data REST API (list/read/write/session-context/data-schema endpoints) + Wave 0 behavioral tests with path-traversal defense

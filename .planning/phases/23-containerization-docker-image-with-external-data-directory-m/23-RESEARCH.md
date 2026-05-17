@@ -769,27 +769,31 @@ This phase does not rename or refactor existing identifiers.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **DataLoader `DATA_DIR` path in settings**
    - What we know: `DataLoader.__init__` takes `data_dir: str = "data"`. In the container, data lives at `/app/data`.
    - What's unclear: Is `DataLoader()` always instantiated with default `"data"`, or does something pass the path explicitly?
    - Recommendation: Add `DATA_DIR = os.environ.get('DATA_DIR', 'data')` to settings and update `get_loader()` in `data_loader.py` to use `settings.DATA_DIR`.
+   - **RESOLVED (Plan 01, Task 2):** `DataLoader()` is always called with no args in `get_loader()`. Plan 01 Task 2 updates `get_loader()` to use `DataLoader(getattr(settings, 'DATA_DIR', 'data'))`, and Plan 01 Task 1 adds `DATA_DIR = os.environ.get('DATA_DIR', str(BASE_DIR / 'data'))` to `config/settings.py`.
 
 2. **Cache backend compatibility with gevent**
    - What we know: JANUS session uses `django.core.cache` with `FileBasedCache` at `/tmp/django_cache`. Gevent monkey-patches `os`.
    - What's unclear: Whether `FileBasedCache`'s file locking (via `fcntl`) is gevent-compatible.
    - Recommendation: Test JANUS session under gevent. If file locking deadlocks, switch to `LocMemCache` (per-process, fine for single-worker deployment).
+   - **RESOLVED (Plan 01, Task 1):** Switch `CACHES` to `LocMemCache` proactively. With `workers = 1` (single gevent worker), per-process in-memory cache is acceptable — all requests share the same worker process. `LocMemCache` avoids `FileBasedCache`'s `fcntl` file locking entirely, eliminating any risk of gevent monkey-patch interference. JANUS conversation state is stored per-process, which is fine for a single-worker homelab deployment.
 
 3. **pnpm in Dockerfile Node stage**
    - What we know: Project uses pnpm (lock file present, pnpm in package.json `dependencies`).
    - What's unclear: Whether `node:22-slim` includes corepack by default.
    - Recommendation: Add `RUN corepack enable && corepack prepare pnpm@latest --activate` to the Dockerfile Node stage.
+   - **RESOLVED (Plan 02, Task 1):** Use `RUN corepack enable` in the Dockerfile Node stage. `node:22-slim` ships with Node.js 22 which includes corepack bundled. `corepack enable` activates it and the `pnpm-lock.yaml` presence causes corepack to auto-install the correct pnpm version on first use.
 
 4. **The `announce_generic` broadcaster method**
    - What we know: Current `MessageAnnouncer` has `announce()` and `announce_ship_status()` for named events.
    - What's unclear: Should a new `announce_generic(event, data)` method be added, or should the write view call `format_sse` directly?
    - Recommendation: Add `announce_generic` to keep SSE event dispatch consistent.
+   - **RESOLVED (Plan 01, Task 3):** Add `announce_generic(event: str, data: dict) -> None` to `MessageAnnouncer`. Mirrors `announce_ship_status` structure, parameterized on event name. The write view calls `broadcaster.announce_generic('data-changed', {...})` in a try/except after the atomic write succeeds.
 
 ---
 

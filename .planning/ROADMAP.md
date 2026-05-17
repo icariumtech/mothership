@@ -76,14 +76,14 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 20. Audit Closure | v1.0 | 3/3 | ✓ Complete | 2026-05-07 |
 | 21. Encounter Geometry Deepening | v2 | 5/5 | ✓ Complete | 2026-05-11 |
 | 22. Renderer Interaction Seams | v2 | 3/3 | Complete    | 2026-05-14 |
-| 23. Containerization           | v2 | 4/5 | In Progress|  |
+| 23. Containerization           | v2 | 5/5 | Complete   | 2026-05-17 |
 
 ### Phase 23: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 
 **Goal:** Package the Mothership GM Terminal as a portable Docker image published to GHCR. Campaign data lives on an external mounted volume. A remote AI game-master agent connects via MCP to read and write YAML data files during live play. Homelab server runs `docker compose up` — no local build required.
 **Requirements**: D-01–D-17 (see 23-CONTEXT.md)
 **Depends on:** Phase 22
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 **Wave 1** (parallel — no dependencies):
 - [x] 23-01-PLAN.md — Django production config: WhiteNoise static serving, env-driven settings, DataLoader DATA_DIR, Gunicorn gevent config, SSE announce_generic method
@@ -96,7 +96,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 - [x] 23-04-PLAN.md — FastMCP server (5 MCP tools calling Django API over HTTP transport, port 8001)
 
 **Wave 4** *(blocked on Wave 3 — 23-02, 23-04)*:
-- [ ] 23-05-PLAN.md — docker-compose.yml (two services, shared data volumes) + GitHub Actions GHCR publish workflow
+- [x] 23-05-PLAN.md — docker-compose.yml (two services, shared data volumes) + GitHub Actions GHCR publish workflow
 
 **Cross-cutting constraints:**
 - All services use the same GHCR image tag (`ghcr.io/{owner}/mothership`)

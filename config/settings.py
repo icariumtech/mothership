@@ -27,12 +27,12 @@ OBSIDIAN_VAULT_PATH = os.environ.get('OBSIDIAN_VAULT_PATH', '')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-l_lzruv)tsb8uig6#7kesmkl3ri7o%62_&hsa)wbt4b_ia3j4o'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-l_lzruv)tsb8uig6#7kesmkl3ri7o%62_&hsa)wbt4b_ia3j4o')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']  # Allow all hosts - change this in production to your specific domain/IP
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')  # Allow all hosts - change this in production to your specific domain/IP
 
 
 # Application definition
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -88,12 +89,10 @@ DATABASES = {
 }
 
 # Cache configuration
-# Use file-based cache to enable cross-process access (Django shell, server, etc.)
+# Use LocMemCache — safe with workers=1 gevent deployment; avoids fcntl conflicts with gevent
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': '/tmp/django_cache',
-        'TIMEOUT': 14400,  # 4 hours (matches CACHE_TTL in janus_session.py)
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
 
@@ -132,6 +131,16 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'core' / 'static']
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
+# Data directory — override with DATA_DIR env var in container (e.g. /app/data)
+DATA_DIR = os.environ.get('DATA_DIR', str(BASE_DIR / 'data'))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

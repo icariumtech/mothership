@@ -904,7 +904,8 @@ _loader: Optional[DataLoader] = None
 def get_loader() -> DataLoader:
     global _loader
     if _loader is None:
-        _loader = DataLoader()
+        from django.conf import settings
+        _loader = DataLoader(getattr(settings, 'DATA_DIR', 'data'))
     return _loader
 
 

@@ -44,6 +44,17 @@ class MessageAnnouncer:
             except queue.Full:
                 self.unlisten(listeners[i])
 
+    def announce_generic(self, event: str, data: dict) -> None:
+        """Broadcast a named SSE event with arbitrary data to all connected clients."""
+        msg = format_sse(json.dumps(data, default=str), event=event)
+        with self._lock:
+            listeners = list(self.listeners)
+        for i in reversed(range(len(listeners))):
+            try:
+                listeners[i].put_nowait(msg)
+            except queue.Full:
+                self.unlisten(listeners[i])
+
 
 def format_sse(data: str, event: str | None = None) -> str:
     msg = f'data: {data}\n\n'

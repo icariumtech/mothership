@@ -1,0 +1,45 @@
+# Stage 1: Build Vite frontend
+# node:22-slim ships with Node.js 22 which includes corepack bundled.
+# corepack enable activates pnpm — pnpm-lock.yaml presence auto-installs the correct version.
+FROM node:22-slim AS frontend-builder
+WORKDIR /build
+
+RUN corepack enable
+
+# Copy dependency manifests first — separate cache layer from source changes
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Copy source files for the build
+COPY src/ src/
+COPY vite.config.ts tsconfig.json ./
+
+# Build — output lands in core/static/js/ per vite.config.ts build.outDir
+RUN pnpm run build
+
+# Stage 2: Python production image
+FROM python:3.12-slim AS app
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy Django application code
+COPY . .
+
+# Overwrite the empty/dev core/static/js/ with the Vite build output from the Node stage
+COPY --from=frontend-builder /build/core/static/js/ core/static/js/
+
+# Collect static files into /app/staticfiles/ for WhiteNoise — runs at BUILD time, not startup
+RUN python manage.py collectstatic --noinput
+
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+EXPOSE 8000
+ENTRYPOINT ["/docker-entrypoint.sh"]

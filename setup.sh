@@ -22,18 +22,23 @@ PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
 echo "Found Python $PYTHON_VERSION"
 echo ""
 
-# Check Node/npm version
+# Check Node/pnpm version
 echo "Checking Node.js version..."
-if ! command -v npm &> /dev/null; then
-    echo "ERROR: Node.js/npm is not installed!"
+if ! command -v node &> /dev/null; then
+    echo "ERROR: Node.js is not installed!"
     echo "Please install Node.js 18 or higher"
     exit 1
 fi
 
+if ! command -v pnpm &> /dev/null; then
+    echo "pnpm not found — installing via corepack..."
+    corepack enable pnpm
+fi
+
 NODE_VERSION=$(node --version)
-NPM_VERSION=$(npm --version)
+PNPM_VERSION=$(pnpm --version)
 echo "Found Node.js $NODE_VERSION"
-echo "Found npm $NPM_VERSION"
+echo "Found pnpm $PNPM_VERSION"
 echo ""
 
 # Step 1: Create Python virtual environment
@@ -56,7 +61,7 @@ echo ""
 
 # Step 3: Install Node dependencies
 echo "Step 3/6: Installing Node.js dependencies..."
-npm install
+pnpm install
 echo "✓ Node.js dependencies installed"
 echo ""
 
@@ -73,7 +78,7 @@ echo ""
 
 # Step 5: Build frontend
 echo "Step 5/6: Building frontend assets..."
-npm run build
+pnpm run build
 echo "✓ Frontend built successfully"
 echo ""
 

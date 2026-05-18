@@ -22,14 +22,14 @@ A retro-futuristic web application for game masters running Mothership RPG campa
 
 - **Python 3.8+** - Backend server
 - **Node.js 18+** - Frontend build tools
-- **npm 9+** - Package management
+- **pnpm 9+** - Package management (`corepack enable pnpm` or `npm install -g pnpm`)
 
 ### Check Installed Versions
 
 ```bash
 python3 --version
 node --version
-npm --version
+pnpm --version
 ```
 
 ---
@@ -81,7 +81,7 @@ pip install -r requirements.txt
 #### 3. Install Node.js Dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 #### 4. Configure Environment Variables
@@ -100,7 +100,7 @@ Edit `.env` to configure:
 #### 5. Build Frontend
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 #### 6. Initialize Database
@@ -143,7 +143,7 @@ Terminal:   http://192.168.1.100:8000/terminal/
 For frontend development with Vite's hot module replacement:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 This starts Vite dev server on `http://localhost:5173/` (separate from Django).
@@ -151,7 +151,7 @@ This starts Vite dev server on `http://localhost:5173/` (separate from Django).
 ### Building for Production
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 Compiles TypeScript and bundles assets to `dist/` directory.
@@ -159,10 +159,72 @@ Compiles TypeScript and bundles assets to `dist/` directory.
 ### Type Checking
 
 ```bash
-npm run typecheck
+pnpm run typecheck
 ```
 
 Runs TypeScript compiler without emitting files.
+
+---
+
+## Homelab Deployment (Docker)
+
+Run the application as a container — no Python or Node.js required on the host. The image is published to GitHub Container Registry on every push to `main`.
+
+### Prerequisites
+
+- Docker with Compose plugin (`docker compose version`)
+- A `SECRET_KEY` value (any long random string)
+
+### First-Time Setup
+
+```bash
+# 1. Copy the example env file and fill in required values
+cp .env.example .env
+# Edit .env: set SECRET_KEY, optionally ANTHROPIC_API_KEY and ALLOWED_HOSTS
+
+# 2. Create the database file so Docker bind-mounts it as a file (not a directory)
+touch db.sqlite3
+
+# 3. Pull the latest image and start
+docker compose pull
+docker compose up -d
+```
+
+The app will be available at `http://localhost:8000`. The GM console is at `/gmconsole/` and requires login.
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SECRET_KEY` | **Yes** | Django secret key — any long random string (e.g. `openssl rand -hex 32`) |
+| `DEBUG` | No | Set to `True` only for local troubleshooting. Defaults to `False`. |
+| `ALLOWED_HOSTS` | No | Comma-separated hostnames/IPs. Defaults to `localhost,127.0.0.1`. Set to your LAN IP for player access (e.g. `192.168.1.100,localhost`). |
+| `ANTHROPIC_API_KEY` | No | Required for CHARON AI features |
+| `DJANGO_SUPERUSER_USERNAME` | No | Auto-creates GM account on first start (default: `admin`) |
+| `DJANGO_SUPERUSER_PASSWORD` | No | Required with `DJANGO_SUPERUSER_USERNAME` |
+
+### Updating
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Campaign data (`data/`) and the database (`db.sqlite3`) are bind-mounted from the host — they persist across image updates.
+
+### Docker Files
+
+All Docker-related files live in `docker/`:
+
+```
+docker/
+├── Dockerfile       # Multi-stage build: Node/pnpm frontend + Python app
+├── entrypoint.sh    # Container startup: migrations → gunicorn
+├── gunicorn.conf.py # Production WSGI server config (gevent, 500 connections)
+└── compose.yml      # Homelab deployment definition
+```
+
+The `COMPOSE_FILE=docker/compose.yml` line in `.env` lets you run `docker compose` from the project root without needing `-f docker/compose.yml`.
 
 ---
 
@@ -329,11 +391,11 @@ python manage.py runserver 8080
 
 ### Node Modules Issues
 
-If npm install fails or frontend won't build:
+If pnpm install fails or frontend won't build:
 
 ```bash
-rm -rf node_modules package-lock.json
-npm install
+rm -rf node_modules
+pnpm install
 ```
 
 ### Database Issues

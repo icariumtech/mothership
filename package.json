@@ -1,6 +1,7 @@
 {
   "name": "charon",
   "version": "1.0.0",
+  "packageManager": "pnpm@10.32.0",
   "description": "A retro-futuristic web application for game masters running Mothership RPG campaigns. Features an atmospheric terminal interface inspired by the CHARON computer from Aliens.",
   "main": "index.js",
   "scripts": {

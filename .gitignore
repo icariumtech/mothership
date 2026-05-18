@@ -215,3 +215,4 @@ core/static/js/chunks/
 core/static/js/assets/
 node_modules
 .reports/
+package-lock.json

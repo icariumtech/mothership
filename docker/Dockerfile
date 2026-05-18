@@ -1,19 +1,21 @@
 # Stage 1: Build Vite frontend
-# node:22-slim ships with npm. We use npm ci against the committed package-lock.json
-# for reproducible, fast installs separated from the source-copy layer below.
+# node:22-slim ships with corepack. We activate pnpm via corepack and install
+# against the committed pnpm-lock.yaml for reproducible, fast installs.
 FROM node:22-slim AS frontend-builder
 WORKDIR /build
 
+RUN corepack enable pnpm
+
 # Copy dependency manifests first — separate cache layer from source changes
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Copy source files for the build
 COPY src/ src/
 COPY vite.config.ts tsconfig.json ./
 
 # Build — output lands in core/static/js/ per vite.config.ts build.outDir
-RUN npm run build
+RUN pnpm run build
 
 # Stage 2: Python production image
 FROM python:3.12-slim AS app
@@ -35,13 +37,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Django application code
 COPY . .
 
+# gunicorn.conf.py lives in docker/ — copy it to /app where gunicorn expects it
+COPY docker/gunicorn.conf.py gunicorn.conf.py
+
 # Overwrite the empty/dev core/static/js/ with the Vite build output from the Node stage
 COPY --from=frontend-builder /build/core/static/js/ core/static/js/
 
 # Collect static files into /app/staticfiles/ for WhiteNoise — runs at BUILD time, not startup
 RUN SECRET_KEY=$BUILD_SECRET_KEY python manage.py collectstatic --noinput
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY docker/entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 8000

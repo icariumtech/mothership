@@ -33,9 +33,10 @@
 
 ```bash
 ./setup.sh && ./start_server.sh   # Setup + run
-npm run dev                        # Vite dev server with hot reload
-npm run build                      # Production build
-npm run typecheck                  # TypeScript type checking
+pnpm run dev                       # Vite dev server with hot reload
+pnpm run build                     # Production build
+pnpm run typecheck                 # TypeScript type checking
+docker compose up -d               # Run via container (requires .env with SECRET_KEY)
 ```
 
 **URLs**: GM Console `/gmconsole/` · Terminal `/terminal/` · Admin `/admin/` · API `/api/active-view/` `/api/messages/`

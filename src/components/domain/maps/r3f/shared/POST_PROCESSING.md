@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Mothership GM Tool now includes a foundation for post-processing effects using `@react-three/postprocessing`. These effects can add visual polish like bloom, chromatic aberration, and other cinematic effects to the 3D map views.
+The JANUS GM Tool now includes a foundation for post-processing effects using `@react-three/postprocessing`. These effects can add visual polish like bloom, chromatic aberration, and other cinematic effects to the 3D map views.
 
 **Current Status**: Post-processing is **disabled by default** for optimal performance. It can be easily enabled when needed for specific visual effects.
 
@@ -46,7 +46,7 @@ The bloom effect adds a glow to bright objects in the scene (stars, glowing plan
 
 ### Example Configurations
 
-**Subtle sci-fi glow** (recommended for Mothership aesthetic):
+**Subtle sci-fi glow** (recommended for JANUS aesthetic):
 ```tsx
 <PostProcessing
   enabled={true}
@@ -220,7 +220,7 @@ Post-processing is added to:
 For issues or questions:
 - Check `@react-three/postprocessing` docs: https://docs.pmnd.rs/react-postprocessing
 - Review Three.js postprocessing examples
-- File issue in Mothership GM Tool repository
+- File issue in JANUS GM Tool repository
 
 ---
 

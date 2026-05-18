@@ -1,5 +1,5 @@
 """
-WSGI config for mothership_gm project.
+WSGI config for janus project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

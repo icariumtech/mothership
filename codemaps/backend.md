@@ -5,7 +5,7 @@
 ## Django Project Structure
 
 ```
-mothership_gm/          # Django project
+config/                 # Django project
 ├── __init__.py
 ├── settings.py         # Configuration (DB, static files, apps)
 ├── urls.py             # URL routing (includes terminal.urls)

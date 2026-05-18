@@ -1,4 +1,4 @@
-# Mothership GM Terminal — homelab deployment
+# JANUS GM Tool — homelab deployment
 # Before first run: touch db.sqlite3 (Docker creates bind-mount targets as directories if missing)
 # Pull latest image: docker compose pull
 # Start services: docker compose up -d
@@ -6,7 +6,7 @@
 
 services:
   app:
-    image: ghcr.io/icariumtech/mothership:latest
+    image: ghcr.io/icariumtech/janus:latest
     ports:
       - "8000:8000"
     volumes:
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
 
   mcp:
-    image: ghcr.io/icariumtech/mothership:latest
+    image: ghcr.io/icariumtech/janus:latest
     command: ["python", "mcp_server.py"]
     ports:
       - "8001:8001"

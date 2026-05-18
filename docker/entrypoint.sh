@@ -1,11 +1,11 @@
 #!/bin/bash
-# Mothership GM Terminal — Docker entrypoint
+# JANUS GM Tool — Docker entrypoint
 # Handles CMD override for the mcp service (FIRST, before any Django work),
 # database initialization, optional superuser creation, and Gunicorn startup.
 # Guard-first ordering prevents SQLite lock contention when app and mcp start concurrently.
 set -e
 
-echo "=== MOTHERSHIP ENTRYPOINT ==="
+echo "=== JANUS ENTRYPOINT ==="
 
 # CMD override guard — MUST run before migrate so the mcp service skips Django setup entirely.
 # When docker-compose specifies command: ["python", "mcp_server.py"], those args arrive as "$@".
@@ -33,7 +33,7 @@ if [ -n "$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; t
 fi
 
 # Default path: start Gunicorn with the gevent worker config.
-# config.wsgi:application — NOT mothership.wsgi (see config/settings.py WSGI_APPLICATION).
+# config.wsgi:application (see WSGI_APPLICATION in config/settings.py)
 echo "=== Starting Gunicorn ==="
 exec gunicorn \
     --config gunicorn.conf.py \

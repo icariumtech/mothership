@@ -1,5 +1,5 @@
 """
-ASGI config for mothership_gm project.
+ASGI config for janus project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

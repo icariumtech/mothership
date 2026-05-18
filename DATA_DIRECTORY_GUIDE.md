@@ -1,6 +1,6 @@
 # Data Directory Guide
 
-This document describes how to structure the `data/` directory for the Mothership GM Tool.
+This document describes how to structure the `data/` directory for the JANUS GM Tool.
 Use it as a reference when creating or editing campaign data.
 
 ---

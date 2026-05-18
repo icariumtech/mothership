@@ -1,6 +1,6 @@
 # Style Guide
 
-UI Design System for the Mothership GM Tool. This guide defines the visual language inspired by Alien Romulus (2024) - a realistic, muted CRT aesthetic.
+UI Design System for the JANUS GM Tool. This guide defines the visual language inspired by Alien Romulus (2024) - a realistic, muted CRT aesthetic.
 
 ## Color Scheme (V2-2: Teal-Tinted CRT)
 

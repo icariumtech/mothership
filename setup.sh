@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Mothership RPG GM Terminal - Setup Script
+# JANUS GM Tool - Setup Script
 # Run this script once after cloning the repository
 
 set -e  # Exit on any error
 
 echo "========================================"
-echo "MOTHERSHIP RPG - GM TERMINAL SETUP"
+echo "JANUS GM TOOL SETUP"
 echo "========================================"
 echo ""
 

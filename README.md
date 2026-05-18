@@ -1,6 +1,6 @@
-# Mothership RPG - Game Master Terminal
+# JANUS — GM Tool for Mothership RPG
 
-A retro-futuristic web application for game masters running Mothership RPG campaigns. Features an atmospheric terminal interface inspired by retro-futuristic ship computers.
+A retro-futuristic GM tool for Mothership RPG campaigns. JANUS is an interactive command center with atmospheric terminal interfaces, 3D maps, and AI-assisted storytelling.
 
 ## Features
 
@@ -412,7 +412,7 @@ python manage.py createsuperuser
 
 ```bash
 # Make sure you're in the right directory
-cd /path/to/mothership
+cd /path/to/janus
 
 # Activate virtual environment
 source .venv/bin/activate
@@ -488,7 +488,7 @@ Look for your local network IP (usually starts with `192.168.` or `10.`)
 ## Project Structure
 
 ```
-mothership/
+janus/
 ├── .venv/                  # Python virtual environment
 ├── .env                    # Environment variables
 ├── db.sqlite3              # SQLite database
@@ -512,7 +512,7 @@ mothership/
 │   ├── views.py            # API endpoints
 │   ├── data_loader.py      # File-based data loading
 │   └── templates/          # HTML templates
-├── mothership_gm/          # Django project settings
+├── config/                 # Django project settings
 ├── scripts/                # Utility scripts
 ├── codemaps/               # Architecture documentation
 ├── setup.sh                # Initial setup script
@@ -552,6 +552,6 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-**Repository**: https://github.com/icariumtech/mothership
+**Repository**: https://github.com/icariumtech/janus
 
 Have fun running your Mothership campaign!

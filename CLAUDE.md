@@ -17,7 +17,7 @@
 
 # Overview
 
-**mothership** — GM tool for Mothership RPG campaigns. Full-stack web app serving as an interactive command center with atmospheric JANUS computer messaging, 3D galaxy maps, and encounter tracking.
+**janus** — GM tool for Mothership RPG campaigns. Full-stack web app serving as an interactive command center with atmospheric JANUS computer messaging, 3D galaxy maps, and encounter tracking.
 
 **Persona**: Expert full-stack developer. Write efficient, readable code. Create reusable functions, avoid duplication.
 

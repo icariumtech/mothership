@@ -1,5 +1,5 @@
 """
-FastMCP HTTP server for the Mothership GM campaign AI.
+FastMCP HTTP server for the JANUS GM campaign AI.
 
 Exposes five tools at http://<host>:8001/mcp/ over HTTP transport.
 Delegates all logic to the Django REST API at DJANGO_BASE_URL.
@@ -19,7 +19,7 @@ from fastmcp import FastMCP
 
 DJANGO_BASE_URL = os.environ.get("DJANGO_BASE_URL", "http://app:8000")
 
-mcp = FastMCP("MothershipGM")
+mcp = FastMCP("JanusGM")
 
 
 @mcp.tool

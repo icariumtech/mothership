@@ -52,7 +52,7 @@ interface BlockData {
 }
 
 export function StandbyView({
-  title = 'MOTHERSHIP',
+  title = 'JANUS',
   subtitle = 'The Outer Veil'
 }: StandbyViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);

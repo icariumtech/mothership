@@ -1,8 +1,8 @@
 {
-  "name": "charon",
+  "name": "janus",
   "version": "1.0.0",
   "packageManager": "pnpm@10.32.0",
-  "description": "A retro-futuristic web application for game masters running Mothership RPG campaigns. Features an atmospheric terminal interface inspired by the CHARON computer from Aliens.",
+  "description": "A retro-futuristic web application for game masters running Mothership RPG campaigns. JANUS is an interactive command center with atmospheric terminal interfaces, 3D maps, and AI-assisted storytelling.",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
@@ -16,15 +16,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/icariumtech/mothership.git"
+    "url": "git+https://github.com/icariumtech/janus.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/icariumtech/mothership/issues"
+    "url": "https://github.com/icariumtech/janus/issues"
   },
-  "homepage": "https://github.com/icariumtech/mothership#readme",
+  "homepage": "https://github.com/icariumtech/janus#readme",
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@react-spring/three": "^10.0.3",

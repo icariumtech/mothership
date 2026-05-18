@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Mothership RPG GM Terminal - Start Server Script
+# JANUS GM Tool - Start Server Script
 
 echo "================================"
-echo "MOTHERSHIP RPG - GM TERMINAL"
+echo "JANUS GM TOOL"
 echo "================================"
 echo ""
 

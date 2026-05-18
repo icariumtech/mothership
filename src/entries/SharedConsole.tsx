@@ -879,7 +879,7 @@ function SharedConsole() {
 
       {/* Header - hidden in standby and JANUS terminal modes */}
       <TerminalHeader
-        title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : viewType === 'BRIDGE' ? (shipData?.name?.toUpperCase() || 'MOTHERSHIP') : 'MOTHERSHIP'}
+        title={viewType === 'ENCOUNTER' ? (activeView?.location_name?.toUpperCase() || '') : viewType === 'BRIDGE' ? (shipData?.name?.toUpperCase() || 'JANUS') : 'JANUS'}
         subtitle={viewType === 'ENCOUNTER' || viewType === 'BRIDGE' ? undefined : 'TERMINAL'}
         rightText={viewType === 'ENCOUNTER' || viewType === 'BRIDGE' ? undefined : 'STATION ACCESS'}
         rightDescription={viewType === 'BRIDGE' ? (shipData?.class || undefined) : undefined}
@@ -889,7 +889,7 @@ function SharedConsole() {
 
       {/* View content */}
       {viewType === 'STANDBY' && (
-        <StandbyView title="MOTHERSHIP" subtitle="The Outer Veil" />
+        <StandbyView title="JANUS" subtitle="The Outer Veil" />
       )}
 
       {viewType === 'BRIDGE' && (

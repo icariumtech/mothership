@@ -1,6 +1,6 @@
 # UI Components Documentation
 
-This directory contains reusable UI components for the Mothership GM Tool.
+This directory contains reusable UI components for the JANUS GM Tool.
 
 ## Panel Component System
 

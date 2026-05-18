@@ -1,4 +1,4 @@
-# JANUS — Sci-Fi RPG GM Tool
+# JANUS — Sci-Fi Campaign Console
 
 JANUS is a retro-futuristic GM tool for science fiction tabletop RPGs. Originally built for [Mothership RPG](https://www.mothershiprpg.com/) campaigns, it works for any sci-fi setting. Think of it as a ship's computer console that the GM controls — players see an atmospheric CRT terminal on a shared screen at the table.
 

@@ -27,6 +27,9 @@ if [ ! -f "db.sqlite3" ]; then
 fi
 
 echo ""
+# Force DEBUG=True so Django's dev server serves static files
+export DEBUG=True
+
 echo "Starting development server..."
 echo "Detecting network configuration..."
 echo ""

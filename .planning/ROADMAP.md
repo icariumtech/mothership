@@ -102,6 +102,11 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 - [x] 23-06.1-PLAN.md — Fix Dockerfile pnpm→npm lockfile mismatch + reorder docker-entrypoint.sh CMD guard above migrate (VERIFICATION blocker + CR-01)
 - [x] 23-06.2-PLAN.md — Harden settings.py defaults (SECRET_KEY required, DEBUG=False, ALLOWED_HOSTS loopback) + add app healthcheck and mcp service_healthy dependency + Dockerfile BUILD_SECRET_KEY ARG (CR-02, WR-03, WR-04)
 
+### Phase 24: JANUS Skills — Claude Code skill library for AI-driven campaign data management
+
+**Goal:** Create a `janus-skills` repository containing Claude Code skill files that encode the DATA_DIRECTORY_GUIDE into focused, task-specific workflows. Skills use the JANUS MCP server (port 8001) to read and write campaign YAML data. Enables both GM-driven manual workflows (add NPC, move ship, generate location context) and automated AI agent pipelines (Obsidian → janus.yaml generation).
+**Depends on:** Phase 23
+
 **Cross-cutting constraints:**
 - All services use the same GHCR image tag (`ghcr.io/{owner}/mothership`)
 - Both `app` and `mcp` services mount `./data:/app/data` and `./db.sqlite3:/app/db.sqlite3`

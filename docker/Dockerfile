@@ -15,7 +15,8 @@ COPY src/ src/
 COPY vite.config.ts tsconfig.json tsconfig.node.json ./
 
 # Build — output lands in core/static/js/ per vite.config.ts build.outDir
-RUN pnpm run build
+# Use vite directly — tsc type-checking is a separate CI concern, not part of artifact production
+RUN pnpm exec vite build
 
 # Stage 2: Python production image
 FROM python:3.12-slim AS app

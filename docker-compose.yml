@@ -15,12 +15,18 @@ services:
     environment:
       SECRET_KEY: "${SECRET_KEY}"
       DEBUG: "False"
-      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-*}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-localhost,127.0.0.1}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       DJANGO_SUPERUSER_USERNAME: "${DJANGO_SUPERUSER_USERNAME:-admin}"
       DJANGO_SUPERUSER_PASSWORD: "${DJANGO_SUPERUSER_PASSWORD}"
       DJANGO_SUPERUSER_EMAIL: "${DJANGO_SUPERUSER_EMAIL:-admin@localhost}"
       DATA_DIR: "/app/data"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/active-view/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
 
   mcp:
@@ -36,5 +42,6 @@ services:
       DEBUG: "False"
       DATA_DIR: "/app/data"
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     restart: unless-stopped

@@ -23,6 +23,11 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=config.settings
 
+# Build-only SECRET_KEY: needed because settings.py now exits if SECRET_KEY is unset.
+# This value is used ONLY for collectstatic at build time. The runtime SECRET_KEY MUST
+# be supplied via the container environment (docker-compose.yml or docker run -e).
+ARG BUILD_SECRET_KEY=django-build-only-not-used-at-runtime
+
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -34,7 +39,7 @@ COPY . .
 COPY --from=frontend-builder /build/core/static/js/ core/static/js/
 
 # Collect static files into /app/staticfiles/ for WhiteNoise — runs at BUILD time, not startup
-RUN python manage.py collectstatic --noinput
+RUN SECRET_KEY=$BUILD_SECRET_KEY python manage.py collectstatic --noinput
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh

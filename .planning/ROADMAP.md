@@ -76,7 +76,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 20. Audit Closure | v1.0 | 3/3 | ✓ Complete | 2026-05-07 |
 | 21. Encounter Geometry Deepening | v2 | 5/5 | ✓ Complete | 2026-05-11 |
 | 22. Renderer Interaction Seams | v2 | 3/3 | Complete    | 2026-05-14 |
-| 23. Containerization           | v2 | 7/7 | Complete   | 2026-05-18 |
+| 23. Containerization           | v2 | 7/7 | Complete    | 2026-05-18 |
 
 ### Phase 23: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 

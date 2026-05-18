@@ -100,7 +100,6 @@ Edit `.env` to configure:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ANTHROPIC_API_KEY` | Yes (for JANUS AI) | Your Anthropic API key for Claude integration. Get one at https://console.anthropic.com/ |
-| `OBSIDIAN_VAULT_PATH` | No | Path to your Obsidian vault containing campaign lore. JANUS will read linked notes for context-aware responses. |
 
 #### 5. Build Frontend
 

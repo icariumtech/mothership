@@ -21,9 +21,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 from dotenv import load_dotenv
 load_dotenv(BASE_DIR / '.env')
 
-# Obsidian vault path for JANUS knowledge integration
-OBSIDIAN_VAULT_PATH = os.environ.get('OBSIDIAN_VAULT_PATH', '')
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 

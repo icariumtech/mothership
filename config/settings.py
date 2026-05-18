@@ -35,6 +35,12 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')  # Override via ALLOWED_HOSTS env var for any non-loopback deployment
 
+# Django 4.0+ requires full origins (scheme+host+port) for CSRF validation.
+# Set CSRF_TRUSTED_ORIGINS to a comma-separated list of origins, e.g.:
+# http://192.168.1.100:8000,https://janus.example.com
+_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(',') if o.strip()]
+
 
 # Application definition
 

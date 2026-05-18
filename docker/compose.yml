@@ -6,7 +6,7 @@
 
 services:
   app:
-    image: ghcr.io/icariumtech/janus:latest
+    image: ghcr.io/icariumtech/janus-console:latest
     ports:
       - "8000:8000"
     volumes:
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
 
   mcp:
-    image: ghcr.io/icariumtech/janus:latest
+    image: ghcr.io/icariumtech/janus-console:latest
     command: ["python", "mcp_server.py"]
     ports:
       - "8001:8001"

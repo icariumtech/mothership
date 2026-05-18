@@ -16,15 +16,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/icariumtech/janus.git"
+    "url": "git+https://github.com/icariumtech/janus-console.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/icariumtech/janus/issues"
+    "url": "https://github.com/icariumtech/janus-console/issues"
   },
-  "homepage": "https://github.com/icariumtech/janus#readme",
+  "homepage": "https://github.com/icariumtech/janus-console#readme",
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@react-spring/three": "^10.0.3",

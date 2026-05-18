@@ -557,6 +557,6 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-**Repository**: https://github.com/icariumtech/janus
+**Repository**: https://github.com/icariumtech/janus-console
 
 Have fun running your Mothership campaign!

@@ -1,21 +1,19 @@
 # Stage 1: Build Vite frontend
-# node:22-slim ships with Node.js 22 which includes corepack bundled.
-# corepack enable activates pnpm — pnpm-lock.yaml presence auto-installs the correct version.
+# node:22-slim ships with npm. We use npm ci against the committed package-lock.json
+# for reproducible, fast installs separated from the source-copy layer below.
 FROM node:22-slim AS frontend-builder
 WORKDIR /build
 
-RUN corepack enable
-
 # Copy dependency manifests first — separate cache layer from source changes
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # Copy source files for the build
 COPY src/ src/
 COPY vite.config.ts tsconfig.json ./
 
 # Build — output lands in core/static/js/ per vite.config.ts build.outDir
-RUN pnpm run build
+RUN npm run build
 
 # Stage 2: Python production image
 FROM python:3.12-slim AS app

@@ -1,10 +1,19 @@
 #!/bin/bash
 # Mothership GM Terminal — Docker entrypoint
-# Handles first-run database initialization, optional superuser creation,
-# CMD override for the mcp service, and Gunicorn startup.
+# Handles CMD override for the mcp service (FIRST, before any Django work),
+# database initialization, optional superuser creation, and Gunicorn startup.
+# Guard-first ordering prevents SQLite lock contention when app and mcp start concurrently.
 set -e
 
 echo "=== MOTHERSHIP ENTRYPOINT ==="
+
+# CMD override guard — MUST run before migrate so the mcp service skips Django setup entirely.
+# When docker-compose specifies command: ["python", "mcp_server.py"], those args arrive as "$@".
+# Exec'ing them here avoids the SQLite OperationalError that occurs if both 'app' and 'mcp'
+# containers race to migrate the shared bind-mounted db.sqlite3 (see 23-REVIEW.md CR-01).
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+fi
 
 # Run Django migrations on every startup — idempotent, safe on an already-migrated database.
 # Do NOT check for db.sqlite3 existence: Docker bind mounts create missing host files as
@@ -21,14 +30,6 @@ if [ -n "$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; t
         --username "$DJANGO_SUPERUSER_USERNAME" \
         --email "${DJANGO_SUPERUSER_EMAIL:-admin@localhost}" \
         2>/dev/null || echo "Superuser already exists, skipping."
-fi
-
-# CMD override guard — CRITICAL for the mcp service.
-# When docker-compose specifies command: ["python", "mcp_server.py"], those args are
-# passed as "$@" to this entrypoint. Exec them directly, skipping migrate and createsuperuser.
-# The mcp service must NOT run migrations (race condition with the app service — Pitfall 6).
-if [ "$#" -gt 0 ]; then
-    exec "$@"
 fi
 
 # Default path: start Gunicorn with the gevent worker config.

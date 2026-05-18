@@ -12,7 +12,7 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source files for the build
 COPY src/ src/
-COPY vite.config.ts tsconfig.json ./
+COPY vite.config.ts tsconfig.json tsconfig.node.json ./
 
 # Build — output lands in core/static/js/ per vite.config.ts build.outDir
 RUN pnpm run build

@@ -1,18 +1,23 @@
-# JANUS — GM Tool for Mothership RPG
+# JANUS — Sci-Fi RPG GM Tool
 
-A retro-futuristic GM tool for Mothership RPG campaigns. JANUS is an interactive command center with atmospheric terminal interfaces, 3D maps, and AI-assisted storytelling.
+JANUS is a retro-futuristic GM tool for science fiction tabletop RPGs. Originally built for [Mothership RPG](https://www.mothershiprpg.com/) campaigns, it works for any sci-fi setting. Think of it as a ship's computer console that the GM controls — players see an atmospheric CRT terminal on a shared screen at the table.
+
+## How It Works
+
+JANUS is designed for **in-person play with a shared display**. The GM runs the console on their laptop; players see a single shared screen (TV, monitor, or projected display) showing whatever the GM pushes to it — star maps, encounter grids, ship status, or incoming transmissions.
+
+**Multiple players, one view.** Any number of player devices can connect to the terminal URL simultaneously and they all see the same thing, kept in sync in real time via server-sent events. This is intentional: it's a shared ambient display, not individual dashboards. If you want a player to see something privately, use the messages system (each player gets their own inbox).
 
 ## Features
 
 - **Bridge View Dashboard**: Interactive 3D galaxy/system/orbit map navigation with tabbed interface for crew, contacts, notes, and status
-- **JANUS AI Terminal**: Interactive AI chat interface with typewriter effect, processing indicators, and inline query input
-- **3D Visualization**: React Three Fiber-powered galaxy maps with stars, nebulae, travel routes, and drill-down navigation
-- **Multi-View Terminal System**: Display different views (BRIDGE, ENCOUNTER, COMM_TERMINAL, JANUS) on shared terminal
-- **Atmospheric Messaging**: Send in-character messages styled like classic sci-fi computer systems
-- **Retro CRT Aesthetic**: Muted teal/amber color scheme with chamfered angular panels and subtle scanline effects
-- **Priority Levels**: Mark messages as LOW, NORMAL, HIGH, or CRITICAL with visual indicators
-- **Network Access**: Players connect from phones/tablets on local network
-- **File-Based Campaign Data**: Git-friendly YAML + Markdown storage with nested location hierarchy
+- **JANUS AI Terminal**: AI-assisted ship computer — players ask questions, GM reviews and approves responses before they appear
+- **3D Visualization**: React Three Fiber-powered galaxy maps with stars, nebulae, travel routes, and drill-down to systems and orbits
+- **Grid-Based Encounter Maps**: SVG-rendered deck plans with room reveal, tokens, doors, and POI icons
+- **Atmospheric Messaging**: Send in-character transmissions styled like classic sci-fi computer systems
+- **Retro CRT Aesthetic**: Muted teal/amber color scheme with chamfered angular panels and scanline effects
+- **File-Based Campaign Data**: Git-friendly YAML + Markdown — version-control your campaign, no database sync required
+- **Network Access**: Players connect from phones/tablets on the local network
 
 ---
 

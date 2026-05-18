@@ -180,6 +180,14 @@ function SharedConsole() {
       .catch(() => {});
   }, []);
 
+  const [standbyConfig, setStandbyConfig] = useState<{ title: string; subtitle: string }>({ title: 'JANUS', subtitle: '' });
+  useEffect(() => {
+    fetch('/api/standby/')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setStandbyConfig(data); })
+      .catch(() => {});
+  }, []);
+
   // Map view state
   const [shipData, setShipData] = useState(window.INITIAL_DATA?.shipStatus ?? null);
 
@@ -889,7 +897,7 @@ function SharedConsole() {
 
       {/* View content */}
       {viewType === 'STANDBY' && (
-        <StandbyView title="JANUS" subtitle="The Outer Veil" />
+        <StandbyView title={standbyConfig.title} subtitle={standbyConfig.subtitle} />
       )}
 
       {viewType === 'BRIDGE' && (

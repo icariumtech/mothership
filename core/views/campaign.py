@@ -58,6 +58,24 @@ def get_messages_json(request):
 
 
 
+def api_standby(request):
+    """
+    Public endpoint — returns standby screen config from data/campaign/standby.yaml.
+    Falls back to JANUS defaults if the file is missing.
+    GET: /api/standby/
+    """
+    loader = get_loader()
+    standby_file = loader.data_dir / 'campaign' / 'standby.yaml'
+    if not standby_file.exists():
+        return JsonResponse({'title': 'JANUS', 'subtitle': ''})
+    with open(standby_file) as f:
+        data = yaml.safe_load(f) or {}
+    return JsonResponse({
+        'title': data.get('title', 'JANUS'),
+        'subtitle': data.get('subtitle', ''),
+    })
+
+
 def api_corporation(request):
     """
     Public endpoint — returns corporation branding data from data/campaign/corporation.yaml.

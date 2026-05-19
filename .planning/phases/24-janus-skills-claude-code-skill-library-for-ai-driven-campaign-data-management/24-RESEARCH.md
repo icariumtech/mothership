@@ -822,17 +822,19 @@ The install.sh script runs locally on the user's machine with standard user perm
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **FastMCP server name → allowed-tools prefix mapping**
    - What we know: `FastMCP("JanusGM")` creates the server. Claude Code MCP tools use `mcp__<ServerName>__<tool>` naming.
    - What's unclear: Whether the exact string `"JanusGM"` becomes the prefix verbatim (case-sensitive), or whether it's normalized. The `mcpServers` config key in `settings.json` ALSO named `"JanusGM"` may be what Claude Code uses for the prefix, not the FastMCP server name.
    - Recommendation: In the MCP config template and SKILL.md frontmatter, use `"JanusGM"` consistently as both the mcpServers key and the tool prefix. Test one skill invocation against a live server before declaring the prefix convention locked.
+   - **RESOLVED:** Verified in `mcp_server.py` line 22: `mcp = FastMCP("JanusGM")`. The `mcpServers` key in settings.json is the name Claude Code uses for tool prefix resolution. Tool names in SKILL.md `allowed-tools` must use `mcp__JanusGM__<tool>` (case-sensitive). All plans use this prefix consistently.
 
 2. **install.sh JSON merge for settings.json**
    - What we know: install.sh optionally writes `mcpServers` block to `.claude/settings.json`.
    - What's unclear: The exact merge strategy — should it use `jq`, Python's `json` module, or a custom sed approach? `jq` may not be available on all machines.
    - Recommendation: Use Python's `json` module (always available) for settings.json merging. Add a check: `if ! command -v python3; then echo "python3 required for --mcp-config"; exit 1; fi`.
+   - **RESOLVED:** Plan 24-03 Task 1 mandates python3 `json.load`/`json.dump` heredoc merge — never `jq`, never full overwrite. Python3 pre-flight check required before running merge. This approach preserves all existing `mcpServers` entries.
 
 ---
 

@@ -12,8 +12,8 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 
 **Shipped:** v1.0 MVP (2026-05-07) · **Active:** v2.0 geometry deepening
 
-- 23 phases complete · Phase 23 (containerization) complete 2026-05-17
-- ~171,534 LOC (TypeScript + Python) — EncounterMapRenderer −43 LOC after phase 22 (interaction seams extracted)
+- 24 phases complete · Phase 24 (janus-skills) complete 2026-05-20
+- ~171,534 LOC (TypeScript + Python) + standalone `janus-skills` repo (8 Claude Code skills, 5 schema resources, install.sh)
 - Tech stack: Django 5.2.7, React 19, TypeScript, Vite 5.4, React Three Fiber 9.0, Zustand, GSAP, Ant Design 6.1
 - Data: YAML/Markdown files, flat location directory, per-entity character files
 
@@ -105,4 +105,4 @@ Key systems shipped in v1.0:
 | api_bridge_selection intentionally public | Player terminal is the caller; player auth not yet implemented; ephemeral write-only, low risk | ✓ Accepted |
 
 ---
-*Last updated: 2026-05-11 after Phase 21 (Encounter Geometry Deepening)*
+*Last updated: 2026-05-20 after Phase 24 (janus-skills — Claude Code skill library)*

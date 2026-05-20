@@ -107,6 +107,17 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 **Goal:** Create a `janus-skills` repository containing Claude Code skill files that encode the DATA_DIRECTORY_GUIDE into focused, task-specific workflows. Skills use the JANUS MCP server (port 8001) to read and write campaign YAML data. Enables both GM-driven manual workflows (add NPC, move ship, generate location context) and automated AI agent pipelines (Obsidian → janus.yaml generation).
 **Depends on:** Phase 23
 
+**Plans:** 7 plans (5 complete, 2 gap closure pending)
+
+Plans:
+- [x] 24-01-PLAN.md — Scaffold janus-skills repo (gitignore, mcp-config-template.json, resources/skills directories) (Wave 1)
+- [x] 24-02-PLAN.md — Author 5 schema resource files in resources/ (Wave 2)
+- [x] 24-03-PLAN.md — Author install.sh with --global / --project / --mcp-config modes (Wave 2)
+- [x] 24-04-PLAN.md — Author 4 SKILL.md files (janus-add-npc, janus-add-location, janus-add-system, janus-add-body) + README (Wave 3)
+- [x] 24-05-PLAN.md — Author 4 SKILL.md files (janus-add-ship, janus-update-galaxy, janus-generate-context, janus-session-prep) (Wave 4)
+- [ ] 24-06-PLAN.md — GAP CLOSURE: fix install.sh skills glob (CR-01), atomic settings write (CR-02), portable realpath (WR-06) (Wave 5)
+- [ ] 24-07-PLAN.md — GAP CLOSURE: fix janus-add-ship deckplan format (CR-03), janus-add-npc id formula (WR-01), janus-add-location moon depth + ship redirect (WR-03) (Wave 5)
+
 **Cross-cutting constraints:**
 - All services use the same GHCR image tag (`ghcr.io/{owner}/mothership`)
 - Both `app` and `mcp` services mount `./data:/app/data` and `./db.sqlite3:/app/db.sqlite3`

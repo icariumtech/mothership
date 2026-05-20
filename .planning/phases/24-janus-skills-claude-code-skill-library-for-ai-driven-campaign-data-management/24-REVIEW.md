@@ -288,3 +288,44 @@ fi
 _Reviewed: 2026-05-19T00:00:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+
+---
+
+## Gap-Closure Review (quick depth)
+
+**Re-reviewed:** 2026-05-19T01:00:00Z
+**Depth:** quick
+**Scope:** 4 files — gap-closure verification only
+**Files:** `install.sh`, `janus-add-ship/SKILL.md`, `janus-add-npc/SKILL.md`, `janus-add-location/SKILL.md`
+
+### Findings Verified FIXED
+
+**CR-01 (skills glob `*`)** — FIXED. Line 148 now reads `"$REPO_DIR/skills/janus-"*/` with the wildcard present.
+
+**CR-02 (atomic write)** — FIXED. Lines 228-234 implement `tempfile.mkstemp` + `os.fdopen` + `os.replace` with a cleanup `except` block that calls `os.unlink(tmp_path)` before re-raising.
+
+**CR-03 (deckplan path/format)** — FIXED. Step 13 of `janus-add-ship/SKILL.md` now instructs `write_file("ships/<ship-slug>/deckplan.yaml", ...)` with the correct `decks:` list scaffold. The objective paragraph (line 20) also references `ships/<slug>/deckplan.yaml`. No reference to `map/` subdirectory or legacy format remains.
+
+**WR-01 (re.sub formula)** — FIXED. Line 33 of `janus-add-npc/SKILL.md` now reads:
+`re.sub(r'[^a-z0-9_]', '', name.lower().replace(' ', '_').replace('-', '_'))`.
+The example `"Dr. Elena-Kim"` → `dr_elena_kim` is consistent with the formula.
+
+**WR-03 (moon branch depth + ship redirect)** — FIXED. Step 2 of `janus-add-location/SKILL.md` now has an explicit moon sub-branch (lines 43-48) that prompts for `parent_planet_slug`, verifies the parent planet via `list_files`, and writes to `galaxy/<parent-system>/<parent-planet-slug>/<moon-slug>/location.yaml`. The ship type redirect to `/janus-add-ship` is present (lines 38-41).
+
+**WR-06 (realpath macOS)** — FIXED. The current `install.sh` contains no `realpath` calls. Line 139 uses `ln -sfn "$f" "$target"` directly (source is already `$REPO_DIR`-anchored absolute path). Line 152-153 uses `link_target="${skill_dir%/}"` (strip trailing slash from glob result) and passes it to `ln -sfn` — no external utility needed.
+
+### Findings Remaining OPEN
+
+The following original findings were NOT addressed in this gap-closure pass and remain open:
+
+**WR-02** (`janus-add-ship/SKILL.md:44`) — Step 4 still states "Both `system_slug` and `body_slug` must also match this pattern [`^[a-z0-9_-]+$`]" with no language distinguishing that galaxy slugs must use hyphens only (not underscores). An AI normalizing `tau-ceti` to `tau_ceti` will silently break orbit injection.
+
+**WR-04** (`janus-add-ship/SKILL.md:30-31`) — Step 1 still says "If any are missing, prompt the user before continuing" for ship name, system slug, and body slug together. The static branch (step 10) never uses body slug or system slug, so the AI will needlessly demand them from the user before ship kind is determined.
+
+**WR-05** (all three reviewed SKILL.md files) — Each file still contains two identical `@-includes`. `janus-add-ship/SKILL.md` has lines 11 and 26, `janus-add-npc/SKILL.md` has lines 10 and 22, `janus-add-location/SKILL.md` has lines 11 and 27. Schema content is loaded twice into context on every skill invocation.
+
+---
+
+_Gap-closure re-review: 2026-05-19T01:00:00Z_
+_Reviewer: Claude (gsd-code-reviewer)_
+_Depth: quick_

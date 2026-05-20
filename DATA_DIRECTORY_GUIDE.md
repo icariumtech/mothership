@@ -716,6 +716,26 @@ Docked at 0600. Facility systems nominal.
 
 ---
 
+## 11a. Standby Screen
+
+**Location:** `data/campaign/standby.yaml` — a single file (not a directory).
+
+The standby screen shown on the shared player terminal between scenes. Served by `/api/standby/` and rendered by the STANDBY view.
+
+```yaml
+title: "MOTHERSHIP"
+subtitle: "The Outer Veil"
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `title` | Yes | Large title text |
+| `subtitle` | Yes | Smaller subtitle below the title |
+
+To change what players see between scenes, edit these two strings.
+
+---
+
 ## 12. JANUS AI Configuration
 
 **Location:** `data/janus/context.yaml`

@@ -51,10 +51,8 @@ jobs:
 
           SHORT_SHA="${SOURCE_SHA:0:7}"
           git add resources/
-          git commit -m "chore(schemas): sync from janus-console@${SHORT_SHA}
-
-Source: https://github.com/${{ github.repository }}/commit/${SOURCE_SHA}
-
-This commit is generated automatically. Edit schemas in janus-console
-(docs/schemas/) and they'll sync here on the next push to main."
+          git commit \
+            -m "chore(schemas): sync from janus-console@${SHORT_SHA}" \
+            -m "Source: https://github.com/${{ github.repository }}/commit/${SOURCE_SHA}" \
+            -m "This commit is generated automatically. Edit schemas in janus-console (docs/schemas/) and they'll sync here on the next push to main."
           git push origin HEAD:main

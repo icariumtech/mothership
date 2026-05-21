@@ -3,7 +3,8 @@
 # Documentation Map (load dynamically — only load what you need for your task)
 
 - **README.md** - Project overview, quick start, setup instructions
-- **DATA_DIRECTORY_GUIDE.md** - Data directory structure, file formats, YAML schemas
+- **DATA_DIRECTORY_GUIDE.md** - Human onboarding for the data directory (high-level prose, tutorials)
+- **docs/schemas/** - Canonical YAML schema references (synced to `janus-skills`); see "Schema Sync" below
 - **src/components/ui/README.md** - Panel component API, usage patterns
 - **STYLE_GUIDE.md** - UI design system, color palette, visual specifications
 - **src/components/domain/maps/r3f/shared/POST_PROCESSING.md** - Post-processing effects guide
@@ -60,6 +61,30 @@ docker compose up -d               # Run via container (requires .env with SECRE
 - **Chamfer**: 12px angular corners. **Font**: Cascadia Code (monospace)
 - **Import alias**: `@/` → `src/`
 - See **STYLE_GUIDE.md** for complete specifications
+
+# Schema Sync
+
+The files in `docs/schemas/` are the **canonical** YAML schema references. They are
+auto-synced to the [`janus-skills`](https://github.com/icariumtech/janus-skills) repo
+(into `resources/`) by `.github/workflows/sync-skills-schemas.yml` on every push to
+`main`. Claude Code skills consume them from there via `@-includes`.
+
+**When you change any of the following, update the matching schema file in the same commit:**
+
+| You changed... | Update... |
+|---|---|
+| Django models in `core/models.py` | The schema describing that model's data |
+| `core/data_loader.py` (loader behavior, file discovery, slug resolution) | All affected schemas — usually `schema-galaxy.md` or `schema-ships.md` |
+| YAML file shape in `data/campaign/**` | `docs/schemas/schema-campaign.md` |
+| YAML file shape in `data/galaxy/**`, `data/ships/**` | `docs/schemas/schema-galaxy.md` or `schema-ships.md` |
+| Encounter map / deckplan / POI fields | `docs/schemas/schema-encounters.md` |
+| JANUS context (`janus.yaml`) shape | `docs/schemas/schema-janus-context.md` |
+| Standby, NPC, crew, corp fields | `docs/schemas/schema-campaign.md` |
+
+Schema files are condensed, AI-context-optimized — keep tables tight, list pitfalls
+(`P1`, `P2`, ...) when adding new gotchas, and update examples when fields change.
+**Do not** edit `janus-skills/resources/schema-*.md` directly — those are overwritten
+by the sync workflow.
 
 # Mothership RPG Guidelines
 

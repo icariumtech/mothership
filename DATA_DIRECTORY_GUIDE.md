@@ -1,7 +1,22 @@
 # Data Directory Guide
 
-This document describes how to structure the `data/` directory for the JANUS GM Tool.
-Use it as a reference when creating or editing campaign data.
+This document is the **human onboarding** reference for the `data/` directory —
+narrative walkthroughs ("how to add a new location", "how to add a new deck") and
+high-level structure overviews.
+
+For the **precise, condensed field-level schemas** that the JANUS MCP server and AI
+tools consume, see `docs/schemas/`:
+
+| Schema file | Covers |
+|---|---|
+| `docs/schemas/schema-campaign.md` | Crew, NPCs, corporations, standby (`data/campaign/`) |
+| `docs/schemas/schema-galaxy.md` | `star_map.yaml`, `system_map.yaml`, `orbit_map.yaml`, location hierarchy |
+| `docs/schemas/schema-ships.md` | Ship `location.yaml`, slug-pointer model, orbit self-registration |
+| `docs/schemas/schema-encounters.md` | Deckplans, rooms, doors, POIs |
+| `docs/schemas/schema-janus-context.md` | `janus.yaml` format produced by `/janus-generate-context` |
+
+Those schema files are the canonical source of truth — keep them in sync when you
+change data shapes. See `CLAUDE.md` → "Schema Sync" for the maintenance rule.
 
 ---
 
@@ -718,21 +733,9 @@ Docked at 0600. Facility systems nominal.
 
 ## 11a. Standby Screen
 
-**Location:** `data/campaign/standby.yaml` — a single file (not a directory).
-
-The standby screen shown on the shared player terminal between scenes. Served by `/api/standby/` and rendered by the STANDBY view.
-
-```yaml
-title: "MOTHERSHIP"
-subtitle: "The Outer Veil"
-```
-
-| Field | Required | Description |
-|---|---|---|
-| `title` | Yes | Large title text |
-| `subtitle` | Yes | Smaller subtitle below the title |
-
-To change what players see between scenes, edit these two strings.
+The standby screen displayed on the shared player terminal between scenes lives at
+`data/campaign/standby.yaml` — a single file with `title` and `subtitle` string
+fields. See `docs/schemas/schema-campaign.md` for the precise schema.
 
 ---
 

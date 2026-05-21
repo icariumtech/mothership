@@ -1,0 +1,60 @@
+name: Sync schemas to janus-skills
+
+# Mirrors docs/schemas/*.md into the janus-skills repo at resources/*.md whenever
+# schemas change on main. Commits the schemas-only diff with a back-reference to
+# the source commit so future-you can trace any schema file back to the change
+# that produced it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/schemas/**'
+      - '.github/workflows/sync-skills-schemas.yml'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout janus-console
+        uses: actions/checkout@v4
+        with:
+          path: janus-console
+
+      - name: Checkout janus-skills
+        uses: actions/checkout@v4
+        with:
+          repository: icariumtech/janus-skills
+          path: janus-skills
+          token: ${{ secrets.JANUS_SKILLS_SYNC_TOKEN }}
+
+      - name: Copy schemas into janus-skills/resources
+        run: |
+          set -euo pipefail
+          mkdir -p janus-skills/resources
+          cp janus-console/docs/schemas/schema-*.md janus-skills/resources/
+
+      - name: Commit and push if changed
+        working-directory: janus-skills
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git config user.name "janus-sync-bot"
+          git config user.email "actions@github.com"
+
+          if git diff --quiet -- resources/; then
+            echo "No schema changes — nothing to push."
+            exit 0
+          fi
+
+          SHORT_SHA="${SOURCE_SHA:0:7}"
+          git add resources/
+          git commit -m "chore(schemas): sync from janus-console@${SHORT_SHA}
+
+Source: https://github.com/${{ github.repository }}/commit/${SOURCE_SHA}
+
+This commit is generated automatically. Edit schemas in janus-console
+(docs/schemas/) and they'll sync here on the next push to main."
+          git push origin HEAD:main

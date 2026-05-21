@@ -18,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout janus-console
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: janus-console
 
       - name: Checkout janus-skills
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: icariumtech/janus-skills
           path: janus-skills

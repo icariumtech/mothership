@@ -54,6 +54,15 @@ export interface SystemSceneProps {
   selectedPlanet?: BodyData | null;
   /** Whether rendering is paused */
   paused?: boolean;
+  /**
+   * Freeze orbital math without stopping rendering or camera (independent of
+   * `paused` which halts the R3F frameloop).
+   */
+  orbitsPaused?: boolean;
+  /**
+   * Accumulated scrub offset in radians; read each frame when orbitsPaused is true.
+   */
+  scrubOffsetRef?: React.RefObject<number>;
   /** Transition state for coordinating fade effects */
   transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Callback when a planet is selected */
@@ -78,6 +87,8 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
       systemSlug,
       selectedPlanet: selectedPlanetProp,
       paused: pausedProp = false,
+      orbitsPaused: orbitsPausedProp = false,
+      scrubOffsetRef,
       transitionState = 'idle',
       onPlanetSelect,
       onReady,
@@ -94,6 +105,9 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     const data = dataProp ?? storeData;
     const selectedPlanet = selectedPlanetProp ?? storeSelectedPlanet;
     const paused = pausedProp || storePaused;
+    // orbitsPaused is INDEPENDENT of `paused` — it freezes orbital math while
+    // keeping the frameloop and camera tracking live (Phase 25 D-04, RESEARCH gotcha #2).
+    const orbitsPaused = orbitsPausedProp;
 
     // Store actions
     const selectPlanet = useSceneStore((state) => state.selectPlanet);
@@ -218,6 +232,10 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     // Animation start time
     const startTimeRef = useRef(Date.now());
 
+    // Elapsed seconds captured at the moment orbitsPaused flipped true.
+    // While orbitsPaused, calculatePlanetPosition reads this instead of live Date.now().
+    const frozenElapsedRef = useRef<number | null>(null);
+
     // Calculate speed multiplier based on orbital periods
     const speedMultiplier = useMemo(() => {
       if (!data?.bodies?.length) return 10;
@@ -233,11 +251,18 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     // Calculate planet position at current time
     const calculatePlanetPosition = useCallback(
       (body: BodyData): THREE.Vector3 => {
-        const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000;
+        // When orbitsPaused, use the elapsed seconds captured at pause time
+        // (frozenElapsedRef) so planets do not advance; add the accumulated
+        // scrub offset so dragging the scrub bar rotates them along their orbits.
+        const elapsedSeconds =
+          orbitsPaused && frozenElapsedRef.current !== null
+            ? frozenElapsedRef.current
+            : (Date.now() - startTimeRef.current) / 1000;
+        const scrubOffset = orbitsPaused ? (scrubOffsetRef?.current ?? 0) : 0;
         const orbitalPeriod = body.orbital_period ?? 365;
         const orbitalSpeed = (2 * Math.PI) / orbitalPeriod * speedMultiplier;
         const initialAngle = (body.orbital_angle ?? 0) * (Math.PI / 180);
-        const currentAngle = initialAngle + orbitalSpeed * elapsedSeconds;
+        const currentAngle = initialAngle + orbitalSpeed * elapsedSeconds + scrubOffset;
         const inclination = (body.inclination ?? 0) * (Math.PI / 180);
 
         const x = Math.cos(currentAngle) * body.orbital_radius;
@@ -249,7 +274,7 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
 
         return new THREE.Vector3(posX, posY, posZ);
       },
-      [speedMultiplier]
+      [speedMultiplier, orbitsPaused, scrubOffsetRef]
     );
 
     // Get planet position by name
@@ -427,6 +452,32 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     useEffect(() => {
       startTimeRef.current = Date.now();
     }, [systemSlug]);
+
+    // Capture elapsed seconds at the moment orbitsPaused flips true; on resume,
+    // re-anchor startTimeRef so live elapsed time matches the scrubbed angle
+    // (continuous orbital position across pause→scrub→resume).
+    useEffect(() => {
+      if (orbitsPaused) {
+        frozenElapsedRef.current = (Date.now() - startTimeRef.current) / 1000;
+      } else {
+        if (
+          frozenElapsedRef.current !== null &&
+          scrubOffsetRef?.current != null
+        ) {
+          // Use the shortest orbital period as the canonical clock anchor
+          // (mirrors the speedMultiplier derivation above).
+          const minPeriod = data?.bodies?.length
+            ? Math.min(...data.bodies.map((b) => b.orbital_period ?? 365))
+            : 365;
+          const orbitalSpeed = (2 * Math.PI) / minPeriod * speedMultiplier;
+          const offsetSeconds = scrubOffsetRef.current / orbitalSpeed;
+          startTimeRef.current =
+            Date.now() - (frozenElapsedRef.current + offsetSeconds) * 1000;
+          scrubOffsetRef.current = 0;
+        }
+        frozenElapsedRef.current = null;
+      }
+    }, [orbitsPaused, data, speedMultiplier, scrubOffsetRef]);
 
     // Track last valid reticle position (to avoid jumping to origin during fade-out)
     const lastReticlePositionRef = useRef<[number, number, number]>([0, 0, 0]);

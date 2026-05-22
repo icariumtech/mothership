@@ -39,6 +39,8 @@ export interface GalaxySceneProps {
   selectedSystem?: string | null;
   /** Whether rendering is paused */
   paused?: boolean;
+  /** Fired when the user clicks a star directly in the 3D view */
+  onSystemSelect?: (systemName: string) => void;
 }
 
 export interface GalaxySceneHandle {
@@ -56,6 +58,7 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
       data: dataProp,
       selectedSystem: selectedSystemProp,
       paused: pausedProp = false,
+      onSystemSelect,
     },
     ref
   ) {
@@ -179,10 +182,11 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
         {/* Background starfield */}
         <BackgroundStars animated={!paused} />
 
-        {/* Star systems (display only, selection via menu) */}
+        {/* Star systems (clickable when onSystemSelect is provided) */}
         <StarSystems
           systems={data.systems}
           selectedSystem={selectedSystem}
+          onSystemSelect={onSystemSelect}
         />
 
         {/* Travel routes */}

@@ -23,7 +23,7 @@ import './GalaxyMap.css';
 interface GalaxyMapProps {
   /** Star map data (if already fetched by parent) */
   data?: StarMapData | null;
-  /** Currently selected system name (selection via menu only) */
+  /** Currently selected system name */
   selectedSystem?: string | null;
   /** Whether the map is visible */
   visible?: boolean;
@@ -33,6 +33,8 @@ interface GalaxyMapProps {
   hidden?: boolean;
   /** Whether to pause rendering updates */
   paused?: boolean;
+  /** Fired when the user clicks a star directly in the 3D view */
+  onSystemSelect?: (systemName: string) => void;
 }
 
 export interface GalaxyMapHandle {
@@ -49,6 +51,7 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
       transitionState = 'idle',
       hidden = false,
       paused = false,
+      onSystemSelect,
     },
     ref
   ) => {
@@ -119,6 +122,7 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
               data={data}
               selectedSystem={selectedSystem}
               paused={paused}
+              onSystemSelect={onSystemSelect}
             />
           </Suspense>
 

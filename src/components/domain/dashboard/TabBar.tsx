@@ -13,7 +13,7 @@ interface TabBarProps {
 export function TabBar({ activeTab, onTabChange, disabled = false, janusHasMessages = false }: TabBarProps) {
   const tabs: { id: BridgeTab; label: string }[] = [
     { id: 'status', label: 'SYSTEMS' },
-    { id: 'map', label: 'MAP' },
+    { id: 'map', label: 'NAVIGATION' },
     { id: 'personnel', label: 'PERSONNEL' },
     { id: 'logs', label: 'LOGS' },
     { id: 'janus', label: 'JANUS' },

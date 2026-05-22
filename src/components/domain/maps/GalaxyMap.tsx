@@ -18,6 +18,8 @@ import { GalaxyScene, LoadingScene, PostProcessing } from './r3f';
 import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { GalaxySceneHandle } from './r3f';
 import type { StarMapData } from '@/types/starMap';
+import { useSceneStore, useAnimationState } from '@/stores/sceneStore';
+import { MapPlaybackControls } from './MapPlaybackControls';
 import './GalaxyMap.css';
 
 interface GalaxyMapProps {
@@ -56,6 +58,17 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
     ref
   ) => {
     const sceneRef = useRef<GalaxySceneHandle>(null);
+
+    // Auto-rotate state for play/pause overlay.
+    // Calling setAutoRotate(false) alone is sticky — the 5s auto-resume timer
+    // in GalaxyControls only fires when lastInteractionTime has been set by an
+    // OrbitControls interaction. Do NOT signal an interaction here.
+    // See 25-RESEARCH.md Gotcha #1.
+    const animations = useAnimationState();
+    const setAutoRotate = useSceneStore((state) => state.setAutoRotate);
+    const handleTogglePlay = useCallback(() => {
+      setAutoRotate(!animations.autoRotate);
+    }, [animations.autoRotate, setAutoRotate]);
 
     // Expose methods to parent - same interface as before
     useImperativeHandle(
@@ -135,6 +148,11 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
           */}
           <PostProcessing enabled={false} />
         </Canvas>
+        <MapPlaybackControls
+          isPlaying={animations.autoRotate}
+          onTogglePlay={handleTogglePlay}
+          showScrub={false}
+        />
       </div>
     );
   }

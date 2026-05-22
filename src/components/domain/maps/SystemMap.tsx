@@ -27,7 +27,13 @@ import { SystemScene, LoadingScene } from './r3f';
 import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { SystemSceneHandle } from './r3f';
 import type { BodyData, SystemMapData } from '@/types/systemMap';
+import { MapPlaybackControls } from './MapPlaybackControls';
 import './SystemMap.css';
+
+// Mirrors the ORBITAL_PERIOD_TARGET_SECONDS constant in SystemScene.tsx —
+// used here to derive the scrub-pixel→radians conversion (D-06).
+const ORBITAL_PERIOD_TARGET_SECONDS = 10;
+const SCRUB_TRACK_WIDTH = 300;
 
 interface SystemMapProps {
   /** System slug to load (e.g., 'sol', 'tau-ceti') */
@@ -79,6 +85,12 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
     const [systemData, setSystemData] = useState<SystemMapData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const loadedSystemRef = useRef<string | null>(null);
+
+    // Orbital playback state — local per D-08 (resets on navigation; not persisted).
+    const [isOrbiting, setIsOrbiting] = useState(true);
+    // Accumulated scrub radians applied while orbitsPaused. Lives in a ref so
+    // pointer-drag events do not trigger React re-renders on every move.
+    const scrubOffsetRef = useRef<number>(0);
 
     // Track selectedPlanet in a ref for access in callbacks
     const selectedPlanetRef = useRef<string | null>(selectedPlanet);
@@ -133,6 +145,31 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
         onPlanetSelect?.(planetData);
       },
       [onPlanetSelect]
+    );
+
+    // Toggle orbital playback — flips isOrbiting; SystemScene reads orbitsPaused=!isOrbiting.
+    const handleTogglePlay = useCallback(() => {
+      setIsOrbiting((prev) => !prev);
+    }, []);
+
+    // Convert scrub pixel delta → orbital radians.
+    // radiansPerPixel = (2π) / (trackWidthPx * (period / ORBITAL_PERIOD_TARGET_SECONDS))
+    // period = selected body's orbital_period when one is selected, else the
+    // shortest period in the system (D-06).
+    const handleScrubDelta = useCallback(
+      (deltaX: number) => {
+        if (!systemData?.bodies?.length) return;
+        const periods = systemData.bodies
+          .map((b) => b.orbital_period ?? 365)
+          .filter((p): p is number => Number.isFinite(p) && p > 0);
+        const shortest = periods.length ? Math.min(...periods) : 365;
+        const period = selectedPlanetData?.orbital_period ?? shortest;
+        const radiansPerPixel =
+          (2 * Math.PI) /
+          (SCRUB_TRACK_WIDTH * (period / ORBITAL_PERIOD_TARGET_SECONDS));
+        scrubOffsetRef.current += deltaX * radiansPerPixel;
+      },
+      [systemData, selectedPlanetData]
     );
 
     // Expose methods to parent
@@ -234,6 +271,8 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
                 systemSlug={systemSlug}
                 selectedPlanet={selectedPlanetData}
                 paused={paused}
+                orbitsPaused={!isOrbiting}
+                scrubOffsetRef={scrubOffsetRef}
                 transitionState={transitionState}
                 onPlanetSelect={handlePlanetSelect}
                 onReady={onReady}
@@ -243,6 +282,12 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
             )}
           </Suspense>
         </Canvas>
+        <MapPlaybackControls
+          isPlaying={isOrbiting}
+          onTogglePlay={handleTogglePlay}
+          showScrub={true}
+          onScrubDelta={handleScrubDelta}
+        />
       </div>
     );
   }

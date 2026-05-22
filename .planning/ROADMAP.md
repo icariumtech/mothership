@@ -86,19 +86,24 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 **Plans:** 7/7 plans complete
 
 **Wave 1** (parallel — no dependencies):
+
 - [x] 23-01-PLAN.md — Django production config: WhiteNoise static serving, env-driven settings, DataLoader DATA_DIR, Gunicorn gevent config, SSE announce_generic method
 - [x] 23-02-PLAN.md — Dockerfile multi-stage build (Vite → Django) + docker-entrypoint.sh first-run init
 
 **Wave 2** *(blocked on Wave 1 — 23-01)*:
+
 - [x] 23-03-PLAN.md — GM data REST API (list/read/write/session-context/data-schema endpoints) + Wave 0 behavioral tests with path-traversal defense
 
 **Wave 3** *(blocked on Wave 2 — 23-01, 23-02, 23-03)*:
+
 - [x] 23-04-PLAN.md — FastMCP server (5 MCP tools calling Django API over HTTP transport, port 8001)
 
 **Wave 4** *(blocked on Wave 3 — 23-02, 23-04)*:
+
 - [x] 23-05-PLAN.md — docker-compose.yml (two services, shared data volumes) + GitHub Actions GHCR publish workflow
 
 **Gap closure** *(parallel — no dependencies between plans; remediates VERIFICATION.md gap + REVIEW.md critical/warning findings)*:
+
 - [x] 23-06.1-PLAN.md — Fix Dockerfile pnpm→npm lockfile mismatch + reorder docker-entrypoint.sh CMD guard above migrate (VERIFICATION blocker + CR-01)
 - [x] 23-06.2-PLAN.md — Harden settings.py defaults (SECRET_KEY required, DEBUG=False, ALLOWED_HOSTS loopback) + add app healthcheck and mcp service_healthy dependency + Dockerfile BUILD_SECRET_KEY ARG (CR-02, WR-03, WR-04)
 
@@ -110,6 +115,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 **Plans:** 7/7 plans complete
 
 Plans:
+
 - [x] 24-01-PLAN.md — Scaffold janus-skills repo (gitignore, mcp-config-template.json, resources/skills directories) (Wave 1)
 - [x] 24-02-PLAN.md — Author 5 schema resource files in resources/ (Wave 2)
 - [x] 24-03-PLAN.md — Author install.sh with --global / --project / --mcp-config modes (Wave 2)
@@ -119,7 +125,19 @@ Plans:
 - [x] 24-07-PLAN.md — GAP CLOSURE: fix janus-add-ship deckplan format (CR-03), janus-add-npc id formula (WR-01), janus-add-location moon depth + ship redirect (WR-03) (Wave 5)
 
 **Cross-cutting constraints:**
+
 - All services use the same GHCR image tag (`ghcr.io/{owner}/mothership`)
 - Both `app` and `mcp` services mount `./data:/app/data` and `./db.sqlite3:/app/db.sqlite3`
 - No authentication on GM data API (trust-the-network model — homelab only)
 - Gunicorn workers=1 (SSE is per-process; multi-worker Redis upgrade is a future phase)
+
+### Phase 25: Map rotation controls
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 24
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd:plan-phase 25 to break down)

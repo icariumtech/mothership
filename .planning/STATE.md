@@ -4,8 +4,8 @@ milestone: v2.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 25 UI-SPEC approved
-last_updated: "2026-05-22T22:01:03.329Z"
-last_activity: 2026-05-22 -- Phase 25 planning complete
+last_updated: "2026-05-22T22:02:50.333Z"
+last_activity: 2026-05-22 -- Phase 25 execution started
 progress:
   total_phases: 3
   completed_phases: 2
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-07)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 24 — janus-skills-claude-code-skill-library-for-ai-driven-campaign-data-management
+**Current focus:** Phase 25 — map-rotation-controls
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
-Status: Ready to execute
+Phase: 25 (map-rotation-controls) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 25
 
-Last activity: 2026-05-22 -- Phase 25 planning complete
+Last activity: 2026-05-22 -- Phase 25 execution started
 
 ## v1.0 Milestone Archive
 

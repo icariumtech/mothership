@@ -133,11 +133,23 @@ Plans:
 
 ### Phase 25: Map rotation controls
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Add playback controls (play/pause + horizontal scrub bar) to all three 3D map views (galaxy, system, orbit). Galaxy gets a play/pause button that toggles the existing `sceneStore.animations.autoRotate`; system and orbit get play/pause plus a horizontal drag-zone scrub bar (active only when paused) that advances/reverses orbital positions of planets and moons/stations. Controls render as a CRT-style overlay pill (`[ ⏸ |==scrub==| ]`) at top-center of each map, outside the R3F Canvas. Designed for large-touch-TV GM interaction (≥44px button targets). Scrub speed is adaptive — calibrated to the shortest orbital period in the scene by default, or to the selected body's period when one is selected.
+**Requirements**: D-01–D-13 (see 25-CONTEXT.md)
 **Depends on:** Phase 24
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
 
-- [ ] TBD (run /gsd:plan-phase 25 to break down)
+**Wave 1** (no dependencies):
+
+- [ ] 25-01-PLAN.md — Create stateless `MapPlaybackControls.tsx` + CSS (CRT pill, play/pause button, scrub drag zone with pointer capture)
+
+**Wave 2** (parallel — all blocked only on Wave 1):
+
+- [ ] 25-02-PLAN.md — Wire `MapPlaybackControls` into `GalaxyMap.tsx` (showScrub=false, toggles `sceneStore.animations.autoRotate` without `recordInteraction()`)
+- [ ] 25-03-PLAN.md — Extend `SystemScene` with `orbitsPaused` + `scrubOffsetRef` props; wire `SystemMap` with local `isOrbiting` state, adaptive scrub-speed formula, and overlay
+- [ ] 25-04-PLAN.md — Extend `OrbitScene` with `orbitsPaused` + `scrubOffsetRef` (alongside existing `animationPaused`); thread to moon/station children; wire `OrbitMap` overlay
+
+**Wave 3** (blocked on Wave 2):
+
+- [ ] 25-05-PLAN.md — Typecheck + build + 19-step GM smoke-test checkpoint (galaxy auto-resume gotcha, system+orbit scrub direction, surface marker independence)

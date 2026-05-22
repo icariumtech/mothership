@@ -63,6 +63,20 @@ export interface OrbitSceneProps {
   } | null;
   /** Whether rendering is paused */
   paused?: boolean;
+  /**
+   * Freeze orbital math from the play/pause control (independent of the
+   * internal `animationPaused` which fires on surface marker selection).
+   * Combined inside the scene with `animationPaused` into a single
+   * `orbitalMathFrozen` flag passed to moon/station children. Does NOT
+   * pause the camera tracking useFrame loop.
+   */
+  orbitsPaused?: boolean;
+  /**
+   * Accumulated scrub offset in radians, applied additively to moon/station
+   * orbital angles when frozen. The parent (OrbitMap) owns this ref and
+   * mutates it from the MapPlaybackControls scrub-bar drag.
+   */
+  scrubOffsetRef?: React.RefObject<number>;
   /** Transition state for coordinating fade effects */
   transitionState?: 'idle' | 'transitioning-out' | 'transitioning-in';
   /** Callback when an element is selected */
@@ -92,6 +106,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
       bodySlug,
       selectedElement: selectedElementProp,
       paused: pausedProp = false,
+      orbitsPaused: orbitsPausedProp = false,
+      scrubOffsetRef,
       transitionState = 'idle',
       onElementSelect,
       onReady,
@@ -145,6 +161,15 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
 
     // Track animation paused state (for surface marker selection)
     const [animationPaused, setAnimationPaused] = useState(false);
+
+    // Combined freeze flag for orbital position math (moons + orbital stations).
+    // Two independent upstream causes: (1) animationPaused — surface marker
+    // selected; (2) orbitsPausedProp — play/pause button in MapPlaybackControls.
+    // Each child treats the combined value as a single "freeze position math"
+    // prop. The camera-tracking useFrame loop intentionally does NOT consume
+    // this flag — camera continues to track selected elements while paused.
+    // See Phase 25 RESEARCH Gotcha #6 for the independence rationale.
+    const orbitalMathFrozen = orbitsPausedProp || animationPaused;
 
     // Get element position by name and type
     const getElementPosition = useCallback(
@@ -750,7 +775,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
               startTime={startTimeRef.current}
               isSelected={selectedElement?.name === moon.name}
               onClick={handleMoonClick}
-              animationPaused={animationPaused}
+              animationPaused={orbitalMathFrozen}
+              scrubOffsetRef={scrubOffsetRef}
               onPositionUpdate={updateMoonPosition(moon.name)}
             />
           ))}
@@ -763,7 +789,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
               startTime={startTimeRef.current}
               isSelected={selectedElement?.name === station.name}
               onClick={handleStationClick}
-              animationPaused={animationPaused}
+              animationPaused={orbitalMathFrozen}
+              scrubOffsetRef={scrubOffsetRef}
               onPositionUpdate={updateStationPosition(station.name)}
             />
           ))}

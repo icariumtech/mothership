@@ -8,7 +8,7 @@
  * - Click interaction for selection
  */
 
-import { useRef, useMemo, useCallback } from 'react';
+import { useRef, useMemo, useCallback, type RefObject } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -33,6 +33,12 @@ interface MoonProps {
   onClick?: (moon: MoonData) => void;
   /** Whether animation is paused */
   animationPaused?: boolean;
+  /**
+   * Accumulated scrub offset in radians (from the MapPlaybackControls scrub
+   * bar). Added to the orbital angle every frame so the moon advances /
+   * reverses along its orbit while frozen.
+   */
+  scrubOffsetRef?: RefObject<number>;
   /** Position ref callback for reticle tracking */
   onPositionUpdate?: (position: THREE.Vector3) => void;
 }
@@ -43,6 +49,7 @@ function TexturedMoon({
   startTime,
   onClick,
   animationPaused,
+  scrubOffsetRef,
   onPositionUpdate,
   texturePath,
   normalMapPath,
@@ -52,7 +59,10 @@ function TexturedMoon({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const isPaused = useIsPaused();
-  const paused = isPaused || animationPaused;
+  // Capture the elapsed time at the moment animationPaused becomes true so the
+  // orbital angle does not jump forward when we resume — scrub offsets are
+  // applied additively to the frozen elapsed.
+  const frozenElapsedRef = useRef<number | null>(null);
 
   const size = moon.size ?? DEFAULT_SIZE;
 
@@ -93,13 +103,33 @@ function TexturedMoon({
     return mat;
   }, [textures.map, textures.normalMap, normalScale]);
 
-  // Animate orbital position
+  // Animate orbital position. When paused we still recompute position each
+  // frame because the parent's scrub bar may be mutating scrubOffsetRef —
+  // we want the moon to visibly advance/reverse along its orbit.
   useFrame(() => {
-    if (!groupRef.current || paused) return;
+    if (!groupRef.current) return;
+    // Global rendering pause (Zustand) still short-circuits — the frameloop
+    // is 'demand' in that case anyway.
+    if (isPaused) return;
 
-    const elapsedSeconds = (Date.now() - startTime) / 1000;
+    // Capture frozen elapsed at the moment animationPaused becomes true; clear
+    // it when resumed so the next play-tick continues from the same angle.
+    if (animationPaused) {
+      if (frozenElapsedRef.current === null) {
+        frozenElapsedRef.current = (Date.now() - startTime) / 1000;
+      }
+    } else if (frozenElapsedRef.current !== null) {
+      frozenElapsedRef.current = null;
+    }
+
+    const elapsedSeconds = frozenElapsedRef.current !== null
+      ? frozenElapsedRef.current
+      : (Date.now() - startTime) / 1000;
+    const scrubOffset = animationPaused ? (scrubOffsetRef?.current ?? 0) : 0;
+
     const orbitalSpeed = (2 * Math.PI) / orbitalParams.period;
-    const currentAngle = orbitalParams.initialAngle + (orbitalSpeed * elapsedSeconds);
+    const currentAngle =
+      orbitalParams.initialAngle + (orbitalSpeed * elapsedSeconds) + scrubOffset;
 
     const x = orbitalParams.radius * Math.cos(currentAngle);
     const z = orbitalParams.radius * Math.sin(currentAngle);
@@ -143,6 +173,7 @@ export function Moon({
   isSelected: _isSelected,
   onClick,
   animationPaused = false,
+  scrubOffsetRef,
   onPositionUpdate,
 }: MoonProps) {
   // Use provided texture or fallback to default
@@ -165,6 +196,7 @@ export function Moon({
       startTime={startTime}
       onClick={onClick}
       animationPaused={animationPaused}
+      scrubOffsetRef={scrubOffsetRef}
       onPositionUpdate={onPositionUpdate}
       texturePath={texturePath}
       normalMapPath={normalMapPath}

@@ -7,7 +7,7 @@
  * - Click interaction for selection
  */
 
-import { useRef, useMemo, useCallback, useEffect } from 'react';
+import { useRef, useMemo, useCallback, useEffect, type RefObject } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useIsPaused } from '../hooks/useSceneStore';
@@ -29,6 +29,12 @@ interface OrbitalStationProps {
   onClick?: (station: StationData) => void;
   /** Whether animation is paused */
   animationPaused?: boolean;
+  /**
+   * Accumulated scrub offset in radians (from the MapPlaybackControls scrub
+   * bar). Added to the orbital angle every frame so the station advances /
+   * reverses along its orbit while frozen.
+   */
+  scrubOffsetRef?: RefObject<number>;
   /** Position ref callback for reticle tracking */
   onPositionUpdate?: (position: THREE.Vector3) => void;
 }
@@ -39,11 +45,15 @@ export function OrbitalStation({
   isSelected: _isSelected,
   onClick,
   animationPaused = false,
+  scrubOffsetRef,
   onPositionUpdate,
 }: OrbitalStationProps) {
   const spriteRef = useRef<THREE.Sprite>(null);
   const isPaused = useIsPaused();
-  const paused = isPaused || animationPaused;
+  // Capture elapsed seconds at the moment animationPaused becomes true so the
+  // orbital angle does not jump on resume — scrub offsets are applied
+  // additively to the frozen elapsed.
+  const frozenElapsedRef = useRef<number | null>(null);
 
   const size = station.size ?? DEFAULT_SIZE;
 
@@ -120,13 +130,30 @@ export function OrbitalStation({
     inclination: (station.inclination ?? 0) * (Math.PI / 180),
   }), [station.orbital_radius, station.orbital_period, station.orbital_angle, station.inclination]);
 
-  // Animate orbital position
+  // Animate orbital position. When animationPaused is true we still recompute
+  // position each frame because the scrub bar may be mutating scrubOffsetRef —
+  // the station must visibly advance/reverse along its orbit while frozen.
   useFrame(() => {
-    if (!spriteRef.current || paused) return;
+    if (!spriteRef.current) return;
+    // Global rendering pause (Zustand) still short-circuits.
+    if (isPaused) return;
 
-    const elapsedSeconds = (Date.now() - startTime) / 1000;
+    if (animationPaused) {
+      if (frozenElapsedRef.current === null) {
+        frozenElapsedRef.current = (Date.now() - startTime) / 1000;
+      }
+    } else if (frozenElapsedRef.current !== null) {
+      frozenElapsedRef.current = null;
+    }
+
+    const elapsedSeconds = frozenElapsedRef.current !== null
+      ? frozenElapsedRef.current
+      : (Date.now() - startTime) / 1000;
+    const scrubOffset = animationPaused ? (scrubOffsetRef?.current ?? 0) : 0;
+
     const orbitalSpeed = (2 * Math.PI) / orbitalParams.period;
-    const currentAngle = orbitalParams.initialAngle + (orbitalSpeed * elapsedSeconds);
+    const currentAngle =
+      orbitalParams.initialAngle + (orbitalSpeed * elapsedSeconds) + scrubOffset;
 
     const x = orbitalParams.radius * Math.cos(currentAngle);
     const z = orbitalParams.radius * Math.sin(currentAngle);

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 25 UI-SPEC approved
-last_updated: "2026-05-22T22:02:50.333Z"
-last_activity: 2026-05-22 -- Phase 25 execution started
+stopped_at: Phase 25 implementation complete, awaiting GM smoke test (Plan 25-05)
+last_updated: "2026-05-23T04:33:07.838Z"
+last_activity: 2026-05-22 -- Phase 25 implementation complete; 4/5 plans done; smoke test deferred
 progress:
   total_phases: 3
   completed_phases: 2

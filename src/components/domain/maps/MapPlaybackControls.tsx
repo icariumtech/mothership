@@ -2,24 +2,31 @@ import { useRef, useState, useCallback } from 'react';
 import './MapPlaybackControls.css';
 
 /**
- * Stateless overlay row for map playback: play/pause + optional scrub drag zone.
+ * Map playback overlay: circular scrub ring with a play/pause button at its
+ * center. The ring is shown only when `showScrub` is true (system + orbit
+ * maps); the galaxy map renders just the centered button.
  *
- * Renders OUTSIDE the R3F Canvas as a positioned div inside the map container
- * (per Phase 25 D-13). Owns no animation state — emits onTogglePlay /
- * onScrubDelta callbacks only. All animation state lives in the parent
- * (sceneStore for galaxy autoRotate; local React state for system/orbit
- * orbital offset per D-08).
+ * Emits `onScrubDelta(deltaRadians)` — signed angular delta of the thumb
+ * around the ring, positive = clockwise = forward time. One full ring
+ * rotation advances all bodies by 2π radians along their orbits.
  */
 export interface MapPlaybackControlsProps {
   /** Whether animation is currently playing */
   isPlaying: boolean;
   /** Toggle play/pause */
   onTogglePlay: () => void;
-  /** Whether to show the scrub bar (galaxy: false, system/orbit: true) */
+  /** Whether to show the scrub ring */
   showScrub: boolean;
-  /** Callback fired during scrub drag with pixel delta (positive = right/forward) */
-  onScrubDelta?: (deltaX: number) => void;
+  /** Signed angular delta in radians fired during ring drag (positive = clockwise) */
+  onScrubDelta?: (deltaRadians: number) => void;
 }
+
+const RING_SIZE = 120;
+const RING_RADIUS = 50;
+const RING_CENTER = RING_SIZE / 2;
+const RING_STROKE = 6;
+const RING_HIT_STROKE = 24;
+const THUMB_RADIUS = 10;
 
 export const MapPlaybackControls: React.FC<MapPlaybackControlsProps> = ({
   isPlaying,
@@ -27,85 +34,115 @@ export const MapPlaybackControls: React.FC<MapPlaybackControlsProps> = ({
   showScrub,
   onScrubDelta,
 }) => {
-  // Drag refs — kept in refs so handlers don't re-bind every render
+  const ringRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
-  const lastXRef = useRef(0);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const lastAngleRef = useRef(0);
+  const cumulativeAngleRef = useRef(0);
+  const [thumbAngle, setThumbAngle] = useState(0);
 
-  // Cosmetic thumb position state (track-clamped cumulative pixels).
-  // This is purely visual; the parent computes orbital offset from the raw
-  // pixel deltas emitted via onScrubDelta.
-  const cumulativeXRef = useRef(0);
-  const [thumbX, setThumbX] = useState(0);
+  const getAngleFromEvent = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = ringRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    return Math.atan2(e.clientY - cy, e.clientX - cx);
+  }, []);
 
   const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
+    (e: React.PointerEvent<SVGSVGElement>) => {
       if (!onScrubDelta || isPlaying) return;
       e.currentTarget.setPointerCapture(e.pointerId);
       isDraggingRef.current = true;
-      lastXRef.current = e.clientX;
+      lastAngleRef.current = getAngleFromEvent(e);
     },
-    [onScrubDelta, isPlaying],
+    [onScrubDelta, isPlaying, getAngleFromEvent],
   );
 
   const handlePointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
+    (e: React.PointerEvent<SVGSVGElement>) => {
       if (!isDraggingRef.current || !onScrubDelta) return;
-      const deltaX = e.clientX - lastXRef.current;
-      lastXRef.current = e.clientX;
-      onScrubDelta(deltaX);
-
-      // Update cosmetic thumb position — clamp cumulative offset to track width
-      const trackWidth = trackRef.current?.getBoundingClientRect().width ?? 300;
-      cumulativeXRef.current = Math.max(
-        0,
-        Math.min(trackWidth, cumulativeXRef.current + deltaX),
-      );
-      setThumbX(cumulativeXRef.current);
+      const angle = getAngleFromEvent(e);
+      let delta = angle - lastAngleRef.current;
+      // Normalize delta across the ±π boundary so dragging across the seam
+      // doesn't produce a sudden ±2π jump.
+      if (delta > Math.PI) delta -= 2 * Math.PI;
+      else if (delta < -Math.PI) delta += 2 * Math.PI;
+      lastAngleRef.current = angle;
+      cumulativeAngleRef.current += delta;
+      setThumbAngle(cumulativeAngleRef.current);
+      onScrubDelta(delta);
     },
-    [onScrubDelta],
+    [onScrubDelta, getAngleFromEvent],
   );
 
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-      isDraggingRef.current = false;
-    },
-    [],
-  );
+  const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    isDraggingRef.current = false;
+  }, []);
+
+  // Thumb position on the ring
+  const thumbX = RING_CENTER + RING_RADIUS * Math.cos(thumbAngle);
+  const thumbY = RING_CENTER + RING_RADIUS * Math.sin(thumbAngle);
 
   return (
-    <div className="map-playback-controls">
-      <button
-        className={`map-playback-controls__btn${!isPlaying ? ' map-playback-controls__btn--paused' : ''}`}
-        aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
-        onClick={onTogglePlay}
-        type="button"
-      >
-        {isPlaying ? '⏸' : '▶'}
-      </button>
+    <div
+      className={`map-playback-controls${showScrub ? ' map-playback-controls--with-ring' : ''}`}
+    >
       {showScrub && (
-        <div
-          ref={trackRef}
-          className={`map-playback-controls__scrub${isPlaying ? ' map-playback-controls__scrub--disabled' : ''}`}
-          aria-disabled={isPlaying}
-          aria-label="Scrub orbital time"
+        <svg
+          ref={ringRef}
+          className="map-playback-controls__ring"
+          width={RING_SIZE}
+          height={RING_SIZE}
+          viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
           role="slider"
+          aria-label="Scrub orbital time"
+          aria-disabled={isPlaying}
           onPointerDown={isPlaying ? undefined : handlePointerDown}
           onPointerMove={isPlaying ? undefined : handlePointerMove}
           onPointerUp={isPlaying ? undefined : handlePointerUp}
           onPointerCancel={isPlaying ? undefined : handlePointerUp}
           style={{ touchAction: 'none' }}
         >
-          <div className="map-playback-controls__scrub-track" />
+          {/* Wide transparent hit-target so the ring is easy to grab */}
+          <circle
+            cx={RING_CENTER}
+            cy={RING_CENTER}
+            r={RING_RADIUS}
+            fill="none"
+            stroke="transparent"
+            strokeWidth={RING_HIT_STROKE}
+          />
+          <circle
+            cx={RING_CENTER}
+            cy={RING_CENTER}
+            r={RING_RADIUS}
+            fill="none"
+            stroke={isPlaying ? '#2a4040' : '#4a8b8b'}
+            strokeWidth={RING_STROKE}
+            pointerEvents="none"
+          />
           {!isPlaying && (
-            <div
-              className="map-playback-controls__scrub-thumb"
-              style={{ left: `${thumbX}px` }}
+            <circle
+              cx={thumbX}
+              cy={thumbY}
+              r={THUMB_RADIUS}
+              fill="#c9a050"
+              pointerEvents="none"
             />
           )}
-        </div>
+        </svg>
       )}
+      <button
+        className="map-playback-controls__btn"
+        aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
+        onClick={onTogglePlay}
+        type="button"
+      >
+        <span className="map-playback-controls__btn-frame">
+          {isPlaying ? '⏸' : '▶'}
+        </span>
+      </button>
     </div>
   );
 };

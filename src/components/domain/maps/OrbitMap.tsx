@@ -30,18 +30,6 @@ import type { OrbitSceneHandle } from './r3f';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '@/types/orbitMap';
 import './OrbitMap.css';
 
-/**
- * Target wall-clock seconds for the shortest orbital period to complete one
- * revolution. Mirrors SystemScene's constant. Used to convert pixel deltas
- * from the scrub bar into radians (see handleScrubDelta).
- */
-const ORBITAL_PERIOD_TARGET_SECONDS = 10;
-/**
- * Scrub track width in pixels (matches MapPlaybackControls.css min(300px,...)).
- * One full track sweep = one full orbital revolution at the shortest period.
- */
-const SCRUB_TRACK_WIDTH = 300;
-
 interface OrbitMapProps {
   systemSlug: string | null;
   bodySlug: string | null;
@@ -100,45 +88,23 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
       setIsOrbiting((prev) => !prev);
     }, []);
 
-    // Convert pointer-pixel delta into radians of orbital angle. Speed is
-    // calibrated so one full track sweep = one full orbital revolution at the
-    // active period: shortest moon/station period when no body is selected,
-    // or the selected body's own period when one is selected (giving a finer
-    // scrub for slower, outer bodies).
+    // Scrub ring emits signed angular delta in radians (positive = clockwise).
+    // Converted to seconds of visualization time so each moon/station advances
+    // proportional to its own orbital period. One full ring rotation = the
+    // shortest period in seconds (so the innermost body completes one orbit
+    // per ring rotation).
     const handleScrubDelta = useCallback(
-      (deltaX: number) => {
+      (deltaRadians: number) => {
         if (!orbitData) return;
-
-        // Look up the selected body's orbital_period (moons + orbital_stations
-        // only — surface markers have no orbital period).
-        let selectedPeriod: number | undefined;
-        if (selectedElement && selectedElementType === 'moon') {
-          selectedPeriod = orbitData.moons?.find((m) => m.name === selectedElement)
-            ?.orbital_period;
-        } else if (selectedElement && selectedElementType === 'station') {
-          selectedPeriod = orbitData.orbital_stations?.find(
-            (s) => s.name === selectedElement,
-          )?.orbital_period;
-        }
-
-        // Shortest period across all orbital bodies (moons + stations).
         const allPeriods = [
           ...(orbitData.moons ?? []).map((m) => m.orbital_period),
           ...(orbitData.orbital_stations ?? []).map((s) => s.orbital_period),
         ].filter((p): p is number => Number.isFinite(p) && p > 0);
-        const shortest = allPeriods.length ? Math.min(...allPeriods) : 365;
-
-        const period =
-          Number.isFinite(selectedPeriod) && (selectedPeriod ?? 0) > 0
-            ? (selectedPeriod as number)
-            : shortest;
-
-        const radiansPerPixel =
-          (2 * Math.PI) /
-          (SCRUB_TRACK_WIDTH * (period / ORBITAL_PERIOD_TARGET_SECONDS));
-        scrubOffsetRef.current += deltaX * radiansPerPixel;
+        const shortest = allPeriods.length ? Math.min(...allPeriods) : 60;
+        const secondsPerRadian = shortest / (2 * Math.PI);
+        scrubOffsetRef.current += deltaRadians * secondsPerRadian;
       },
-      [orbitData, selectedElement, selectedElementType],
+      [orbitData],
     );
 
     // Track selectedElement in a ref for access in callbacks

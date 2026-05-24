@@ -6,7 +6,7 @@
  * orbital parameters.
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useProceduralTexture } from '../hooks/useProceduralTexture';
@@ -22,8 +22,21 @@ interface PlanetProps {
   body: BodyData;
   /** Speed multiplier for orbital animation */
   speedMultiplier?: number;
-  /** Animation start time reference */
-  startTime: number;
+  /**
+   * Animation start time reference. Passed as a ref so the parent can re-anchor
+   * it on resume after a scrub (Phase 25 D-07) without forcing a remount.
+   */
+  startTimeRef: RefObject<number>;
+  /** Captured elapsed seconds at the moment orbitsPaused flipped true. */
+  frozenElapsedRef?: RefObject<number | null>;
+  /**
+   * Accumulated scrub offset in **seconds of visualization time**, added to
+   * elapsed time while paused. Each body advances proportional to its own
+   * orbital speed — inner planets cycle faster, outer planets slower.
+   */
+  scrubOffsetRef?: RefObject<number>;
+  /** Whether orbital math is currently frozen (overlay pause). */
+  orbitsPaused?: boolean;
   /** Whether this planet is currently selected (reserved for future use) */
   isSelected?: boolean;
   /** Callback when planet is clicked */
@@ -35,7 +48,10 @@ interface PlanetProps {
 export function Planet({
   body,
   speedMultiplier = 10,
-  startTime,
+  startTimeRef,
+  frozenElapsedRef,
+  scrubOffsetRef,
+  orbitsPaused = false,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isSelected: _isSelected = false,
   onClick,
@@ -59,13 +75,19 @@ export function Planet({
   // Planet visual size
   const size = (body.size ?? 1) * SIZE_MULTIPLIER;
 
-  // Animate orbital position
+  // Animate orbital position. While orbitsPaused, freeze elapsed time at the
+  // capture point (frozenElapsedRef) and add the accumulated scrub offset so
+  // dragging the slider rotates planets along their orbits.
   useFrame(() => {
     if (!groupRef.current || isPaused) return;
 
-    const elapsedSeconds = (Date.now() - startTime) / 1000;
+    const elapsedSeconds =
+      orbitsPaused && frozenElapsedRef?.current != null
+        ? frozenElapsedRef.current
+        : (Date.now() - startTimeRef.current) / 1000;
+    const scrubSeconds = orbitsPaused ? (scrubOffsetRef?.current ?? 0) : 0;
     const orbitalSpeed = (2 * Math.PI) / orbitalParams.period * speedMultiplier;
-    const currentAngle = orbitalParams.initialAngle + (orbitalSpeed * elapsedSeconds);
+    const currentAngle = orbitalParams.initialAngle + orbitalSpeed * (elapsedSeconds + scrubSeconds);
 
     // Calculate position in orbital plane
     const x = Math.cos(currentAngle) * orbitalParams.radius;

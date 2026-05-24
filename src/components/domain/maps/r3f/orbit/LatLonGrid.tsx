@@ -55,16 +55,16 @@ export function LatLonGrid({
   planetSize,
   axialTilt = 0,
   rotationRef,
-  animationPaused = false,
   showAxisLine = false,
 }: LatLonGridProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const isPaused = useIsPaused();
-  const paused = isPaused || animationPaused;
 
-  // Sync rotation with planet - same structure as CentralPlanet
+  // Mirror the central planet's rotation every frame regardless of overlay
+  // pause — when the user scrubs, CentralPlanet advances rotationRef and the
+  // grid must follow. The global render-pause (Zustand) still short-circuits.
   useFrame(() => {
-    if (!meshRef.current || paused || !rotationRef) return;
+    if (!meshRef.current || isPaused || !rotationRef) return;
     meshRef.current.rotation.y = rotationRef.current;
   });
 

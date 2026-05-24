@@ -9,7 +9,7 @@
  * - Shadow casting/receiving
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -24,12 +24,29 @@ const SPHERE_SEGMENTS = 64;
 const NORMAL_SCALE = 5.0;
 const ROUGHNESS = 0.7;
 const METALNESS = 0.0;
+// Legacy `rotation_speed` was authored as radians/frame at the 60fps target.
+// Converting to a per-second rate keeps the visible spin speed identical to
+// the prior implementation while letting us compute rotation from anchored
+// time (so scrub advances the planet smoothly).
+const LEGACY_FRAME_RATE = 60;
 
 interface CentralPlanetProps {
   /** Planet configuration data */
   planet: PlanetData;
-  /** Whether animation is paused for surface marker selection */
+  /** Whether animation is paused (overlay pause or surface-marker selection) */
   animationPaused?: boolean;
+  /**
+   * Animation start time ref. OrbitScene re-anchors this on resume so live
+   * rotation continues from the scrubbed position.
+   */
+  startTimeRef: RefObject<number>;
+  /** Captured elapsed seconds when frozen (owned by OrbitScene). */
+  frozenElapsedRef?: RefObject<number | null>;
+  /**
+   * Accumulated scrub offset in seconds of visualization time. Advances the
+   * planet's spin while paused so scrubbing the slider rotates the planet.
+   */
+  scrubOffsetRef?: RefObject<number>;
   /** Shared rotation ref for syncing with grid and surface markers */
   rotationRef?: React.RefObject<number>;
 }
@@ -40,6 +57,9 @@ function TexturedPlanet({
   axialTilt,
   rotationSpeed,
   animationPaused,
+  startTimeRef,
+  frozenElapsedRef,
+  scrubOffsetRef,
   texturePath,
   normalMapPath,
   planet,
@@ -49,6 +69,9 @@ function TexturedPlanet({
   axialTilt: number;
   rotationSpeed: number;
   animationPaused: boolean;
+  startTimeRef: RefObject<number>;
+  frozenElapsedRef?: RefObject<number | null>;
+  scrubOffsetRef?: RefObject<number>;
   texturePath: string;
   normalMapPath?: string;
   planet: PlanetData;
@@ -56,7 +79,6 @@ function TexturedPlanet({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const isPaused = useIsPaused();
-  const paused = isPaused || animationPaused;
 
   // Load textures
   const textures = useTexture(
@@ -65,13 +87,24 @@ function TexturedPlanet({
       : { map: texturePath }
   ) as { map: THREE.Texture; normalMap?: THREE.Texture };
 
-  // Animate rotation - update shared ref and mesh
+  // Anchor-based rotation: rotation = (elapsed + scrub) * rate. While paused,
+  // elapsed is frozen but scrubSeconds advances the planet, so dragging the
+  // slider visibly spins it. On resume, OrbitScene re-anchors startTimeRef so
+  // playback continues smoothly from the scrubbed orientation.
   useFrame(() => {
-    if (!meshRef.current || paused) return;
+    if (!meshRef.current || isPaused) return;
+
+    const elapsedSeconds =
+      animationPaused && frozenElapsedRef?.current != null
+        ? frozenElapsedRef.current
+        : (Date.now() - startTimeRef.current) / 1000;
+    const scrubSeconds = animationPaused ? (scrubOffsetRef?.current ?? 0) : 0;
+    const rotation = (elapsedSeconds + scrubSeconds) * rotationSpeed * LEGACY_FRAME_RATE;
+
     if (rotationRef) {
-      (rotationRef as React.MutableRefObject<number>).current += rotationSpeed;
-      meshRef.current.rotation.y = rotationRef.current;
+      (rotationRef as React.MutableRefObject<number>).current = rotation;
     }
+    meshRef.current.rotation.y = rotation;
   });
 
   // Create normal scale vector
@@ -116,6 +149,9 @@ const DEFAULT_PLANET_TEXTURE = '/textures/terrestrial/Terrestrial-EQUIRECTANGULA
 export function CentralPlanet({
   planet,
   animationPaused = false,
+  startTimeRef,
+  frozenElapsedRef,
+  scrubOffsetRef,
   rotationRef,
 }: CentralPlanetProps) {
   const size = planet.size ?? DEFAULT_SIZE;
@@ -144,6 +180,9 @@ export function CentralPlanet({
       axialTilt={axialTilt}
       rotationSpeed={rotationSpeed}
       animationPaused={animationPaused}
+      startTimeRef={startTimeRef}
+      frozenElapsedRef={frozenElapsedRef}
+      scrubOffsetRef={scrubOffsetRef}
       texturePath={texturePath}
       normalMapPath={normalMapPath}
       planet={planet}

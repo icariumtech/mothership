@@ -24,16 +24,12 @@ import {
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
 import { SystemScene, LoadingScene } from './r3f';
+import { ORBITAL_PERIOD_TARGET_SECONDS } from './r3f/SystemScene';
 import { TypewriterController } from './r3f/shared/TypewriterController';
 import type { SystemSceneHandle } from './r3f';
 import type { BodyData, SystemMapData } from '@/types/systemMap';
 import { MapPlaybackControls } from './MapPlaybackControls';
 import './SystemMap.css';
-
-// Mirrors the ORBITAL_PERIOD_TARGET_SECONDS constant in SystemScene.tsx —
-// used here to derive the scrub-pixel→radians conversion (D-06).
-const ORBITAL_PERIOD_TARGET_SECONDS = 10;
-const SCRUB_TRACK_WIDTH = 300;
 
 interface SystemMapProps {
   /** System slug to load (e.g., 'sol', 'tau-ceti') */
@@ -152,25 +148,15 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
       setIsOrbiting((prev) => !prev);
     }, []);
 
-    // Convert scrub pixel delta → orbital radians.
-    // radiansPerPixel = (2π) / (trackWidthPx * (period / ORBITAL_PERIOD_TARGET_SECONDS))
-    // period = selected body's orbital_period when one is selected, else the
-    // shortest period in the system (D-06).
-    const handleScrubDelta = useCallback(
-      (deltaX: number) => {
-        if (!systemData?.bodies?.length) return;
-        const periods = systemData.bodies
-          .map((b) => b.orbital_period ?? 365)
-          .filter((p): p is number => Number.isFinite(p) && p > 0);
-        const shortest = periods.length ? Math.min(...periods) : 365;
-        const period = selectedPlanetData?.orbital_period ?? shortest;
-        const radiansPerPixel =
-          (2 * Math.PI) /
-          (SCRUB_TRACK_WIDTH * (period / ORBITAL_PERIOD_TARGET_SECONDS));
-        scrubOffsetRef.current += deltaX * radiansPerPixel;
-      },
-      [systemData, selectedPlanetData]
-    );
+    // Scrub ring emits signed angular delta in radians (positive = clockwise).
+    // Converted to seconds of visualization time so each planet advances
+    // proportional to its own orbital period (inner planets cycle faster than
+    // outer ones, so configurations recur with enough scrubbing). One full
+    // ring rotation = one revolution of the inner reference body.
+    const handleScrubDelta = useCallback((deltaRadians: number) => {
+      const secondsPerRadian = ORBITAL_PERIOD_TARGET_SECONDS / (2 * Math.PI);
+      scrubOffsetRef.current += deltaRadians * secondsPerRadian;
+    }, []);
 
     // Expose methods to parent
     useImperativeHandle(

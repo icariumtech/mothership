@@ -150,8 +150,14 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
     // Scene root ref for direct material updates (bypasses React prop system)
     const sceneRootRef = useRef<THREE.Group>(null);
 
-    // Animation start time
+    // Animation start time. Mutated on resume so live elapsed time picks up
+    // continuously from the scrubbed position.
     const startTimeRef = useRef(Date.now());
+
+    // Elapsed seconds captured when orbitalMathFrozen flips true; null when
+    // playing. Hoisted from Moon/OrbitalStation so the scene owns a single
+    // freeze checkpoint and can re-anchor startTime on resume.
+    const frozenElapsedRef = useRef<number | null>(null);
 
     // Shared rotation ref for planet, grid, and surface markers
     const rotationRef = useRef(0);
@@ -162,13 +168,12 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
     // Track animation paused state (for surface marker selection)
     const [animationPaused, setAnimationPaused] = useState(false);
 
-    // Combined freeze flag for orbital position math (moons + orbital stations).
-    // Two independent upstream causes: (1) animationPaused — surface marker
-    // selected; (2) orbitsPausedProp — play/pause button in MapPlaybackControls.
-    // Each child treats the combined value as a single "freeze position math"
-    // prop. The camera-tracking useFrame loop intentionally does NOT consume
-    // this flag — camera continues to track selected elements while paused.
-    // See Phase 25 RESEARCH Gotcha #6 for the independence rationale.
+    // Combined freeze flag for orbital position math (moons + orbital stations)
+    // AND central-planet/lat-lon-grid spin. Two independent upstream causes:
+    // (1) animationPaused — surface marker selected;
+    // (2) orbitsPausedProp — play/pause button in MapPlaybackControls.
+    // The camera-tracking useFrame loop intentionally does NOT consume this
+    // flag — camera continues to track selected elements while paused.
     const orbitalMathFrozen = orbitsPausedProp || animationPaused;
 
     // Get element position by name and type
@@ -403,6 +408,23 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
     useEffect(() => {
       startTimeRef.current = Date.now();
     }, [bodySlug]);
+
+    // Capture elapsed seconds when orbitalMathFrozen flips true; on resume,
+    // re-anchor startTimeRef so live elapsed time continues from the scrubbed
+    // position (no snap-back). scrubOffsetRef stores SECONDS of visualization
+    // time, so it's added directly to the frozen elapsed.
+    useEffect(() => {
+      if (orbitalMathFrozen) {
+        frozenElapsedRef.current = (Date.now() - startTimeRef.current) / 1000;
+      } else {
+        if (frozenElapsedRef.current !== null && scrubOffsetRef?.current != null) {
+          startTimeRef.current =
+            Date.now() - (frozenElapsedRef.current + scrubOffsetRef.current) * 1000;
+          scrubOffsetRef.current = 0;
+        }
+        frozenElapsedRef.current = null;
+      }
+    }, [orbitalMathFrozen, scrubOffsetRef]);
 
     // Track last valid reticle position
     const lastReticlePositionRef = useRef<[number, number, number]>([0, 0, 0]);
@@ -733,10 +755,15 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
             castShadow
           />
 
-          {/* Central planet */}
+          {/* Central planet — anchor-based rotation; scrub seconds advance the
+              spin while paused, then OrbitScene re-anchors startTimeRef on
+              resume for seamless playback. */}
           <CentralPlanet
             planet={data.planet}
-            animationPaused={animationPaused}
+            animationPaused={orbitalMathFrozen}
+            startTimeRef={startTimeRef}
+            frozenElapsedRef={frozenElapsedRef}
+            scrubOffsetRef={scrubOffsetRef}
             rotationRef={rotationRef}
           />
 
@@ -745,7 +772,7 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
             planetSize={planetSize}
             axialTilt={axialTilt}
             rotationRef={rotationRef}
-            animationPaused={animationPaused}
+            animationPaused={orbitalMathFrozen}
             showAxisLine={true}
           />
 
@@ -772,7 +799,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
             <Moon
               key={`moon-${moon.name}`}
               moon={moon}
-              startTime={startTimeRef.current}
+              startTimeRef={startTimeRef}
+              frozenElapsedRef={frozenElapsedRef}
               isSelected={selectedElement?.name === moon.name}
               onClick={handleMoonClick}
               animationPaused={orbitalMathFrozen}
@@ -786,7 +814,8 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
             <OrbitalStation
               key={`station-${station.name}`}
               station={station}
-              startTime={startTimeRef.current}
+              startTimeRef={startTimeRef}
+              frozenElapsedRef={frozenElapsedRef}
               isSelected={selectedElement?.name === station.name}
               onClick={handleStationClick}
               animationPaused={orbitalMathFrozen}

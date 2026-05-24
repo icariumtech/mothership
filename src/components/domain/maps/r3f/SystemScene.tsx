@@ -42,7 +42,7 @@ import { useSystemCamera } from './hooks/useSystemCamera';
 import type { SystemMapData, BodyData } from '@/types/systemMap';
 
 // Constants
-const ORBITAL_PERIOD_TARGET_SECONDS = 10;
+export const ORBITAL_PERIOD_TARGET_SECONDS = 10;
 const SIZE_MULTIPLIER = 2;
 
 export interface SystemSceneProps {
@@ -251,18 +251,18 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     // Calculate planet position at current time
     const calculatePlanetPosition = useCallback(
       (body: BodyData): THREE.Vector3 => {
-        // When orbitsPaused, use the elapsed seconds captured at pause time
-        // (frozenElapsedRef) so planets do not advance; add the accumulated
-        // scrub offset so dragging the scrub bar rotates them along their orbits.
+        // While orbitsPaused, freeze elapsed time at the capture point and add
+        // the accumulated scrub time so dragging the slider advances every body
+        // proportionally to its own orbital speed (inner planets cycle faster).
         const elapsedSeconds =
           orbitsPaused && frozenElapsedRef.current !== null
             ? frozenElapsedRef.current
             : (Date.now() - startTimeRef.current) / 1000;
-        const scrubOffset = orbitsPaused ? (scrubOffsetRef?.current ?? 0) : 0;
+        const scrubSeconds = orbitsPaused ? (scrubOffsetRef?.current ?? 0) : 0;
         const orbitalPeriod = body.orbital_period ?? 365;
         const orbitalSpeed = (2 * Math.PI) / orbitalPeriod * speedMultiplier;
         const initialAngle = (body.orbital_angle ?? 0) * (Math.PI / 180);
-        const currentAngle = initialAngle + orbitalSpeed * elapsedSeconds + scrubOffset;
+        const currentAngle = initialAngle + orbitalSpeed * (elapsedSeconds + scrubSeconds);
         const inclination = (body.inclination ?? 0) * (Math.PI / 180);
 
         const x = Math.cos(currentAngle) * body.orbital_radius;
@@ -454,8 +454,8 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
     }, [systemSlug]);
 
     // Capture elapsed seconds at the moment orbitsPaused flips true; on resume,
-    // re-anchor startTimeRef so live elapsed time matches the scrubbed angle
-    // (continuous orbital position across pause→scrub→resume).
+    // re-anchor startTimeRef so live elapsed time matches the scrubbed time
+    // (continuous orbital positions across pause→scrub→resume).
     useEffect(() => {
       if (orbitsPaused) {
         frozenElapsedRef.current = (Date.now() - startTimeRef.current) / 1000;
@@ -464,20 +464,15 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
           frozenElapsedRef.current !== null &&
           scrubOffsetRef?.current != null
         ) {
-          // Use the shortest orbital period as the canonical clock anchor
-          // (mirrors the speedMultiplier derivation above).
-          const minPeriod = data?.bodies?.length
-            ? Math.min(...data.bodies.map((b) => b.orbital_period ?? 365))
-            : 365;
-          const orbitalSpeed = (2 * Math.PI) / minPeriod * speedMultiplier;
-          const offsetSeconds = scrubOffsetRef.current / orbitalSpeed;
+          // scrubOffsetRef is in seconds of visualization time — add it to the
+          // frozen elapsed and shift the start anchor backward by that total.
           startTimeRef.current =
-            Date.now() - (frozenElapsedRef.current + offsetSeconds) * 1000;
+            Date.now() - (frozenElapsedRef.current + scrubOffsetRef.current) * 1000;
           scrubOffsetRef.current = 0;
         }
         frozenElapsedRef.current = null;
       }
-    }, [orbitsPaused, data, speedMultiplier, scrubOffsetRef]);
+    }, [orbitsPaused, scrubOffsetRef]);
 
     // Track last valid reticle position (to avoid jumping to origin during fade-out)
     const lastReticlePositionRef = useRef<[number, number, number]>([0, 0, 0]);
@@ -680,7 +675,10 @@ export const SystemScene = forwardRef<SystemSceneHandle, SystemSceneProps>(
                 key={`planet-${body.name}`}
                 body={body}
                 speedMultiplier={speedMultiplier}
-                startTime={startTimeRef.current}
+                startTimeRef={startTimeRef}
+                frozenElapsedRef={frozenElapsedRef}
+                scrubOffsetRef={scrubOffsetRef}
+                orbitsPaused={orbitsPaused}
                 isSelected={selectedPlanet?.name === body.name}
                 onClick={handlePlanetClick}
               />

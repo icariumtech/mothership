@@ -25,8 +25,17 @@ const METALNESS = 0.0;
 interface MoonProps {
   /** Moon configuration data */
   moon: MoonData;
-  /** Animation start time reference */
-  startTime: number;
+  /**
+   * Animation start time ref. The parent (OrbitScene) re-anchors this on
+   * resume so live elapsed time picks up continuously from the scrubbed
+   * position — passing a ref avoids a stale-value snap-back.
+   */
+  startTimeRef: RefObject<number>;
+  /**
+   * Captured elapsed seconds when animation is frozen (owned by OrbitScene).
+   * While paused, frame math reads this instead of live elapsed.
+   */
+  frozenElapsedRef?: RefObject<number | null>;
   /** Whether this moon is selected */
   isSelected?: boolean;
   /** Callback when moon is clicked */
@@ -34,9 +43,9 @@ interface MoonProps {
   /** Whether animation is paused */
   animationPaused?: boolean;
   /**
-   * Accumulated scrub offset in radians (from the MapPlaybackControls scrub
-   * bar). Added to the orbital angle every frame so the moon advances /
-   * reverses along its orbit while frozen.
+   * Accumulated scrub offset in **seconds of visualization time** (from
+   * MapPlaybackControls). Added to elapsed time while paused so each body
+   * advances proportional to its own orbital period.
    */
   scrubOffsetRef?: RefObject<number>;
   /** Position ref callback for reticle tracking */
@@ -46,7 +55,8 @@ interface MoonProps {
 // Textured moon component
 function TexturedMoon({
   moon,
-  startTime,
+  startTimeRef,
+  frozenElapsedRef,
   onClick,
   animationPaused,
   scrubOffsetRef,
@@ -59,10 +69,6 @@ function TexturedMoon({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const isPaused = useIsPaused();
-  // Capture the elapsed time at the moment animationPaused becomes true so the
-  // orbital angle does not jump forward when we resume — scrub offsets are
-  // applied additively to the frozen elapsed.
-  const frozenElapsedRef = useRef<number | null>(null);
 
   const size = moon.size ?? DEFAULT_SIZE;
 
@@ -103,33 +109,23 @@ function TexturedMoon({
     return mat;
   }, [textures.map, textures.normalMap, normalScale]);
 
-  // Animate orbital position. When paused we still recompute position each
-  // frame because the parent's scrub bar may be mutating scrubOffsetRef —
-  // we want the moon to visibly advance/reverse along its orbit.
+  // Animate orbital position. Pause/resume + scrub bookkeeping is owned by
+  // OrbitScene (frozenElapsedRef + startTimeRef re-anchor on resume). When
+  // frozen, scrubSeconds is added to elapsed so the moon advances proportional
+  // to its own orbital speed.
   useFrame(() => {
     if (!groupRef.current) return;
-    // Global rendering pause (Zustand) still short-circuits — the frameloop
-    // is 'demand' in that case anyway.
     if (isPaused) return;
 
-    // Capture frozen elapsed at the moment animationPaused becomes true; clear
-    // it when resumed so the next play-tick continues from the same angle.
-    if (animationPaused) {
-      if (frozenElapsedRef.current === null) {
-        frozenElapsedRef.current = (Date.now() - startTime) / 1000;
-      }
-    } else if (frozenElapsedRef.current !== null) {
-      frozenElapsedRef.current = null;
-    }
-
-    const elapsedSeconds = frozenElapsedRef.current !== null
-      ? frozenElapsedRef.current
-      : (Date.now() - startTime) / 1000;
-    const scrubOffset = animationPaused ? (scrubOffsetRef?.current ?? 0) : 0;
+    const elapsedSeconds =
+      animationPaused && frozenElapsedRef?.current != null
+        ? frozenElapsedRef.current
+        : (Date.now() - startTimeRef.current) / 1000;
+    const scrubSeconds = animationPaused ? (scrubOffsetRef?.current ?? 0) : 0;
 
     const orbitalSpeed = (2 * Math.PI) / orbitalParams.period;
     const currentAngle =
-      orbitalParams.initialAngle + (orbitalSpeed * elapsedSeconds) + scrubOffset;
+      orbitalParams.initialAngle + orbitalSpeed * (elapsedSeconds + scrubSeconds);
 
     const x = orbitalParams.radius * Math.cos(currentAngle);
     const z = orbitalParams.radius * Math.sin(currentAngle);
@@ -169,7 +165,8 @@ const DEFAULT_MOON_TEXTURE = '/textures/rock/Rock-EQUIRECTANGULAR-1-2048x1024.pn
 
 export function Moon({
   moon,
-  startTime,
+  startTimeRef,
+  frozenElapsedRef,
   isSelected: _isSelected,
   onClick,
   animationPaused = false,
@@ -193,7 +190,8 @@ export function Moon({
   return (
     <TexturedMoon
       moon={moon}
-      startTime={startTime}
+      startTimeRef={startTimeRef}
+      frozenElapsedRef={frozenElapsedRef}
       onClick={onClick}
       animationPaused={animationPaused}
       scrubOffsetRef={scrubOffsetRef}

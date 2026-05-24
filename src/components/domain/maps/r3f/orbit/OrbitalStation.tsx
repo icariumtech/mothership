@@ -22,7 +22,17 @@ interface OrbitalStationProps {
   /** Station configuration data */
   station: StationData;
   /** Animation start time reference */
-  startTime: number;
+  /**
+   * Animation start time ref. The parent (OrbitScene) re-anchors this on
+   * resume so live elapsed time picks up continuously from the scrubbed
+   * position.
+   */
+  startTimeRef: RefObject<number>;
+  /**
+   * Captured elapsed seconds when animation is frozen (owned by OrbitScene).
+   * While paused, frame math reads this instead of live elapsed.
+   */
+  frozenElapsedRef?: RefObject<number | null>;
   /** Whether this station is selected */
   isSelected?: boolean;
   /** Callback when station is clicked */
@@ -30,9 +40,9 @@ interface OrbitalStationProps {
   /** Whether animation is paused */
   animationPaused?: boolean;
   /**
-   * Accumulated scrub offset in radians (from the MapPlaybackControls scrub
-   * bar). Added to the orbital angle every frame so the station advances /
-   * reverses along its orbit while frozen.
+   * Accumulated scrub offset in **seconds of visualization time** (from
+   * MapPlaybackControls). Added to elapsed time while paused so each station
+   * advances proportional to its own orbital period.
    */
   scrubOffsetRef?: RefObject<number>;
   /** Position ref callback for reticle tracking */
@@ -41,7 +51,8 @@ interface OrbitalStationProps {
 
 export function OrbitalStation({
   station,
-  startTime,
+  startTimeRef,
+  frozenElapsedRef,
   isSelected: _isSelected,
   onClick,
   animationPaused = false,
@@ -50,10 +61,6 @@ export function OrbitalStation({
 }: OrbitalStationProps) {
   const spriteRef = useRef<THREE.Sprite>(null);
   const isPaused = useIsPaused();
-  // Capture elapsed seconds at the moment animationPaused becomes true so the
-  // orbital angle does not jump on resume — scrub offsets are applied
-  // additively to the frozen elapsed.
-  const frozenElapsedRef = useRef<number | null>(null);
 
   const size = station.size ?? DEFAULT_SIZE;
 
@@ -130,30 +137,21 @@ export function OrbitalStation({
     inclination: (station.inclination ?? 0) * (Math.PI / 180),
   }), [station.orbital_radius, station.orbital_period, station.orbital_angle, station.inclination]);
 
-  // Animate orbital position. When animationPaused is true we still recompute
-  // position each frame because the scrub bar may be mutating scrubOffsetRef —
-  // the station must visibly advance/reverse along its orbit while frozen.
+  // Animate orbital position. Pause/resume + scrub bookkeeping is owned by
+  // OrbitScene (frozenElapsedRef + startTimeRef re-anchor on resume).
   useFrame(() => {
     if (!spriteRef.current) return;
-    // Global rendering pause (Zustand) still short-circuits.
     if (isPaused) return;
 
-    if (animationPaused) {
-      if (frozenElapsedRef.current === null) {
-        frozenElapsedRef.current = (Date.now() - startTime) / 1000;
-      }
-    } else if (frozenElapsedRef.current !== null) {
-      frozenElapsedRef.current = null;
-    }
-
-    const elapsedSeconds = frozenElapsedRef.current !== null
-      ? frozenElapsedRef.current
-      : (Date.now() - startTime) / 1000;
-    const scrubOffset = animationPaused ? (scrubOffsetRef?.current ?? 0) : 0;
+    const elapsedSeconds =
+      animationPaused && frozenElapsedRef?.current != null
+        ? frozenElapsedRef.current
+        : (Date.now() - startTimeRef.current) / 1000;
+    const scrubSeconds = animationPaused ? (scrubOffsetRef?.current ?? 0) : 0;
 
     const orbitalSpeed = (2 * Math.PI) / orbitalParams.period;
     const currentAngle =
-      orbitalParams.initialAngle + (orbitalSpeed * elapsedSeconds) + scrubOffset;
+      orbitalParams.initialAngle + orbitalSpeed * (elapsedSeconds + scrubSeconds);
 
     const x = orbitalParams.radius * Math.cos(currentAngle);
     const z = orbitalParams.radius * Math.sin(currentAngle);

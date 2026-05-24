@@ -89,11 +89,13 @@ export function OrbitControls({
     return targetRef.current;
   }, []);
 
-  // Check if event target is a UI panel
+  // Check if event target is a UI panel. Accepts SVGElement as well as
+  // HTMLElement so drags inside SVG-based overlays (e.g. the playback scrub
+  // ring) are correctly filtered out.
   const isPanelEvent = useCallback((eventTarget: EventTarget | null): boolean => {
-    if (!eventTarget || !(eventTarget instanceof HTMLElement)) return false;
+    if (!eventTarget || !(eventTarget instanceof Element)) return false;
     return !!eventTarget.closest(
-      '.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel, .star-system-row'
+      '.panel-base, .panel-wrapper, .panel-content, .dashboard-panel-content, .system-info-panel, .star-system-row, .map-playback-controls'
     );
   }, []);
 

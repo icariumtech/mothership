@@ -38,7 +38,8 @@ export interface CameraState {
 // Animation state flags
 export interface AnimationState {
   orbitalMotion: boolean;  // Planets/moons orbit animation
-  autoRotate: boolean;     // Camera auto-rotation when idle
+  autoRotate: boolean;     // Camera auto-rotation when idle (transient — flipped by drags, zooms, selections; auto-resumed after idle delay)
+  userPaused: boolean;     // Explicit pause via the play/pause overlay; only the button writes this. Always wins over autoRotate.
   paused: boolean;         // All animations paused
 }
 
@@ -121,6 +122,7 @@ export interface SceneActions {
   // Animation actions
   setOrbitalMotion: (enabled: boolean) => void;
   setAutoRotate: (enabled: boolean) => void;
+  setUserPaused: (paused: boolean) => void;
   setPaused: (paused: boolean) => void;
   recordInteraction: () => void;
 
@@ -166,6 +168,7 @@ const initialState: SceneState = {
   animations: {
     orbitalMotion: true,
     autoRotate: true,
+    userPaused: false,
     paused: false,
   },
 
@@ -249,6 +252,10 @@ export const useSceneStore = create<SceneState & SceneActions>()((set, get) => (
 
   setAutoRotate: (enabled) => set((state) => ({
     animations: { ...state.animations, autoRotate: enabled },
+  })),
+
+  setUserPaused: (paused) => set((state) => ({
+    animations: { ...state.animations, userPaused: paused },
   })),
 
   setPaused: (paused) => set((state) => ({

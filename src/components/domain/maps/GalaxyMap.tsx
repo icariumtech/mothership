@@ -59,16 +59,15 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
   ) => {
     const sceneRef = useRef<GalaxySceneHandle>(null);
 
-    // Auto-rotate state for play/pause overlay.
-    // Calling setAutoRotate(false) alone is sticky — the 5s auto-resume timer
-    // in GalaxyControls only fires when lastInteractionTime has been set by an
-    // OrbitControls interaction. Do NOT signal an interaction here.
-    // See 25-RESEARCH.md Gotcha #1.
+    // Play/pause overlay state. The button writes `userPaused` only — system
+    // selection, drag, zoom, and the 5s auto-resume continue to manipulate
+    // `autoRotate` transparently without flipping the button's visual.
+    // Rotation runs only when autoRotate is on AND the user hasn't paused.
     const animations = useAnimationState();
-    const setAutoRotate = useSceneStore((state) => state.setAutoRotate);
+    const setUserPaused = useSceneStore((state) => state.setUserPaused);
     const handleTogglePlay = useCallback(() => {
-      setAutoRotate(!animations.autoRotate);
-    }, [animations.autoRotate, setAutoRotate]);
+      setUserPaused(!animations.userPaused);
+    }, [animations.userPaused, setUserPaused]);
 
     // Expose methods to parent - same interface as before
     useImperativeHandle(
@@ -149,7 +148,7 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
           <PostProcessing enabled={false} />
         </Canvas>
         <MapPlaybackControls
-          isPlaying={animations.autoRotate}
+          isPlaying={!animations.userPaused}
           onTogglePlay={handleTogglePlay}
           showScrub={false}
         />

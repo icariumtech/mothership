@@ -160,7 +160,7 @@ export function GalaxyControls({
 
     const handleMouseDown = (event: MouseEvent) => {
       if (event.button !== 0) return;
-      if (isPanelEvent(event.target)) return;
+      if (isPanelEvent(event.target) || isButtonEvent(event.target)) return;
 
       isDragging.current = true;
       setAutoRotate(false);
@@ -198,7 +198,7 @@ export function GalaxyControls({
       window.removeEventListener('mouseup', handleMouseUp);
       domElement.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [enabled, domElement, isPanelEvent, setAutoRotate, recordInteraction, rotateCamera]);
+  }, [enabled, domElement, isPanelEvent, isButtonEvent, setAutoRotate, recordInteraction, rotateCamera]);
 
   // Touch handlers
   useEffect(() => {
@@ -290,8 +290,9 @@ export function GalaxyControls({
   useFrame(() => {
     if (!enabled || animations.paused) return;
 
-    // Check for auto-rotate resume
-    if (!animations.autoRotate && lastInteractionTime) {
+    // 5s auto-resume after a drag/zoom/selection — but never override the
+    // user's explicit pause via the play/pause overlay.
+    if (!animations.userPaused && !animations.autoRotate && lastInteractionTime) {
       const timeSinceInteraction = Date.now() - lastInteractionTime;
       if (timeSinceInteraction >= autoRotateResumeDelay) {
         setAutoRotate(true);
@@ -299,7 +300,7 @@ export function GalaxyControls({
     }
 
     // Perform auto-rotation
-    if (animations.autoRotate && !isDragging.current && !isTouching.current) {
+    if (animations.autoRotate && !animations.userPaused && !isDragging.current && !isTouching.current) {
       const offset = camera.position.clone().sub(targetRef.current);
       const radius = offset.length();
 

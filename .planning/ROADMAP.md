@@ -136,7 +136,8 @@ Plans:
 **Goal:** Add playback controls (play/pause + horizontal scrub bar) to all three 3D map views (galaxy, system, orbit). Galaxy gets a play/pause button that toggles the existing `sceneStore.animations.autoRotate`; system and orbit get play/pause plus a horizontal drag-zone scrub bar (active only when paused) that advances/reverses orbital positions of planets and moons/stations. Controls render as a CRT-style overlay pill (`[ ⏸ |==scrub==| ]`) at top-center of each map, outside the R3F Canvas. Designed for large-touch-TV GM interaction (≥44px button targets). Scrub speed is adaptive — calibrated to the shortest orbital period in the scene by default, or to the selected body's period when one is selected.
 **Requirements**: D-01–D-13 (see 25-CONTEXT.md)
 **Depends on:** Phase 24
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed — COMPLETE (GM sign-off 2026-05-24)
+**Note:** Overlay shipped as a circular Chronoscope (iPod-style click wheel, lower-right) rather than the spec'd horizontal pill; functional contract (play/pause + adaptive scrub on all three maps) unchanged. See 25-05-SUMMARY.md "Design Evolution".
 
 Plans:
 
@@ -152,4 +153,4 @@ Plans:
 
 **Wave 3** (blocked on Wave 2):
 
-- [ ] 25-05-PLAN.md — Typecheck + build + 19-step GM smoke-test checkpoint (galaxy auto-resume gotcha, system+orbit scrub direction, surface marker independence)
+- [x] 25-05-PLAN.md — Typecheck + build + GM smoke test (approved 2026-05-24; control redesigned to Chronoscope during verification)

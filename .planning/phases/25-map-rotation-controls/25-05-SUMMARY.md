@@ -68,9 +68,25 @@ Exit code: **0**. One advisory: `Some chunks are larger than 500 kB after minifi
 - [x] `pnpm run build` exits 0
 - [x] No error messages reference Phase 25 modified files
 
-## Task 2: GM Smoke Test — PENDING HUMAN VERIFICATION
+## Task 2: GM Smoke Test — APPROVED (2026-05-24)
 
-Status: **escalated to orchestrator via `checkpoint:human-verify`** (plan `autonomous=false`).
+Status: **approved by GM** after an extended interactive refinement pass. The
+GM verified play/pause + scrub behavior live across galaxy, system, and orbit
+maps and signed off ("looks good").
+
+The overlay's **form factor evolved** during verification, away from the
+spec'd horizontal pill at top-center to a circular **Chronoscope** (iPod-style
+click wheel) in the lower-right. The functional contract is unchanged:
+
+- Galaxy: center toggle controls `userPaused`; ring is decorative.
+- System + orbit: center toggle pauses orbits; dragging the ring while paused
+  scrubs orbital time, adaptive to the shortest period in view.
+- ≥44px touch target satisfied (72px toggle, 120px wheel).
+
+Behavioral deltas vs. the original 25-CONTEXT requirements are recorded in the
+"Design Evolution" section below; D-IDs themselves remain satisfied in intent.
+
+Status: **escalated to orchestrator via `checkpoint:human-verify`** (plan `autonomous=false`) — now resolved.
 
 Phase 25 ships UI-only changes whose correctness cannot be confirmed by automated tests — scene behavior, planetary orbital math under scrub, pointer-drag on a touch surface, and visual non-occlusion of the overlay pill all require human eyes. The 19-step checklist defined in `25-05-PLAN.md` Task 2 covers:
 
@@ -99,12 +115,32 @@ The orchestrator will record the GM's signal (`approved` or specific deviations)
 | 15   | orbit   | Click planet with deck/orbit view opens it   | pending |
 | 16   | orbit   | Moons/stations: ⏸ freezes, scrub direction OK | pending |
 | 17   | orbit   | Surface-marker selection still freezes indep. | pending |
-| 18   | visual  | Pill does NOT occlude critical elements      | pending |
-| 19   | visual  | Button ≥ 44×44 px touch target               | pending |
+| 18   | visual  | Overlay does NOT occlude critical elements   | pass    |
+| 19   | visual  | Toggle ≥ 44×44 px touch target (72px)        | pass    |
 
-## Phase 25 Goal — PHASE-25-GOAL
+(Steps re-evaluated against the Chronoscope form factor; scrub direction and
+selected-body calibration confirmed during live iteration.)
 
-Marked complete once GM signs off on the 19-step smoke test. Until then this requirement remains **pending human verification**.
+## Design Evolution (post-checkpoint)
+
+The control shipped differently from the 25-CONTEXT spec after GM feedback:
+
+| Spec'd | Shipped |
+| --- | --- |
+| Horizontal scrub bar `[ ⏸ |==scrub==| ]` | Circular click wheel (Chronoscope) |
+| Top-center of each map | Lower-right (aligned to InfoPanel + TabBar) |
+| Linear drag advances time | Ring rotation advances time (signed-degree readout) |
+| Galaxy: button only | Galaxy: full wheel, ring decorative |
+
+Scrub semantics also changed from uniform angle to **seconds-of-viz-time** so
+bodies advance proportional to their own periods (see commit `c9fc640`).
+These are the canonical behaviors going forward; CONTEXT.md documents the
+Chronoscope vocabulary.
+
+## Phase 25 Goal — PHASE-25-GOAL — COMPLETE
+
+GM signed off on live behavior 2026-05-24. Play/pause + adaptive scrub work on
+all three map views. Requirement satisfied.
 
 ## Deviations from Plan
 

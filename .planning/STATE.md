@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 25 implementation complete, awaiting GM smoke test (Plan 25-05)
-last_updated: "2026-05-23T04:33:07.838Z"
-last_activity: 2026-05-22 -- Phase 25 implementation complete; 4/5 plans done; smoke test deferred
+status: phase-complete
+stopped_at: Phase 25 complete — GM signed off on Chronoscope playback controls
+last_updated: "2026-05-24T00:00:00.000Z"
+last_activity: 2026-05-24 -- Phase 25 complete; 5/5 plans done; GM smoke test approved
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 19
-  completed_plans: 14
-  percent: 67
+  completed_plans: 19
+  percent: 100
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 
 ## Current Position
 
-Phase: 25 (map-rotation-controls) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 25
+Phase: 25 (map-rotation-controls) — COMPLETE
+Plan: 5 of 5
+Status: Phase 25 complete — all milestone phases done
 
-Last activity: 2026-05-22 -- Phase 25 execution started
+Last activity: 2026-05-24 -- Phase 25 complete; GM approved Chronoscope playback controls
 
 ## v1.0 Milestone Archive
 

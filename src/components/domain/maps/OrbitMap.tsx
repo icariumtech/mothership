@@ -270,7 +270,6 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
         <MapPlaybackControls
           isPlaying={isOrbiting}
           onTogglePlay={handleTogglePlay}
-          showScrub={true}
           onScrubDelta={handleScrubDelta}
         />
       </div>

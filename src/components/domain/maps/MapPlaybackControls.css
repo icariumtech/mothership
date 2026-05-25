@@ -1,30 +1,28 @@
 /*
- * MapPlaybackControls.css
+ * MapPlaybackControls.css — Chronoscope (iPod-style click wheel).
  *
- * Circular scrub ring + centered play/pause button overlay (Phase 25).
- * Galaxy: just the button. System + orbit: ring + thumb + button-in-middle.
+ * Sits in the lower-right of the map view: right edge 60px from InfoPanel's
+ * right (30 + 30 margin), bottom edge 60px from TabBar's bottom (30 + 30).
  *
- * Touch targets honor the 44x44 minimum for tabletop touch use (D-12).
+ * Ring + Toggle render at 30% opacity. The scrub readout (degrees) stays
+ * fully visible so the user can read it during a drag.
  */
 
 .map-playback-controls {
   position: absolute;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.75;
-  font-family: 'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace;
-  pointer-events: all;
-  user-select: none;
-}
-
-.map-playback-controls--with-ring {
+  bottom: 60px;
+  right: 60px;
   width: 120px;
   height: 120px;
+  z-index: 100;
+  pointer-events: auto;
+  user-select: none;
+  font-family: 'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace;
+}
+
+.map-playback-controls__ring,
+.map-playback-controls__btn {
+  opacity: 0.3;
 }
 
 .map-playback-controls__ring {
@@ -38,32 +36,47 @@
 }
 
 .map-playback-controls__btn {
-  position: relative;
-  z-index: 2;
-  min-width: 44px;
-  min-height: 44px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #c9a050;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  border: none;
-  cursor: pointer;
   padding: 0;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.map-playback-controls__btn-frame {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 9px;
-  border: 1px solid #c9a050;
+.map-playback-controls__btn:focus,
+.map-playback-controls__btn:focus-visible,
+.map-playback-controls__btn:active {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.map-playback-controls__scrub-label {
+  position: absolute;
+  bottom: 130px;
+  left: 50%;
+  transform: translateX(-50%);
   color: #c9a050;
   font-size: 18px;
-  line-height: 1;
-  background: #0a0f0f;
+  letter-spacing: 1px;
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0.5;
+  transition: opacity 0.5s ease-out;
+  text-shadow: 0 0 6px rgba(201, 160, 80, 0.4);
 }
 
-.map-playback-controls__btn:hover .map-playback-controls__btn-frame {
-  color: #d4b060;
-  border-color: #d4b060;
+.map-playback-controls__scrub-label.fading {
+  opacity: 0;
 }

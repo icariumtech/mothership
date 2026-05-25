@@ -63,3 +63,44 @@ _Avoid_: fade-in, animation (too generic)
 
 - **Map** alone is ambiguous (galaxy / system / orbit / encounter / campaign). Use the qualified term outside narrow scopes.
 - Legacy door model: doors nested under one **Room** with synthetic ids `${room.id}_door_${index}` and adjacent-cell inferred geometrically. Replaced by top-level `doors` with explicit `roomA` / `roomB`. **Adjacent cell** is a relic of that model.
+
+# Map Playback
+
+The per-viewer play/pause and time-scrub overlay on galaxy, system, and orbit maps. Lets a GM or player freeze celestial motion and shuttle it forward/backward without affecting other viewers.
+
+## Language
+
+**Chronoscope**:
+The iPod-style click-wheel overlay on a map view: a thick amber **Ring** with a circular play/pause **Toggle** at its center. Anchored in the lower-right of the map (right edge with **InfoPanel**, bottom edge with the BridgeView TabBar), at 50% opacity. Each viewer has their own — never synced across clients. Shown on galaxy, system, and orbit maps.
+_Avoid_: scrubber, dial, time wheel, playback widget
+
+**Ring**:
+The thick amber donut around the **Toggle**. Dragging it (when scrub is enabled and the view is paused) emits signed angular deltas in radians (positive = clockwise = forward time). On the galaxy map the ring is decorative — no scrub callback wired, drag is a no-op. On system and orbit maps the ring is functional while paused.
+
+**Toggle**:
+The round play/pause button at the center of the **Chronoscope**, sized to fit inside the **Ring**'s hole. Writes only `userPaused` (galaxy) or the local `isOrbiting` flag (system/orbit) — never `autoRotate`.
+
+**User pause** (`userPaused`):
+The viewer's explicit pause intent. Sticky: survives transient camera/selection state changes. Always wins over `autoRotate`.
+_Avoid_: paused (ambiguous with render-pause and autoRotate)
+
+**Scrub**:
+Dragging the **Thumb** to advance or rewind orbital time while paused. Each body advances proportional to its own orbital period — so configurations recur but exact alignment requires commensurate periods.
+
+**Scrub offset** (`scrubOffsetRef`):
+Accumulated scrub expressed in **seconds of visualization time**, not radians. Added to elapsed seconds in every body's frame math so periods scale naturally.
+
+**Re-anchor**:
+On resume, `startTimeRef` is reset to `Date.now() - (frozenElapsed + scrubOffset) * 1000` so live playback continues smoothly from the scrubbed position with no snap-back.
+
+## Relationships
+
+- A **Chronoscope** contains one **Ring** and one **Toggle**.
+- The **Toggle** writes **User pause** (galaxy) or local pause (system/orbit); pause gates every body's frame math.
+- A **Ring** drag emits angular deltas → **Scrub offset** (converted via `secondsPerRadian`).
+- **Scrub offset** + frozen elapsed → body position while paused; **Re-anchor** absorbs both on resume.
+
+## Flagged ambiguities
+
+- "Paused" is overloaded: distinguish **User pause** (viewer intent), `autoRotate` (transient camera-driven), and the global Zustand render-pause (`useIsPaused`).
+- One full **Ring** rotation ≠ one orbit for every body — it equals the shortest orbital period in the current view, so outer bodies move less per revolution.

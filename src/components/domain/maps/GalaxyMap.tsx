@@ -150,7 +150,6 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
         <MapPlaybackControls
           isPlaying={!animations.userPaused}
           onTogglePlay={handleTogglePlay}
-          showScrub={false}
         />
       </div>
     );

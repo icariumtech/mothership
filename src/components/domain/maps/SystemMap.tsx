@@ -271,7 +271,6 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
         <MapPlaybackControls
           isPlaying={isOrbiting}
           onTogglePlay={handleTogglePlay}
-          showScrub={true}
           onScrubDelta={handleScrubDelta}
         />
       </div>

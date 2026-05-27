@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: phase-complete
-stopped_at: Phase 25 complete — GM signed off on Chronoscope playback controls
-last_updated: "2026-05-24T00:00:00.000Z"
-last_activity: 2026-05-24 -- Phase 25 complete; 5/5 plans done; GM smoke test approved
+status: verifying
+stopped_at: Phase 25 UI-SPEC approved
+last_updated: "2026-05-27T20:28:08.698Z"
+last_activity: 2026-05-27
 progress:
-  total_phases: 3
+  total_phases: 5
   completed_phases: 3
-  total_plans: 19
-  completed_plans: 19
-  percent: 100
+  total_plans: 22
+  completed_plans: 20
+  percent: 60
 ---
 
 # Project State
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 
 Phase: 25 (map-rotation-controls) — COMPLETE
 Plan: 5 of 5
-Status: Phase 25 complete — all milestone phases done
+Status: Phase complete — ready for verification
 
-Last activity: 2026-05-24 -- Phase 25 complete; GM approved Chronoscope playback controls
+Last activity: 2026-05-27
 
 ## v1.0 Milestone Archive
 
@@ -51,7 +51,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full v1.0 decision log.
 
 ## Session Continuity
 
-Last session: 2026-05-22T21:36:26.540Z
+Last session: 2026-05-27T20:28:08.693Z
 Stopped at: Phase 25 UI-SPEC approved
 Next step: Plan v2.0 next phase (UI Audio, or pick from deferred deepening candidates)
 
@@ -61,3 +61,4 @@ Next step: Plan v2.0 next phase (UI Audio, or pick from deferred deepening candi
 |-------|------|----------|-------|
 | Phase 24 P03 | 128 | 3 tasks | 2 files |
 | Phase 24 P05 | 3min | 3 tasks | 4 files |
+| Phase 27-mcp-image-upload P01 | 2min | 2 tasks | 7 files |

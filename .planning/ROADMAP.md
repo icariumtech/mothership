@@ -78,7 +78,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 22. Renderer Interaction Seams | v2 | 3/3 | Complete    | 2026-05-14 |
 | 23. Containerization           | v2 | 7/7 | Complete    | 2026-05-18 |
 | 26. Map polish (ad-hoc)        | v2 | —   | ✓ Complete (ad-hoc) | 2026-05-25 |
-| 27. MCP Image Upload           | v2 | 0/3 | ○ Pending   | — |
+| 27. MCP Image Upload           | v2 | 1/3 | In Progress|  |
 
 ### Phase 23: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 
@@ -167,11 +167,11 @@ Plans:
 
 **Goal:** Add a `upload_image` MCP tool to the JANUS server that accepts base64-encoded binary image data and saves it to the correct data directory location based on image type. NPC portraits are saved to `data/campaign/NPCs/images_source/` with an optional conversion pass through `convert_npc_portraits.py` (amber gradient, 512×512 crop). Logos land in `data/campaign/images/logos/`, handout maps in `data/campaign/images/maps/`, and miscellaneous assets in `data/campaign/images/misc/`. Two new janus-skills expose this: `janus-upload-portrait` (auto-converts by default) and `janus-upload-image` (generic, destination-type required).
 **Depends on:** Phase 26
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 **Wave 1** (no dependencies):
 
-- [ ] 27-01-PLAN.md — Pillow in requirements.txt + logos/maps/misc .gitkeep dirs + Django api_gm_upload_image view + URL routing + test file (Wave 1)
+- [x] 27-01-PLAN.md — Pillow in requirements.txt + logos/maps/misc .gitkeep dirs + Django api_gm_upload_image view + URL routing + test file (Wave 1)
 
 **Wave 2** (blocked on Wave 1):
 

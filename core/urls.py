@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/gm/data/<path:filepath>', views.api_gm_data_file, name='gm_data_file'),
     path('api/gm/session-context', views.api_gm_session_context, name='gm_session_context'),
     path('api/gm/data-schema', views.api_gm_data_schema, name='gm_data_schema'),
+    path('api/gm/upload-image/', views.api_gm_upload_image, name='gm_upload_image'),
     path('api/gm/switch-view/', views.api_switch_view, name='api_switch_view'),
     path('api/gm/show-terminal/', views.api_show_terminal, name='api_show_terminal'),
     path('api/gm/broadcast/', views.api_broadcast, name='api_broadcast'),

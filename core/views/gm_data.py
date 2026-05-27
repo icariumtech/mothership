@@ -1,19 +1,23 @@
 """
 GM Data API — file-level access to campaign YAML data for the AI agent (MCP server).
 
-Four endpoints:
+Five endpoints:
   GET  /api/gm/data/?dir=<rel>        — list files in a data subdirectory
   GET  /api/gm/data/<path>            — read raw file content
   PUT  /api/gm/data/<path>            — write YAML atomically (validated + path-traversal-guarded)
   GET  /api/gm/session-context        — snapshot of current game state (active view + NPCs/crew/ship)
   GET  /api/gm/data-schema            — raw DATA_DIRECTORY_GUIDE.md content
+  POST /api/gm/upload-image/          — save base64-encoded binary image to campaign data directory
 
 All endpoints are intentionally unauthenticated (trust-network model, D-09).
 """
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+import base64
+import binascii
 import json
+import sys
 import yaml
 import os
 import tempfile
@@ -223,3 +227,110 @@ def api_gm_data_schema(request):
         return JsonResponse({'error': 'Could not read schema file'}, status=500)
 
     return HttpResponse(content, content_type='text/markdown; charset=utf-8')
+
+
+# ---------------------------------------------------------------------------
+# Image upload view
+# ---------------------------------------------------------------------------
+
+# Allowlist of valid image types and their destination directories
+# (relative to DATA_DIR).
+ALLOWED_IMAGE_TYPES = frozenset({'portrait', 'logo', 'map', 'misc'})
+
+_IMAGE_TYPE_DIRS = {
+    'portrait': 'campaign/NPCs/images_source',
+    'logo': 'campaign/images/logos',
+    'map': 'campaign/images/maps',
+    'misc': 'campaign/images/misc',
+}
+
+
+@csrf_exempt
+def api_gm_upload_image(request):
+    """Save a base64-encoded binary image to the campaign data directory.
+
+    POST /api/gm/upload-image/
+    Body (JSON):
+      filename       — destination filename (str, no path separators)
+      content_base64 — base64-encoded file bytes (str)
+      image_type     — one of: portrait, logo, map, misc
+      convert        — (bool, default True) if True and image_type=="portrait",
+                       run convert_portrait from scripts/
+
+    Returns:
+      200 { saved_path, original_size_bytes[, converted_path] }
+      400 on validation failure
+      405 for non-POST methods
+      500 on OS write failure
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    # Parse JSON body
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    # Extract fields
+    filename = str(body.get('filename', '')).strip()
+    content_base64 = body.get('content_base64', '')
+    image_type = str(body.get('image_type', '')).strip()
+    convert = body.get('convert', True)
+
+    # Normalize convert to bool (guard against MCP clients serializing booleans
+    # as strings, per Pitfall 6 in RESEARCH.md)
+    if not isinstance(convert, bool):
+        convert = str(convert).lower() not in ('false', '0', 'no')
+
+    # Filename safety check — reject empty or containing dangerous characters
+    if not filename or any(c in filename for c in ('/', '\\', '..')):
+        return JsonResponse({'error': 'Invalid filename'}, status=400)
+
+    # image_type allowlist
+    if image_type not in ALLOWED_IMAGE_TYPES:
+        return JsonResponse({'error': f'Invalid image_type: {image_type!r}. Must be one of: {sorted(ALLOWED_IMAGE_TYPES)}'}, status=400)
+
+    # Decode base64 content
+    try:
+        raw_bytes = base64.b64decode(content_base64, validate=False)
+    except (binascii.Error, Exception):
+        return JsonResponse({'error': 'Invalid base64 content'}, status=400)
+
+    # Resolve destination path
+    data_root = Path(settings.DATA_DIR)
+    dest_dir = data_root / _IMAGE_TYPE_DIRS[image_type]
+    dest_path = dest_dir / filename
+
+    # Write file to disk
+    try:
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest_path.write_bytes(raw_bytes)
+    except OSError as e:
+        logger.exception('Error writing uploaded image %s: %s', dest_path, e)
+        return JsonResponse({'error': 'Could not write file'}, status=500)
+
+    result = {
+        'saved_path': str(dest_path.relative_to(data_root)),
+        'original_size_bytes': len(raw_bytes),
+    }
+
+    # Portrait conversion (optional, non-fatal)
+    if image_type == 'portrait' and convert:
+        images_dir = data_root / 'campaign' / 'NPCs' / 'images'
+        stem = Path(filename).stem
+        output_path = images_dir / f'{stem}.png'
+        try:
+            images_dir.mkdir(parents=True, exist_ok=True)
+            # Add scripts/ to sys.path (only once)
+            scripts_dir = str(Path(settings.BASE_DIR) / 'scripts')
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from convert_npc_portraits import convert_portrait
+            convert_portrait(str(dest_path), str(output_path))
+            result['converted_path'] = str(output_path.relative_to(data_root))
+        except Exception as e:
+            logger.warning('Portrait conversion failed for %s: %s', filename, e)
+            result['conversion_warning'] = str(e)
+
+    return JsonResponse(result)

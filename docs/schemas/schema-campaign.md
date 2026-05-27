@@ -11,7 +11,7 @@ All MCP paths are relative to `data/`. Slash convention: forward-slash only, no 
 | `campaign/crew/` | Crew member YAML files — one per character |
 | `campaign/npcs/` | NPC YAML files — one per NPC |
 | `campaign/ship/` | Player ship files (`ship.yaml`, `location.yaml`, `deckplan.yaml`) |
-| `campaign/corporation/` | Corporation YAML files |
+| `campaign/corporation.yaml` | Single-file corporation record |
 | `campaign/standby.yaml` | Standby screen config (single file, not a directory) |
 
 MCP read: `read_file("campaign/crew/alex_novak.yaml")`
@@ -82,19 +82,17 @@ All crew files use the same flat format — no wrapper key. File begins directly
 
 ---
 
-## Corporation YAML (`data/campaign/corporation/`)
+## Corporation YAML (`data/campaign/corporation.yaml`)
 
-One YAML file per corporation. Minimal documented fields:
+Single file — one corporation per campaign. Minimal documented fields:
 
 | Field | Type | Note |
 |---|---|---|
-| `id` | string | Must match filename stem |
 | `name` | string | Full corporation name |
-| `description` | string | Narrative description |
-| `status` | enum | `ACTIVE \| INACTIVE \| UNKNOWN` |
-| `type` | string | Corporation type/sector (optional) |
-| `headquarters` | string | Location name (optional) |
-| `notable_personnel` | list | List of name strings (optional) |
+| `motto` | string | Corporate motto (optional) |
+| `logo` | string | Path to logo image (optional) |
+| `version` | string | Firmware/system version (optional) |
+| `firmware` | string | Firmware version string (optional) |
 
 ---
 

@@ -469,20 +469,13 @@ the display-ready portrait in data/campaign/NPCs/images/.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Pillow in requirements.txt**
-   - What we know: Pillow 12.0.0 is installed in `.venv` but absent from `requirements.txt`; Docker builds from `requirements.txt` only
-   - What's unclear: Whether this was intentional (scripts/ is dev-only tooling) or an oversight
-   - Recommendation: Add `Pillow>=10.0.0` to `requirements.txt` in Wave 0; this is the safest path and aligns with the script being in the project repo
+1. **Pillow in requirements.txt** — RESOLVED: Add `Pillow>=10.0.0` to `requirements.txt` in Wave 1. It was an oversight (Pillow is a production dependency since convert_npc_portraits.py runs server-side).
 
-2. **httpx timeout for large images**
-   - What we know: Default httpx timeout is 5 seconds; Pillow conversion of a 500KB portrait can take 1-3 seconds
-   - Recommendation: Set `timeout=60.0` on the `AsyncClient` for the upload_image tool call
+2. **httpx timeout for large images** — RESOLVED: Set `timeout=60.0` on `httpx.AsyncClient` in the `upload_image` MCP tool (27-02-PLAN.md).
 
-3. **Existing `korova-stahl-logo.png` location**
-   - What we know: File is at `data/campaign/images/korova-stahl-logo.png` (not in `logos/`)
-   - Recommendation: Leave existing file in place; create `logos/` subdir with `.gitkeep`; no migration needed
+3. **Existing `korova-stahl-logo.png` location** — RESOLVED: Leave existing file at `data/campaign/images/korova-stahl-logo.png` root level. Create `logos/`, `maps/`, `misc/` subdirs with `.gitkeep` only (no migration of existing logo).
 
 ---
 

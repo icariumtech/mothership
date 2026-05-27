@@ -23,9 +23,10 @@ import {
 } from 'react';
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
-import { SystemScene, LoadingScene } from './r3f';
+import { SystemScene } from './r3f';
 import { ORBITAL_PERIOD_TARGET_SECONDS } from './r3f/SystemScene';
 import { TypewriterController } from './r3f/shared/TypewriterController';
+import { ViewOffset } from './r3f/shared';
 import type { SystemSceneHandle } from './r3f';
 import type { BodyData, SystemMapData } from '@/types/systemMap';
 import { MapPlaybackControls } from './MapPlaybackControls';
@@ -52,6 +53,8 @@ interface SystemMapProps {
   hidden?: boolean;
   /** Whether to pause rendering updates */
   paused?: boolean;
+  /** Pixels to shift scene content upward (re-centers between top/nav bars). */
+  centerOffsetPx?: number;
 }
 
 export interface SystemMapHandle {
@@ -74,6 +77,7 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
       transitionState = 'idle',
       hidden = false,
       paused = false,
+      centerOffsetPx = 0,
     },
     ref
   ) => {
@@ -249,7 +253,12 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
           {/* RAF-driven typewriter controller */}
           <TypewriterController speed={15} />
 
-          <Suspense fallback={<LoadingScene />}>
+          {/* Shift focal center up to sit between the top bar and nav bar */}
+          <ViewOffset shiftY={centerOffsetPx} />
+
+          {/* null (not LoadingScene) while data loads — the scene fades in from
+              black, avoiding an amber loading-ring flash on (re)mount/refetch. */}
+          <Suspense fallback={null}>
             {systemData && !isLoading ? (
               <SystemScene
                 ref={sceneRef}
@@ -263,9 +272,7 @@ export const SystemMap = forwardRef<SystemMapHandle, SystemMapProps>(
                 onPlanetSelect={handlePlanetSelect}
                 onReady={onReady}
               />
-            ) : (
-              <LoadingScene />
-            )}
+            ) : null}
           </Suspense>
         </Canvas>
         <MapPlaybackControls

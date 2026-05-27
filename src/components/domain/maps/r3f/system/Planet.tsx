@@ -11,11 +11,14 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useProceduralTexture } from '../hooks/useProceduralTexture';
 import { useIsPaused } from '../hooks/useSceneStore';
+import { MapLabel } from '../shared';
 import type { BodyData } from '@/types/systemMap';
 import { PlanetRings } from './PlanetRings';
 
 // Constants (from legacy SystemScene)
 const SIZE_MULTIPLIER = 2;
+// World-unit font size for planet name labels.
+const PLANET_LABEL_FONT_SIZE = 2.5;
 
 interface PlanetProps {
   /** Planet configuration data */
@@ -101,16 +104,17 @@ export function Planet({
     groupRef.current.position.set(posX, posY, posZ);
   });
 
+  // Generous invisible hit target so small planets are still easy to click.
+  const hitScale = Math.max(size * 1.6, 6);
+  // Place the name label just to the right of the planet (and its rings).
+  const labelOffset = (body.has_rings ? size * 0.9 : size * 0.5) + 1.2;
+
   return (
     <group ref={groupRef}>
       {/* Planet sprite */}
       <sprite
         ref={spriteRef}
         scale={[size, size, 1]}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick?.(body);
-        }}
       >
         <spriteMaterial
           map={planetTexture}
@@ -121,10 +125,37 @@ export function Planet({
         />
       </sprite>
 
+      {/* Invisible, larger click target */}
+      <sprite
+        scale={[hitScale, hitScale, 1]}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.(body);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = '';
+        }}
+      >
+        {/* colorWrite=false keeps it invisible even though SystemScene's fade
+            traversal forces transparent materials' opacity back to 1. */}
+        <spriteMaterial transparent opacity={0} depthTest={false} depthWrite={false} colorWrite={false} />
+      </sprite>
+
       {/* Planet rings (if applicable) */}
       {body.has_rings && (
         <PlanetRings planetSize={size} opacity={opacity} />
       )}
+
+      {/* Name label — rides the planet's orbit via the moving group */}
+      <MapLabel
+        text={body.name}
+        offset={[labelOffset, 0, 0]}
+        fontSize={PLANET_LABEL_FONT_SIZE}
+      />
     </group>
   );
 }

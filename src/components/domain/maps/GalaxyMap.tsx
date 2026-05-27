@@ -14,8 +14,9 @@
 import { useRef, useImperativeHandle, forwardRef, Suspense, useCallback } from 'react';
 import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
-import { GalaxyScene, LoadingScene, PostProcessing } from './r3f';
+import { GalaxyScene, PostProcessing } from './r3f';
 import { TypewriterController } from './r3f/shared/TypewriterController';
+import { ViewOffset } from './r3f/shared';
 import type { GalaxySceneHandle } from './r3f';
 import type { StarMapData } from '@/types/starMap';
 import { useSceneStore, useAnimationState } from '@/stores/sceneStore';
@@ -35,6 +36,8 @@ interface GalaxyMapProps {
   hidden?: boolean;
   /** Whether to pause rendering updates */
   paused?: boolean;
+  /** Pixels to shift scene content upward (re-centers between top/nav bars). */
+  centerOffsetPx?: number;
   /** Fired when the user clicks a star directly in the 3D view */
   onSystemSelect?: (systemName: string) => void;
 }
@@ -53,6 +56,7 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
       transitionState = 'idle',
       hidden = false,
       paused = false,
+      centerOffsetPx = 0,
       onSystemSelect,
     },
     ref
@@ -128,7 +132,12 @@ export const GalaxyMap = forwardRef<GalaxyMapHandle, GalaxyMapProps>(
           {/* RAF-driven typewriter controller */}
           <TypewriterController speed={15} />
 
-          <Suspense fallback={<LoadingScene />}>
+          {/* Shift focal center up to sit between the top bar and nav bar */}
+          <ViewOffset shiftY={centerOffsetPx} />
+
+          {/* null fallback (not LoadingScene) — the scene fades in from black,
+              avoiding an amber loading-ring flash on (re)mount. */}
+          <Suspense fallback={null}>
             <GalaxyScene
               ref={sceneRef}
               data={data}

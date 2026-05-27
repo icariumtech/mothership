@@ -199,14 +199,6 @@ export function StarMapPanel({
         </div>
       </div>
 
-      {selectedPlanet && (
-        <div className="orbit-planet-info" style={{ marginBottom: 16 }}>
-          <p style={{ color: 'var(--color-teal)', fontSize: 11, marginBottom: 12 }}>
-            &gt; ORBIT OF {selectedPlanet.name.toUpperCase()}
-          </p>
-        </div>
-      )}
-
       {/* Moons section */}
       {orbitMapData?.moons && orbitMapData.moons.length > 0 && (
         <>

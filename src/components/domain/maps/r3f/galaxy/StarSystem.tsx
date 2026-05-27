@@ -16,6 +16,9 @@ import type { StarSystem as StarSystemData } from '@/types/starMap';
 
 const STAR_LABEL_AMBER = '#c9a050';
 
+// World-unit font size of the system name label.
+const LABEL_FONT_SIZE = 2.2;
+
 interface StarSystemProps {
   /** Star system data from API */
   data: StarSystemData;
@@ -121,7 +124,7 @@ export function StarSystem({
       {showLabel && (
         <Billboard position={[labelOffset, 0, 0]}>
           <Text
-            fontSize={1.5}
+            fontSize={LABEL_FONT_SIZE}
             color={STAR_LABEL_AMBER}
             anchorX="left"
             anchorY="middle"

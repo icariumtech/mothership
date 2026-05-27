@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, startTransition } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef, startTransition } from 'react';
 import ReactDOM from 'react-dom/client';
 import gsap from 'gsap';
 import '../styles/global.css';
@@ -211,6 +211,28 @@ function SharedConsole() {
   // Tab state management
   const [activeTab, setActiveTab] = useState<BridgeTab>('status');
   const [tabTransition, setTabTransition] = useState<'idle' | 'transitioning'>('idle');
+
+  // Vertical offset (px) used to re-center map content between the header and
+  // the floating tab bar. Measured from the live tab-bar position so it tracks
+  // layout and window resizes; passed into each map's <ViewOffset>.
+  const [mapCenterOffsetPx, setMapCenterOffsetPx] = useState(0);
+  // useLayoutEffect + synchronous measure so the offset is applied before paint
+  // (prevents the map visibly jumping when the map tab is first opened). The tab
+  // bar is position:fixed so its top is stable across tabs — no rAF defer needed.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const nav = document.querySelector('.tab-bar-panel') as HTMLElement | null;
+      if (!nav) return;
+      const navTop = nav.getBoundingClientRect().top;
+      // The canvas spans [headerBottom, viewportBottom] but the usable area tops
+      // out at the nav bar. Shifting content up by half the bottom band lands
+      // the focal center halfway between the header bottom and the nav bar top.
+      setMapCenterOffsetPx(Math.max(0, (window.innerHeight - navTop) / 2));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [activeTab, activeView?.view_type]);
 
 
   // State cleanup effects - clear child view states when parent view changes
@@ -925,6 +947,7 @@ function SharedConsole() {
                   transitionState={galaxyTransition}
                   hidden={(mapViewMode === 'system' || mapViewMode === 'orbit') || activeTab !== 'map'}
                   paused={activeTab !== 'map'}
+                  centerOffsetPx={mapCenterOffsetPx}
                 />
               )}
 
@@ -942,6 +965,7 @@ function SharedConsole() {
                   transitionState={systemTransition}
                   hidden={mapViewMode === 'orbit' || activeTab !== 'map'}
                   paused={activeTab !== 'map'}
+                  centerOffsetPx={mapCenterOffsetPx}
                 />
               )}
 
@@ -960,6 +984,7 @@ function SharedConsole() {
                   transitionState={orbitTransition}
                   hidden={activeTab !== 'map'}
                   paused={activeTab !== 'map'}
+                  centerOffsetPx={mapCenterOffsetPx}
                 />
               )}
 

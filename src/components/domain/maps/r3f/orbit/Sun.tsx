@@ -95,10 +95,13 @@ export function Sun({
     <>
       {/* Sun visual group */}
       <group ref={groupRef} position={sunPosition}>
-        {/* Core sun sphere - pure white */}
+        {/* Core sun sphere - pure white.
+            transparent + opacity 0 so OrbitScene's fade traversal includes it
+            and it fades in with the scene instead of flashing white at mount
+            before the camera is positioned. */}
         <mesh>
           <sphereGeometry args={[CORE_SIZE, 32, 32]} />
-          <meshBasicMaterial color={0xffffff} />
+          <meshBasicMaterial color={0xffffff} transparent opacity={0} />
         </mesh>
 
         {/* Inner glow layer */}

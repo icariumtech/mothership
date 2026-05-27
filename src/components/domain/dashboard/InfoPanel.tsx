@@ -183,7 +183,6 @@ export function buildSystemInfoHTML(system: {
     { label: 'DESCRIPTION', value: system.description },
     { label: 'POPULATION', value: system.population },
     { label: 'COORDINATES', value: system.position?.join(', ') },
-    { label: 'SYSTEM MAP', value: system.has_system_map ? 'AVAILABLE' : undefined },
   ];
   return buildInfoHTML(fields);
 }

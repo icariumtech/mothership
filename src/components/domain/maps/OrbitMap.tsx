@@ -25,6 +25,7 @@ import { Canvas, type RootState } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
 import { OrbitScene } from './r3f';
 import { TypewriterController } from './r3f/shared/TypewriterController';
+import { ViewOffset } from './r3f/shared';
 import { MapPlaybackControls } from './MapPlaybackControls';
 import type { OrbitSceneHandle } from './r3f';
 import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '@/types/orbitMap';
@@ -49,6 +50,8 @@ interface OrbitMapProps {
   hidden?: boolean;
   /** Whether to pause rendering updates */
   paused?: boolean;
+  /** Pixels to shift scene content upward (re-centers between top/nav bars). */
+  centerOffsetPx?: number;
 }
 
 export interface OrbitMapHandle {
@@ -70,6 +73,7 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
       transitionState = 'idle',
       hidden = false,
       paused = false,
+      centerOffsetPx = 0,
     },
     ref
   ) => {
@@ -248,6 +252,9 @@ export const OrbitMap = forwardRef<OrbitMapHandle, OrbitMapProps>(
         >
           {/* RAF-driven typewriter controller */}
           <TypewriterController speed={15} />
+
+          {/* Shift focal center up to sit between the top bar and nav bar */}
+          <ViewOffset shiftY={centerOffsetPx} />
 
           <Suspense fallback={null}>
             {orbitData && !isLoading ? (

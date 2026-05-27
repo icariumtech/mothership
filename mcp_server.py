@@ -71,5 +71,45 @@ async def get_data_schema() -> str:
         return r.text
 
 
+@mcp.tool
+async def upload_image(
+    filename: str,
+    content_base64: str,
+    image_type: str,
+    convert: bool = True,
+) -> dict:
+    """Upload a base64-encoded image to the campaign data directory.
+
+    image_type controls the destination and expected usage:
+      - "portrait"   → data/campaign/crew/<filename>  (NPC/crew character portraits)
+      - "planet"     → data/galaxy/<filename>          (planet/system imagery)
+      - "encounter"  → data/encounters/<filename>      (encounter map overlays, deckplan art)
+      - "asset"      → data/assets/<filename>          (generic campaign artwork)
+
+    convert (default True, portrait only): when True and image_type is "portrait",
+    Django applies an amber-gradient 512x512 conversion using Pillow before saving.
+    Set to False to store the original bytes unchanged.
+
+    Returns:
+      {
+        "saved_path": str,           # relative path within data/ where the file was written
+        "converted_path": str,       # only present when conversion was applied
+        "original_size_bytes": int   # size of the raw decoded bytes
+      }
+    """
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        r = await client.post(
+            f"{DJANGO_BASE_URL}/api/gm/upload-image/",
+            json={
+                "filename": filename,
+                "content_base64": content_base64,
+                "image_type": image_type,
+                "convert": convert,
+            },
+        )
+        r.raise_for_status()
+        return r.json()
+
+
 if __name__ == "__main__":
     mcp.run(transport="sse", host="0.0.0.0", port=8001)

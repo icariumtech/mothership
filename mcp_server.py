@@ -1,7 +1,7 @@
 """
 FastMCP HTTP server for the JANUS GM campaign AI.
 
-Exposes five tools at http://<host>:8001/mcp/ over HTTP transport.
+Exposes tools at http://<host>:8001/mcp/ over HTTP transport.
 Delegates all logic to the Django REST API at DJANGO_BASE_URL.
 
 This module is standalone — it does NOT import Django or manage.py.
@@ -13,6 +13,7 @@ port 8001 to the public internet.
 """
 
 import os
+from typing import Any
 
 import httpx
 from fastmcp import FastMCP
@@ -61,6 +62,61 @@ async def write_file(path: str, content: str) -> dict:
             f"{DJANGO_BASE_URL}/api/gm/data/{path}",
             content=content,
             headers={"Content-Type": "application/x-yaml"},
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool
+async def read_field(path: str, field_path: str) -> Any:
+    """Read a single field from a YAML file by dot-path. Returns only the field value, not the whole file.
+
+    path: relative to data/ (e.g. 'galaxy/star_map.yaml')
+    field_path: dot-separated path to the field (e.g. 'star.name', 'camera.fov', 'systems')
+    """
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{DJANGO_BASE_URL}/api/gm/data/{path}",
+            params={"field": field_path},
+        )
+        r.raise_for_status()
+        return r.json()["value"]
+
+
+@mcp.tool
+async def append_list_item(path: str, list_key: str, item: dict) -> dict:
+    """Append an item to a named list in a YAML file. No need to read the file first — the server
+    handles the read-modify-write atomically and triggers SSE broadcast.
+
+    path: relative to data/ (e.g. 'galaxy/star_map.yaml')
+    list_key: top-level list key to append to (e.g. 'systems', 'bodies', 'nebulae', 'moons', 'routes')
+    item: dict of the new entry to append
+
+    If list_key does not exist in the file yet, it is created as an empty list first.
+    """
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"{DJANGO_BASE_URL}/api/gm/data-list-append/{path}",
+            json={"list_key": list_key, "item": item},
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool
+async def patch_yaml(path: str, patch: dict) -> dict:
+    """Apply a JSON merge patch to a YAML file. Only send the fields that changed — no read required.
+    Nested dicts are merged recursively; list values in the patch replace existing lists.
+    Triggers SSE broadcast on success.
+
+    path: relative to data/ (e.g. 'campaign/corporation.yaml')
+    patch: dict of fields to set (supports nested dicts for deep merge)
+    """
+    async with httpx.AsyncClient() as client:
+        r = await client.patch(
+            f"{DJANGO_BASE_URL}/api/gm/data/{path}",
+            json=patch,
+            headers={"Content-Type": "application/json"},
         )
         r.raise_for_status()
         return r.json()

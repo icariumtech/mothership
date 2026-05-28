@@ -1,13 +1,16 @@
 """
 GM Data API — file-level access to campaign YAML data for the AI agent (MCP server).
 
-Five endpoints:
-  GET  /api/gm/data/?dir=<rel>        — list files in a data subdirectory
-  GET  /api/gm/data/<path>            — read raw file content
-  PUT  /api/gm/data/<path>            — write YAML atomically (validated + path-traversal-guarded)
-  GET  /api/gm/session-context        — snapshot of current game state (active view + NPCs/crew/ship)
-  GET  /api/gm/data-schema            — raw DATA_DIRECTORY_GUIDE.md content
-  POST /api/gm/upload-image/          — save image to campaign data directory (multipart or base64 JSON)
+Endpoints:
+  GET  /api/gm/data/?dir=<rel>              — list files in a data subdirectory
+  GET  /api/gm/data/<path>                  — read raw file content
+  GET  /api/gm/data/<path>?field=<dotpath>  — read a single field by dot-path as JSON
+  PUT  /api/gm/data/<path>                  — write YAML atomically (validated + path-traversal-guarded)
+  PATCH /api/gm/data/<path>                 — apply JSON merge patch to a YAML file
+  POST /api/gm/data-list-append/<path>      — append an item to a named list in a YAML file
+  GET  /api/gm/session-context              — snapshot of current game state (active view + NPCs/crew/ship)
+  GET  /api/gm/data-schema                  — raw DATA_DIRECTORY_GUIDE.md content
+  POST /api/gm/upload-image/                — save image to campaign data directory (multipart or base64 JSON)
 
 All endpoints are intentionally unauthenticated (trust-network model, D-09).
 """
@@ -74,6 +77,27 @@ def safe_write_yaml(file_path: Path, content: str) -> None:
         raise
 
 
+def _deep_merge(base: dict, patch: dict) -> dict:
+    """Recursively merge patch into base. Lists in patch replace lists in base."""
+    result = dict(base)
+    for key, value in patch.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def _get_field_by_dotpath(data, field_path: str):
+    """Traverse a dot-separated field path in a nested structure. Raises KeyError if not found."""
+    current = data
+    for part in field_path.split('.'):
+        if not isinstance(current, dict) or part not in current:
+            raise KeyError(f"Field not found: {field_path!r}")
+        current = current[part]
+    return current
+
+
 # ---------------------------------------------------------------------------
 # View functions
 # ---------------------------------------------------------------------------
@@ -117,10 +141,12 @@ def api_gm_data_list(request):
 
 @csrf_exempt
 def api_gm_data_file(request, filepath):
-    """Read or write a single data file.
+    """Read, write, or patch a single data file.
 
-    GET  /api/gm/data/<path> — return raw file content as text/plain
-    PUT  /api/gm/data/<path> — write YAML content atomically
+    GET   /api/gm/data/<path>              — raw file content as text/plain
+    GET   /api/gm/data/<path>?field=<path> — single dot-path field as JSON {"value": ...}
+    PUT   /api/gm/data/<path>              — write YAML content atomically
+    PATCH /api/gm/data/<path>              — apply JSON merge patch to YAML file
 
     INTENTIONALLY UNAUTHENTICATED: trust-network model per D-09. The container
     is self-hosted on a homelab network and is not exposed to the internet.
@@ -130,7 +156,7 @@ def api_gm_data_file(request, filepath):
     data_root = Path(settings.DATA_DIR).resolve()
     target = (data_root / filepath).resolve()
 
-    # Path traversal guard (applies to both GET and PUT)
+    # Path traversal guard (applies to all methods)
     if not target.is_relative_to(data_root):
         return JsonResponse({'error': 'Path not allowed'}, status=400)
 
@@ -142,6 +168,19 @@ def api_gm_data_file(request, filepath):
         except OSError as e:
             logger.exception('Error reading file %s: %s', filepath, e)
             return JsonResponse({'error': 'Could not read file'}, status=500)
+
+        field_path = request.GET.get('field', '').strip()
+        if field_path:
+            try:
+                data = yaml.safe_load(content) or {}
+            except yaml.YAMLError as e:
+                return JsonResponse({'error': 'Invalid YAML in file', 'detail': str(e)}, status=400)
+            try:
+                value = _get_field_by_dotpath(data, field_path)
+            except KeyError as e:
+                return JsonResponse({'error': str(e)}, status=404)
+            return JsonResponse({'value': value})
+
         return HttpResponse(content, content_type='text/plain; charset=utf-8')
 
     elif request.method == 'PUT':
@@ -169,8 +208,122 @@ def api_gm_data_file(request, filepath):
 
         return JsonResponse({'ok': True, 'path': filepath})
 
+    elif request.method == 'PATCH':
+        try:
+            patch_dict = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+        if not isinstance(patch_dict, dict):
+            return JsonResponse({'error': 'Patch body must be a JSON object'}, status=400)
+
+        if not target.exists():
+            return JsonResponse({'error': f'File not found: {filepath}'}, status=404)
+
+        try:
+            content = target.read_text(encoding='utf-8')
+            data = yaml.safe_load(content) or {}
+        except OSError:
+            logger.exception('Error reading file %s for patch', filepath)
+            return JsonResponse({'error': 'Could not read file'}, status=500)
+        except yaml.YAMLError as e:
+            return JsonResponse({'error': 'Invalid YAML in file', 'detail': str(e)}, status=400)
+
+        if not isinstance(data, dict):
+            return JsonResponse({'error': 'File root must be a YAML mapping'}, status=400)
+
+        merged = _deep_merge(data, patch_dict)
+        changed_keys = [k for k in patch_dict if data.get(k) != merged.get(k)]
+
+        try:
+            updated = yaml.dump(merged, default_flow_style=False, allow_unicode=True)
+            safe_write_yaml(target, updated)
+        except (yaml.YAMLError, ValueError, OSError):
+            logger.exception('Error writing patched file %s', filepath)
+            return JsonResponse({'error': 'Could not write file'}, status=500)
+
+        try:
+            broadcaster.announce_generic('data-changed', {'path': filepath, 'action': 'patch'})
+        except Exception as e:
+            logger.warning('SSE broadcast failed after patch: %s', e)
+
+        return JsonResponse({'ok': True, 'path': filepath, 'changed_keys': changed_keys})
+
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def api_gm_data_list_append(request, filepath):
+    """Append an item to a named list in a YAML file.
+
+    POST /api/gm/data-list-append/<path>
+    Body JSON: {"list_key": "systems", "item": {...}}
+
+    Reads the file, appends the item to the named list, and writes back atomically.
+    If list_key does not exist in the file, it is created as a new empty list.
+    Triggers SSE broadcast on success.
+
+    Returns: {"ok": true, "list_key": "systems", "new_length": N}
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    data_root = Path(settings.DATA_DIR).resolve()
+    target = (data_root / filepath).resolve()
+
+    if not target.is_relative_to(data_root):
+        return JsonResponse({'error': 'Path not allowed'}, status=400)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    list_key = body.get('list_key')
+    item = body.get('item')
+
+    if not list_key or not isinstance(list_key, str):
+        return JsonResponse({'error': "'list_key' is required and must be a string"}, status=400)
+    if item is None or not isinstance(item, dict):
+        return JsonResponse({'error': "'item' is required and must be a JSON object"}, status=400)
+
+    if not target.exists():
+        return JsonResponse({'error': f'File not found: {filepath}'}, status=404)
+
+    try:
+        content = target.read_text(encoding='utf-8')
+        data = yaml.safe_load(content) or {}
+    except OSError:
+        logger.exception('Error reading file %s for list-append', filepath)
+        return JsonResponse({'error': 'Could not read file'}, status=500)
+    except yaml.YAMLError as e:
+        return JsonResponse({'error': 'Invalid YAML in file', 'detail': str(e)}, status=400)
+
+    if not isinstance(data, dict):
+        return JsonResponse({'error': 'File root must be a YAML mapping'}, status=400)
+
+    existing = data.get(list_key)
+    if existing is None:
+        data[list_key] = []
+    elif not isinstance(existing, list):
+        return JsonResponse({'error': f"'{list_key}' exists but is not a list"}, status=400)
+
+    data[list_key].append(item)
+
+    try:
+        updated = yaml.dump(data, default_flow_style=False, allow_unicode=True)
+        safe_write_yaml(target, updated)
+    except (yaml.YAMLError, ValueError, OSError):
+        logger.exception('Error writing file %s after list-append', filepath)
+        return JsonResponse({'error': 'Could not write file'}, status=500)
+
+    try:
+        broadcaster.announce_generic('data-changed', {'path': filepath, 'action': 'list-append', 'list_key': list_key})
+    except Exception as e:
+        logger.warning('SSE broadcast failed after list-append: %s', e)
+
+    return JsonResponse({'ok': True, 'list_key': list_key, 'new_length': len(data[list_key])})
 
 
 def api_gm_session_context(request):

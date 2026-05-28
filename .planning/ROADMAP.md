@@ -75,10 +75,11 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 19. DATA_DIRECTORY_GUIDE.md Rewrite | v1.0 | 1/1 | ✓ Complete | 2026-05-06 |
 | 20. Audit Closure | v1.0 | 3/3 | ✓ Complete | 2026-05-07 |
 | 21. Encounter Geometry Deepening | v2 | 5/5 | ✓ Complete | 2026-05-11 |
-| 22. Renderer Interaction Seams | v2 | 3/3 | Complete    | 2026-05-14 |
-| 23. Containerization           | v2 | 7/7 | Complete    | 2026-05-18 |
+| 22. Renderer Interaction Seams | v2 | 3/3 | ✓ Complete  | 2026-05-14 |
+| 23. Containerization           | v2 | 7/7 | ✓ Complete  | 2026-05-18 |
+| 25. Map Rotation Controls      | v2 | 5/5 | ✓ Complete  | 2026-05-24 |
 | 26. Map polish (ad-hoc)        | v2 | —   | ✓ Complete (ad-hoc) | 2026-05-25 |
-| 27. MCP Image Upload           | v2 | 3/3 | Complete   | 2026-05-27 |
+| 27. MCP Image Upload           | v2 | 3/3 | ✓ Complete  | 2026-05-27 |
 
 ### Phase 23: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 

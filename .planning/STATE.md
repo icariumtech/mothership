@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 25 UI-SPEC approved
-last_updated: "2026-05-27T20:32:44.146Z"
-last_activity: 2026-05-27
+status: complete
+stopped_at: Phase 27 complete
+last_updated: "2026-05-28T00:00:00.000Z"
+last_activity: 2026-05-28
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 22
-  completed_plans: 22
-  percent: 80
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 25
+  completed_plans: 25
+  percent: 100
 ---
 
 # Project State
@@ -21,15 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-07)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Phase 25 — map-rotation-controls
+**Current focus:** v2.0 milestone complete — next phase TBD (UI Audio deferred from v1, or new feature)
 
 ## Current Position
 
-Phase: 25 (map-rotation-controls) — COMPLETE
-Plan: 5 of 5
-Status: Phase complete — ready for verification
+All v2.0 phases complete. No active phase.
 
-Last activity: 2026-05-27
+Last activity: 2026-05-28
 
 ## v1.0 Milestone Archive
 

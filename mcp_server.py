@@ -72,6 +72,12 @@ async def get_data_schema() -> str:
 
 
 @mcp.tool
+async def get_django_url() -> str:
+    """Return the Django base URL. Use this to construct direct HTTP upload URLs for large files."""
+    return DJANGO_BASE_URL
+
+
+@mcp.tool
 async def upload_image(
     filename: str,
     content_base64: str,

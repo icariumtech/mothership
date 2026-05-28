@@ -7,7 +7,7 @@ Five endpoints:
   PUT  /api/gm/data/<path>            — write YAML atomically (validated + path-traversal-guarded)
   GET  /api/gm/session-context        — snapshot of current game state (active view + NPCs/crew/ship)
   GET  /api/gm/data-schema            — raw DATA_DIRECTORY_GUIDE.md content
-  POST /api/gm/upload-image/          — save base64-encoded binary image to campaign data directory
+  POST /api/gm/upload-image/          — save image to campaign data directory (multipart or base64 JSON)
 
 All endpoints are intentionally unauthenticated (trust-network model, D-09).
 """
@@ -247,15 +247,21 @@ _IMAGE_TYPE_DIRS = {
 
 @csrf_exempt
 def api_gm_upload_image(request):
-    """Save a base64-encoded binary image to the campaign data directory.
+    """Save an image to the campaign data directory.
 
     POST /api/gm/upload-image/
-    Body (JSON):
+
+    Multipart form data (preferred for large files — no base64 overhead):
+      file           — the image file
+      filename       — destination filename (optional, defaults to uploaded filename)
+      image_type     — one of: portrait, logo, map, misc
+      convert        — "true"/"false" (optional, portrait only)
+
+    JSON body (legacy — suitable for small files only):
       filename       — destination filename (str, no path separators)
       content_base64 — base64-encoded file bytes (str)
       image_type     — one of: portrait, logo, map, misc
-      convert        — (bool, default True) if True and image_type=="portrait",
-                       run convert_portrait from scripts/
+      convert        — (bool, default True) portrait conversion flag
 
     Returns:
       200 { saved_path, original_size_bytes[, converted_path] }
@@ -266,22 +272,32 @@ def api_gm_upload_image(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    # Parse JSON body
-    try:
-        body = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+    if request.FILES.get('file'):
+        # Multipart form data path — bytes never base64-encoded
+        uploaded = request.FILES['file']
+        filename = str(request.POST.get('filename') or uploaded.name).strip()
+        image_type = str(request.POST.get('image_type', '')).strip()
+        convert = str(request.POST.get('convert', 'true')).lower() not in ('false', '0', 'no')
+        raw_bytes = uploaded.read()
+    else:
+        # JSON / base64 path (legacy — MCP tool pipeline)
+        try:
+            body = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({'error': 'Invalid JSON body'}, status=400)
 
-    # Extract fields
-    filename = str(body.get('filename', '')).strip()
-    content_base64 = body.get('content_base64', '')
-    image_type = str(body.get('image_type', '')).strip()
-    convert = body.get('convert', True)
+        filename = str(body.get('filename', '')).strip()
+        content_base64 = body.get('content_base64', '')
+        image_type = str(body.get('image_type', '')).strip()
+        convert = body.get('convert', True)
+        # Normalize convert to bool (guard against MCP clients serializing booleans as strings)
+        if not isinstance(convert, bool):
+            convert = str(convert).lower() not in ('false', '0', 'no')
 
-    # Normalize convert to bool (guard against MCP clients serializing booleans
-    # as strings, per Pitfall 6 in RESEARCH.md)
-    if not isinstance(convert, bool):
-        convert = str(convert).lower() not in ('false', '0', 'no')
+        try:
+            raw_bytes = base64.b64decode(content_base64, validate=False)
+        except (binascii.Error, Exception):
+            return JsonResponse({'error': 'Invalid base64 content'}, status=400)
 
     # Filename safety check — reject empty or containing dangerous characters
     if not filename or any(c in filename for c in ('/', '\\', '..')):
@@ -290,12 +306,6 @@ def api_gm_upload_image(request):
     # image_type allowlist
     if image_type not in ALLOWED_IMAGE_TYPES:
         return JsonResponse({'error': f'Invalid image_type: {image_type!r}. Must be one of: {sorted(ALLOWED_IMAGE_TYPES)}'}, status=400)
-
-    # Decode base64 content
-    try:
-        raw_bytes = base64.b64decode(content_base64, validate=False)
-    except (binascii.Error, Exception):
-        return JsonResponse({'error': 'Invalid base64 content'}, status=400)
 
     # Resolve destination path
     data_root = Path(settings.DATA_DIR)

@@ -1,9 +1,11 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, Http404
 from django.contrib.auth.decorators import login_required
 from core.models import Message
 import json
 import yaml
 import os
+import mimetypes
+import pathlib
 from django.conf import settings
 from core.data_loader import get_loader
 from core.active_view_store import get_state
@@ -220,3 +222,21 @@ def api_campaign_doc(request, slug):
     if doc is None:
         return JsonResponse({'error': 'Not found'}, status=404)
     return JsonResponse(doc)
+
+
+_ALLOWED_IMAGE_EXTS = frozenset({'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'})
+
+
+def serve_data_file(request, filepath):
+    """Serve image files from the data directory at /data/<filepath>."""
+    suffix = pathlib.Path(filepath).suffix.lower()
+    if suffix not in _ALLOWED_IMAGE_EXTS:
+        raise Http404
+    loader = get_loader()
+    full_path = (loader.data_dir / filepath).resolve()
+    if not str(full_path).startswith(str(loader.data_dir.resolve())):
+        raise Http404
+    if not full_path.exists():
+        raise Http404
+    content_type, _ = mimetypes.guess_type(str(full_path))
+    return FileResponse(open(full_path, 'rb'), content_type=content_type or 'application/octet-stream')

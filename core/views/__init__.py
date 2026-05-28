@@ -92,6 +92,7 @@ from .campaign import (
     api_sessions,
     api_standby,
     get_messages_json,
+    serve_data_file,
 )
 
 from .gm_data import (

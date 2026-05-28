@@ -18,6 +18,10 @@ import httpx
 from fastmcp import FastMCP
 
 DJANGO_BASE_URL = os.environ.get("DJANGO_BASE_URL", "http://app:8000")
+# External URL reachable from client machines (e.g. Windows running Claude Code).
+# Set JANUS_EXTERNAL_URL in .env to the homelab-accessible address, e.g. http://icarium.local:8000.
+# Falls back to DJANGO_BASE_URL if unset (correct for server-side tool calls; wrong for curl from clients).
+JANUS_EXTERNAL_URL = os.environ.get("JANUS_EXTERNAL_URL") or DJANGO_BASE_URL
 
 mcp = FastMCP("JanusGM")
 
@@ -73,8 +77,8 @@ async def get_data_schema() -> str:
 
 @mcp.tool
 async def get_django_url() -> str:
-    """Return the Django base URL. Use this to construct direct HTTP upload URLs for large files."""
-    return DJANGO_BASE_URL
+    """Return the externally accessible Django base URL for direct HTTP uploads from client machines (e.g. curl from Windows)."""
+    return JANUS_EXTERNAL_URL
 
 
 @mcp.tool
@@ -86,11 +90,14 @@ async def upload_image(
 ) -> dict:
     """Upload a base64-encoded image to the campaign data directory.
 
-    image_type controls the destination and expected usage:
-      - "portrait"   → data/campaign/crew/<filename>  (NPC/crew character portraits)
-      - "planet"     → data/galaxy/<filename>          (planet/system imagery)
-      - "encounter"  → data/encounters/<filename>      (encounter map overlays, deckplan art)
-      - "asset"      → data/assets/<filename>          (generic campaign artwork)
+    Prefer direct curl multipart upload for files over ~50KB — base64 through this tool
+    pipeline bloats Claude's context window. Use get_django_url() + curl instead.
+
+    image_type controls the destination:
+      - "portrait" → data/campaign/NPCs/images_source/<filename>
+      - "logo"     → data/campaign/images/logos/<filename>
+      - "map"      → data/campaign/images/maps/<filename>
+      - "misc"     → data/campaign/images/misc/<filename>
 
     convert (default True, portrait only): when True and image_type is "portrait",
     Django applies an amber-gradient 512x512 conversion using Pillow before saving.

@@ -62,6 +62,46 @@ class GmDataApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_write_file_disallowed_extension_returns_400(self):
+        """PUT with a .py extension returns 400."""
+        response = self.client.put(
+            '/api/gm/data/test_stub.py',
+            data='print("hello")\n',
+            content_type='text/plain',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_write_markdown_invalid_frontmatter_returns_400(self):
+        """PUT of a .md file with invalid YAML frontmatter returns 400."""
+        content = '---\ntitle: [unclosed\n---\n\nsome body text\n'
+        response = self.client.put(
+            '/api/gm/data/test_stub.md',
+            data=content,
+            content_type='text/plain',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_write_markdown_no_frontmatter_would_write(self):
+        """PUT of a .md file with no frontmatter passes validation (write will fail without writable DATA_DIR)."""
+        content = 'Plain markdown with no frontmatter.\n'
+        response = self.client.put(
+            '/api/gm/data/test_stub.md',
+            data=content,
+            content_type='text/plain',
+        )
+        # 200 if DATA_DIR is writable in test env, 500 if not — never 400 (validation must pass)
+        self.assertNotEqual(response.status_code, 400)
+
+    def test_write_markdown_valid_frontmatter_would_write(self):
+        """PUT of a .md file with valid YAML frontmatter passes validation."""
+        content = '---\ntitle: Test Log\ndate: "2026-05-29"\n---\n\nEntry body text.\n'
+        response = self.client.put(
+            '/api/gm/data/test_stub.md',
+            data=content,
+            content_type='text/plain',
+        )
+        self.assertNotEqual(response.status_code, 400)
+
 
 class GmDataFieldReadTests(TestCase):
     """Tests for GET /api/gm/data/{path}?field= dot-path field reads."""

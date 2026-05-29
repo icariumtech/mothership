@@ -37,27 +37,48 @@ logger = logging.getLogger(__name__)
 # Module-level helper
 # ---------------------------------------------------------------------------
 
+_ALLOWED_WRITE_EXTENSIONS = frozenset(('.yaml', '.yml', '.md'))
+
+
+def _validate_markdown_frontmatter(content: str) -> None:
+    """Validate the YAML frontmatter block of a markdown file, if present.
+
+    Raises yaml.YAMLError if the frontmatter block is not valid YAML.
+    Does nothing when no leading '---' fence is detected.
+    """
+    lines = content.splitlines()
+    if not lines or lines[0].strip() != '---':
+        return
+    try:
+        close_idx = next(i for i, line in enumerate(lines[1:], 1) if line.strip() == '---')
+    except StopIteration:
+        return  # unclosed frontmatter — tolerate, do not error
+    frontmatter = '\n'.join(lines[1:close_idx])
+    yaml.safe_load(frontmatter)
+
+
 def safe_write_yaml(file_path: Path, content: str) -> None:
-    """Write YAML content atomically to file_path.
+    """Write text content atomically to file_path.
 
     Steps:
-    1. Validate content is parseable YAML (raises yaml.YAMLError on failure).
-    2. Reject non-YAML file extensions (raises ValueError).
-    3. Ensure parent directory exists.
-    4. Write to a temp file in the same directory, then os.replace() to target.
+    1. Extension whitelist — .yaml/.yml require valid YAML; .md validates frontmatter only.
+    2. Ensure parent directory exists.
+    3. Write to a temp file in the same directory, then os.replace() to target.
        os.replace() is POSIX-atomic — readers never see a partial file.
 
     Raises:
-        yaml.YAMLError: if content is not valid YAML.
-        ValueError: if the file extension is not .yaml or .yml.
+        yaml.YAMLError: if content fails the applicable YAML validation.
+        ValueError: if the file extension is not in (.yaml, .yml, .md).
     """
-    # Step 1: validate YAML — raises yaml.YAMLError on invalid content
-    yaml.safe_load(content)
-
-    # Step 2: extension whitelist — only .yaml / .yml allowed
+    # Step 1: extension whitelist + content validation
     suffix = file_path.suffix.lower()
-    if suffix not in ('.yaml', '.yml'):
-        raise ValueError(f"Only .yaml and .yml files are allowed; got: {file_path.name!r}")
+    if suffix not in _ALLOWED_WRITE_EXTENSIONS:
+        raise ValueError(f"Only .yaml, .yml, and .md files are allowed; got: {file_path.name!r}")
+
+    if suffix in ('.yaml', '.yml'):
+        yaml.safe_load(content)  # raises yaml.YAMLError on invalid content
+    else:
+        _validate_markdown_frontmatter(content)  # .md: validate frontmatter block only
 
     # Step 3: ensure parent directory exists
     file_path.parent.mkdir(parents=True, exist_ok=True)

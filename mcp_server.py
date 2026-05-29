@@ -56,12 +56,20 @@ async def read_file(path: str) -> str:
 
 @mcp.tool
 async def write_file(path: str, content: str) -> dict:
-    """Write YAML content to a campaign file. Triggers SSE broadcast to player terminals. content must be valid YAML."""
+    """Write content to a campaign file. Triggers SSE broadcast to player terminals.
+
+    Supported extensions:
+      .yaml / .yml — full YAML validation applied; content must be valid YAML.
+      .md          — YAML frontmatter block (between leading --- fences) is validated if present;
+                     the markdown body is written as-is. Use this for terminal logs
+                     (e.g. comms/analysis-lab/logs/001-entry.md) and routed messages
+                     (e.g. comms/messages/001_discovery.md).
+    """
     async with httpx.AsyncClient() as client:
         r = await client.put(
             f"{DJANGO_BASE_URL}/api/gm/data/{path}",
             content=content,
-            headers={"Content-Type": "application/x-yaml"},
+            headers={"Content-Type": "text/plain; charset=utf-8"},
         )
         r.raise_for_status()
         return r.json()

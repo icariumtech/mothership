@@ -156,6 +156,11 @@ POIs are entries in a room's `poi:` list. The backend auto-generates `id`, `room
 | `npc` | teal | NPC markers |
 | `player` | teal | Player markers |
 
+**P1 — Use plain ASCII in YAML string values.** Em-dashes (`—`), curly quotes (`""`), and
+backslash-escaped quotes (`\"`) inside YAML double-quoted strings cause MCP `write_file`
+to fail with `-32602`. Use hyphens (`-`) and straight quotes instead. Markdown bodies
+(`.md` files) tolerate Unicode fine; this restriction applies to `.yaml` files only.
+
 ### Available POI icon names
 
 `ai`, `airlock`, `armory`, `automed`, `cabin`, `cargo`, `command`, `cryo`, `docking bay`,
@@ -216,9 +221,9 @@ decks:
           - { x: 6, y: 0, w: 2, h: 3 }
         poi:
           - icon: airlock
-            label: "Tender Dock"
+            label: "Tender Dock - Shepherd-7"
             type: objective
-            description: "Docking clamp - Shepherd-7"
+            description: "Docking clamp, currently sealed"
 
     doors:
       - rooms: [bridge, airlock]

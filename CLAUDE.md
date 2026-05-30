@@ -42,6 +42,15 @@ docker compose up -d               # Run via container (requires .env with SECRE
 
 **URLs**: GM Console `/gmconsole/` · Terminal `/terminal/` · Admin `/admin/` · API `/api/active-view/` `/api/messages/`
 
+## Deployed Data Directory
+
+The live campaign data directory is accessible via SSH:
+
+```bash
+ssh gjohnson@icarium
+# data lives at: /opt/stacks/janus/data
+```
+
 # View Types
 
 | View | Description |

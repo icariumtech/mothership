@@ -317,8 +317,9 @@ class DataLoader:
 
         Builds the tree from the galaxy directory (systems → planets/bodies →
         nested permanent installations like bases and orbital stations), then
-        injects mobile ships from data/ships/ under their current parent body
-        using their system_slug + body_slug pointer fields.
+        injects mobile ships from data/ships/ and the campaign ship from
+        data/campaign/ under their current parent body using system_slug +
+        body_slug pointer fields.
         """
         # Build base galaxy tree — recursion picks up celestial bodies AND
         # any permanent installation directories nested under a body.
@@ -337,36 +338,54 @@ class DataLoader:
             for body_node in sys_node.get('children', []):
                 body_index[body_node['slug']] = body_node
 
-        # Load mobile ships and inject under their current parent body
+        def _inject_ship(ship_dir: Path, slug: str) -> None:
+            """Load a ship directory and inject it into the galaxy tree."""
+            location_yaml = ship_dir / 'location.yaml'
+            loc = {}
+            if location_yaml.exists():
+                with open(location_yaml) as f:
+                    loc = yaml.safe_load(f) or {}
+            loc['slug'] = slug
+            loc['directory'] = str(ship_dir)
+            loc['map'] = self.load_map(ship_dir)
+            loc['has_map'] = loc['map'] is not None
+            loc['maps'] = [loc['map']] if loc['map'] else []
+            loc['terminals'] = self._terminals.load_terminals(ship_dir)
+            loc['children'] = []
+            system_slug = loc.get('system_slug')
+            body_slug = loc.get('body_slug')
+            if body_slug and body_slug in body_index:
+                body_index[body_slug].setdefault('children', []).append(loc)
+            elif system_slug and system_slug in system_index:
+                system_index[system_slug].setdefault('children', []).append(loc)
+            else:
+                galaxy_tree.append(loc)
+
+        # Load mobile ships from data/ships/
         ships_dir = self.data_dir / 'ships'
         if ships_dir.exists():
             for ship_dir in sorted(ships_dir.iterdir()):
                 if not ship_dir.is_dir() or ship_dir.name.startswith(('.', '__')):
                     continue
-                location_yaml = ship_dir / 'location.yaml'
-                if not location_yaml.exists():
+                if not (ship_dir / 'location.yaml').exists():
                     continue
+                _inject_ship(ship_dir, ship_dir.name)
 
-                with open(location_yaml) as f:
-                    loc = yaml.safe_load(f) or {}
-
-                loc['slug'] = ship_dir.name
-                loc['directory'] = str(ship_dir)
-                loc['map'] = self.load_map(ship_dir)
-                loc['has_map'] = loc['map'] is not None
-                loc['maps'] = [loc['map']] if loc['map'] else []
-                loc['terminals'] = self._terminals.load_terminals(ship_dir)
-                loc['children'] = []
-
-                system_slug = loc.get('system_slug')
-                body_slug = loc.get('body_slug')
-
-                if body_slug and body_slug in body_index:
-                    body_index[body_slug].setdefault('children', []).append(loc)
-                elif system_slug and system_slug in system_index:
-                    system_index[system_slug].setdefault('children', []).append(loc)
-                else:
-                    galaxy_tree.append(loc)
+        # Load the campaign ship from data/campaign/ — any subdirectory containing
+        # ship.yaml is treated as the player's ship. Its slug comes from the slug
+        # field inside ship.yaml (falling back to the directory name).
+        campaign_dir = self.data_dir / 'campaign'
+        if campaign_dir.exists():
+            for subdir in sorted(campaign_dir.iterdir()):
+                if not subdir.is_dir():
+                    continue
+                ship_yaml_path = subdir / 'ship.yaml'
+                if not ship_yaml_path.exists():
+                    continue
+                with open(ship_yaml_path) as f:
+                    ship_data = yaml.safe_load(f) or {}
+                slug = ship_data.get('slug') or subdir.name
+                _inject_ship(subdir, slug)
 
         return galaxy_tree
 

@@ -135,12 +135,26 @@ Explicit `id:` is recommended for stable runtime door-state references.
 
 ## POI Fields
 
-POIs are entries in a room's `poi:` list.
+POIs are entries in a room's `poi:` list. The backend auto-generates `id`, `room`, and
+`position` fields from the parent room, so only `icon` is required.
 
 | Field | Type | Required | Note |
 |---|---|---|---|
 | `icon` | string | yes | Lowercase name matching SVG filename prefix (see icons below) |
-| `label` | string | no | Display label |
+| `label` | string | no | Display name — shown in hover popover |
+| `type` | enum | no | Controls icon color; default `item` (see types below) |
+| `position` | mapping | no | `{x, y}` grid coords; omit to center on room |
+| `description` | string | no | Extra detail shown in hover popover |
+
+**POI type values and colors:**
+
+| Type | Color | Use for |
+|---|---|---|
+| `item` | teal | Equipment, fixtures, objects (default) |
+| `objective` | amber | Mission targets, key locations |
+| `hazard` | red | Dangers, environmental threats |
+| `npc` | teal | NPC markers |
+| `player` | teal | Player markers |
 
 ### Available POI icon names
 
@@ -202,7 +216,9 @@ decks:
           - { x: 6, y: 0, w: 2, h: 3 }
         poi:
           - icon: airlock
-            label: "Airlock"
+            label: "Tender Dock"
+            type: objective
+            description: "Docking clamp - Shepherd-7"
 
     doors:
       - rooms: [bridge, airlock]

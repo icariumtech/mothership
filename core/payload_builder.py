@@ -10,6 +10,7 @@ broadcast.
 import time
 from pathlib import Path
 from typing import Any
+from core.encounter_utils import normalize_deck_poi
 
 _NPC_TTL = 30.0
 _SHIP_DECK_TTL = 30.0
@@ -63,7 +64,7 @@ class PayloadBuilder:
             'ship_deck_data': {
                 'is_multi_deck': True,
                 'manifest': manifest,
-                'current_deck': {**default_deck, 'deck_id': default_deck['id']},
+                'current_deck': normalize_deck_poi({**default_deck, 'deck_id': default_deck['id']}),
                 'current_deck_id': default_deck['id'],
                 'slug': 'deckplan',
             },
@@ -158,7 +159,7 @@ class PayloadBuilder:
             response['location_data']['map'] = {
                 'is_multi_deck': True,
                 'manifest': manifest,
-                'current_deck': current_deck,
+                'current_deck': normalize_deck_poi(current_deck),
                 'current_deck_id': current_deck_id,
             }
             response['encounter_deck_name'] = current_deck.get('name', '')

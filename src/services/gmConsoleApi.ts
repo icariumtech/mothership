@@ -139,6 +139,26 @@ export interface CampaignDoc {
   content: string;
 }
 
+export interface DataDirEntry {
+  name: string;
+  type: 'file' | 'directory';
+}
+
+async function listDataDir(dir: string): Promise<DataDirEntry[]> {
+  const params = dir ? { dir } : {};
+  const response = await api.get<{ entries: DataDirEntry[] }>('/gm/data/list/', { params });
+  return response.data.entries;
+}
+
+async function readDataFile(path: string): Promise<string> {
+  const response = await api.get<{ content: string }>(`/gm/data/file/`, { params: { path } });
+  return response.data.content;
+}
+
+async function writeDataFile(path: string, content: string): Promise<void> {
+  await api.put(`/gm/data/file/`, { path, content });
+}
+
 async function showDoc(slug: string): Promise<void> {
   await api.post(`/gm/show-doc/${slug}/`, {});
 }

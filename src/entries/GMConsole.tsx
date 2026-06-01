@@ -12,6 +12,7 @@ import { SSEConnectionToast } from '@/components/ui/SSEConnectionToast';
 import { StandbyView } from '@/components/gm/views/StandbyView';
 import { BridgeView } from '@/components/gm/views/BridgeView';
 import { EncounterView } from '@/components/gm/views/EncounterView';
+import { FileEditorView } from '@/components/gm/views/FileEditorView';
 import './GMConsole.css';
 
 function GMConsole() {
@@ -120,6 +121,8 @@ function GMConsole() {
   const handleDisplay = useCallback(async () => {
     try {
       switch (gmView) {
+        case 'FILE_EDITOR':
+          return; // File editor is GM-only; no player push
         case 'STANDBY':
           await gmConsoleApi.switchToStandby();
           break;
@@ -249,6 +252,7 @@ function GMConsole() {
             shipData={shipData}
           />
         )}
+        {gmView === 'FILE_EDITOR' && <FileEditorView />}
       </main>
     </div>
   );

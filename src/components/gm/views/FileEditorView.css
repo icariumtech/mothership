@@ -1,0 +1,94 @@
+.gm-file-editor-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  background: #080e0e;
+}
+
+.gm-file-editor-view__tree {
+  width: 272px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #111e1e;
+  border-right: 1px solid #2a4040;
+}
+
+.gm-file-editor-view__editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.gm-file-editor-view__toolbar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 16px;
+  background: #0d1616;
+  border-bottom: 1px solid #1e3333;
+  flex-shrink: 0;
+  font-family: 'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace;
+  gap: 8px;
+}
+
+.gm-file-editor-view__breadcrumb {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.gm-file-editor-view__monaco {
+  flex: 1;
+  overflow: hidden;
+}
+
+.gm-file-editor-view__error-banner {
+  padding: 8px 16px;
+  background: rgba(192, 57, 43, 0.12);
+  border-bottom: 1px solid #8b2020;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.gm-file-editor-view__empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #2a4a4a;
+}
+
+.gm-file-editor-view__nonable-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #2a4a4a;
+}
+
+.gm-file-editor-view__image-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #080e0e;
+  padding: 24px;
+}

@@ -5,10 +5,11 @@ import {
   DashboardOutlined,
   RadarChartOutlined,
   SendOutlined,
+  CodeOutlined,
 } from '@ant-design/icons';
 import './ViewRail.css';
 
-export type GMViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER';
+export type GMViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'FILE_EDITOR';
 
 interface ViewRailProps {
   gmView: GMViewType;
@@ -54,18 +55,25 @@ const VIEW_ITEMS: ViewItem[] = [
 ];
 
 export function ViewRail({ gmView, playerView, onViewChange, onDisplay, unreadCounts }: ViewRailProps) {
+  const displayDisabled = gmView === 'FILE_EDITOR';
+
   return (
     <nav className="view-rail">
-      {/* DISPLAY button at the top */}
+      {/* DISPLAY button at the top — disabled when FILE_EDITOR is active */}
       <Tooltip title="Push view to player terminal" placement="right">
-        <button className="view-rail__display" onClick={onDisplay} aria-label="Push to player terminal">
+        <button
+          className={`view-rail__display${displayDisabled ? ' view-rail__display--disabled' : ''}`}
+          onClick={onDisplay}
+          disabled={displayDisabled}
+          aria-label="Push to player terminal"
+        >
           <SendOutlined />
         </button>
       </Tooltip>
 
       <div className="view-rail__separator" />
 
-      {/* View buttons */}
+      {/* View buttons (STANDBY, BRIDGE, ENCOUNTER) */}
       <div className="view-rail__views">
         {VIEW_ITEMS.map((item) => {
           const isActive = gmView === item.key;
@@ -89,6 +97,21 @@ export function ViewRail({ gmView, playerView, onViewChange, onDisplay, unreadCo
             </div>
           );
         })}
+      </div>
+
+      <div className="view-rail__separator" />
+
+      {/* File Editor button — standalone, at the bottom of the rail */}
+      <div className="view-rail__file-editor-section">
+        <Tooltip title="File Editor" placement="right">
+          <button
+            className={`view-rail__btn ${gmView === 'FILE_EDITOR' ? 'view-rail__btn--active' : ''}`}
+            onClick={() => onViewChange('FILE_EDITOR')}
+            aria-label="File Editor"
+          >
+            <CodeOutlined />
+          </button>
+        </Tooltip>
       </div>
     </nav>
   );

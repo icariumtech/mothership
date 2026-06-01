@@ -157,6 +157,27 @@ async function getCampaignDoc(slug: string): Promise<CampaignDoc> {
   return response.data;
 }
 
+export interface DataDirEntry {
+  name: string;
+  type: 'file' | 'directory';
+}
+
+async function listDataDir(dir: string): Promise<DataDirEntry[]> {
+  const response = await api.get<DataDirEntry[]>('/gm/data/', { params: { dir } });
+  return response.data;
+}
+
+async function readDataFile(path: string): Promise<string> {
+  const response = await api.get<string>('/gm/data/' + path, { responseType: 'text' });
+  return response.data;
+}
+
+async function writeDataFile(path: string, content: string): Promise<void> {
+  await api.put('/gm/data/' + path, content, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
+
 export const gmConsoleApi = {
   getLocations,
   getActiveView,
@@ -182,4 +203,7 @@ export const gmConsoleApi = {
   hideDoc,
   getCampaignDocs,
   getCampaignDoc,
+  listDataDir,
+  readDataFile,
+  writeDataFile,
 };

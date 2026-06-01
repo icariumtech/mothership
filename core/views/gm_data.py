@@ -124,11 +124,12 @@ def _get_field_by_dotpath(data, field_path: str):
 # ---------------------------------------------------------------------------
 
 def api_gm_data_list(request):
-    """List files in a data subdirectory.
+    """List files and directories in a data subdirectory.
 
     GET /api/gm/data/?dir=<relative_path>
-    Returns a sorted JSON array of file names (not full paths).
-    400 if ?dir is missing.
+    Returns a sorted JSON array of objects with "name" and "type" fields.
+    Directories appear before files; each group sorted alphabetically.
+    dir='' or omitting dir entirely returns the data root listing.
     400 if resolved path escapes DATA_DIR (path traversal attempt).
     404 if directory does not exist.
     """
@@ -136,28 +137,35 @@ def api_gm_data_list(request):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     rel_dir = request.GET.get('dir', '').strip()
-    if not rel_dir:
-        return JsonResponse({'error': "Missing required query parameter: 'dir'"}, status=400)
-
     data_root = Path(settings.DATA_DIR).resolve()
-    target = (data_root / rel_dir).resolve()
 
-    # Path traversal guard
-    if not target.is_relative_to(data_root):
-        return JsonResponse({'error': 'Path not allowed'}, status=400)
+    if rel_dir:
+        target = (data_root / rel_dir).resolve()
+        # Path traversal guard (only needed for non-empty rel_dir)
+        if not target.is_relative_to(data_root):
+            return JsonResponse({'error': 'Path not allowed'}, status=400)
+    else:
+        # Empty dir param — list the data root
+        target = data_root
 
     if not target.exists():
-        return JsonResponse({'error': f'Directory not found: {rel_dir}'}, status=404)
+        return JsonResponse({'error': f'Directory not found: {rel_dir or "."}'}, status=404)
 
     if not target.is_dir():
         return JsonResponse({'error': f'Not a directory: {rel_dir}'}, status=400)
 
-    files = sorted(
-        entry.name
-        for entry in target.iterdir()
-        if entry.is_file()
-    )
-    return JsonResponse(files, safe=False)
+    entries = []
+    for entry in target.iterdir():
+        if not entry.exists():
+            continue  # skip broken symlinks
+        entries.append({
+            'name': entry.name,
+            'type': 'directory' if entry.is_dir() else 'file',
+        })
+
+    # Sort: directories first (alphabetically), then files (alphabetically)
+    entries.sort(key=lambda e: (0 if e['type'] == 'directory' else 1, e['name']))
+    return JsonResponse(entries, safe=False)
 
 
 @csrf_exempt

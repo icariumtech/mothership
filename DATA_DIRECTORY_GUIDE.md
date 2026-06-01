@@ -436,20 +436,23 @@ The `icon` field must exactly match one of these names (lowercase):
 
 | | | |
 |---|---|---|
-| `ai` | `galley` | `supplies` |
-| `airlock` | `intercom` | `toilet` |
-| `armory` | `jumpdrive` | `toilets 2` |
-| `automed` | `lab` | `vac suit` |
-| `cabin` | `ladder` | `vault` |
-| `cargo` | `ladder bottom` | `ventillation`* |
-| `command` | `ladder top` | `weapon system` |
-| `cryo` | `laser` | `workshop` |
-| `docking bay` | `medbay` | `elevator` |
-| `door` | `ramp` | `elevator to bottom` |
-| `duct access` | `reactor core` | `elevator to top` |
-| `emergency capsule` | `sensors` | `empty` |
-| `exit` | `shower` | `0` |
-| `fuel` | | |
+| `0` | `elevator to top` | `ramp` |
+| `ai` | `emergency capsule` | `reactor core` |
+| `airlock` | `empty` | `refinery` |
+| `armory` | `exit` | `sensors` |
+| `automed` | `factory` | `shower` |
+| `cabin` | `fuel` | `space colony` |
+| `cargo` | `full` | `space ship` |
+| `command` | `galley` | `space station` |
+| `cryo` | `intercom` | `supplies` |
+| `docking bay` | `jumpdrive` | `terminal` |
+| `door` | `lab` | `toilet` |
+| `door security level 1` | `ladder` | `toilets 2` |
+| `door security level 2` | `ladder bottom` | `vac suit` |
+| `door security level 3` | `ladder top` | `vault` |
+| `duct access` | `laser` | `ventillation`* |
+| `elevator` | `medbay` | `weapon system` |
+| `elevator to bottom` | | `workshop` |
 
 > \* `ventillation` — double-L spelling matches the source filename exactly.
 

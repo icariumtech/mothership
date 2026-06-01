@@ -97,9 +97,13 @@ completed: 2026-06-01
 - `FILE_EDITOR` case added at the top of the `handleDisplay` switch with `return` — consistent with ViewRail's visual disabled state.
 - Monaco `height="100%"` and `width="100%"` props passed explicitly to fill the flex container.
 
+## Post-Execution Fix
+
+**FileEditorView.css layout fix (2026-06-01):** `.gm-file-editor-view` was using `height: 100%; width: 100%` which rendered as zero height inside `.gm-console__content` (a flex column). The fix replaces those properties with `flex: 1; min-height: 0` — the same pattern used by `.gm-bridge-view` and `.gm-encounter-view`. Without this fix the File Editor view displayed as a blank screen.
+
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+None in original execution. One post-execution CSS fix applied (see above).
 
 ## Known Stubs
 

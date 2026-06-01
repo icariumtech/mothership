@@ -80,7 +80,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 25. Map Rotation Controls      | v2 | 5/5 | ✓ Complete  | 2026-05-24 |
 | 26. Map polish (ad-hoc)        | v2 | —   | ✓ Complete (ad-hoc) | 2026-05-25 |
 | 27. MCP Image Upload           | v2 | 3/3 | ✓ Complete  | 2026-05-27 |
-| 28. GM Console File Editor     | v2 | 2/3 | In Progress|  |
+| 28. GM Console File Editor     | v2 | 3/3 | Complete   | 2026-06-01 |
 
 ### Phase 23: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 
@@ -188,7 +188,7 @@ Plans:
 **Goal:** Add a full-screen file browser + YAML/Markdown editor as a new GMViewType in the GM Console. The GM can browse the full data/ directory, open any file, edit YAML/Markdown content in Monaco Editor, and save — triggering SSE broadcast to player terminals without needing SSH or Claude Code.
 **Requirements**: D-01–D-05 (see 28-CONTEXT.md)
 **Depends on:** Phase 27
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 **Wave 1** (parallel — no dependencies):
 
@@ -197,4 +197,4 @@ Plans:
 
 **Wave 2** (blocked on Wave 1):
 
-- [ ] 28-03-PLAN.md — FileEditorView (Monaco editor, save workflow, error banner, localStorage persistence) + GMConsole.tsx wiring + human smoke test
+- [x] 28-03-PLAN.md — FileEditorView (Monaco editor, save workflow, error banner, localStorage persistence) + GMConsole.tsx wiring + human smoke test

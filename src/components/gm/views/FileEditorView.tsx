@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Editor from '@monaco-editor/react';
-import type { editor } from 'monaco-editor';
-import type * as Monaco from 'monaco-editor';
+import Editor, { type OnMount } from '@monaco-editor/react';
 import { Button, Tooltip } from 'antd';
 import {
   SaveOutlined,
@@ -33,7 +31,7 @@ function isBinaryOrUnknown(path: string): boolean {
   return BINARY_EXTENSIONS.some(e => path.toLowerCase().endsWith(e));
 }
 
-export function FileEditorView(): JSX.Element {
+export function FileEditorView() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
   const [savedContent, setSavedContent] = useState<string>('');
@@ -42,7 +40,7 @@ export function FileEditorView(): JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const errorDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const handleSaveRef = useRef<(() => Promise<void>) | null>(null);
 
   const isDirty = content !== savedContent;
@@ -104,7 +102,7 @@ export function FileEditorView(): JSX.Element {
     }
   }, [handleSelectFile]);
 
-  const onEditorMount = useCallback((editorInstance: editor.IStandaloneCodeEditor, monaco: typeof Monaco) => {
+  const onEditorMount = useCallback<OnMount>((editorInstance, monaco) => {
     editorRef.current = editorInstance;
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSaveRef.current?.();

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: complete
-stopped_at: Phase 27 complete
-last_updated: "2026-05-28T00:00:00.000Z"
+stopped_at: Phase 28 context gathered
+last_updated: "2026-06-01T18:31:49.861Z"
 last_activity: 2026-05-28
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
+  total_phases: 6
+  completed_phases: 4
+  total_plans: 22
+  completed_plans: 22
+  percent: 67
 ---
 
 # Project State
@@ -46,11 +46,12 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full v1.0 decision log.
 
 - Phase 23 added: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 - Phase 25 added: Map rotation controls
+- Phase 28 added: GM Console Data Directory File Editor
 
 ## Session Continuity
 
-Last session: 2026-05-27T20:32:44.140Z
-Stopped at: Phase 25 UI-SPEC approved
+Last session: 2026-06-01T18:31:49.846Z
+Stopped at: Phase 28 context gathered
 Next step: Plan v2.0 next phase (UI Audio, or pick from deferred deepening candidates)
 
 ## Performance Metrics

@@ -80,6 +80,7 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full phase details.
 | 25. Map Rotation Controls      | v2 | 5/5 | ✓ Complete  | 2026-05-24 |
 | 26. Map polish (ad-hoc)        | v2 | —   | ✓ Complete (ad-hoc) | 2026-05-25 |
 | 27. MCP Image Upload           | v2 | 3/3 | ✓ Complete  | 2026-05-27 |
+| 28. GM Console File Editor     | v2 | 0/3 | In Progress | -          |
 
 ### Phase 23: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 
@@ -181,3 +182,19 @@ Plans:
 **Wave 3** (blocked on Wave 2):
 
 - [x] 27-03-PLAN.md — janus-upload-portrait/SKILL.md + janus-upload-image/SKILL.md in janus-skills repo (Wave 3)
+
+### Phase 28: GM Console Data Directory File Editor
+
+**Goal:** Add a full-screen file browser + YAML/Markdown editor as a new GMViewType in the GM Console. The GM can browse the full data/ directory, open any file, edit YAML/Markdown content in Monaco Editor, and save — triggering SSE broadcast to player terminals without needing SSH or Claude Code.
+**Requirements**: D-01–D-05 (see 28-CONTEXT.md)
+**Depends on:** Phase 27
+**Plans:** 3 plans
+
+**Wave 1** (parallel — no dependencies):
+
+- [ ] 28-01-PLAN.md — Backend list API fix (files + dirs), gmConsoleApi data-file methods, FILE_EDITOR ViewRail entry + DISPLAY disabled logic
+- [ ] 28-02-PLAN.md — DataFileTree component (Ant Design Tree, lazy load, filter input, extension badges)
+
+**Wave 2** (blocked on Wave 1):
+
+- [ ] 28-03-PLAN.md — FileEditorView (Monaco editor, save workflow, error banner, localStorage persistence) + GMConsole.tsx wiring + human smoke test

@@ -14,13 +14,19 @@ const _raw = import.meta.glob('../../../assets/icons/*.svg', {
   eager: true,
 }) as Record<string, string>;
 
-/** Strip outer <svg> tag and replace hardcoded white with currentColor */
+/** Strip outer <svg> tag and replace white (any form) with currentColor */
 function processIconSvg(raw: string): string {
   return raw
     .replace(/<svg[^>]*>/s, '')
     .replace(/<\/svg>/g, '')
+    // Attribute form: fill/stroke="white" or fill/stroke="#fff[fff]"
     .replace(/fill="white"/g, 'fill="currentColor"')
     .replace(/stroke="white"/g, 'stroke="currentColor"')
+    .replace(/fill="#[Ff]{3,6}"/g, 'fill="currentColor"')
+    .replace(/stroke="#[Ff]{3,6}"/g, 'stroke="currentColor"')
+    // Inline style form (Inkscape output): fill:#fff[fff] or stroke:#fff[fff]
+    .replace(/fill:#[Ff]{3,6}/g, 'fill:currentColor')
+    .replace(/stroke:#[Ff]{3,6}/g, 'stroke:currentColor')
     .trim();
 }
 

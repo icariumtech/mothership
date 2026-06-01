@@ -164,9 +164,11 @@ to fail with `-32602`. Use hyphens (`-`) and straight quotes instead. Markdown b
 ### Available POI icon names
 
 `ai`, `airlock`, `armory`, `automed`, `cabin`, `cargo`, `command`, `cryo`, `docking bay`,
-`door`, `duct access`, `elevator`, `elevator to bottom`, `elevator to top`, `emergency capsule`,
-`exit`, `fuel`, `galley`, `intercom`, `jumpdrive`, `lab`, `ladder`, `ladder bottom`,
-`ladder top`, `laser`, `medbay`, `ramp`, `reactor core`, `sensors`, `shower`, `supplies`,
+`door`, `door security level 1`, `door security level 2`, `door security level 3`,
+`duct access`, `elevator`, `elevator to bottom`, `elevator to top`, `emergency capsule`,
+`exit`, `factory`, `fuel`, `full`, `galley`, `intercom`, `jumpdrive`, `lab`, `ladder`,
+`ladder bottom`, `ladder top`, `laser`, `medbay`, `ramp`, `reactor core`, `refinery`,
+`sensors`, `shower`, `space colony`, `space ship`, `space station`, `supplies`, `terminal`,
 `toilet`, `toilets 2`, `vac suit`, `vault`, `ventillation`, `weapon system`, `workshop`, `empty`, `0`
 
 > Note: `ventillation` has double-L — matches the source SVG filename exactly.

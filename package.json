@@ -27,6 +27,7 @@
   "homepage": "https://github.com/icariumtech/janus-console#readme",
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
+    "@monaco-editor/react": "^4.7.0",
     "@react-spring/three": "^10.0.3",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",

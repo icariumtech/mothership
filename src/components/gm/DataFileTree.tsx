@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Tree, Input, Tag } from 'antd';
+import { Tree, Tag } from 'antd';
 import {
   FolderOutlined,
   FileOutlined,
-  SearchOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { gmConsoleApi, type DataDirEntry } from '@/services/gmConsoleApi';
@@ -112,7 +111,6 @@ function entriestoDataNodes(entries: DataDirEntry[], parentPath: string): DataNo
 export function DataFileTree({ selectedPath, onSelectFile }: DataFileTreeProps) {
   const [treeData, setTreeData] = useState<DataNode[]>([]);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
-  const [filterText, setFilterText] = useState('');
 
   // Load root entries on mount
   useEffect(() => {
@@ -147,36 +145,10 @@ export function DataFileTree({ selectedPath, onSelectFile }: DataFileTreeProps) 
     setExpandedKeys(keys as string[]);
   }, []);
 
-  const filterTreeNode = useCallback((node: DataNode): boolean => {
-    if (!filterText) return true;
-    return (node.key as string).toLowerCase().includes(filterText.toLowerCase());
-  }, [filterText]);
-
   const selectedKeys = selectedPath ? [selectedPath] : [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#111e1e', overflow: 'hidden' }}>
-      {/* Filter input */}
-      <div style={{ padding: '8px', borderBottom: '1px solid #1e3333', flexShrink: 0 }}>
-        <Input
-          size="small"
-          prefix={<SearchOutlined style={{ color: '#4a7070' }} />}
-          placeholder="FILTER FILES..."
-          value={filterText}
-          onChange={e => setFilterText(e.target.value)}
-          style={{
-            background: '#0d1616',
-            borderColor: '#1e3333',
-            color: '#7ab8b8',
-            fontFamily: MONOSPACE_FONT,
-            fontSize: 11,
-            letterSpacing: '0.5px',
-          }}
-          allowClear
-        />
-      </div>
-
-      {/* File tree */}
       <div style={{ flex: 1, overflowY: 'auto' }} className="data-file-tree">
         <style>{TREE_STYLES}</style>
         <Tree
@@ -186,7 +158,6 @@ export function DataFileTree({ selectedPath, onSelectFile }: DataFileTreeProps) 
           selectedKeys={selectedKeys}
           onExpand={handleExpand}
           onSelect={handleSelect}
-          filterTreeNode={filterText ? filterTreeNode : undefined}
           showLine={{ showLeafIcon: false }}
           style={{
             background: 'transparent',

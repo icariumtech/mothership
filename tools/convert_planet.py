@@ -10,7 +10,7 @@ Output: PNG with:
   - (Lat/lon lines generated on-the-fly in Three.js)
 
 Usage:
-    python convert_planet_texture.py input.png output.png [edge_thickness] [grid_spacing]
+    python tools/convert_planet.py input.png output.png [edge_thickness] [grid_spacing]
 """
 
 from PIL import Image
@@ -135,7 +135,7 @@ def convert_texture(input_path, output_path, edge_thickness=2, grid_spacing=20):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python convert_planet_texture.py input.png output.png [edge_thickness] [grid_spacing]")
+        print("Usage: python tools/convert_planet.py input.png output.png [edge_thickness] [grid_spacing]")
         print("  edge_thickness: width of continent outlines in pixels (default: 2)")
         print("  grid_spacing: pixels between grid lines on continents (default: 20)")
         sys.exit(1)

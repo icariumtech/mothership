@@ -8,7 +8,7 @@ Takes an existing texture and:
 3. Remaps each pixel to the gradient based on brightness
 
 Usage:
-    python convert_to_amber_gradient.py input.png output.png [gradient_steps]
+    python tools/amber_gradient.py input.png output.png [gradient_steps]
 """
 
 from PIL import Image
@@ -169,7 +169,7 @@ def convert_to_amber(input_path, output_path, gradient_steps=128, gamma=2.2):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python convert_to_amber_gradient.py input.png output.png [gradient_steps] [gamma]")
+        print("Usage: python tools/amber_gradient.py input.png output.png [gradient_steps] [gamma]")
         print("  gradient_steps: number of color steps in gradient (default: 128)")
         print("  gamma: gamma correction value (default: 2.2, lower = brighter)")
         sys.exit(1)

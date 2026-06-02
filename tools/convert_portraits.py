@@ -11,7 +11,7 @@ Features:
 - Uses gamma 1.4 for dramatic portrait lighting
 
 Usage:
-    python convert_npc_portraits.py [source_dir] [output_dir]
+    python tools/convert_portraits.py [source_dir] [output_dir]
 
 Defaults:
     source_dir: data/campaign/NPCs/images_source

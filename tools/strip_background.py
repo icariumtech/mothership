@@ -6,7 +6,7 @@ Pixels near white become transparent; dark pixels stay opaque.
 Anti-aliased edges get partial transparency for smooth results.
 
 Usage:
-    python logo_to_amber.py input.png output.png
+    python tools/strip_background.py input.png output.png
 """
 
 import sys
@@ -53,7 +53,7 @@ def convert(input_path: str, output_path: str):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print("Usage: python logo_to_amber.py input.png output.png")
+        print("Usage: python tools/strip_background.py input.png output.png")
         sys.exit(1)
 
     inp, outp = sys.argv[1], sys.argv[2]

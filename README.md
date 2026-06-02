@@ -517,7 +517,7 @@ janus/
 │   ├── data_loader.py      # File-based data loading
 │   └── templates/          # HTML templates
 ├── config/                 # Django project settings
-├── scripts/                # Utility scripts
+├── tools/                  # Utility scripts
 ├── codemaps/               # Architecture documentation
 ├── setup.sh                # Initial setup script
 └── start_server.sh         # Development server launcher

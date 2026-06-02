@@ -514,11 +514,11 @@ def api_gm_upload_image(request):
         output_path = images_dir / f'{stem}.png'
         try:
             images_dir.mkdir(parents=True, exist_ok=True)
-            # Add scripts/ to sys.path (only once)
-            scripts_dir = str(Path(settings.BASE_DIR) / 'scripts')
+            # Add tools/ to sys.path (only once)
+            scripts_dir = str(Path(settings.BASE_DIR) / 'tools')
             if scripts_dir not in sys.path:
                 sys.path.insert(0, scripts_dir)
-            from convert_npc_portraits import convert_portrait
+            from convert_portraits import convert_portrait
             convert_portrait(str(dest_path), str(output_path))
             result['converted_path'] = str(output_path.relative_to(data_root))
         except Exception as e:

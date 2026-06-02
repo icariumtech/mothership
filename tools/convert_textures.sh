@@ -95,7 +95,7 @@ for SOURCE_DIR in "${SOURCE_DIRS[@]}"; do
         echo "Converting: $FILENAME"
 
         # Run conversion script with appropriate gamma
-        python scripts/convert_to_amber_gradient.py "$SOURCE_FILE" "$TARGET_FILE" "$GRADIENT_STEPS" "$GAMMA"
+        python tools/amber_gradient.py "$SOURCE_FILE" "$TARGET_FILE" "$GRADIENT_STEPS" "$GAMMA"
 
         if [ $? -eq 0 ]; then
             ((PROCESSED++))

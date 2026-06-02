@@ -1,6 +1,6 @@
 #!/bin/bash
 # Batch convert planet textures from Fantasy Map Generator to retro style
-# Usage: ./scripts/convert_all_planets.sh
+# Usage: ./tools/convert_planets.sh
 
 cd "$(dirname "$0")/.."
 source .venv/bin/activate
@@ -19,7 +19,7 @@ for file in textures/planets_source/map_*.png; do
         output="textures/planets/${num}.png"
 
         echo "Converting $basename -> ${num}.png"
-        python scripts/convert_planet_texture.py "$file" "$output"
+        python tools/convert_planet.py "$file" "$output"
         echo ""
     fi
 done

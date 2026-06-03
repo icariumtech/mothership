@@ -374,26 +374,39 @@ def ensure_location_yaml(location_dir: str, map_name: str, location_type: str) -
 
 # ── Processing helpers ───────────────────────────────────────────────────────
 
+def _unique_id(base_id: str, seen: dict[str, int]) -> str:
+    """Return a unique id by appending _2, _3, … on collision."""
+    if base_id not in seen:
+        seen[base_id] = 1
+        return base_id
+    seen[base_id] += 1
+    return f"{base_id}_{seen[base_id]}"
+
+
 def _extract_areas(
     parent: ET.Element, unit: float
 ) -> tuple[list[dict], list[dict]]:
     """Extract rooms and corridors from a layer element (root or deck group)."""
+    seen_ids: dict[str, int] = {}
     rooms: list[dict] = []
     for path in get_layer_paths(parent, "Rooms"):
         label = get_ink_label(path) or path.get("id", "room")
         raw = parse_path_d(path.get("d", ""), label=label)
         poly = remove_collinear(verts_to_grid(raw, unit))
-        rooms.append({"id": to_snake(label), "name": label.upper(), "polygon": poly})
+        rid = _unique_id(to_snake(label), seen_ids)
+        rooms.append({"id": rid, "name": label.upper(), "polygon": poly})
         xs = [p[0] for p in poly]
         ys = [p[1] for p in poly]
         w = max(xs) - min(xs)
         h = max(ys) - min(ys)
-        print(f"  Room '{label}': {len(poly)} vertices  ({w:.1f}×{h:.1f} cells)")
+        suffix = f" → id: {rid}" if rid != to_snake(label) else ""
+        print(f"  Room '{label}': {len(poly)} vertices  ({w:.1f}×{h:.1f} cells){suffix}")
 
     corridors: list[dict] = []
     for i, path in enumerate(get_layer_paths(parent, "Corridors")):
         label = get_ink_label(path)
-        cid = to_snake(label) if label else f"corridor_{i + 1}"
+        base_id = to_snake(label) if label else f"corridor_{i + 1}"
+        cid = _unique_id(base_id, seen_ids)
         raw = parse_path_d(path.get("d", ""), label=cid)
         poly = remove_collinear(verts_to_grid(raw, unit))
         corridors.append({"id": cid, "polygon": poly})

@@ -2,3 +2,15 @@ name: "Demeter"
 type: "ship"
 description: ""
 status: "OPERATIONAL"
+
+parent_type: orbit
+body_slug: tau-ceti-f
+system_slug: tau-ceti
+
+orbital:
+  radius: 40
+  period: 120
+  angle: 60
+  inclination: 5
+  size: 2.0
+  icon_type: ship

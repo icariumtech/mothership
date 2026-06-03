@@ -177,7 +177,7 @@ export function EncounterView({
     }
     rooms.sort((a, b) => {
       if (a.deckLevel !== b.deckLevel) return a.deckLevel - b.deckLevel;
-      return a.name.localeCompare(b.name);
+      return (a.name ?? '').localeCompare(b.name ?? '');
     });
     return rooms;
   }, [allDecks]);

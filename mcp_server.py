@@ -131,6 +131,98 @@ async def patch_yaml(path: str, patch: dict) -> dict:
 
 
 @mcp.tool
+async def delete_file(path: str) -> dict:
+    """Delete a campaign data file. path is relative to data/ (e.g. 'campaign/crew/old_npc.yaml').
+
+    Triggers SSE broadcast on success. Cannot delete directories.
+    Returns: {"ok": true, "path": str, "action": "deleted"}
+    """
+    async with httpx.AsyncClient() as client:
+        r = await client.delete(f"{DJANGO_BASE_URL}/api/gm/data/{path}")
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool
+async def rename_file(path: str, new_path: str) -> dict:
+    """Rename or move a campaign data file within the data directory.
+
+    path: current path relative to data/ (e.g. 'campaign/crew/alex.yaml')
+    new_path: destination path relative to data/ (e.g. 'campaign/crew/alex_novak.yaml')
+
+    Both paths must stay within data/. Destination directory is created automatically.
+    Fails with 409 if destination already exists. Triggers SSE broadcast on success.
+    Returns: {"ok": true, "old_path": str, "new_path": str}
+    """
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"{DJANGO_BASE_URL}/api/gm/data-rename/{path}",
+            json={"new_path": new_path},
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool
+async def upload_svg_map(
+    filename: str,
+    content_base64: str,
+    out_dir: str,
+    deck: str = "main_deck",
+    name: str = "",
+    location_type: str = "ship",
+    unit_size: int = 30,
+    grid_scale: int = 1,
+    detect_doors: bool = False,
+) -> dict:
+    """Upload an SVG deckplan, convert it with svg_to_map.py, and write results to the data directory.
+
+    filename: SVG filename (e.g. "patrol_gunboat.svg")
+    content_base64: base64-encoded SVG file bytes
+
+    out_dir: destination location directory relative to data/
+             (e.g. "galaxy/tau-ceti/patrol_gunboat")
+             Created automatically if it does not exist.
+
+    deck: deck YAML filename stem written to map/ (default: "main_deck")
+    name: map display name (default: derived from SVG filename)
+    location_type: value for stub location.yaml type field (default: "ship")
+    unit_size: pixels per output grid cell in deck YAML (default: 30)
+    grid_scale: group N Inkscape cells into 1 output cell (default: 1)
+                Use when rooms have too many cells and tokens look tiny.
+                Run once with grid_scale=1 first; check the log for room
+                dimensions; aim for the largest room ~8–12 cells wide.
+    detect_doors: auto-detect doors from shared room/corridor edges (default: false)
+
+    The SVG is saved as <out_dir>/<filename>.svg for future re-conversion.
+    Returns:
+      { out_dir, svg_path, files_created: [...], log: str }
+    The log includes room dimensions — use it to decide if grid_scale needs adjusting.
+
+    Prefer direct curl multipart upload for files over ~200KB:
+      curl -X POST http://<host>/api/gm/upload-svg-map/ \\
+        -F file=@plan.svg -F out_dir=galaxy/tau-ceti/my_ship -F grid_scale=4
+    """
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        r = await client.post(
+            f"{DJANGO_BASE_URL}/api/gm/upload-svg-map/",
+            json={
+                "filename": filename,
+                "content_base64": content_base64,
+                "out_dir": out_dir,
+                "deck": deck,
+                "name": name,
+                "type": location_type,
+                "unit_size": unit_size,
+                "grid_scale": grid_scale,
+                "detect_doors": detect_doors,
+            },
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool
 async def get_data_schema() -> str:
     """Return the DATA_DIRECTORY_GUIDE summary so the AI understands the campaign file structure and what files exist."""
     async with httpx.AsyncClient() as client:

@@ -2,7 +2,7 @@ id: "alex_novak"
 name: "Alex Novak"
 role: "Pilot"
 class: "Teamster"
-portrait: "/static/portraits/novak.png"
+portrait: "/NPCs/images/lucia_vance.png"
 
 stats:
   strength: 5

@@ -521,8 +521,7 @@ def api_gm_upload_svg_map(request):
       unit_size, grid_scale, detect_doors
 
     The SVG is saved to <out_dir>/<stem>.svg for future re-conversion.
-    Single-deck: svg_to_map.py writes location.yaml (if absent) and map/<deck>.yaml.
-    Multi-deck: writes location.yaml + map/manifest.yaml + one map/<deck_id>.yaml per deck.
+    svg_to_map.py writes location.yaml (if absent) and deckplan.yaml (canonical, overwritten).
 
     Returns:
       200 { out_dir, svg_path, files_created: [...], log: str }

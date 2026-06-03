@@ -201,11 +201,10 @@ async def upload_svg_map(
                    "Corridors" sublayers. Auto-detected — one upload produces all decks.
 
     The SVG is saved as <out_dir>/<filename>.svg for future re-conversion.
+    Always writes <out_dir>/deckplan.yaml (canonical single-file format, overwritten each run).
     Returns:
       { out_dir, svg_path, files_created: [...], log: str }
     The log includes room dimensions — use it to decide if grid_scale needs adjusting.
-    In multi-deck mode files_created includes one map/<deck_id>.yaml per deck plus
-    map/manifest.yaml; check the count to detect which mode was used.
 
     Prefer direct curl multipart upload for files over ~200KB:
       curl -X POST http://<host>/api/gm/upload-svg-map/ \\

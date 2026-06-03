@@ -49,8 +49,7 @@ Grid unit:
 
 Output files:
     location.yaml         Created once if missing; never overwritten
-    map/manifest.yaml     Multi-deck manifest with optional hull polygon
-    map/<deck>.yaml       One file per deck with rooms, corridors, and doors
+    deckplan.yaml         Canonical single-file deckplan; overwritten on each run
 """
 
 import argparse
@@ -471,63 +470,74 @@ def _build_doors(rooms: list[dict], corridors: list[dict]) -> list[dict]:
     return doors
 
 
-def _write_deck_yaml(
-    map_dir: str,
-    deck_id: str,
-    deck_label: str,
+def _write_deckplan_yaml(
+    location_dir: str,
     map_name: str,
+    location_type: str,
     unit_size: int,
-    rooms: list[dict],
-    corridors: list[dict],
-    doors: list[dict],
+    hull_poly: list[tuple[float, float]] | None,
+    decks_data: list[dict],
     detect_doors: bool,
 ) -> None:
-    deck_path = os.path.join(map_dir, f"{deck_id}.yaml")
-    with open(deck_path, "w") as f:
-        f.write(f'deck_id: "{deck_id}"\n')
-        f.write(f'name: "{map_name} — {deck_label}"\n')
-        f.write(f'location_name: "{map_name}"\n')
-        f.write(f"unit_size: {unit_size}\n\n")
-        f.write("rooms:\n\n")
+    deckplan_path = os.path.join(location_dir, "deckplan.yaml")
+    with open(deckplan_path, "w") as f:
+        f.write(f"name: {map_name}\n")
+        f.write(f"facility_type: {location_type}\n")
+        f.write(f"total_decks: {len(decks_data)}\n")
+        f.write(f"unit_size: {unit_size}\n")
 
-        for room in rooms:
-            f.write(f'  - id: {room["id"]}\n')
-            f.write(f'    name: "{room["name"]}"\n')
-            f.write(f'    polygon: {fmt_polygon(room["polygon"])}\n')
-            f.write("    # description: \"\"\n")
-            f.write("    # type: \"\"\n")
-            f.write("\n")
+        if hull_poly:
+            f.write("hull:\n  polygon:\n")
+            for x, y in hull_poly:
+                f.write(f"  - [{fv(x)}, {fv(y)}]\n")
 
-        for corr in corridors:
-            f.write(f'  - id: {corr["id"]}\n')
-            f.write('    name: ""\n')
-            f.write(f'    polygon: {fmt_polygon(corr["polygon"])}\n')
-            f.write("    type: corridor\n")
-            f.write("\n")
+        f.write("decks:\n")
+        for level, d in enumerate(decks_data, start=1):
+            f.write(f"- id: {d['id']}\n")
+            f.write(f"  name: {d['label']}\n")
+            f.write(f"  level: {level}\n")
+            f.write(f"  default: {'true' if level == 1 else 'false'}\n")
+            f.write(f"  unit_size: {unit_size}\n")
+            f.write("  rooms:\n")
 
-        # Top-level canonical doors block (Phase 21 canonical model — B-rel
-        # by default, B-pos when ambiguous). Loaders pass this through to
-        # the frontend doorNormalizer which validates it against geometry.
-        if detect_doors and doors:
-            f.write("doors:\n")
-            for d in doors:
-                a, b = d["rooms"][0], d["rooms"][1]
-                if "along" in d:
-                    f.write(
-                        f'  - {{rooms: [{a}, {b}], along: {d["along"]},'
-                        f' type: {d["type"]}, status: {d["status"]}}}\n'
-                    )
-                else:
-                    p = d["position"]
-                    f.write(
-                        f'  - {{rooms: [{a}, {b}],'
-                        f' position: {{x: {fv(p["x"])}, y: {fv(p["y"])}, angle: {p["angle"]}}},'
-                        f' type: {d["type"]}, status: {d["status"]}}}\n'
-                    )
-        elif detect_doors:
-            f.write("# doors: []\n")
+            for room in d["rooms"]:
+                f.write(f"  - id: {room['id']}\n")
+                f.write(f"    name: {room['name']}\n")
+                f.write("    polygon:\n")
+                for x, y in room["polygon"]:
+                    f.write(f"    - [{fv(x)}, {fv(y)}]\n")
+                f.write('    # description: ""\n')
+                f.write('    # type: ""\n')
 
-    print(f"Written: {deck_path}")
+            for corr in d["corridors"]:
+                f.write(f"  - id: {corr['id']}\n")
+                f.write("    name: ''\n")
+                f.write("    polygon:\n")
+                for x, y in corr["polygon"]:
+                    f.write(f"    - [{fv(x)}, {fv(y)}]\n")
+                f.write("    type: corridor\n")
+
+            doors = d["doors"]
+            if detect_doors and doors:
+                f.write("  doors:\n")
+                for door in doors:
+                    a, b = door["rooms"][0], door["rooms"][1]
+                    if "along" in door:
+                        f.write(
+                            f"  - {{rooms: [{a}, {b}], along: {door['along']},"
+                            f" type: {door['type']}, status: {door['status']}}}\n"
+                        )
+                    else:
+                        p = door["position"]
+                        f.write(
+                            f"  - {{rooms: [{a}, {b}],"
+                            f" position: {{x: {fv(p['x'])}, y: {fv(p['y'])}, angle: {p['angle']}}},"
+                            f" type: {door['type']}, status: {door['status']}}}\n"
+                        )
+            elif detect_doors:
+                f.write("  # doors: []\n")
+
+    print(f"Written: {deckplan_path}")
 
 
 # ── Main conversion ──────────────────────────────────────────────────────────
@@ -612,45 +622,13 @@ def convert(
         ]
 
     # Write output
-    map_dir = os.path.join(location_dir, "map")
-    os.makedirs(map_dir, exist_ok=True)
+    os.makedirs(location_dir, exist_ok=True)
 
     ensure_location_yaml(location_dir, map_name, location_type)
 
-    # manifest.yaml
-    manifest_path = os.path.join(map_dir, "manifest.yaml")
-    with open(manifest_path, "w") as f:
-        f.write(f'name: "{map_name}"\n')
-        f.write('facility_type: "ship"\n')
-        f.write(f"total_decks: {len(decks_data)}\n")
-
-        if hull_poly:
-            f.write("\nhull:\n  polygon:\n")
-            for x, y in hull_poly:
-                f.write(f"    - [{fv(x)}, {fv(y)}]\n")
-
-        f.write("\ndecks:\n")
-        for level, d in enumerate(decks_data, start=1):
-            f.write(f'  - id: "{d["id"]}"\n')
-            f.write(f'    name: "{d["label"]}"\n')
-            f.write(f'    file: "{d["id"]}.yaml"\n')
-            f.write(f"    level: {level}\n")
-            f.write(f'    default: {"true" if level == 1 else "false"}\n')
-
-    print(f"\nWritten: {manifest_path}")
-
-    for d in decks_data:
-        _write_deck_yaml(
-            map_dir,
-            d["id"],
-            d["label"],
-            map_name,
-            unit_size,
-            d["rooms"],
-            d["corridors"],
-            d["doors"],
-            detect_doors,
-        )
+    _write_deckplan_yaml(
+        location_dir, map_name, location_type, unit_size, hull_poly, decks_data, detect_doors
+    )
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

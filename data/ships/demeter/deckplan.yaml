@@ -378,6 +378,20 @@ decks:
     - [46, 124]
     - [46, 118]
     type: corridor
+  doors:
+  - {rooms: [janus, corridor_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [path136, corridor_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [elevator, corridor_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [path136, corridor_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [tankage, corridor_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [tankage_2, corridor_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [vac_suits, corridor_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [vac_suits_2, corridor_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [path137, corridor_3], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [thruster_2, corridor_3], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [path137, corridor_4], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [thruster, corridor_4], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [path137, reactor], along: 0.5, type: standard, status: CLOSED}
 - id: deck_a
   name: Deck A
   level: 2
@@ -936,3 +950,80 @@ decks:
     - [204, 86]
     - [207, 83]
     type: corridor
+  doors:
+  - {rooms: [armory, corridor_6], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [storage_unit, armory], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [bridge, corridor_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_3, cabin_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_1, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_8, cabin_10], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_10, living_quarters], position: {x: 39.5, y: 75, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [cabin_10, living_quarters], position: {x: 41, y: 76, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [cabin_2, cabin_4], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_2, living_quarters], position: {x: 27.5, y: 75, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [cabin_2, living_quarters], position: {x: 26, y: 76, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [cabin_5, cabin_3], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_3, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_4, cabin_6], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_4, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_7, cabin_5], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_5, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_6, cabin_8], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_6, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_9, cabin_7], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_7, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_8, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cabin_9, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [captain_s_quarters, corridor_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cargo_bay, corridor_10], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [cargo_bay_2, corridor_10], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_1, corridor_3], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [examination_room, corridor_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [executive_office, corridor_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_1, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [mess_hall, corridor_1], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_10, corridor_11], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_10, corridor_12], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_10], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_9, corridor_11], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_11], position: {x: 186.5, y: 74, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_11], position: {x: 203, y: 74, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_11], position: {x: 178.5, y: 75.5, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_11], position: {x: 205.5, y: 75.5, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [reactor, corridor_11], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_9, corridor_12], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_12], position: {x: 178.5, y: 84.5, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_12], position: {x: 205.5, y: 84.5, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_12], position: {x: 186.5, y: 86, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_12], position: {x: 203, y: 86, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [reactor_2, corridor_12], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_3, corridor_4], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [medlab, corridor_3], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_4, corridor_5], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, corridor_4], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_5, corridor_6], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [hydroponics, corridor_5], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [hydroponics_2, corridor_5], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_6, corridor_7], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [storage_unit, corridor_6], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [vac_suits, corridor_6], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [workshop, corridor_6], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [separation_lock, corridor_7], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [corridor_8, corridor_9], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [separation_lock, corridor_8], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_9], position: {x: 177, y: 77.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_9], position: {x: 177.5, y: 78.5, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_9], position: {x: 178.5, y: 79, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_9], position: {x: 179, y: 80, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_9], position: {x: 178.5, y: 81, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_9], position: {x: 177.5, y: 81.5, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_9], position: {x: 177, y: 82.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [examination_room, cryo_bay], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [examination_room, cryo_bay_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [reactor, engineering], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [reactor_2, engineering], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [washroom, living_quarters], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [medlab, medpod], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [medlab, medpod_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [medpod, medpod_2], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [workshop, vac_suits], along: 0.5, type: standard, status: CLOSED}

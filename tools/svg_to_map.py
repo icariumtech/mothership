@@ -20,8 +20,7 @@ Options:
                      dimensions — aim for rooms ~5-12 cells wide.
                      Example: if Engineering is 40 cells wide, use --grid-scale 5
                      to output it as 8 cells wide.
-    --detect-doors   Detect doors from shared edges between rooms/corridors,
-                     and between touching corridors.
+    --no-detect-doors  Skip door detection (doors are detected by default).
 
 SVG layer convention — single-deck (backwards compatible):
     Hull       — ship outer hull polygon (optional, single path)
@@ -683,9 +682,9 @@ def main() -> None:
         help="Group N Inkscape cells into 1 output cell (default: 1); use when rooms have too many cells",
     )
     ap.add_argument(
-        "--detect-doors",
+        "--no-detect-doors",
         action="store_true",
-        help="Detect doors from shared edges between rooms and corridors",
+        help="Skip door detection (default: doors are always detected from shared edges)",
     )
     args = ap.parse_args()
 
@@ -703,7 +702,7 @@ def main() -> None:
     print(f"Unit size:     {args.unit_size} px/cell")
     print(f"Grid scale:    {args.grid_scale}\n")
 
-    convert(svg_path, location_dir, args.deck, map_name, args.type, args.unit_size, args.grid_scale, args.detect_doors)
+    convert(svg_path, location_dir, args.deck, map_name, args.type, args.unit_size, args.grid_scale, not args.no_detect_doors)
     print("\nDone.")
 
 

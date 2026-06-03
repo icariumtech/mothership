@@ -390,16 +390,24 @@ def _extract_areas(
     rooms: list[dict] = []
     for path in get_layer_paths(parent, "Rooms"):
         label = get_ink_label(path) or path.get("id", "room")
+        # Label "-" means: no display name; use SVG element id for the room id.
+        if label == "-":
+            display_name = ""
+            base_id = to_snake(path.get("id", "") or "room")
+        else:
+            display_name = label.upper()
+            base_id = to_snake(label)
         raw = parse_path_d(path.get("d", ""), label=label)
         poly = remove_collinear(verts_to_grid(raw, unit))
-        rid = _unique_id(to_snake(label), seen_ids)
-        rooms.append({"id": rid, "name": label.upper(), "polygon": poly})
+        rid = _unique_id(base_id, seen_ids)
+        rooms.append({"id": rid, "name": display_name, "polygon": poly})
         xs = [p[0] for p in poly]
         ys = [p[1] for p in poly]
         w = max(xs) - min(xs)
         h = max(ys) - min(ys)
-        suffix = f" → id: {rid}" if rid != to_snake(label) else ""
-        print(f"  Room '{label}': {len(poly)} vertices  ({w:.1f}×{h:.1f} cells){suffix}")
+        suffix = f" → id: {rid}" if rid != base_id else ""
+        no_label = " (no label)" if label == "-" else ""
+        print(f"  Room '{label}': {len(poly)} vertices  ({w:.1f}×{h:.1f} cells){suffix}{no_label}")
 
     corridors: list[dict] = []
     for i, path in enumerate(get_layer_paths(parent, "Corridors")):

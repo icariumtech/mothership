@@ -196,6 +196,27 @@ Key flags: `--detect-doors` (outputs B-pos door entries from shared SVG edges),
 `--grid-scale N` (groups N Inkscape grid cells into 1 output cell),
 `--unit-size N` (pixels per output cell, default 30).
 
+**SVG layer conventions:**
+
+Single-deck (flat layers — backwards compatible):
+- `Hull` — optional hull outline path
+- `Rooms` — one `<path>` per room; `inkscape:label` = room name
+- `Corridors` — one `<path>` per corridor
+
+Multi-deck (nested layers — auto-detected):
+- `Hull` — optional hull outline path (top-level)
+- `<Deck Label>` — one layer per deck (e.g. `"Main Deck"`, `"Engineering Deck"`)
+  - `Rooms` — room paths within this deck
+  - `Corridors` — corridor paths within this deck
+
+Multi-deck is triggered automatically when any top-level layer contains `Rooms` or `Corridors`
+sublayers. The deck layer label becomes the deck `id` (snake-cased) and `name`. One
+`map/<deck_id>.yaml` is written per deck; `map/manifest.yaml` lists all decks in order.
+The first deck gets `default: true`. The `--deck` flag is only used in single-deck mode.
+
+The MCP `upload_svg_map` tool and `/janus-import-deckplan` skill both support multi-deck SVGs —
+a single upload/import can populate all decks at once.
+
 Skills do NOT run this tool — it is a manual GM workflow for converting hand-drawn maps.
 
 ---

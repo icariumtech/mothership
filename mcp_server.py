@@ -184,7 +184,8 @@ async def upload_svg_map(
              (e.g. "galaxy/tau-ceti/patrol_gunboat")
              Created automatically if it does not exist.
 
-    deck: deck YAML filename stem written to map/ (default: "main_deck")
+    deck: deck YAML filename stem for single-deck SVGs (default: "main_deck")
+          Ignored when the SVG contains multiple deck layers (multi-deck mode).
     name: map display name (default: derived from SVG filename)
     location_type: value for stub location.yaml type field (default: "ship")
     unit_size: pixels per output grid cell in deck YAML (default: 30)
@@ -194,10 +195,17 @@ async def upload_svg_map(
                 dimensions; aim for the largest room ~8–12 cells wide.
     detect_doors: auto-detect doors from shared room/corridor edges (default: false)
 
+    SVG layer conventions:
+      Single-deck: top-level "Hull" / "Rooms" / "Corridors" layers.
+      Multi-deck:  top-level deck layers (any label) each containing "Rooms" and/or
+                   "Corridors" sublayers. Auto-detected — one upload produces all decks.
+
     The SVG is saved as <out_dir>/<filename>.svg for future re-conversion.
     Returns:
       { out_dir, svg_path, files_created: [...], log: str }
     The log includes room dimensions — use it to decide if grid_scale needs adjusting.
+    In multi-deck mode files_created includes one map/<deck_id>.yaml per deck plus
+    map/manifest.yaml; check the count to detect which mode was used.
 
     Prefer direct curl multipart upload for files over ~200KB:
       curl -X POST http://<host>/api/gm/upload-svg-map/ \\

@@ -9,7 +9,8 @@ Options:
     --out-dir DIR    Location directory (default: <svg_dir>/<stem>_out/)
                      Map files are written to <out-dir>/map/.
                      A stub location.yaml is created if none exists.
-    --deck NAME      Deck YAML filename stem (default: main_deck)
+    --deck NAME      Deck YAML filename stem (default: main_deck).
+                     Ignored in multi-deck mode (deck IDs come from layer labels).
     --name NAME      Map/location name (default: derived from SVG filename)
     --type TYPE      Location type for stub location.yaml (default: ship)
     --unit-size N    Pixels per grid cell written to deck YAML (default: 30).
@@ -22,10 +23,24 @@ Options:
     --detect-doors   Detect doors from shared edges between rooms/corridors,
                      and between touching corridors.
 
-SVG layer convention (Inkscape labels):
+SVG layer convention — single-deck (backwards compatible):
     Hull       — ship outer hull polygon (optional, single path)
     Rooms      — room polygons; each path has inkscape:label = room name
     Corridors  — corridor polygons (name="" in output)
+
+SVG layer convention — multi-deck:
+    Hull           — ship outer hull polygon (optional, single path)
+    <Deck label>   — one layer per deck (e.g. "Main Deck", "Engineering Deck")
+      Rooms        — room polygons within this deck
+      Corridors    — corridor polygons within this deck
+    <Deck label 2>
+      Rooms
+      Corridors
+    (etc.)
+    Multi-deck is auto-detected: if any top-level layer contains Rooms or
+    Corridors sublayers, multi-deck mode is used; otherwise single-deck mode.
+    Deck IDs in output are derived from the layer label (snake_cased).
+    Decks are ordered by their document order; the first deck is the default.
 
 Grid unit:
     Read from inkscape:grid spacingx attribute (px per cell).
@@ -35,7 +50,7 @@ Grid unit:
 Output files:
     location.yaml         Created once if missing; never overwritten
     map/manifest.yaml     Multi-deck manifest with optional hull polygon
-    map/<deck>.yaml       Deck with rooms, corridors, and (optionally) doors
+    map/<deck>.yaml       One file per deck with rooms, corridors, and doors
 """
 
 import argparse
@@ -288,9 +303,9 @@ def edge_slot_angle(
 
 # ── SVG layer extraction ─────────────────────────────────────────────────────
 
-def get_layer_paths(root: ET.Element, layer_label: str) -> list[ET.Element]:
-    """Return all <path> elements from the Inkscape layer with the given label."""
-    for g in root.iter(f"{{{SVG}}}g"):
+def get_layer_paths(parent: ET.Element, layer_label: str) -> list[ET.Element]:
+    """Return all <path> elements from the named layer within parent."""
+    for g in parent.iter(f"{{{SVG}}}g"):
         if g.get(f"{{{INK}}}label") == layer_label:
             return list(g.iter(f"{{{SVG}}}path"))
     return []
@@ -298,6 +313,30 @@ def get_layer_paths(root: ET.Element, layer_label: str) -> list[ET.Element]:
 
 def get_ink_label(elem: ET.Element) -> str:
     return elem.get(f"{{{INK}}}label", "")
+
+
+def find_deck_groups(root: ET.Element) -> list[tuple[str, ET.Element]]:
+    """Find top-level layer groups that contain Rooms or Corridors sublayers.
+
+    Only examines direct children of the SVG root element to avoid false
+    positives from nested groups. Returns [(label, element)] in document
+    order. An empty list means single-deck mode should be used.
+    """
+    decks = []
+    for g in root:
+        if g.tag != f"{{{SVG}}}g":
+            continue
+        label = g.get(f"{{{INK}}}label", "")
+        if not label:
+            continue
+        child_labels = {
+            child.get(f"{{{INK}}}label", "")
+            for child in g
+            if child.tag == f"{{{SVG}}}g"
+        }
+        if "Rooms" in child_labels or "Corridors" in child_labels:
+            decks.append((label, g))
+    return decks
 
 
 # ── YAML formatting ──────────────────────────────────────────────────────────
@@ -331,6 +370,151 @@ def ensure_location_yaml(location_dir: str, map_name: str, location_type: str) -
         f.write('description: ""\n')
         f.write('status: "OPERATIONAL"\n')
     print(f"Created:  {path}")
+
+
+# ── Processing helpers ───────────────────────────────────────────────────────
+
+def _extract_areas(
+    parent: ET.Element, unit: float
+) -> tuple[list[dict], list[dict]]:
+    """Extract rooms and corridors from a layer element (root or deck group)."""
+    rooms: list[dict] = []
+    for path in get_layer_paths(parent, "Rooms"):
+        label = get_ink_label(path) or path.get("id", "room")
+        raw = parse_path_d(path.get("d", ""), label=label)
+        poly = remove_collinear(verts_to_grid(raw, unit))
+        rooms.append({"id": to_snake(label), "name": label.upper(), "polygon": poly})
+        xs = [p[0] for p in poly]
+        ys = [p[1] for p in poly]
+        w = max(xs) - min(xs)
+        h = max(ys) - min(ys)
+        print(f"  Room '{label}': {len(poly)} vertices  ({w:.1f}×{h:.1f} cells)")
+
+    corridors: list[dict] = []
+    for i, path in enumerate(get_layer_paths(parent, "Corridors")):
+        label = get_ink_label(path)
+        cid = to_snake(label) if label else f"corridor_{i + 1}"
+        raw = parse_path_d(path.get("d", ""), label=cid)
+        poly = remove_collinear(verts_to_grid(raw, unit))
+        corridors.append({"id": cid, "polygon": poly})
+        print(f"  Corridor '{cid}': {len(poly)} vertices")
+
+    return rooms, corridors
+
+
+def _build_doors(rooms: list[dict], corridors: list[dict]) -> list[dict]:
+    """Run door detection for a set of rooms and corridors."""
+    all_areas = {r["id"]: r["polygon"] for r in rooms + corridors}
+    seen_pairs: set[tuple[str, str]] = set()
+    ordered_ids = [r["id"] for r in rooms] + [c["id"] for c in corridors]
+    doors: list[dict] = []
+
+    for a_id in ordered_ids:
+        poly_a = all_areas[a_id]
+        for b_id in ordered_ids:
+            if a_id == b_id:
+                continue
+            pair = tuple(sorted([a_id, b_id]))
+            if pair in seen_pairs:
+                continue
+            shared = _shared_edges_with_segments(poly_a, all_areas[b_id])
+            if not shared:
+                continue
+            seen_pairs.add(pair)
+            # If there's exactly one shared edge, emit B-rel (along: 0.5).
+            # If multiple, emit B-pos for each so positions stay distinct.
+            if len(shared) == 1:
+                doors.append(
+                    {
+                        "rooms": [a_id, b_id],
+                        "along": 0.5,
+                        "type": "standard",
+                        "status": "CLOSED",
+                    }
+                )
+            else:
+                for (mid, _length), (p1, p2) in shared:
+                    doors.append(
+                        {
+                            "rooms": [a_id, b_id],
+                            "position": {
+                                "x": round(mid[0] * 4) / 4,
+                                "y": round(mid[1] * 4) / 4,
+                                "angle": edge_slot_angle(p1, p2),
+                            },
+                            "type": "standard",
+                            "status": "CLOSED",
+                        }
+                    )
+
+    def sort_key(d: dict):
+        pair = tuple(sorted(d["rooms"]))
+        if "along" in d:
+            return (pair, 0, d["along"], 0.0)
+        p = d["position"]
+        return (pair, 1, p["y"], p["x"])
+
+    doors.sort(key=sort_key)
+    return doors
+
+
+def _write_deck_yaml(
+    map_dir: str,
+    deck_id: str,
+    deck_label: str,
+    map_name: str,
+    unit_size: int,
+    rooms: list[dict],
+    corridors: list[dict],
+    doors: list[dict],
+    detect_doors: bool,
+) -> None:
+    deck_path = os.path.join(map_dir, f"{deck_id}.yaml")
+    with open(deck_path, "w") as f:
+        f.write(f'deck_id: "{deck_id}"\n')
+        f.write(f'name: "{map_name} — {deck_label}"\n')
+        f.write(f'location_name: "{map_name}"\n')
+        f.write(f"unit_size: {unit_size}\n\n")
+        f.write("rooms:\n\n")
+
+        for room in rooms:
+            f.write(f'  - id: {room["id"]}\n')
+            f.write(f'    name: "{room["name"]}"\n')
+            f.write(f'    polygon: {fmt_polygon(room["polygon"])}\n')
+            f.write("    # description: \"\"\n")
+            f.write("    # type: \"\"\n")
+            f.write("\n")
+
+        for corr in corridors:
+            f.write(f'  - id: {corr["id"]}\n')
+            f.write('    name: ""\n')
+            f.write(f'    polygon: {fmt_polygon(corr["polygon"])}\n')
+            f.write("    type: corridor\n")
+            f.write("\n")
+
+        # Top-level canonical doors block (Phase 21 canonical model — B-rel
+        # by default, B-pos when ambiguous). Loaders pass this through to
+        # the frontend doorNormalizer which validates it against geometry.
+        if detect_doors and doors:
+            f.write("doors:\n")
+            for d in doors:
+                a, b = d["rooms"][0], d["rooms"][1]
+                if "along" in d:
+                    f.write(
+                        f'  - {{rooms: [{a}, {b}], along: {d["along"]},'
+                        f' type: {d["type"]}, status: {d["status"]}}}\n'
+                    )
+                else:
+                    p = d["position"]
+                    f.write(
+                        f'  - {{rooms: [{a}, {b}],'
+                        f' position: {{x: {fv(p["x"])}, y: {fv(p["y"])}, angle: {p["angle"]}}},'
+                        f' type: {d["type"]}, status: {d["status"]}}}\n'
+                    )
+        elif detect_doors:
+            f.write("# doors: []\n")
+
+    print(f"Written: {deck_path}")
 
 
 # ── Main conversion ──────────────────────────────────────────────────────────
@@ -373,91 +557,46 @@ def convert(
     else:
         print("Hull: (none)")
 
-    # Rooms
-    rooms: list[dict] = []
-    for path in get_layer_paths(root, "Rooms"):
-        label = get_ink_label(path) or path.get("id", "room")
-        raw = parse_path_d(path.get("d", ""), label=label)
-        poly = remove_collinear(verts_to_grid(raw, unit))
-        rooms.append({"id": to_snake(label), "name": label.upper(), "polygon": poly})
-        xs = [p[0] for p in poly]
-        ys = [p[1] for p in poly]
-        w = max(xs) - min(xs)
-        h = max(ys) - min(ys)
-        print(f"  Room '{label}': {len(poly)} vertices  ({w:.1f}×{h:.1f} cells)")
+    # Detect multi-deck vs single-deck
+    deck_groups = find_deck_groups(root)
 
-    # Corridors
-    corridors: list[dict] = []
-    for i, path in enumerate(get_layer_paths(root, "Corridors")):
-        label = get_ink_label(path)
-        cid = to_snake(label) if label else f"corridor_{i + 1}"
-        raw = parse_path_d(path.get("d", ""), label=cid)
-        poly = remove_collinear(verts_to_grid(raw, unit))
-        corridors.append({"id": cid, "polygon": poly})
-        print(f"  Corridor '{cid}': {len(poly)} vertices")
-
-    # Door detection — emits TOP-LEVEL canonical doors.
-    #
-    # Default form: B-rel `{rooms: [a, b], along: 0.5, ...}` — the door sits
-    # at the midpoint of the shared edge. Easy for humans/AI to read.
-    #
-    # Override form: B-pos `{rooms: [a, b], position: {x, y, angle}, ...}` —
-    # used when two areas share MORE THAN ONE disjoint edge (the default
-    # B-rel form is ambiguous in that case because the doorNormalizer picks
-    # the longest shared run, so multiple `along` values would all resolve
-    # to the same long-edge midpoint and trigger overlap detection).
-    top_level_doors: list[dict] = []
-    if detect_doors:
-        all_areas = {r["id"]: r["polygon"] for r in rooms + corridors}
-        seen_pairs: set[tuple[str, str]] = set()
-        # Stable iteration order: rooms first (in declared order), then corridors.
-        ordered_ids = [r["id"] for r in rooms] + [c["id"] for c in corridors]
-        for a_id in ordered_ids:
-            poly_a = all_areas[a_id]
-            for b_id in ordered_ids:
-                if a_id == b_id:
-                    continue
-                pair = tuple(sorted([a_id, b_id]))
-                if pair in seen_pairs:
-                    continue
-                shared = _shared_edges_with_segments(poly_a, all_areas[b_id])
-                if not shared:
-                    continue
-                seen_pairs.add(pair)
-                # If there's exactly one shared edge, emit B-rel (along: 0.5).
-                # If multiple, emit B-pos for each so positions stay distinct.
-                if len(shared) == 1:
-                    top_level_doors.append(
-                        {
-                            "rooms": [a_id, b_id],
-                            "along": 0.5,
-                            "type": "standard",
-                            "status": "CLOSED",
-                        }
-                    )
-                else:
-                    for (mid, _length), (p1, p2) in shared:
-                        top_level_doors.append(
-                            {
-                                "rooms": [a_id, b_id],
-                                "position": {
-                                    "x": round(mid[0] * 4) / 4,
-                                    "y": round(mid[1] * 4) / 4,
-                                    "angle": edge_slot_angle(p1, p2),
-                                },
-                                "type": "standard",
-                                "status": "CLOSED",
-                            }
-                        )
-        # Stable order on output: by sorted room-pair, then by along/x/y.
-        def sort_key(d: dict):
-            pair = tuple(sorted(d["rooms"]))
-            if "along" in d:
-                return (pair, 0, d["along"], 0.0)
-            p = d["position"]
-            return (pair, 1, p["y"], p["x"])
-        top_level_doors.sort(key=sort_key)
-        print(f"\nDoor detection complete: {len(top_level_doors)} doors emitted.")
+    if deck_groups:
+        print(f"\nMulti-deck mode: {len(deck_groups)} decks found.\n")
+        decks_data = []
+        for deck_label, deck_elem in deck_groups:
+            deck_id_local = to_snake(deck_label)
+            print(f"[{deck_label}]")
+            rooms, corridors = _extract_areas(deck_elem, unit)
+            doors: list[dict] = []
+            if detect_doors:
+                doors = _build_doors(rooms, corridors)
+                print(f"  Door detection: {len(doors)} doors emitted.")
+            decks_data.append(
+                {
+                    "id": deck_id_local,
+                    "label": deck_label,
+                    "rooms": rooms,
+                    "corridors": corridors,
+                    "doors": doors,
+                }
+            )
+            print()
+    else:
+        print("\nSingle-deck mode.")
+        rooms, corridors = _extract_areas(root, unit)
+        doors = []
+        if detect_doors:
+            doors = _build_doors(rooms, corridors)
+            print(f"\nDoor detection complete: {len(doors)} doors emitted.")
+        decks_data = [
+            {
+                "id": deck_id,
+                "label": "Main Deck",
+                "rooms": rooms,
+                "corridors": corridors,
+                "doors": doors,
+            }
+        ]
 
     # Write output
     map_dir = os.path.join(location_dir, "map")
@@ -470,7 +609,7 @@ def convert(
     with open(manifest_path, "w") as f:
         f.write(f'name: "{map_name}"\n')
         f.write('facility_type: "ship"\n')
-        f.write("total_decks: 1\n")
+        f.write(f"total_decks: {len(decks_data)}\n")
 
         if hull_poly:
             f.write("\nhull:\n  polygon:\n")
@@ -478,61 +617,27 @@ def convert(
                 f.write(f"    - [{fv(x)}, {fv(y)}]\n")
 
         f.write("\ndecks:\n")
-        f.write(f'  - id: "{deck_id}"\n')
-        f.write('    name: "Main Deck"\n')
-        f.write(f'    file: "{deck_id}.yaml"\n')
-        f.write("    level: 1\n")
-        f.write("    default: true\n")
+        for level, d in enumerate(decks_data, start=1):
+            f.write(f'  - id: "{d["id"]}"\n')
+            f.write(f'    name: "{d["label"]}"\n')
+            f.write(f'    file: "{d["id"]}.yaml"\n')
+            f.write(f"    level: {level}\n")
+            f.write(f'    default: {"true" if level == 1 else "false"}\n')
 
     print(f"\nWritten: {manifest_path}")
 
-    # deck yaml
-    deck_path = os.path.join(map_dir, f"{deck_id}.yaml")
-    with open(deck_path, "w") as f:
-        f.write(f'deck_id: "{deck_id}"\n')
-        f.write(f'name: "{map_name} — Main Deck"\n')
-        f.write(f'location_name: "{map_name}"\n')
-        f.write(f"unit_size: {unit_size}\n\n")
-        f.write("rooms:\n\n")
-
-        for room in rooms:
-            f.write(f'  - id: {room["id"]}\n')
-            f.write(f'    name: "{room["name"]}"\n')
-            f.write(f'    polygon: {fmt_polygon(room["polygon"])}\n')
-            f.write("    # description: \"\"\n")
-            f.write("    # type: \"\"\n")
-            f.write("\n")
-
-        for corr in corridors:
-            f.write(f'  - id: {corr["id"]}\n')
-            f.write('    name: ""\n')
-            f.write(f'    polygon: {fmt_polygon(corr["polygon"])}\n')
-            f.write("    type: corridor\n")
-            f.write("\n")
-
-        # Top-level canonical doors block (Phase 21 canonical model — B-rel
-        # by default, B-pos when ambiguous). Loaders pass this through to
-        # the frontend doorNormalizer which validates it against geometry.
-        if detect_doors and top_level_doors:
-            f.write("doors:\n")
-            for d in top_level_doors:
-                a, b = d["rooms"][0], d["rooms"][1]
-                if "along" in d:
-                    f.write(
-                        f'  - {{rooms: [{a}, {b}], along: {d["along"]},'
-                        f' type: {d["type"]}, status: {d["status"]}}}\n'
-                    )
-                else:
-                    p = d["position"]
-                    f.write(
-                        f'  - {{rooms: [{a}, {b}],'
-                        f' position: {{x: {fv(p["x"])}, y: {fv(p["y"])}, angle: {p["angle"]}}},'
-                        f' type: {d["type"]}, status: {d["status"]}}}\n'
-                    )
-        elif detect_doors:
-            f.write("# doors: []\n")
-
-    print(f"Written: {deck_path}")
+    for d in decks_data:
+        _write_deck_yaml(
+            map_dir,
+            d["id"],
+            d["label"],
+            map_name,
+            unit_size,
+            d["rooms"],
+            d["corridors"],
+            d["doors"],
+            detect_doors,
+        )
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -551,7 +656,7 @@ def main() -> None:
         "--deck",
         default="main_deck",
         metavar="NAME",
-        help="Deck YAML filename stem (default: main_deck)",
+        help="Deck YAML filename stem for single-deck mode (default: main_deck); ignored in multi-deck mode",
     )
     ap.add_argument(
         "--name",

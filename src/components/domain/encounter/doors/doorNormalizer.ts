@@ -237,10 +237,13 @@ function circleRoomBoundary(circle: { cx: number; cy: number; r: number }): Seg[
   return segs;
 }
 
-/** Dispatch by room shape. */
+/** Dispatch by room shape. Hole boundaries are included — they are valid
+ *  walls where doors can be placed (e.g. room-within-room geometry). */
 function roomBoundary(room: GridRoom): Seg[] {
   if (room.polygon && room.polygon.length > 0) {
-    return polygonRoomBoundary(room.polygon);
+    const outer = polygonRoomBoundary(room.polygon);
+    const holes = (room.holes ?? []).flatMap(h => polygonRoomBoundary(h));
+    return [...outer, ...holes];
   }
   if (room.circle) {
     return circleRoomBoundary(room.circle);

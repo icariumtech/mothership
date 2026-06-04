@@ -376,10 +376,11 @@ export function EncounterMapRenderer({
     style: { stroke: string; doorFill: string },
     orientation: 'horizontal' | 'vertical',
     key: string,
-    onContextMenuHandler?: (e: React.MouseEvent) => void
+    onContextMenuHandler?: (e: React.MouseEvent) => void,
+    widthCells: number = 1
   ) => {
-    const doorWidth = orientation === 'horizontal' ? 20 : 12;
-    const doorHeight = orientation === 'horizontal' ? 12 : 20;
+    const doorWidth = orientation === 'horizontal' ? 20 * widthCells : 12;
+    const doorHeight = orientation === 'horizontal' ? 12 : 20 * widthCells;
     const isOpen = doorStatus === 'OPEN';
     const isDamaged = doorStatus === 'DAMAGED';
     const isLocked = doorStatus === 'LOCKED';
@@ -693,12 +694,16 @@ export function EncounterMapRenderer({
 
     // === Freeform polygon room ===
     if (room.polygon && room.polygon.length > 0) {
-      const points = room.polygon
-        .map(([x, y]) => {
-          const sp = view.project({ gx: x, gy: y });
-          return `${sp.x},${sp.y}`;
-        })
-        .join(' ');
+      const toSvgPts = (verts: [number, number][]) =>
+        verts.map(([x, y]) => { const sp = view.project({ gx: x, gy: y }); return `${sp.x},${sp.y}`; }).join(' ');
+
+      const outerPts = toSvgPts(room.polygon);
+      const hasHoles = room.holes && room.holes.length > 0;
+      const holesPts = hasHoles ? room.holes!.map(toSvgPts) : [];
+      const floorPath = hasHoles
+        ? `M ${outerPts} Z ` + holesPts.map(hp => `M ${hp} Z`).join(' ')
+        : null;
+
       return (
         <g
           key={room.id}
@@ -706,26 +711,57 @@ export function EncounterMapRenderer({
           opacity={svgOpacity}
           style={animState ? { animationDelay: `${staggerDelay}ms` } : undefined}
         >
-          <polygon points={points} fill={COLORS.bgRoom} className="encounter-map__floor" />
-          <polygon points={points} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
+          {hasHoles ? (
+            <path d={floorPath!} fillRule="evenodd" fill={COLORS.bgRoom} className="encounter-map__floor" />
+          ) : (
+            <polygon points={outerPts} fill={COLORS.bgRoom} className="encounter-map__floor" />
+          )}
+          <polygon points={outerPts} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
+          {holesPts.map((hp, i) => (
+            <polygon key={`hole-wall-${i}`} points={hp} fill="none" stroke={COLORS.hullFill} strokeWidth={WALL_THICKNESS} strokeLinejoin="miter" className="encounter-map__wall" />
+          ))}
           {isGM ? (
-            <polygon
-              points={points}
-              fill="transparent"
-              style={{ cursor: 'context-menu' }}
-              onContextMenu={(e) => handleRoomContextMenu(e, room)}
-              className="encounter-map__room"
-            />
+            hasHoles ? (
+              <path
+                d={floorPath!}
+                fillRule="evenodd"
+                fill="transparent"
+                style={{ cursor: 'context-menu' }}
+                onContextMenu={(e) => handleRoomContextMenu(e, room)}
+                className="encounter-map__room"
+              />
+            ) : (
+              <polygon
+                points={outerPts}
+                fill="transparent"
+                style={{ cursor: 'context-menu' }}
+                onContextMenu={(e) => handleRoomContextMenu(e, room)}
+                className="encounter-map__room"
+              />
+            )
           ) : room.name && (
-            <polygon
-              points={points}
-              fill="transparent"
-              pointerEvents="all"
-              style={{ cursor: 'pointer' }}
-              onPointerDown={handleRoomPointerDown}
-              onPointerUp={(e) => handleRoomPointerUp(e, room)}
-              className="encounter-map__room"
-            />
+            hasHoles ? (
+              <path
+                d={floorPath!}
+                fillRule="evenodd"
+                fill="transparent"
+                pointerEvents="all"
+                style={{ cursor: 'pointer' }}
+                onPointerDown={handleRoomPointerDown}
+                onPointerUp={(e) => handleRoomPointerUp(e, room)}
+                className="encounter-map__room"
+              />
+            ) : (
+              <polygon
+                points={outerPts}
+                fill="transparent"
+                pointerEvents="all"
+                style={{ cursor: 'pointer' }}
+                onPointerDown={handleRoomPointerDown}
+                onPointerUp={(e) => handleRoomPointerUp(e, room)}
+                className="encounter-map__room"
+              />
+            )
           )}
           {labelEl}
         </g>
@@ -1077,7 +1113,8 @@ export function EncounterMapRenderer({
               : undefined;
             return renderDoorSymbol(
               svgPos.x, svgPos.y, door.type, getEffectiveDoorStatus(door),
-              styleEntry, orientation, `door-${door.id}`, contextMenuHandler
+              styleEntry, orientation, `door-${door.id}`, contextMenuHandler,
+              door.width ?? 1
             );
           })}
         </g>

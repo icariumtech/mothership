@@ -4,198 +4,198 @@ total_decks: 2
 unit_size: 30
 hull:
   polygon:
-  - [6, 84]
-  - [9, 87]
-  - [12, 89]
-  - [16, 89]
-  - [16, 91]
-  - [15, 92]
-  - [15, 94]
-  - [17, 95]
-  - [48, 95]
-  - [48, 94]
-  - [51, 94]
-  - [52, 93]
-  - [52, 91]
-  - [51, 90]
-  - [49, 90]
-  - [49, 89]
-  - [59, 88]
-  - [70, 85]
-  - [70, 84]
-  - [163, 84]
-  - [171, 88]
-  - [174, 92]
-  - [175, 92]
-  - [177, 95]
-  - [178, 95]
-  - [184, 115]
-  - [182, 115]
-  - [182, 116]
-  - [181, 116]
-  - [181, 119]
-  - [182, 119]
-  - [183, 120]
-  - [185, 120]
-  - [185, 121]
-  - [183, 121]
-  - [183, 127]
-  - [184, 127]
-  - [184, 128]
-  - [183, 128]
-  - [183, 129]
-  - [185, 129]
-  - [185, 130]
-  - [181, 130]
-  - [181, 131]
-  - [179, 131]
-  - [179, 133]
-  - [177, 133]
-  - [176, 134]
-  - [176, 141]
-  - [179, 141]
-  - [180, 142]
-  - [180, 144]
-  - [186, 144]
-  - [187, 143]
-  - [191, 143]
-  - [196, 145]
-  - [197, 145]
-  - [197, 144]
-  - [205, 144]
-  - [205, 143]
-  - [207, 143]
-  - [207, 141]
-  - [210, 141]
-  - [210, 133]
-  - [206, 133]
-  - [206, 131]
-  - [205, 131]
-  - [205, 130]
-  - [198, 130]
-  - [198, 128]
+  - [0, 69]
+  - [3, 72]
+  - [6, 74]
+  - [10, 74]
+  - [10, 76]
+  - [9, 77]
+  - [9, 79]
+  - [11, 80]
+  - [42, 80]
+  - [42, 79]
+  - [45, 79]
+  - [46, 78]
+  - [46, 76]
+  - [45, 75]
+  - [43, 75]
+  - [43, 74]
+  - [53, 73]
+  - [64, 70]
+  - [64, 69]
+  - [157, 69]
+  - [165, 73]
+  - [168, 77]
+  - [169, 77]
+  - [171, 80]
+  - [172, 80]
+  - [178, 100]
+  - [176, 100]
+  - [176, 101]
+  - [175, 101]
+  - [175, 104]
+  - [176, 104]
+  - [177, 105]
+  - [179, 105]
+  - [179, 106]
+  - [177, 106]
+  - [177, 112]
+  - [178, 112]
+  - [178, 113]
+  - [177, 113]
+  - [177, 114]
+  - [179, 114]
+  - [179, 115]
+  - [175, 115]
+  - [175, 116]
+  - [173, 116]
+  - [173, 118]
+  - [171, 118]
+  - [170, 119]
+  - [170, 126]
+  - [173, 126]
+  - [174, 127]
+  - [174, 129]
+  - [180, 129]
+  - [181, 128]
+  - [185, 128]
+  - [190, 130]
+  - [191, 130]
+  - [191, 129]
+  - [199, 129]
   - [199, 128]
-  - [199, 126]
-  - [198, 126]
-  - [198, 125]
-  - [199, 125]
-  - [199, 123]
-  - [198, 123]
-  - [198, 122]
-  - [199, 122]
-  - [199, 120]
-  - [202, 120]
-  - [202, 119]
-  - [204, 119]
+  - [201, 128]
+  - [201, 126]
+  - [204, 126]
   - [204, 118]
-  - [205, 118]
-  - [205, 116]
-  - [204, 116]
-  - [204, 115]
+  - [200, 118]
+  - [200, 116]
+  - [199, 116]
   - [199, 115]
-  - [199, 95]
-  - [200, 95]
-  - [202, 92]
-  - [215, 92]
-  - [215, 91]
-  - [225, 91]
-  - [226, 89]
-  - [226, 71]
-  - [225, 69]
-  - [215, 69]
-  - [215, 68]
-  - [202, 68]
-  - [200, 65]
-  - [199, 65]
-  - [199, 45]
-  - [204, 45]
-  - [204, 44]
-  - [205, 44]
-  - [205, 42]
-  - [204, 42]
-  - [204, 41]
-  - [202, 41]
-  - [202, 40]
-  - [199, 40]
-  - [199, 38]
-  - [198, 38]
-  - [198, 37]
-  - [199, 37]
-  - [199, 35]
-  - [198, 35]
-  - [198, 34]
-  - [199, 34]
-  - [199, 32]
-  - [198, 32]
+  - [192, 115]
+  - [192, 113]
+  - [193, 113]
+  - [193, 111]
+  - [192, 111]
+  - [192, 110]
+  - [193, 110]
+  - [193, 108]
+  - [192, 108]
+  - [192, 107]
+  - [193, 107]
+  - [193, 105]
+  - [196, 105]
+  - [196, 104]
+  - [198, 104]
+  - [198, 103]
+  - [199, 103]
+  - [199, 101]
+  - [198, 101]
+  - [198, 100]
+  - [193, 100]
+  - [193, 80]
+  - [194, 80]
+  - [196, 77]
+  - [209, 77]
+  - [209, 76]
+  - [219, 76]
+  - [220, 74]
+  - [220, 56]
+  - [219, 54]
+  - [209, 54]
+  - [209, 53]
+  - [196, 53]
+  - [194, 50]
+  - [193, 50]
+  - [193, 30]
   - [198, 30]
-  - [205, 30]
-  - [205, 29]
-  - [206, 29]
-  - [206, 27]
-  - [210, 27]
-  - [210, 19]
-  - [207, 19]
-  - [207, 17]
-  - [205, 17]
-  - [205, 16]
-  - [197, 16]
-  - [197, 15]
-  - [196, 15]
-  - [191, 17]
-  - [187, 17]
-  - [186, 16]
-  - [180, 16]
-  - [180, 18]
-  - [179, 19]
-  - [176, 19]
+  - [198, 29]
+  - [199, 29]
+  - [199, 27]
+  - [198, 27]
+  - [198, 26]
+  - [196, 26]
+  - [196, 25]
+  - [193, 25]
+  - [193, 23]
+  - [192, 23]
+  - [192, 22]
+  - [193, 22]
+  - [193, 20]
+  - [192, 20]
+  - [192, 19]
+  - [193, 19]
+  - [193, 17]
+  - [192, 17]
+  - [192, 15]
+  - [199, 15]
+  - [199, 14]
+  - [200, 14]
+  - [200, 12]
+  - [204, 12]
+  - [204, 4]
+  - [201, 4]
+  - [201, 2]
+  - [199, 2]
+  - [199, 1]
+  - [191, 1]
+  - [191, 0]
+  - [190, 0]
+  - [185, 2]
+  - [181, 2]
+  - [180, 1]
+  - [174, 1]
+  - [174, 3]
+  - [173, 4]
+  - [170, 4]
+  - [170, 11]
+  - [171, 12]
+  - [173, 12]
+  - [173, 14]
+  - [175, 14]
+  - [175, 15]
+  - [179, 15]
+  - [179, 16]
+  - [177, 16]
+  - [177, 17]
+  - [178, 17]
+  - [178, 18]
+  - [177, 18]
+  - [177, 24]
+  - [179, 24]
+  - [179, 25]
+  - [177, 25]
   - [176, 26]
-  - [177, 27]
-  - [179, 27]
-  - [179, 29]
-  - [181, 29]
-  - [181, 30]
-  - [185, 30]
-  - [185, 31]
-  - [183, 31]
-  - [183, 32]
-  - [184, 32]
-  - [184, 33]
-  - [183, 33]
-  - [183, 39]
-  - [185, 39]
-  - [185, 40]
-  - [183, 40]
-  - [182, 41]
-  - [181, 41]
-  - [181, 44]
-  - [182, 44]
-  - [182, 45]
-  - [184, 45]
-  - [178, 65]
-  - [177, 65]
-  - [175, 68]
-  - [174, 68]
-  - [171, 72]
-  - [163, 76]
-  - [70, 76]
-  - [70, 75]
-  - [59, 72]
-  - [49, 71]
-  - [49, 70]
-  - [51, 70]
-  - [52, 69]
-  - [52, 67]
-  - [51, 66]
-  - [48, 66]
-  - [48, 65]
-  - [17, 65]
-  - [15, 66]
-  - [15, 68]
-  - [16, 69]
-  - [16, 71]
-  - [12, 71]
-  - [9, 73]
-  - [6, 76]
+  - [175, 26]
+  - [175, 29]
+  - [176, 29]
+  - [176, 30]
+  - [178, 30]
+  - [172, 50]
+  - [171, 50]
+  - [169, 53]
+  - [168, 53]
+  - [165, 57]
+  - [157, 61]
+  - [64, 61]
+  - [64, 60]
+  - [53, 57]
+  - [43, 56]
+  - [43, 55]
+  - [45, 55]
+  - [46, 54]
+  - [46, 52]
+  - [45, 51]
+  - [42, 51]
+  - [42, 50]
+  - [11, 50]
+  - [9, 51]
+  - [9, 53]
+  - [10, 54]
+  - [10, 56]
+  - [6, 56]
+  - [3, 58]
+  - [0, 61]
 decks:
 - id: deck_b
   name: Deck B
@@ -206,192 +206,190 @@ decks:
   - id: janus
     name: JANUS
     polygon:
-    - [14, 118]
-    - [13, 119]
-    - [11, 119]
-    - [10, 118]
-    - [10, 116]
-    - [11, 115]
-    - [13, 115]
-    - [14, 116]
+    - [8, 66]
+    - [7, 67]
+    - [5, 67]
+    - [4, 66]
+    - [4, 64]
+    - [5, 63]
+    - [7, 63]
+    - [8, 64]
     # description: ""
     # type: ""
   - id: tankage
     name: TANKAGE
     polygon:
-    - [16, 110]
-    - [17, 109]
-    - [24, 109]
-    - [25, 110]
-    - [25, 112]
-    - [24, 113]
-    - [21, 113]
-    - [21, 115]
-    - [20, 115]
-    - [20, 113]
-    - [17, 113]
-    - [16, 112]
+    - [10, 58]
+    - [11, 57]
+    - [18, 57]
+    - [19, 58]
+    - [19, 60]
+    - [18, 61]
+    - [15, 61]
+    - [15, 63]
+    - [14, 63]
+    - [14, 61]
+    - [11, 61]
+    - [10, 60]
     # description: ""
     # type: ""
   - id: tankage_2
     name: TANKAGE
     polygon:
-    - [20, 119]
-    - [21, 119]
-    - [21, 121]
-    - [24, 121]
-    - [25, 122]
-    - [25, 124]
-    - [24, 125]
-    - [17, 125]
-    - [16, 124]
-    - [16, 122]
-    - [17, 121]
-    - [20, 121]
+    - [14, 67]
+    - [15, 67]
+    - [15, 69]
+    - [18, 69]
+    - [19, 70]
+    - [19, 72]
+    - [18, 73]
+    - [11, 73]
+    - [10, 72]
+    - [10, 70]
+    - [11, 69]
+    - [14, 69]
     # description: ""
     # type: ""
   - id: elevator
     name: ELEVATOR
     polygon:
-    - [26, 115]
-    - [26, 119]
-    - [30, 119]
-    - [30, 115]
+    - [20, 63]
+    - [20, 67]
+    - [24, 67]
+    - [24, 63]
     # description: ""
     # type: ""
   - id: vac_suits
     name: VAC_SUITS
     polygon:
-    - [23, 116]
-    - [25, 116]
-    - [25, 114]
-    - [23, 114]
+    - [17, 64]
+    - [19, 64]
+    - [19, 62]
+    - [17, 62]
     # description: ""
     # type: ""
   - id: vac_suits_2
     name: VAC SUITS
     polygon:
-    - [23, 118]
-    - [23, 120]
-    - [25, 120]
-    - [25, 118]
+    - [17, 66]
+    - [17, 68]
+    - [19, 68]
+    - [19, 66]
     # description: ""
     # type: ""
   - id: path136
     name: 
     polygon:
-    - [19, 116]
-    - [19, 118]
-    - [17, 118]
-    - [17, 116]
+    - [13, 64]
+    - [13, 66]
+    - [11, 66]
+    - [11, 64]
     # description: ""
     # type: ""
   - id: path137
     name: 
     polygon:
-    - [45, 116]
-    - [45, 118]
-    - [47, 118]
-    - [47, 116]
+    - [39, 64]
+    - [39, 66]
+    - [41, 66]
+    - [41, 64]
     # description: ""
     # type: ""
   - id: reactor
     name: REACTOR
     polygon:
-    - [45, 116]
-    - [44, 116]
-    - [44, 115]
-    - [43, 114]
-    - [39, 114]
-    - [38, 115]
-    - [38, 119]
-    - [39, 120]
-    - [43, 120]
-    - [44, 119]
-    - [44, 118]
-    - [45, 118]
+    - [39, 64]
+    - [38, 64]
+    - [38, 63]
+    - [37, 62]
+    - [33, 62]
+    - [32, 63]
+    - [32, 67]
+    - [33, 68]
+    - [37, 68]
+    - [38, 67]
+    - [38, 66]
+    - [39, 66]
     # description: ""
     # type: ""
   - id: thruster
     name: THRUSTER
     polygon:
-    - [44, 121]
-    - [44, 125]
-    - [40, 125]
-    - [37, 124]
-    - [37, 122]
-    - [40, 121]
+    - [38, 69]
+    - [38, 73]
+    - [34, 73]
+    - [31, 72]
+    - [31, 70]
+    - [34, 69]
     # description: ""
     # type: ""
   - id: thruster_2
     name: THRUSTER
     polygon:
-    - [44, 113]
-    - [44, 109]
-    - [40, 109]
-    - [37, 110]
-    - [37, 112]
-    - [40, 113]
+    - [38, 61]
+    - [38, 57]
+    - [34, 57]
+    - [31, 58]
+    - [31, 60]
+    - [34, 61]
     # description: ""
     # type: ""
   - id: corridor_1
     name: ''
     polygon:
-    - [14, 116]
-    - [17, 116]
-    - [17, 118]
-    - [14, 118]
+    - [8, 64]
+    - [11, 64]
+    - [11, 66]
+    - [8, 66]
     type: corridor
   - id: corridor_2
     name: ''
     polygon:
-    - [19, 116]
-    - [20, 116]
-    - [20, 115]
-    - [21, 115]
-    - [21, 116]
-    - [26, 116]
-    - [26, 118]
-    - [21, 118]
-    - [21, 119]
-    - [20, 119]
-    - [20, 118]
-    - [19, 118]
+    - [13, 64]
+    - [14, 64]
+    - [14, 63]
+    - [15, 63]
+    - [15, 64]
+    - [20, 64]
+    - [20, 66]
+    - [15, 66]
+    - [15, 67]
+    - [14, 67]
+    - [14, 66]
+    - [13, 66]
     type: corridor
   - id: corridor_3
     name: ''
     polygon:
-    - [44, 112]
-    - [45, 112]
-    - [45, 116]
-    - [46, 116]
-    - [46, 110]
-    - [44, 110]
+    - [38, 60]
+    - [39, 60]
+    - [39, 64]
+    - [40, 64]
+    - [40, 58]
+    - [38, 58]
     type: corridor
   - id: corridor_4
     name: ''
     polygon:
-    - [45, 118]
-    - [45, 122]
-    - [44, 122]
-    - [44, 124]
-    - [46, 124]
-    - [46, 118]
+    - [39, 66]
+    - [39, 70]
+    - [38, 70]
+    - [38, 72]
+    - [40, 72]
+    - [40, 66]
     type: corridor
   doors:
-  - {rooms: [janus, corridor_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [path136, corridor_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [elevator, corridor_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [path136, corridor_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [tankage, corridor_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [tankage_2, corridor_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [vac_suits, corridor_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [vac_suits_2, corridor_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [path137, corridor_3], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [thruster_2, corridor_3], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [path137, corridor_4], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [thruster, corridor_4], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [path137, reactor], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [janus, corridor_1], position: {x: 8, y: 65, angle: 90}, type: blast_door, status: CLOSED}
+  - {rooms: [corridor_1, path136], position: {x: 11, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path136, corridor_2], position: {x: 13, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [tankage, corridor_2], position: {x: 14.5, y: 63, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_2, corridor_2], position: {x: 14.5, y: 66, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [vac_suits, corridor_2], position: {x: 18, y: 64, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_2, vac_suits_2], position: {x: 18, y: 66, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_2, elevator], position: {x: 20, y: 65, angle: 90}, type: standard, status: CLOSED, width: 2}
+  - {rooms: [reactor, path137], position: {x: 39, y: 65, angle: 90}, type: blast_door, status: CLOSED}
+  - {rooms: [corridor_3, path137], position: {x: 39.5, y: 64, angle: 0}, type: blast_door, status: CLOSED}
+  - {rooms: [path137, corridor_4], position: {x: 39.5, y: 66, angle: 0}, type: blast_door, status: CLOSED}
 - id: deck_a
   name: Deck A
   level: 2
@@ -401,629 +399,673 @@ decks:
   - id: bridge
     name: BRIDGE
     polygon:
-    - [6, 76]
-    - [7, 75]
-    - [9, 76]
-    - [10, 77]
-    - [13, 77]
-    - [14, 78]
-    - [15, 78]
-    - [15, 82]
-    - [14, 82]
-    - [13, 83]
-    - [10, 83]
-    - [9, 84]
-    - [7, 85]
-    - [6, 84]
+    - [0, 61]
+    - [1, 60]
+    - [3, 61]
+    - [4, 62]
+    - [7, 62]
+    - [8, 63]
+    - [9, 63]
+    - [9, 64]
+    - [8, 64]
+    - [8, 66]
+    - [9, 66]
+    - [9, 67]
+    - [8, 67]
+    - [7, 68]
+    - [4, 68]
+    - [3, 69]
+    - [1, 70]
+    - [0, 69]
     # description: ""
     # type: ""
   - id: executive_office
     name: EXECUTIVE OFFICE
     polygon:
-    - [11, 76]
-    - [11, 75]
-    - [14, 72]
-    - [17, 72]
-    - [17, 77]
-    - [16, 77]
-    - [16, 76]
+    - [5, 61]
+    - [5, 60]
+    - [8, 57]
+    - [11, 57]
+    - [11, 62]
+    - [10, 62]
+    - [10, 61]
     # description: ""
     # type: ""
   - id: captain_s_quarters
     name: CAPTAIN'S QUARTERS
     polygon:
-    - [16, 83]
-    - [16, 84]
-    - [11, 84]
-    - [11, 85]
-    - [14, 88]
-    - [17, 88]
-    - [17, 83]
+    - [10, 68]
+    - [10, 69]
+    - [5, 69]
+    - [5, 70]
+    - [8, 73]
+    - [11, 73]
+    - [11, 68]
     # description: ""
     # type: ""
   - id: mess_hall
     name: MESS HALL
     polygon:
-    - [20, 78]
-    - [19, 77]
-    - [19, 73]
-    - [20, 72]
-    - [23, 72]
-    - [24, 73]
-    - [24, 77]
-    - [23, 78]
+    - [14, 63]
+    - [13, 62]
+    - [13, 58]
+    - [14, 57]
+    - [17, 57]
+    - [18, 58]
+    - [18, 62]
+    - [17, 63]
     # description: ""
     # type: ""
-  - id: examination_room
-    name: EXAMINATION ROOM
+  - id: exam_room
+    name: EXAM ROOM
     polygon:
-    - [25, 82]
-    - [27, 82]
-    - [27, 83]
-    - [28, 83]
-    - [28, 87]
-    - [24, 87]
-    - [24, 83]
-    - [25, 83]
+    - [19, 67]
+    - [21, 67]
+    - [21, 68]
+    - [22, 68]
+    - [22, 72]
+    - [18, 72]
+    - [18, 68]
+    - [19, 68]
     # description: ""
     # type: ""
   - id: cryo_bay
     name: CRYO BAY
     polygon:
-    - [24, 84]
-    - [23, 83]
-    - [20, 83]
-    - [19, 84]
-    - [19, 86]
-    - [20, 87]
-    - [23, 87]
-    - [24, 86]
+    - [18, 69]
+    - [17, 68]
+    - [14, 68]
+    - [13, 69]
+    - [13, 71]
+    - [14, 72]
+    - [17, 72]
+    - [18, 71]
     # description: ""
     # type: ""
   - id: cryo_bay_2
     name: CRYO BAY
     polygon:
-    - [28, 84]
-    - [28, 86]
-    - [29, 87]
-    - [32, 87]
-    - [33, 86]
-    - [33, 84]
-    - [32, 83]
-    - [29, 83]
+    - [22, 69]
+    - [22, 71]
+    - [23, 72]
+    - [26, 72]
+    - [27, 71]
+    - [27, 69]
+    - [26, 68]
+    - [23, 68]
+    # description: ""
+    # type: ""
+  - id: path146
+    name: 
+    polygon:
+    - [9, 63]
+    - [9, 64]
+    - [10, 64]
+    - [10, 66]
+    - [9, 66]
+    - [9, 67]
+    - [10, 67]
+    - [10, 68]
+    - [11, 68]
+    - [11, 67]
+    - [21, 67]
+    - [21, 66]
+    - [22, 66]
+    - [22, 64]
+    - [21, 64]
+    - [20, 63]
+    - [20, 62]
+    - [19, 62]
+    - [19, 63]
+    - [11, 63]
+    - [11, 62]
+    - [10, 62]
+    - [10, 63]
+    holes:
+    - - [11, 64]
+      - [13, 64]
+      - [13, 66]
+      - [11, 66]
     # description: ""
     # type: ""
   - id: cabin_2
-    name: CABIN 2
+    name: 
     polygon:
-    - [26, 77]
-    - [29, 77]
-    - [29, 75]
-    - [26, 75]
+    - [20, 62]
+    - [23, 62]
+    - [23, 60]
+    - [20, 60]
     # description: ""
     # type: ""
   - id: cabin_4
-    name: CABIN 4
+    name: 
     polygon:
-    - [29, 75]
-    - [32, 75]
-    - [32, 77]
-    - [29, 77]
+    - [23, 60]
+    - [26, 60]
+    - [26, 62]
+    - [23, 62]
     # description: ""
     # type: ""
   - id: cabin_6
-    name: CABIN 6
+    name: 
     polygon:
-    - [32, 75]
-    - [35, 75]
-    - [35, 77]
-    - [32, 77]
+    - [26, 60]
+    - [29, 60]
+    - [29, 62]
+    - [26, 62]
     # description: ""
     # type: ""
   - id: cabin_8
-    name: CABIN 8
+    name: 
     polygon:
-    - [35, 75]
-    - [38, 75]
-    - [38, 77]
-    - [35, 77]
+    - [29, 60]
+    - [32, 60]
+    - [32, 62]
+    - [29, 62]
     # description: ""
     # type: ""
   - id: cabin_10
-    name: CABIN 10
+    name: 
     polygon:
-    - [38, 75]
-    - [41, 75]
-    - [41, 77]
-    - [38, 77]
+    - [32, 60]
+    - [35, 60]
+    - [35, 62]
+    - [32, 62]
     # description: ""
     # type: ""
   - id: cabin_9
-    name: CABIN 9
+    name: 
     polygon:
-    - [41, 74]
-    - [41, 72]
-    - [38, 72]
-    - [38, 74]
+    - [35, 59]
+    - [35, 57]
+    - [32, 57]
+    - [32, 59]
     # description: ""
     # type: ""
   - id: cabin_7
-    name: CABIN 7
+    name: 
     polygon:
-    - [38, 74]
-    - [38, 72]
-    - [35, 72]
-    - [35, 74]
+    - [32, 59]
+    - [32, 57]
+    - [29, 57]
+    - [29, 59]
     # description: ""
     # type: ""
   - id: cabin_5
-    name: CABIN 5
+    name: 
     polygon:
-    - [35, 74]
-    - [35, 72]
-    - [32, 72]
-    - [32, 74]
+    - [29, 59]
+    - [29, 57]
+    - [26, 57]
+    - [26, 59]
     # description: ""
     # type: ""
   - id: cabin_3
-    name: CABIN 3
+    name: 
     polygon:
-    - [32, 74]
-    - [32, 72]
-    - [29, 72]
-    - [29, 74]
+    - [26, 59]
+    - [26, 57]
+    - [23, 57]
+    - [23, 59]
     # description: ""
     # type: ""
   - id: cabin_1
-    name: CABIN 1
+    name: 
     polygon:
-    - [29, 74]
-    - [29, 72]
-    - [26, 72]
-    - [26, 74]
+    - [23, 59]
+    - [23, 57]
+    - [20, 57]
+    - [20, 59]
     # description: ""
     # type: ""
   - id: washroom
     name: WASHROOM
     polygon:
-    - [42, 74]
-    - [42, 75]
-    - [43, 75]
-    - [44, 77]
-    - [46, 77]
-    - [46, 72]
-    - [44, 72]
-    - [43, 74]
+    - [36, 59]
+    - [36, 60]
+    - [37, 60]
+    - [38, 62]
+    - [40, 62]
+    - [40, 57]
+    - [38, 57]
+    - [37, 59]
     # description: ""
     # type: ""
   - id: medlab
     name: MEDLAB
     polygon:
-    - [36, 88]
-    - [35, 86]
-    - [35, 84]
-    - [36, 83]
-    - [36, 82]
-    - [37, 82]
-    - [37, 83]
-    - [39, 83]
-    - [40, 84]
-    - [42, 84]
-    - [42, 88]
-    - [41, 88]
-    - [41, 85]
-    - [40, 85]
-    - [40, 88]
+    - [30, 73]
+    - [29, 71]
+    - [29, 69]
+    - [30, 68]
+    - [30, 67]
+    - [31, 67]
+    - [31, 68]
+    - [33, 68]
+    - [34, 69]
+    - [36, 69]
+    - [36, 73]
+    - [35, 73]
+    - [35, 70]
+    - [34, 70]
+    - [34, 73]
     # description: ""
     # type: ""
   - id: medpod
     name: MEDPOD
     polygon:
-    - [42, 84]
-    - [43, 83]
-    - [44, 83]
-    - [45, 84]
-    - [45, 85]
-    - [44, 86]
-    - [43, 86]
-    - [42, 85]
+    - [36, 69]
+    - [37, 68]
+    - [38, 68]
+    - [39, 69]
+    - [39, 70]
+    - [38, 71]
+    - [37, 71]
+    - [36, 70]
     # description: ""
     # type: ""
   - id: medpod_2
     name: MEDPOD
     polygon:
-    - [42, 87]
-    - [43, 86]
-    - [44, 86]
-    - [45, 87]
-    - [45, 88]
-    - [44, 89]
-    - [43, 89]
-    - [42, 88]
+    - [36, 72]
+    - [37, 71]
+    - [38, 71]
+    - [39, 72]
+    - [39, 73]
+    - [38, 74]
+    - [37, 74]
+    - [36, 73]
     # description: ""
     # type: ""
   - id: hydroponics
     name: HYDROPONICS
     polygon:
-    - [48, 76]
-    - [48, 72]
-    - [55, 75]
-    - [55, 76]
-    - [52, 76]
-    - [52, 77]
-    - [51, 77]
-    - [51, 76]
+    - [42, 61]
+    - [42, 57]
+    - [49, 60]
+    - [49, 61]
+    - [46, 61]
+    - [46, 62]
+    - [45, 62]
+    - [45, 61]
     # description: ""
     # type: ""
   - id: hydroponics_2
     name: HYDROPONICS
     polygon:
-    - [55, 85]
-    - [48, 88]
-    - [48, 84]
-    - [51, 84]
-    - [51, 83]
-    - [52, 83]
-    - [52, 84]
-    - [55, 84]
+    - [49, 70]
+    - [42, 73]
+    - [42, 69]
+    - [45, 69]
+    - [45, 68]
+    - [46, 68]
+    - [46, 69]
+    - [49, 69]
     # description: ""
     # type: ""
   - id: workshop
     name: WORKSHOP
     polygon:
-    - [57, 79]
-    - [57, 76]
-    - [65, 76]
-    - [65, 79]
+    - [51, 64]
+    - [51, 61]
+    - [59, 61]
+    - [59, 64]
     # description: ""
     # type: ""
   - id: storage_unit
     name: STORAGE UNIT
     polygon:
-    - [57, 81]
-    - [57, 84]
-    - [65, 84]
-    - [65, 81]
+    - [51, 66]
+    - [51, 69]
+    - [59, 69]
+    - [59, 66]
     # description: ""
     # type: ""
   - id: armory
     name: ARMORY
     polygon:
-    - [69, 81]
-    - [69, 83]
-    - [65, 83]
-    - [65, 81]
+    - [63, 66]
+    - [63, 68]
+    - [59, 68]
+    - [59, 66]
     # description: ""
     # type: ""
   - id: vac_suits
     name: VAC SUITS
     polygon:
-    - [69, 79]
-    - [69, 77]
-    - [65, 77]
-    - [65, 79]
+    - [63, 64]
+    - [63, 62]
+    - [59, 62]
+    - [59, 64]
     # description: ""
     # type: ""
   - id: separation_lock
     name: SEPARATION LOCK
     polygon:
-    - [117, 78]
-    - [117, 82]
-    - [120, 82]
-    - [120, 78]
+    - [111, 63]
+    - [111, 67]
+    - [114, 67]
+    - [114, 63]
     # description: ""
     # type: ""
   - id: cargo_bay
     name: CARGO BAY
     polygon:
-    - [226, 71]
-    - [226, 79]
-    - [212, 79]
-    - [212, 73]
-    - [215, 71]
+    - [220, 56]
+    - [220, 64]
+    - [206, 64]
+    - [206, 58]
+    - [209, 56]
     # description: ""
     # type: ""
   - id: cargo_bay_2
     name: CARGO BAY
     polygon:
-    - [212, 81]
-    - [226, 81]
-    - [226, 89]
-    - [215, 89]
-    - [212, 87]
+    - [206, 66]
+    - [220, 66]
+    - [220, 74]
+    - [209, 74]
+    - [206, 72]
     # description: ""
     # type: ""
   - id: reactor
     name: REACTOR
     polygon:
-    - [195, 78]
-    - [194, 77]
-    - [194, 75]
-    - [195, 74]
-    - [200, 74]
-    - [201, 75]
-    - [201, 77]
-    - [200, 78]
+    - [189, 63]
+    - [188, 62]
+    - [188, 60]
+    - [189, 59]
+    - [194, 59]
+    - [195, 60]
+    - [195, 62]
+    - [194, 63]
     # description: ""
     # type: ""
   - id: reactor_2
     name: REACTOR
     polygon:
-    - [195, 86]
-    - [194, 85]
-    - [194, 83]
-    - [195, 82]
-    - [200, 82]
-    - [201, 83]
-    - [201, 85]
-    - [200, 86]
+    - [189, 71]
+    - [188, 70]
+    - [188, 68]
+    - [189, 67]
+    - [194, 67]
+    - [195, 68]
+    - [195, 70]
+    - [194, 71]
+    # description: ""
+    # type: ""
+  - id: path147
+    name: 
+    polygon:
+    - [11, 64]
+    - [13, 64]
+    - [13, 66]
+    - [11, 66]
+    # description: ""
+    # type: ""
+  - id: path148
+    name: 
+    polygon:
+    - [33, 64]
+    - [34, 63]
+    - [35, 63]
+    - [35, 62]
+    - [36, 62]
+    - [36, 63]
+    - [37, 64]
+    - [37, 66]
+    - [36, 67]
+    - [34, 67]
+    - [33, 66]
+    # description: ""
+    # type: ""
+  - id: path152
+    name: 
+    polygon:
+    - [39, 64]
+    - [41, 64]
+    - [41, 66]
+    - [39, 66]
+    # description: ""
+    # type: ""
+  - id: path151
+    name: 
+    polygon:
+    - [37, 64]
+    - [38, 63]
+    - [45, 63]
+    - [45, 62]
+    - [46, 62]
+    - [46, 63]
+    - [49, 63]
+    - [51, 64]
+    - [51, 66]
+    - [49, 67]
+    - [46, 67]
+    - [46, 68]
+    - [45, 68]
+    - [45, 67]
+    - [38, 67]
+    - [37, 66]
+    holes:
+    - - [39, 64]
+      - [41, 64]
+      - [41, 66]
+      - [39, 66]
+    - - [42, 64]
+      - [48, 64]
+      - [48, 66]
+      - [42, 66]
     # description: ""
     # type: ""
   - id: engineering
     name: ENGINEERING
     polygon:
-    - [177, 78]
-    - [177, 77]
-    - [180, 74]
-    - [193, 74]
-    - [193, 78]
-    - [202, 78]
-    - [202, 74]
-    - [204, 74]
-    - [207, 77]
-    - [207, 83]
-    - [204, 86]
-    - [202, 86]
-    - [202, 82]
-    - [193, 82]
-    - [193, 86]
-    - [180, 86]
-    - [177, 83]
-    - [177, 82]
-    - [178, 81]
-    - [179, 81]
-    - [179, 79]
-    - [178, 79]
+    - [178, 64]
+    - [179, 64]
+    - [179, 63]
+    - [180, 62]
+    - [183, 62]
+    - [184, 63]
+    - [184, 67]
+    - [183, 68]
+    - [180, 68]
+    - [179, 67]
+    - [179, 66]
+    - [178, 66]
     # description: ""
     # type: ""
-  - id: corridor_1
-    name: ''
-    polygon:
-    - [15, 78]
-    - [15, 82]
-    - [16, 82]
-    - [16, 83]
-    - [17, 83]
-    - [17, 82]
-    - [27, 82]
-    - [27, 81]
-    - [28, 81]
-    - [28, 79]
-    - [27, 79]
-    - [26, 78]
-    - [26, 77]
-    - [25, 77]
-    - [25, 78]
-    - [17, 78]
-    - [17, 77]
-    - [16, 77]
-    - [16, 78]
-    type: corridor
   - id: living_quarters
     name: ''
     polygon:
-    - [25, 77]
-    - [25, 74]
-    - [42, 74]
-    - [42, 77]
-    - [41, 77]
-    - [41, 75]
-    - [26, 75]
-    - [26, 77]
+    - [19, 62]
+    - [19, 59]
+    - [36, 59]
+    - [36, 62]
+    - [35, 62]
+    - [35, 60]
+    - [20, 60]
+    - [20, 62]
+    type: corridor
+  - id: corridor_2
+    name: ''
+    polygon:
+    - [22, 64]
+    - [33, 64]
+    - [33, 66]
+    - [31, 66]
+    - [31, 67]
+    - [30, 67]
+    - [30, 66]
+    - [22, 66]
     type: corridor
   - id: corridor_3
     name: ''
     polygon:
-    - [28, 79]
-    - [39, 79]
-    - [39, 81]
-    - [37, 81]
-    - [37, 82]
-    - [36, 82]
-    - [36, 81]
-    - [28, 81]
+    - [51, 64]
+    - [64, 64]
+    - [64, 66]
+    - [51, 66]
     type: corridor
   - id: corridor_4
     name: ''
     polygon:
-    - [39, 79]
-    - [40, 78]
-    - [41, 78]
-    - [41, 77]
-    - [42, 77]
-    - [42, 78]
-    - [43, 79]
-    - [43, 81]
-    - [42, 82]
-    - [40, 82]
-    - [39, 81]
+    - [64, 64]
+    - [111, 64]
+    - [111, 66]
+    - [64, 66]
     type: corridor
   - id: corridor_5
     name: ''
     polygon:
-    - [43, 79]
-    - [44, 78]
-    - [51, 78]
-    - [51, 77]
-    - [52, 77]
-    - [52, 78]
-    - [55, 78]
-    - [57, 79]
-    - [57, 81]
-    - [55, 82]
-    - [52, 82]
-    - [52, 83]
-    - [51, 83]
-    - [51, 82]
-    - [44, 82]
-    - [43, 81]
+    - [114, 64]
+    - [164, 64]
+    - [164, 66]
+    - [114, 66]
     type: corridor
   - id: corridor_6
     name: ''
     polygon:
-    - [57, 79]
-    - [70, 79]
-    - [70, 81]
-    - [57, 81]
+    - [164, 64]
+    - [168, 64]
+    - [169, 63]
+    - [169, 62]
+    - [171, 62]
+    - [171, 63]
+    - [172, 64]
+    - [173, 64]
+    - [173, 66]
+    - [172, 66]
+    - [171, 67]
+    - [171, 68]
+    - [169, 68]
+    - [169, 67]
+    - [168, 66]
+    - [164, 66]
     type: corridor
   - id: corridor_7
     name: ''
     polygon:
-    - [70, 79]
-    - [117, 79]
-    - [117, 81]
-    - [70, 81]
+    - [218, 64]
+    - [218, 66]
+    - [204, 66]
+    - [203, 67]
+    - [203, 68]
+    - [201, 68]
+    - [201, 62]
+    - [203, 62]
+    - [203, 63]
+    - [204, 64]
     type: corridor
   - id: corridor_8
     name: ''
     polygon:
-    - [120, 79]
-    - [170, 79]
-    - [170, 81]
-    - [120, 81]
+    - [203, 62]
+    - [199, 58]
+    - [173, 58]
+    - [169, 62]
+    - [171, 62]
+    - [174, 59]
+    - [198, 59]
+    - [201, 62]
     type: corridor
   - id: corridor_9
     name: ''
     polygon:
-    - [170, 79]
-    - [174, 79]
-    - [175, 78]
-    - [175, 77]
-    - [177, 77]
-    - [177, 78]
-    - [178, 79]
-    - [179, 79]
-    - [179, 81]
-    - [178, 81]
-    - [177, 82]
-    - [177, 83]
-    - [175, 83]
-    - [175, 82]
-    - [174, 81]
-    - [170, 81]
+    - [203, 68]
+    - [199, 72]
+    - [173, 72]
+    - [169, 68]
+    - [171, 68]
+    - [174, 71]
+    - [198, 71]
+    - [201, 68]
     type: corridor
   - id: corridor_10
     name: ''
     polygon:
-    - [224, 79]
-    - [224, 81]
-    - [210, 81]
-    - [209, 82]
-    - [209, 83]
-    - [207, 83]
-    - [207, 77]
-    - [209, 77]
-    - [209, 78]
-    - [210, 79]
+    - [173, 64]
+    - [173, 66]
+    - [178, 66]
+    - [178, 64]
     type: corridor
   - id: corridor_11
     name: ''
     polygon:
-    - [209, 77]
-    - [205, 73]
-    - [179, 73]
-    - [175, 77]
-    - [177, 77]
-    - [180, 74]
-    - [204, 74]
-    - [207, 77]
+    - [184, 63]
+    - [198, 63]
+    - [198, 64]
+    - [184, 64]
     type: corridor
   - id: corridor_12
     name: ''
     polygon:
-    - [209, 83]
-    - [205, 87]
-    - [179, 87]
-    - [175, 83]
-    - [177, 83]
-    - [180, 86]
-    - [204, 86]
-    - [207, 83]
+    - [184, 66]
+    - [184, 67]
+    - [198, 67]
+    - [198, 66]
+    type: corridor
+  - id: corridor_13
+    name: ''
+    polygon:
+    - [198, 63]
+    - [200, 64]
+    - [201, 63]
+    - [201, 67]
+    - [200, 66]
+    - [198, 67]
+    - [198, 66]
+    - [199, 65]
+    - [198, 64]
     type: corridor
   doors:
-  - {rooms: [armory, corridor_6], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [storage_unit, armory], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [bridge, corridor_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_3, cabin_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_1, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_8, cabin_10], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_10, living_quarters], position: {x: 39.5, y: 75, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [cabin_10, living_quarters], position: {x: 41, y: 76, angle: 90}, type: standard, status: CLOSED}
-  - {rooms: [cabin_2, cabin_4], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_2, living_quarters], position: {x: 27.5, y: 75, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [cabin_2, living_quarters], position: {x: 26, y: 76, angle: 90}, type: standard, status: CLOSED}
-  - {rooms: [cabin_5, cabin_3], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_3, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_4, cabin_6], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_4, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_7, cabin_5], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_5, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_6, cabin_8], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_6, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_9, cabin_7], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_7, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_8, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cabin_9, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [captain_s_quarters, corridor_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cargo_bay, corridor_10], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [cargo_bay_2, corridor_10], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_1, corridor_3], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [examination_room, corridor_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [executive_office, corridor_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_1, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [mess_hall, corridor_1], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_10, corridor_11], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_10, corridor_12], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_10], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_9, corridor_11], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_11], position: {x: 186.5, y: 74, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_11], position: {x: 203, y: 74, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_11], position: {x: 178.5, y: 75.5, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_11], position: {x: 205.5, y: 75.5, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [reactor, corridor_11], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_9, corridor_12], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_12], position: {x: 178.5, y: 84.5, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_12], position: {x: 205.5, y: 84.5, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_12], position: {x: 186.5, y: 86, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_12], position: {x: 203, y: 86, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [reactor_2, corridor_12], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_3, corridor_4], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [medlab, corridor_3], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_4, corridor_5], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [living_quarters, corridor_4], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_5, corridor_6], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [hydroponics, corridor_5], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [hydroponics_2, corridor_5], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_6, corridor_7], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [storage_unit, corridor_6], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [vac_suits, corridor_6], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [workshop, corridor_6], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [separation_lock, corridor_7], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [corridor_8, corridor_9], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [separation_lock, corridor_8], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_9], position: {x: 177, y: 77.5, angle: 90}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_9], position: {x: 177.5, y: 78.5, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_9], position: {x: 178.5, y: 79, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_9], position: {x: 179, y: 80, angle: 90}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_9], position: {x: 178.5, y: 81, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_9], position: {x: 177.5, y: 81.5, angle: 0}, type: standard, status: CLOSED}
-  - {rooms: [engineering, corridor_9], position: {x: 177, y: 82.5, angle: 90}, type: standard, status: CLOSED}
-  - {rooms: [examination_room, cryo_bay], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [examination_room, cryo_bay_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [reactor, engineering], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [reactor_2, engineering], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [washroom, living_quarters], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [medlab, medpod], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [medlab, medpod_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [medpod, medpod_2], along: 0.5, type: standard, status: CLOSED}
-  - {rooms: [workshop, vac_suits], along: 0.5, type: standard, status: CLOSED}
+  - {rooms: [executive_office, path146], position: {x: 10.5, y: 62, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [bridge, path146], position: {x: 9, y: 63.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [bridge, path146], position: {x: 9, y: 66.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path146, captain_s_quarters], position: {x: 10.5, y: 68, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [mess_hall, path146], position: {x: 15.5, y: 63, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [path146, exam_room], position: {x: 20, y: 67, angle: 0}, type: standard, status: CLOSED, width: 2}
+  - {rooms: [corridor_2, medlab], position: {x: 30.5, y: 67, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, path146], position: {x: 19.5, y: 62, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [cabin_1, living_quarters], position: {x: 21.5, y: 59, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [cabin_3, living_quarters], position: {x: 24.5, y: 59, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [cabin_5, living_quarters], position: {x: 27.5, y: 59, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [cabin_7, living_quarters], position: {x: 30.5, y: 59, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [cabin_9, living_quarters], position: {x: 33.5, y: 59, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, cabin_10], position: {x: 33.5, y: 60, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, cabin_8], position: {x: 30.5, y: 60, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, cabin_6], position: {x: 27.5, y: 60, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, cabin_4], position: {x: 24.5, y: 60, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, cabin_2], position: {x: 21.5, y: 60, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [exam_room, cryo_bay_2], position: {x: 22, y: 70, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [cryo_bay, exam_room], position: {x: 18, y: 70, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [corridor_2, path148], position: {x: 33, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path148, path151], position: {x: 37, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [hydroponics, path151], position: {x: 45.5, y: 62, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [path151, hydroponics_2], position: {x: 45.5, y: 68, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [medlab, medpod], position: {x: 36, y: 69.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [medlab, medpod_2], position: {x: 36, y: 72.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path151, path152], position: {x: 39, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path147, path146], position: {x: 13, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path151, corridor_3], position: {x: 51, y: 65, angle: 90}, type: standard, status: CLOSED, width: 2}
+  - {rooms: [corridor_3, corridor_4], position: {x: 64, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [corridor_4, corridor_4], position: {x: 66, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [corridor_4, separation_lock], position: {x: 111, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [separation_lock, corridor_5], position: {x: 114, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [corridor_5, corridor_6], position: {x: 164, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [corridor_8, corridor_6], position: {x: 170, y: 62, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_6, corridor_9], position: {x: 170, y: 68, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_6, corridor_10], position: {x: 173, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [corridor_10, engineering], position: {x: 178, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [reactor, corridor_11], position: {x: 191.5, y: 63, angle: 0}, type: blast_door, status: CLOSED}
+  - {rooms: [corridor_12, reactor_2], position: {x: 191.5, y: 67, angle: 0}, type: blast_door, status: CLOSED}
+  - {rooms: [corridor_8, corridor_7], position: {x: 202, y: 62, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_7, corridor_9], position: {x: 202, y: 68, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_13, corridor_7], position: {x: 201, y: 65, angle: 90}, type: blast_door, status: CLOSED, width: 2}
+  - {rooms: [cargo_bay, corridor_7], position: {x: 208, y: 64, angle: 0}, type: blast_door, status: CLOSED, width: 2}
+  - {rooms: [corridor_7, cargo_bay_2], position: {x: 208, y: 66, angle: 0}, type: blast_door, status: CLOSED, width: 2}
+  - {rooms: [cargo_bay], position: {x: 220, y: 60, angle: 90}, type: blast_door, status: CLOSED, width: 6}
+  - {rooms: [cargo_bay_2], position: {x: 220, y: 70, angle: 90}, type: blast_door, status: CLOSED, width: 6}
+  - {rooms: [living_quarters, path148], position: {x: 35.5, y: 62, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [living_quarters, washroom], position: {x: 36, y: 59.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path146, corridor_2], position: {x: 22, y: 65, angle: 90}, type: standard, status: CLOSED}

@@ -198,3 +198,16 @@ Plans:
 **Wave 2** (blocked on Wave 1):
 
 - [x] 28-03-PLAN.md — FileEditorView (Monaco editor, save workflow, error banner, localStorage persistence) + GMConsole.tsx wiring + human smoke test
+
+### Phase 28.1: Close gap: D-10 — data-changed SSE consumer + Phase 28 UAT + VERIFICATION.md for phases 25/27/28 (INSERTED)
+
+**Goal:** Close three v2.0 milestone-audit gaps: (1) implement the missing frontend `data-changed` SSE consumer in `useSSE.ts` + `SharedConsole.tsx` so player terminals auto-reload when the GM edits YAML via FileEditorView (closes D-10), (2) run and record all 11 pending Phase 28 UAT tests, (3) author VERIFICATION.md for phases 25, 27, and 28.
+**Requirements**: D-01, D-02, D-03, D-04, D-05, D-10
+**Depends on:** Phase 28
+**Plans:** 3 plans
+
+Plans:
+
+- [ ] 28.1-01-PLAN.md — Add onDataChanged option to useSSE + wire data-changed handler in SharedConsole.tsx (Wave 1)
+- [ ] 28.1-02-PLAN.md — Human UAT walkthrough: record all 11 pending Phase 28 UAT verdicts (Wave 1, autonomous=false)
+- [ ] 28.1-03-PLAN.md — Author 25-VERIFICATION.md, 27-VERIFICATION.md, 28-VERIFICATION.md (Wave 2, depends on 28.1-02)

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: Milestone Complete
-stopped_at: Phase 28 complete — all 6 v2.0 phases done, milestone ready to archive
-last_updated: "2026-06-02T00:00:00.000Z"
-last_activity: 2026-06-02 -- Phase 28 complete, all v2.0 phases done
+status: Ready to execute
+stopped_at: context exhaustion at 75% (2026-06-05)
+last_updated: "2026-06-05T18:31:37.305Z"
+last_activity: 2026-06-05 -- Phase 28.1 planning complete
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 25
+  total_phases: 7
+  completed_phases: 5
+  total_plans: 28
   completed_plans: 25
-  percent: 100
+  percent: 71
 ---
 
 # Project State
@@ -29,7 +29,7 @@ Phase: 28 (gm-console-data-directory-file-editor) — COMPLETE
 Plan: 3 of 3
 All v2.0 phases complete. Ready to archive milestone.
 
-Last activity: 2026-06-01 -- Phase 28 execution started
+Last activity: 2026-06-05 -- Phase 28.1 planning complete
 
 ## v1.0 Milestone Archive
 
@@ -49,11 +49,12 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full v1.0 decision log.
 - Phase 23 added: Containerization — Docker image with external data directory mount, live-reload for AI-managed game data, and best-practices for remote data mutations during play
 - Phase 25 added: Map rotation controls
 - Phase 28 added: GM Console Data Directory File Editor
+- Phase 28.1 inserted (URGENT) after 28: Close gap: D-10 — data-changed SSE consumer + Phase 28 UAT + VERIFICATION.md for phases 25/27/28
 
 ## Session Continuity
 
-Last session: 2026-06-02T00:00:00.000Z
-Stopped at: Phase 28 complete — all v2.0 phases done
+Last session: 2026-06-05T15:25:23.721Z
+Stopped at: context exhaustion at 75% (2026-06-05)
 Next step: /gsd:complete-milestone
 
 ## Performance Metrics

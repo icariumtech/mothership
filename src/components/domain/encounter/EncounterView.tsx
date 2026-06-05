@@ -66,6 +66,8 @@ interface EncounterViewProps {
   roomVisibility?: RoomVisibilityState;
   /** Door status state from GM */
   doorStatus?: DoorStatusState;
+  /** Vent visibility state from GM */
+  ventsVisible?: boolean;
   /** Token state */
   tokens?: TokenState;
   /** Is this a GM view? */
@@ -110,6 +112,7 @@ export function EncounterView({
   deckName,
   roomVisibility,
   doorStatus,
+  ventsVisible,
   tokens,
   isGM = false,
   onTokenMove,
@@ -212,6 +215,7 @@ export function EncounterView({
             locationData={locationData}
             roomVisibility={roomVisibility}
             doorStatus={doorStatus}
+            ventsVisible={ventsVisible}
             currentLevel={encounterLevel}
             totalLevels={totalDecks}
             deckName={deckName}

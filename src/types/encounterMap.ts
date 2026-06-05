@@ -165,6 +165,7 @@ export interface RoomVisibilityState {
   [roomId: string]: boolean;
 }
 
+
 // Door status state (GM-controlled runtime overrides)
 export interface DoorStatusState {
   [connectionId: string]: DoorStatus;
@@ -271,6 +272,13 @@ export interface HullDef {
   polygon: [number, number][];  // vertices in grid cell coords
 }
 
+/** A ventilation path — a multi-segment polyline through the ship */
+export interface VentPath {
+  id: string;
+  points: [number, number][];
+  label?: string;
+}
+
 /** Complete grid-based encounter map (new format) */
 export interface GridEncounterMapData {
   name: string;
@@ -288,6 +296,8 @@ export interface GridEncounterMapData {
    * single source of truth — doors are no longer nested under GridRoom.
    */
   doors?: AuthoredDoor[];
+  /** Ventilation paths — hidden from players until revealed by the GM */
+  vents?: VentPath[];
   terminals?: TerminalData[];
   poi?: PoiData[];
   metadata?: MapMetadata;

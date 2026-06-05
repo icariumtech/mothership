@@ -80,6 +80,9 @@ interface EncounterMapDisplayProps {
   viewPadding?: number;
   /** Whether to show the legend panel (default true) */
   showLegend?: boolean;
+  /** Vent visibility state (per-vent) */
+  ventsVisible?: boolean;
+  onVentsToggle?: (visible: boolean) => void;
 }
 
 export function EncounterMapDisplay({
@@ -97,6 +100,8 @@ export function EncounterMapDisplay({
   onTokenStatusToggle,
   viewPadding,
   showLegend = true,
+  ventsVisible,
+  onVentsToggle,
 }: EncounterMapDisplayProps) {
   const mapData = locationData?.map;
 
@@ -122,6 +127,8 @@ export function EncounterMapDisplay({
       hull: manifestHull,
       viewPadding,
       showLegend,
+      ventsVisible,
+      onVentsToggle,
     };
 
     // IMPORTANT: check the deck's own format before choosing a renderer.
@@ -169,6 +176,8 @@ export function EncounterMapDisplay({
           onTokenStatusToggle={onTokenStatusToggle}
           viewPadding={viewPadding}
           showLegend={showLegend}
+          ventsVisible={ventsVisible}
+          onVentsToggle={onVentsToggle}
         />
       </div>
     );

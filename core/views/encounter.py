@@ -97,6 +97,26 @@ def api_encounter_room_visibility(request):
 
 
 @login_required
+def api_encounter_set_vents_visible(request):
+    """
+    Show or hide all vents for players.
+    POST: { visible: boolean }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    visible = bool(data.get('visible', False))
+    enc.set_vents_visible(visible)
+
+    return JsonResponse({'success': True, 'vents_visible': visible})
+
+
+@login_required
 def api_encounter_set_door_status(request):
     """
     Set door status for a connection (door).

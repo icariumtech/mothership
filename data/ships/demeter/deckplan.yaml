@@ -1,4 +1,4 @@
-name: Demeter
+name: Demeter Converted
 facility_type: ship
 total_decks: 2
 unit_size: 30
@@ -390,6 +390,35 @@ decks:
   - {rooms: [reactor, path137], position: {x: 39, y: 65, angle: 90}, type: blast_door, status: CLOSED}
   - {rooms: [corridor_3, path137], position: {x: 39.5, y: 64, angle: 0}, type: blast_door, status: CLOSED}
   - {rooms: [path137, corridor_4], position: {x: 39.5, y: 66, angle: 0}, type: blast_door, status: CLOSED}
+  vents:
+  - id: vent_1
+    points: [[12, 61], [12, 63], [10, 63], [10, 64]]
+  - id: vent_2
+    points: [[12, 63], [14, 63]]
+  - id: vent_3
+    points: [[10, 66], [10, 67], [14, 67]]
+  - id: vent_4
+    points: [[12, 67], [12, 69]]
+  - id: vent_5
+    points: [[16, 66], [16, 69]]
+  - id: vent_6
+    points: [[16, 68.5], [25, 68.5], [25, 65], [24, 65]]
+  - id: vent_7
+    points: [[25, 65], [25, 61.5], [16, 61.5], [16, 64]]
+  - id: vent_8
+    points: [[16, 61.5], [16, 61]]
+  - id: vent_9
+    points: [[25, 61.5], [39, 61.5]]
+  - id: vent_10
+    points: [[25, 68.5], [39, 68.5]]
+  - id: vent_11
+    points: [[37.5, 68.5], [37.5, 69]]
+  - id: vent_12
+    points: [[35.5, 68.5], [35.5, 68]]
+  - id: vent_13
+    points: [[35.5, 62], [35.5, 61.5]]
+  - id: vent_14
+    points: [[37.5, 61.5], [37.5, 61]]
 - id: deck_a
   name: Deck A
   level: 2
@@ -875,6 +904,94 @@ decks:
     - [178, 66]
     # description: ""
     # type: ""
+  - id: coolant_tanks
+    name: COOLANT TANKS
+    polygon:
+    - [171, 62]
+    - [171, 63]
+    - [172, 64]
+    - [179, 64]
+    - [179, 63]
+    - [180, 62]
+    - [183, 62]
+    - [184, 63]
+    - [189, 63]
+    - [188, 62]
+    - [188, 60]
+    - [189, 59]
+    - [174, 59]
+    holes:
+    - - [185.5, 59.5]
+      - [186.5, 59.5]
+      - [187.5, 60.5]
+      - [187.5, 61.5]
+      - [186.5, 62.5]
+      - [185.5, 62.5]
+      - [184.5, 61.5]
+      - [184.5, 60.5]
+    - - [174, 61]
+      - [175, 60]
+      - [176, 60]
+      - [177, 61]
+      - [177, 62]
+      - [176, 63]
+      - [175, 63]
+      - [174, 62]
+    # description: ""
+    # type: ""
+  - id: coolant_tanks_2
+    name: COOLANT TANKS
+    polygon:
+    - [179, 66]
+    - [172, 66]
+    - [171, 67]
+    - [171, 68]
+    - [174, 71]
+    - [189, 71]
+    - [188, 70]
+    - [188, 68]
+    - [189, 67]
+    - [184, 67]
+    - [183, 68]
+    - [180, 68]
+    - [179, 67]
+    holes:
+    - - [184.5, 68.5]
+      - [185.5, 67.5]
+      - [186.5, 67.5]
+      - [187.5, 68.5]
+      - [187.5, 69.5]
+      - [186.5, 70.5]
+      - [185.5, 70.5]
+      - [184.5, 69.5]
+    - - [175, 67]
+      - [176, 67]
+      - [177, 68]
+      - [177, 69]
+      - [176, 70]
+      - [175, 70]
+      - [174, 69]
+      - [174, 68]
+    # description: ""
+    # type: ""
+  - id: path246
+    name: PATH246
+    polygon:
+    - [64, 64]
+    - [64, 66]
+    - [66, 66]
+    - [66, 64]
+    # description: ""
+    # type: ""
+  - id: path248
+    name: PATH248
+    polygon:
+    - [164, 64]
+    - [166, 64]
+    - [166, 66]
+    - [164, 66]
+    # description: ""
+    # type: ""
   - id: living_quarters
     name: ''
     polygon:
@@ -910,10 +1027,10 @@ decks:
   - id: corridor_4
     name: ''
     polygon:
-    - [64, 64]
+    - [66, 64]
     - [111, 64]
     - [111, 66]
-    - [64, 66]
+    - [66, 66]
     type: corridor
   - id: corridor_5
     name: ''
@@ -926,7 +1043,7 @@ decks:
   - id: corridor_6
     name: ''
     polygon:
-    - [164, 64]
+    - [166, 64]
     - [168, 64]
     - [169, 63]
     - [169, 62]
@@ -941,7 +1058,7 @@ decks:
     - [169, 68]
     - [169, 67]
     - [168, 66]
-    - [164, 66]
+    - [166, 66]
     type: corridor
   - id: corridor_7
     name: ''
@@ -1048,11 +1165,10 @@ decks:
   - {rooms: [path151, path152], position: {x: 39, y: 65, angle: 90}, type: standard, status: CLOSED}
   - {rooms: [path147, path146], position: {x: 13, y: 65, angle: 90}, type: standard, status: CLOSED}
   - {rooms: [path151, corridor_3], position: {x: 51, y: 65, angle: 90}, type: standard, status: CLOSED, width: 2}
-  - {rooms: [corridor_3, corridor_4], position: {x: 64, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
-  - {rooms: [corridor_4, corridor_4], position: {x: 66, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [corridor_3, path246], position: {x: 64, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
   - {rooms: [corridor_4, separation_lock], position: {x: 111, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
   - {rooms: [separation_lock, corridor_5], position: {x: 114, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
-  - {rooms: [corridor_5, corridor_6], position: {x: 164, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [corridor_5, path248], position: {x: 164, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
   - {rooms: [corridor_8, corridor_6], position: {x: 170, y: 62, angle: 0}, type: standard, status: CLOSED}
   - {rooms: [corridor_6, corridor_9], position: {x: 170, y: 68, angle: 0}, type: standard, status: CLOSED}
   - {rooms: [corridor_6, corridor_10], position: {x: 173, y: 65, angle: 90}, type: standard, status: CLOSED}
@@ -1069,3 +1185,110 @@ decks:
   - {rooms: [living_quarters, path148], position: {x: 35.5, y: 62, angle: 0}, type: standard, status: CLOSED}
   - {rooms: [living_quarters, washroom], position: {x: 36, y: 59.5, angle: 90}, type: standard, status: CLOSED}
   - {rooms: [path146, corridor_2], position: {x: 22, y: 65, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [workshop, corridor_3], position: {x: 55, y: 64, angle: 0}, type: standard, status: CLOSED, width: 2}
+  - {rooms: [corridor_3, storage_unit], position: {x: 55, y: 66, angle: 0}, type: standard, status: CLOSED, width: 2}
+  - {rooms: [vac_suits, corridor_3], position: {x: 61, y: 64, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [corridor_3, armory], position: {x: 61, y: 66, angle: 0}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_11], position: {x: 184, y: 63.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [engineering, corridor_12], position: {x: 184, y: 66.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [corridor_11, corridor_13], position: {x: 198, y: 63.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [corridor_12, corridor_13], position: {x: 198, y: 66.5, angle: 90}, type: standard, status: CLOSED}
+  - {rooms: [path246, corridor_4], position: {x: 66, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  - {rooms: [path248, corridor_6], position: {x: 166, y: 65, angle: 90}, type: airlock, status: CLOSED, width: 2}
+  vents:
+  - id: vent_1
+    points: [[12.5, 63], [12.5, 62], [12, 62], [12, 60], [13, 60]]
+  - id: vent_2
+    points: [[12, 60], [12, 58], [11, 58]]
+  - id: vent_3
+    points: [[12, 58], [12, 56.5], [19.5, 56.5], [19.5, 59]]
+  - id: vent_4
+    points: [[19.5, 56.5], [36, 56.5], [36, 59]]
+  - id: vent_5
+    points: [[35, 62.5], [20, 62.5]]
+  - id: vent_6
+    points: [[24, 62.5], [24, 64]]
+  - id: vent_7
+    points: [[31, 62.5], [31, 64]]
+  - id: vent_8
+    points: [[9, 63], [9, 61.5], [4, 61.5], [4, 60], [2, 60], [2, 60.5]]
+  - id: vent_9
+    points: [[8.5, 61], [8.5, 61.5]]
+  - id: vent_10
+    points: [[9, 67.5], [9, 68.5], [4, 68.5], [4, 70], [2, 70], [2, 69.5]]
+  - id: vent_11
+    points: [[8.5, 68.5], [8.5, 69]]
+  - id: vent_12
+    points: [[13, 67], [13, 68], [12, 68], [12, 73], [28, 73], [28, 66]]
+  - id: vent_13
+    points: [[24, 66], [24, 67], [28, 67], [30, 67]]
+  - id: vent_14
+    points: [[28, 70.5], [29, 70.5]]
+  - id: vent_15
+    points: [[20, 73], [20, 72]]
+  - id: vent_16
+    points: [[12, 71.5], [11, 71.5]]
+  - id: vent_17
+    points: [[32, 66], [32, 67.5], [34, 67.5], [34, 68], [35, 68], [35, 67]]
+  - id: vent_18
+    points: [[32, 67], [31, 67]]
+  - id: vent_19
+    points: [[34, 68], [33.5, 68.5]]
+  - id: vent_20
+    points: [[35, 67.5], [44, 67.5], [44, 69]]
+  - id: vent_21
+    points: [[44, 67], [44, 67.5]]
+  - id: vent_22
+    points: [[45, 68], [44, 68]]
+  - id: vent_23
+    points: [[36, 62.5], [45, 62.5]]
+  - id: vent_24
+    points: [[41, 62.5], [41, 59.5], [40, 59.5]]
+  - id: vent_25
+    points: [[41, 59.5], [42, 59.5]]
+  - id: vent_26
+    points: [[46, 62.5], [50, 62.5], [50, 63.5]]
+  - id: vent_27
+    points: [[50, 62.5], [50, 60], [61, 60.5], [61, 61.5], [65, 61.5], [65, 64]]
+  - id: vent_28
+    points: [[61, 61.5], [60, 61.5], [60, 62]]
+  - id: vent_29
+    points: [[46, 68], [50, 68], [50, 70], [61, 69.5], [61, 68.5], [60, 68.5], [60, 68]]
+  - id: vent_30
+    points: [[65, 66], [65, 68.5], [61, 68.5]]
+  - id: vent_31
+    points: [[53, 69], [53, 70]]
+  - id: vent_32
+    points: [[53, 60], [53, 61]]
+  - id: vent_33
+    points: [[180, 59], [180, 62]]
+  - id: vent_34
+    points: [[183, 59], [183, 62]]
+  - id: vent_35
+    points: [[183, 68], [183, 71]]
+  - id: vent_36
+    points: [[180, 68], [180, 71]]
+  - id: vent_37
+    points: [[180, 69.5], [183, 69.5]]
+  - id: vent_38
+    points: [[180, 60.5], [183, 60.5]]
+  - id: vent_39
+    points: [[187, 64], [187, 66]]
+  - id: vent_40
+    points: [[195, 64], [195, 66]]
+  - id: vent_41
+    points: [[195.5, 67], [195.5, 71]]
+  - id: vent_42
+    points: [[195.5, 59], [195.5, 63]]
+  - id: vent_43
+    points: [[200, 59], [205, 59], [205, 64]]
+  - id: vent_44
+    points: [[200, 71], [205, 71], [205, 66]]
+  - id: vent_45
+    points: [[205, 69], [206, 69]]
+  - id: vent_46
+    points: [[205, 61], [206, 61]]
+  - id: vent_47
+    points: [[205, 59], [205, 57.5], [209, 55], [218, 55], [218, 56]]
+  - id: vent_48
+    points: [[205, 71], [205, 73], [209, 75], [218, 75], [218, 74]]

@@ -27,6 +27,7 @@ SVG layer convention — single-deck (backwards compatible):
     Rooms      — room polygons; each path has inkscape:label = room name
     Corridors  — corridor polygons (name="" in output)
     Doors      — optional manual door lines (see below)
+    Vents      — optional ventilation paths (see below)
 
 SVG layer convention — multi-deck:
     Hull           — ship outer hull polygon (optional, single path)
@@ -34,6 +35,7 @@ SVG layer convention — multi-deck:
       Rooms        — room polygons within this deck
       Corridors    — corridor polygons within this deck
       Doors        — optional manual door lines within this deck
+      Vents        — optional ventilation paths within this deck
     <Deck label 2>
       Rooms
       Corridors
@@ -42,6 +44,14 @@ SVG layer convention — multi-deck:
     Corridors sublayers, multi-deck mode is used; otherwise single-deck mode.
     Deck IDs in output are derived from the layer label (snake_cased).
     Decks are ordered by their document order; the first deck is the default.
+
+Vents layer (optional):
+    Each path is a ventilation route polyline (open or closed). Vertices are
+    converted to grid coords and written as a `points:` list.
+    inkscape:label on the path → vent id (snake_cased) and optional label.
+    If no label, id is auto-generated as vent_1, vent_2, etc.
+    Output: `vents: [{id, points: [[x,y],...], label?}, ...]` on the deck.
+    Vent visibility is controlled at runtime by the GM (hidden by default).
 
 Doors layer (optional — overrides --detect-doors when present):
     Each path in the Doors layer is a single line segment (2 vertices).
@@ -691,6 +701,45 @@ def _extract_doors_layer(
     return doors
 
 
+def _extract_vents_layer(
+    parent: ET.Element,
+    unit: float,
+    tx: float,
+    ty: float,
+) -> list[dict]:
+    """Parse ventilation paths from a 'Vents' sublayer.
+
+    Each path becomes one vent entry with an id and a list of grid-coord points.
+    Open polylines and closed polygons are both accepted; the closing duplicate
+    vertex is dropped. The path's inkscape:label becomes the optional label.
+    """
+    paths = get_layer_paths(parent, "Vents")
+    if not paths:
+        return []
+
+    vents: list[dict] = []
+    for i, path in enumerate(paths):
+        label = get_ink_label(path) or ""
+        vent_id = to_snake(label) if label else f"vent_{i + 1}"
+        subpaths = parse_path_d(path.get("d", ""), label=f"vent {vent_id}")
+        if not subpaths or len(subpaths[0]) < 2:
+            print(
+                f"  WARNING: vent path '{vent_id}' has <2 vertices — skipping.",
+                file=sys.stderr,
+            )
+            continue
+        grid_pts = verts_to_grid(_apply_translate(subpaths[0], tx, ty), unit)
+        points = [[round(x * 4) / 4, round(y * 4) / 4] for x, y in grid_pts]
+        vent: dict = {"id": vent_id, "points": points}
+        if label:
+            vent["label"] = label
+        vents.append(vent)
+        print(f"  Vent '{vent_id}': {len(points)} points")
+
+    print(f"  Vents layer: {len(vents)} paths.")
+    return vents
+
+
 def _write_deckplan_yaml(
     location_dir: str,
     map_name: str,
@@ -771,6 +820,15 @@ def _write_deckplan_yaml(
             elif has_door_source:
                 f.write("  # doors: []\n")
 
+            vents = d.get("vents", [])
+            if vents:
+                f.write("  vents:\n")
+                for vent in vents:
+                    pts = ", ".join(f"[{fv(x)}, {fv(y)}]" for x, y in vent["points"])
+                    label_str = f'\n    label: "{vent["label"]}"' if vent.get("label") else ""
+                    f.write(f"  - id: {vent['id']}{label_str}\n")
+                    f.write(f"    points: [{pts}]\n")
+
     print(f"Written: {deckplan_path}")
 
 
@@ -847,6 +905,7 @@ def convert(
                 print(f"  Door detection: {len(doors)} doors emitted.")
             else:
                 doors = []
+            vents = _extract_vents_layer(deck_elem, unit, dtx, dty)
             decks_data.append(
                 {
                     "id": deck_id_local,
@@ -855,6 +914,7 @@ def convert(
                     "corridors": corridors,
                     "doors": doors,
                     "doors_from_layer": doors_from_layer,
+                    "vents": vents,
                 }
             )
             print()
@@ -871,6 +931,7 @@ def convert(
             print(f"\nDoor detection complete: {len(doors)} doors emitted.")
         else:
             doors = []
+        vents = _extract_vents_layer(root, unit, 0.0, 0.0)
         decks_data = [
             {
                 "id": deck_id,
@@ -879,6 +940,7 @@ def convert(
                 "corridors": corridors,
                 "doors": doors,
                 "doors_from_layer": doors_from_layer,
+                "vents": vents,
             }
         ]
 

@@ -87,6 +87,7 @@ export function EncounterView({
   const [allDecks, setAllDecks] = useState<DeckWithRooms[]>([]);
   const [roomVisibility, setRoomVisibility] = useState<RoomVisibilityState>({});
   const [doorStatus, setDoorStatus] = useState<DoorStatusState>({});
+  const [ventsVisible, setVentsVisible] = useState<boolean>(false);
   const [currentDeckMapData, setCurrentDeckMapData] = useState<EncounterMapData | GridEncounterMapData | null>(null);
   const [encounterTokens, setEncounterTokens] = useState<TokenState>({});
   const tokenMoveInFlight = useRef(false);
@@ -196,6 +197,11 @@ export function EncounterView({
     }
   }, [activeView?.encounter_door_status]);
 
+  // Sync vent visibility from activeView
+  useEffect(() => {
+    setVentsVisible(activeView?.encounter_vents_visible ?? false);
+  }, [activeView?.encounter_vents_visible]);
+
   // Sync token state from activeView (skip during in-flight moves)
   useEffect(() => {
     if (tokenMoveInFlight.current) return;
@@ -231,6 +237,16 @@ export function EncounterView({
     }
   }, [messageApi]);
 
+  const handleVentsToggle = useCallback(async (visible: boolean) => {
+    try {
+      await encounterApi.setVentsVisible(visible);
+      setVentsVisible(visible);
+    } catch (err) {
+      console.error('Error toggling vents:', err);
+      messageApi.error('Failed to toggle vent visibility');
+    }
+  }, [messageApi]);
+
   const handleDoorStatusChange = useCallback(async (connectionId: string, status: DoorStatus) => {
     try {
       const result = await encounterApi.setDoorStatus(connectionId, status);
@@ -245,12 +261,16 @@ export function EncounterView({
     if (!allRooms.length) return;
     const roomIds = allRooms.map(r => r.id);
     try {
-      const result = await encounterApi.showAllRooms(roomIds);
+      const [result] = await Promise.all([
+        encounterApi.showAllRooms(roomIds),
+        encounterApi.setVentsVisible(true),
+      ]);
       setRoomVisibility(result);
-      messageApi.success('All rooms visible');
+      setVentsVisible(true);
+      messageApi.success('All rooms and vents visible');
     } catch (err) {
-      console.error('Error showing all rooms:', err);
-      messageApi.error('Failed to show all rooms');
+      console.error('Error showing all:', err);
+      messageApi.error('Failed to show all');
     }
   }, [allRooms, messageApi]);
 
@@ -258,12 +278,16 @@ export function EncounterView({
     if (!allRooms.length) return;
     const roomIds = allRooms.map(r => r.id);
     try {
-      const result = await encounterApi.hideAllRooms(roomIds);
+      const [result] = await Promise.all([
+        encounterApi.hideAllRooms(roomIds),
+        encounterApi.setVentsVisible(false),
+      ]);
       setRoomVisibility(result);
-      messageApi.success('All rooms hidden');
+      setVentsVisible(false);
+      messageApi.success('All rooms and vents hidden');
     } catch (err) {
-      console.error('Error hiding all rooms:', err);
-      messageApi.error('Failed to hide all rooms');
+      console.error('Error hiding all:', err);
+      messageApi.error('Failed to hide all');
     }
   }, [allRooms, messageApi]);
 
@@ -408,6 +432,8 @@ export function EncounterView({
             onTokenStatusToggle={handleTokenStatusToggle}
             onRoomToggle={handleRoomToggle}
             hull={manifest?.hull as HullDef | undefined}
+            ventsVisible={ventsVisible}
+            onVentsToggle={handleVentsToggle}
           />
         ) : noLocationSelected ? (
           <div className="gm-encounter-view__empty">

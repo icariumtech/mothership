@@ -60,6 +60,15 @@ def set_door_status(connection_id: str, door_status: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Vent visibility
+# ---------------------------------------------------------------------------
+
+def set_vents_visible(visible: bool) -> dict:
+    """Show or hide all vents for players."""
+    return _sync(encounter_vents_visible=bool(visible))
+
+
+# ---------------------------------------------------------------------------
 # Tokens
 # ---------------------------------------------------------------------------
 

@@ -221,6 +221,17 @@ async function getTokenImages(): Promise<TokenImage[]> {
 }
 
 /**
+ * Show or hide all vents for players (GM only)
+ */
+async function setVentsVisible(visible: boolean): Promise<{ success: boolean; vents_visible: boolean }> {
+  const response = await api.post<{ success: boolean; vents_visible: boolean }>(
+    '/gm/encounter/set-vents-visible/',
+    { visible }
+  );
+  return response.data;
+}
+
+/**
  * Toggle an NPC portrait display on the terminal (GM only).
  * If npcId is active, dismisses it. If not active, shows it.
  */
@@ -240,6 +251,7 @@ export const encounterApi = {
   showAllRooms,
   hideAllRooms,
   setDoorStatus,
+  setVentsVisible,
   placeToken,
   moveToken,
   removeToken,

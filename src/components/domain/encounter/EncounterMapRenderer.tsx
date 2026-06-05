@@ -6,7 +6,7 @@
  * faint background grid, and GM right-click context menu for room visibility.
  */
 
-import React, { useMemo, useCallback, useRef } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect } from 'react';
 import { usePanZoom } from '../../../hooks/usePanZoom';
 import { useExclusivePopover } from '../../../hooks/useExclusivePopover';
 import { useTokenPlacement } from '../../../hooks/useTokenPlacement';
@@ -73,6 +73,10 @@ interface EncounterMapRendererProps {
   viewPadding?: number;
   /** Whether to show the legend panel (default true) */
   showLegend?: boolean;
+  /** Whether vents are visible to players */
+  ventsVisible?: boolean;
+  /** Callback when GM right-clicks a vent to toggle all vents */
+  onVentsToggle?: (visible: boolean) => void;
 }
 
 // V2-1 Color palette
@@ -91,6 +95,8 @@ const COLORS = {
   warning: '#8b7355',
   pathLine: '#3a5a5a',
   hullFill: '#142020',
+  vent: '#2d7a5a',
+  ventHidden: '#1a4a35',
 };
 
 // Connection/door type styles
@@ -122,6 +128,7 @@ type EncounterPopover =
   | { type: 'door';  payload: { id: string; x: number; y: number; status: DoorStatus } }
   | { type: 'poi';   payload: { poi: PoiData; x: number; y: number } }
   | { type: 'room';  payload: { room: GridRoom; x: number; y: number } }
+  | { type: 'vent';  payload: { x: number; y: number; currentlyVisible: boolean } }
 
 export function EncounterMapRenderer({
   mapData,
@@ -142,12 +149,27 @@ export function EncounterMapRenderer({
   style,
   viewPadding = 2,
   showLegend = true,
+  ventsVisible,
+  onVentsToggle,
 }: EncounterMapRendererProps) {
   // Hull override (manifest-level) takes precedence over per-deck hull
   const effectiveHull = hullProp ?? mapData.hull;
 
   // Single exclusive-popover state — opening any slot closes all others.
   const { popover, open: openPopover, close: closePopover } = useExclusivePopover<EncounterPopover>();
+
+  // Close vent popup on click outside
+  const ventPopupRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (popover?.type !== 'vent') return;
+    const handler = (e: MouseEvent) => {
+      if (ventPopupRef.current && !ventPopupRef.current.contains(e.target as Node)) {
+        closePopover();
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('mousedown', handler), 0);
+    return () => { clearTimeout(t); document.removeEventListener('mousedown', handler); };
+  }, [popover?.type, closePopover]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -1071,6 +1093,45 @@ export function EncounterMapRenderer({
           {mapData.rooms.map(renderRoom)}
         </g>
 
+        {/* Vent paths — dashed lines, GM-only until revealed */}
+        {mapData.vents && mapData.vents.length > 0 && (isGM || ventsVisible) && (
+          <g className="encounter-map__vents">
+            {mapData.vents.map((vent) => {
+              const pts = vent.points.map(([x, y]) => `${x * unitSize},${y * unitSize}`).join(' ');
+              return (
+                <g key={vent.id}>
+                  <polyline
+                    points={pts}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth={unitSize * 0.6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ cursor: isGM ? 'context-menu' : 'default', pointerEvents: isGM ? 'stroke' : 'none' }}
+                    onContextMenu={isGM ? (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const rect = containerRef.current?.getBoundingClientRect();
+                      openPopover({ type: 'vent', payload: { x: rect ? e.clientX - rect.left : e.clientX, y: rect ? e.clientY - rect.top : e.clientY, currentlyVisible: ventsVisible ?? false } });
+                    } : undefined}
+                  />
+                  <polyline
+                    points={pts}
+                    fill="none"
+                    stroke={ventsVisible ? COLORS.vent : COLORS.ventHidden}
+                    strokeWidth={unitSize * 0.18}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray={`${unitSize * 0.3} ${unitSize * 0.15}`}
+                    opacity={isGM && !ventsVisible ? 0.4 : 1}
+                    pointerEvents="none"
+                  />
+                </g>
+              );
+            })}
+          </g>
+        )}
+
         {/* Door symbols — rendered above room floors and walls.
             Iterates the canonical Door[] (normalized from top-level
             mapData.doors by doorNormalizer at load).
@@ -1333,6 +1394,41 @@ export function EncounterMapRenderer({
           } : undefined}
           onClose={() => closePopover()}
         />
+      )}
+
+      {/* Vent context menu — GM right-click to reveal/hide all vents */}
+      {popover?.type === 'vent' && isGM && onVentsToggle && (
+        <div
+          ref={ventPopupRef}
+          style={{
+            position: 'absolute',
+            left: popover.payload.x,
+            top: popover.payload.y,
+            background: 'rgba(10,10,10,0.97)',
+            border: `1px solid ${COLORS.vent}`,
+            fontFamily: "'Cascadia Code', 'Courier New', monospace",
+            fontSize: '11px',
+            letterSpacing: '1px',
+            zIndex: 20,
+            minWidth: 160,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            style={{
+              display: 'block', width: '100%', padding: '6px 10px',
+              background: 'none', border: 'none', color: popover.payload.currentlyVisible ? COLORS.hazard : COLORS.vent,
+              fontFamily: 'inherit', fontSize: '11px', letterSpacing: '1px',
+              textAlign: 'left', cursor: 'pointer', textTransform: 'uppercase',
+            }}
+            onClick={() => {
+              onVentsToggle(!popover.payload.currentlyVisible);
+              closePopover();
+            }}
+          >
+            {popover.payload.currentlyVisible ? 'Hide vents from players' : 'Reveal vents to players'}
+          </button>
+        </div>
       )}
     </div>
   );

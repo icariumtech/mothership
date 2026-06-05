@@ -90,6 +90,7 @@ class PayloadBuilder:
             'encounter_deck_id': state.get('encounter_deck_id', ''),
             'encounter_room_visibility': state.get('encounter_room_visibility', {}),
             'encounter_door_status': state.get('encounter_door_status', {}),
+            'encounter_vents_visible': state.get('encounter_vents_visible', False),
             'encounter_tokens': (
                 state.get('encounter_tokens_by_location', {})
                 .get(state.get('location_slug', ''), {})

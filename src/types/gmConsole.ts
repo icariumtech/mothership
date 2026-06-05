@@ -70,6 +70,7 @@ export interface ActiveView {
   encounter_room_visibility: RoomVisibilityState;
   encounter_door_status: DoorStatusState;
   encounter_tokens: TokenState;
+  encounter_vents_visible: boolean;
   encounter_active_portraits: string[];          // ordered list of NPC IDs
   encounter_npc_data: { [id: string]: NpcPortraitData };  // NPC lookup map
   // Ship deck map data (populated when view_type == 'BRIDGE')

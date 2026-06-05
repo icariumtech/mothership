@@ -74,6 +74,9 @@ interface MapPreviewProps {
   onRoomToggle?: (roomId: string, visible: boolean) => void;
   /** Hull polygon from manifest — same silhouette on every deck */
   hull?: HullDef;
+  /** Vent visibility state (per-vent) */
+  ventsVisible?: boolean;
+  onVentsToggle?: (visible: boolean) => void;
 }
 
 // V2-1 Color palette (simplified for preview)
@@ -115,6 +118,8 @@ export function MapPreview({
   onRoomToggle,
   hull,
   fill,
+  ventsVisible,
+  onVentsToggle,
 }: MapPreviewProps) {
   // Grid-format maps: delegate to EncounterMapRenderer with GM controls.
   //
@@ -193,6 +198,8 @@ export function MapPreview({
             onTokenMove={onTokenMove}
             onTokenRemove={onTokenRemove}
             onTokenStatusToggle={onTokenStatusToggle}
+            ventsVisible={ventsVisible}
+            onVentsToggle={onVentsToggle}
           />
         </div>
       </div>

@@ -32,6 +32,7 @@ _DEFAULT_STATE: dict = {
     # any pre-21-04 in-memory entries continue to resolve without explicit
     # migration.
     'encounter_door_status': {},
+    'encounter_vents_visible': False,
     'encounter_tokens_by_location': {},
     'encounter_active_portraits': [],
 }

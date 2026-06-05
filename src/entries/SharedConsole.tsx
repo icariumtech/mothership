@@ -73,6 +73,7 @@ interface ActiveView {
   encounter_deck_id?: string;
   encounter_room_visibility?: { [roomId: string]: boolean };
   encounter_door_status?: DoorStatusState;
+  encounter_vents_visible?: boolean;
   // Multi-deck manifest info (added by API)
   encounter_total_decks?: number;
   encounter_deck_name?: string;
@@ -1033,6 +1034,7 @@ function SharedConsole() {
           deckName={activeView?.encounter_deck_name}
           roomVisibility={activeView?.encounter_room_visibility}
           doorStatus={activeView?.encounter_door_status}
+          ventsVisible={activeView?.encounter_vents_visible}
           tokens={encounterTokens}
           isGM={false}
           onTokenMove={handleTokenMove}

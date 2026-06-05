@@ -334,60 +334,72 @@ function SharedConsole() {
     fetchStarMapData();
   }, []);
 
+  // Shared helper: apply a fresh ActiveView payload through the view transition path.
+  // Used by both the SSE onEvent path and the data-changed re-fetch path so the same
+  // transition animation / state resets fire regardless of how the data arrives.
+  const applyActiveView = useCallback((data: ActiveView) => {
+    // Update encounter tokens if present (skip during in-flight moves to prevent snap-back)
+    if (data.encounter_tokens && !tokenMoveInFlight.current) {
+      setEncounterTokens(data.encounter_tokens);
+    }
+
+    // Read previous view type from ref (stable — no reconnect storm risk)
+    const previousViewType = activeViewRef.current?.view_type;
+
+    // Buffer data through view transition — animates out before committing new view
+    handleViewChange(data, (newData) => {
+      setActiveView(newData);
+      setJanusDialogOpen(newData.janus_dialog_open);
+
+      // Reset map state when transitioning TO BRIDGE from another view type
+      if (newData.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
+        setSelectedSystem(null);
+        setMapViewMode('galaxy');
+        setCurrentSystemSlug(null);
+        setSelectedPlanet(null);
+        setCurrentBodySlug(null);
+        setSelectedOrbitElement(null);
+        setSelectedOrbitElementType(null);
+        setSelectedOrbitElementData(null);
+        setActiveTab('status');
+      }
+
+      // Sync terminal overlay state
+      if (newData.overlay_terminal_slug && newData.overlay_location_slug) {
+        setTerminalOverlayLocation(newData.overlay_location_slug);
+        setTerminalOverlaySlug(newData.overlay_terminal_slug);
+        setTerminalOverlayOpen(true);
+      } else {
+        setTerminalOverlayOpen(false);
+      }
+
+      // Sync document overlay state
+      if (newData.overlay_doc_slug) {
+        setDocOverlaySlug(newData.overlay_doc_slug);
+        setDocOverlayOpen(true);
+      } else {
+        setDocOverlayOpen(false);
+      }
+    }, previousViewType);
+  }, []);
+
   // SSE subscription — replaces polling. onEvent uses refs to avoid reconnect storms.
   // failureThreshold: 5 — player terminal is more tolerant (shows warning after 5 failed reconnects)
   const { connectionLost } = useSSE({
     url: '/api/active-view/stream/',
     onEvent: useCallback((rawData: unknown) => {
-      const data = rawData as ActiveView;
-
-      // Update encounter tokens if present (skip during in-flight moves to prevent snap-back)
-      if (data.encounter_tokens && !tokenMoveInFlight.current) {
-        setEncounterTokens(data.encounter_tokens);
-      }
-
-      // Read previous view type from ref (stable — no reconnect storm risk)
-      const previousViewType = activeViewRef.current?.view_type;
-
-      // Buffer SSE data through view transition — animates out before committing new view
-      handleViewChange(data, (newData) => {
-        setActiveView(newData);
-        setJanusDialogOpen(newData.janus_dialog_open);
-
-        // Reset map state when transitioning TO BRIDGE from another view type
-        if (newData.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
-          setSelectedSystem(null);
-          setMapViewMode('galaxy');
-          setCurrentSystemSlug(null);
-          setSelectedPlanet(null);
-          setCurrentBodySlug(null);
-          setSelectedOrbitElement(null);
-          setSelectedOrbitElementType(null);
-          setSelectedOrbitElementData(null);
-          setActiveTab('status');
-        }
-
-        // Sync terminal overlay state
-        if (newData.overlay_terminal_slug && newData.overlay_location_slug) {
-          setTerminalOverlayLocation(newData.overlay_location_slug);
-          setTerminalOverlaySlug(newData.overlay_terminal_slug);
-          setTerminalOverlayOpen(true);
-        } else {
-          setTerminalOverlayOpen(false);
-        }
-
-        // Sync document overlay state
-        if (newData.overlay_doc_slug) {
-          setDocOverlaySlug(newData.overlay_doc_slug);
-          setDocOverlayOpen(true);
-        } else {
-          setDocOverlayOpen(false);
-        }
-      }, previousViewType);
-    }, []),
+      applyActiveView(rawData as ActiveView);
+    }, [applyActiveView]),
     onShipStatusEvent: useCallback((rawData: unknown) => {
       setShipData(rawData as typeof shipData);
     }, []),
+    onDataChanged: useCallback(async (payload: unknown) => {
+      console.debug('[SSE] data-changed received', payload);
+      const response = await fetch('/api/active-view/');
+      if (!response.ok) { console.error('[SSE] active-view re-fetch failed', response.status); return; }
+      const fresh = await response.json() as ActiveView;
+      applyActiveView(fresh);
+    }, [applyActiveView]),
     failureThreshold: 5,
     retryDelayMs: 3000,
   });

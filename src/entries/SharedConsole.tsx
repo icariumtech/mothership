@@ -394,7 +394,7 @@ function SharedConsole() {
       setShipData(rawData as typeof shipData);
     }, []),
     onDataChanged: useCallback(async (payload: unknown) => {
-      console.debug('[SSE] data-changed received', payload);
+      console.log('[SSE] data-changed received', payload);
       const response = await fetch('/api/active-view/');
       if (!response.ok) { console.error('[SSE] active-view re-fetch failed', response.status); return; }
       const fresh = await response.json() as ActiveView;

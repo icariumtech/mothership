@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: Ready to archive milestone
-stopped_at: ""
-last_updated: "2026-06-05T18:45:00.000Z"
+stopped_at: Phase 29 context gathered
+last_updated: "2026-06-05T22:18:38.277Z"
 last_activity: 2026-06-05
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 6
-  total_plans: 31
-  completed_plans: 31
-  percent: 100
+  total_plans: 28
+  completed_plans: 28
+  percent: 75
 ---
 
 # Project State
@@ -50,11 +50,12 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full v1.0 decision log.
 - Phase 25 added: Map rotation controls
 - Phase 28 added: GM Console Data Directory File Editor
 - Phase 28.1 inserted (URGENT) after 28: Close gap: D-10 — data-changed SSE consumer + Phase 28 UAT + VERIFICATION.md for phases 25/27/28
+- Phase 29 added: Interactive deckplan map editor with live preview, YAML sync, and POI placement
 
 ## Session Continuity
 
-Last session: 2026-06-05T18:45:00.000Z
-Stopped at: ""
+Last session: 2026-06-05T22:18:38.268Z
+Stopped at: Phase 29 context gathered
 Next step: /gsd:complete-milestone
 
 ## Performance Metrics

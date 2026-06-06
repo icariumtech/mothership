@@ -27,6 +27,31 @@ New format: single `deckplan.yaml` with a `decks:` list. Skills should write new
 
 MCP write: `write_file("ships/patrol_gunboat/deckplan.yaml", content)`
 
+### Editing a single element (preferred for small changes)
+
+To change one room, corridor, or door — or to add/remove a POI — use the targeted tools instead
+of rewriting the whole file. They edit server-side, so you never load the entire deckplan.
+
+- `find_map_element(deckplan, query)` → candidate elements `[{id, kind, label, deck}]`. Use to
+  disambiguate. `query` may be an id, a room/corridor name, or a glob (`coolant_tanks*`).
+- `edit_map_element(deckplan, target, set | add_poi | remove_poi)` → edits the one element that
+  `target` resolves to. Provide exactly one operation per call.
+
+```text
+edit_map_element(dp, "mess_hall", add_poi={icon: airlock, label: Airlock, position: {x: 1, y: 1}})
+edit_map_element(dp, "coolant_tanks", set={label_offset: [0, 2]})   # 409 w/ candidates if >1 -> ask the GM
+edit_map_element(dp, "mess_hall__main_corridor__0", set={status: LOCKED})   # a door
+```
+
+Element ids: rooms/corridors use their slug id (`mess_hall`, `main_corridor`); colliding names get
+a numeric suffix (`coolant_tanks`, `coolant_tanks_2`). Doors are addressed by the derived id
+`<roomA>__<roomB>__<index>` (or `<room>__exterior__<index>` for an exterior door) — the same id used
+for door-status. POIs are reached through their room (`add_poi`/`remove_poi`), never targeted directly.
+
+**P-edit — Do NOT `read_file` + `write_file` to change one element.** That reloads the whole
+deckplan for a one-field edit. Use `edit_map_element`; if the reference is ambiguous it returns the
+candidates so you can ask the GM which one.
+
 ---
 
 ## Top-level Fields

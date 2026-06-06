@@ -222,3 +222,16 @@ Plans:
 Plans:
 
 - [ ] TBD (run /gsd:plan-phase 29 to break down)
+
+### Phase 30: AI map editing — element resolver + targeted edit MCP tools
+
+**Goal:** Let the JANUS AI edit a single deckplan element (room/corridor/door) and add/remove POIs without reading or rewriting the whole `deckplan.yaml`. Adds a server-side element resolver (id / slugified label / glob / fuzzy), an atomic targeted-edit endpoint (`set` field-merge + `add_poi`/`remove_poi` list verbs) with `data-changed` SSE, two MCP tools (`find_map_element`, `edit_map_element`), and deterministic human-readable element ids from `svg_to_map.py`. Independent of Phase 29's GUI editor but provides a resolution layer it can reuse.
+**Requirements**: E-01, E-02, E-03, E-04, E-05, E-06, E-07 (defined in 30-CONTEXT.md)
+**Depends on:** Phase 28
+**Plans:** 3/3 plans executed
+
+Plans:
+
+- [x] 30-01-PLAN.md — Backend: `_resolve_map_element` + `api_gm_data_map_edit` endpoint + tests (Wave 1)
+- [x] 30-02-PLAN.md — Stable element ids — already satisfied (slug+unique exists; doors use derived id) (Wave 1)
+- [x] 30-03-PLAN.md — MCP tools `find_map_element`/`edit_map_element` + schema docs (Wave 2)

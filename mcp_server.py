@@ -131,6 +131,82 @@ async def patch_yaml(path: str, patch: dict) -> dict:
 
 
 @mcp.tool
+async def find_map_element(deckplan: str, query: str) -> dict:
+    """Resolve a natural map reference to candidate deckplan element ids WITHOUT loading the file.
+
+    Use this to disambiguate before editing — e.g. 'coolant tanks' may match several rooms.
+    You can also skip it and call edit_map_element directly; it returns candidates when the
+    target is ambiguous.
+
+    deckplan: path to the deckplan relative to data/ (e.g. 'ships/patrol_gunboat/deckplan.yaml')
+    query: a room/corridor name or id, a door id, or a glob like 'coolant_tanks*'
+
+    Returns {"matches": [{"id","kind","label","deck"}], "strategy", "suggestions"?}.
+    kind is one of room | corridor | door. Rooms/corridors are matched by id or display name;
+    doors are matched by their id of the form '<roomA>__<roomB>__<index>' (or '<room>__exterior__<index>').
+    """
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{DJANGO_BASE_URL}/api/gm/data-map-edit/{deckplan}",
+            params={"q": query},
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool
+async def edit_map_element(
+    deckplan: str,
+    target: str,
+    set: dict | None = None,
+    add_poi: dict | None = None,
+    remove_poi=None,
+) -> dict:
+    """Edit ONE element (room/corridor/door) in a deckplan without loading or rewriting the file.
+
+    Prefer this over read_file + write_file for changing a single room, door, or POI — the edit
+    happens server-side, so you never spend tokens loading the whole deckplan.
+
+    deckplan: path relative to data/ (e.g. 'ships/patrol_gunboat/deckplan.yaml')
+    target: element reference (id, room/corridor name, or door id). If it matches more than one
+            element, this returns {"error":"ambiguous","candidates":[...]} — show the candidates to
+            the GM and ask which one, then retry with a specific id. If nothing matches it returns
+            {"error":...,"suggestions":[...]}.
+
+    Provide EXACTLY ONE of:
+      set:        dict of fields to deep-merge into the element. Works for any field —
+                  rooms: description, label_offset ([dx,dy] grid cells), name, type;
+                  doors: status (OPEN|CLOSED|LOCKED|SEALED|DAMAGED|BROKEN), type.
+      add_poi:    a POI to append to a ROOM (not a door): {icon, label?, type?, position?, description?}.
+                  icon is a lowercase icon name; type is item|objective|hazard|npc|player.
+      remove_poi: a POI label (str) or 0-based index (int) to remove from the room.
+
+    POIs are addressed through their room (you never target a POI directly). Use plain ASCII in
+    string values (no em-dashes / curly quotes) per the encounter YAML rules.
+
+    Returns {"ok": true, "element", "kind", "op", "deck"} on success.
+    """
+    body: dict = {"target": target}
+    if set is not None:
+        body["set"] = set
+    if add_poi is not None:
+        body["add_poi"] = add_poi
+    if remove_poi is not None:
+        body["remove_poi"] = remove_poi
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"{DJANGO_BASE_URL}/api/gm/data-map-edit/{deckplan}",
+            json=body,
+        )
+        # Ambiguous (409) / not-found (404): return the body so the caller can ask the GM
+        # which element they mean, rather than raising.
+        if r.status_code in (404, 409):
+            return r.json()
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool
 async def delete_file(path: str) -> dict:
     """Delete a campaign data file. path is relative to data/ (e.g. 'campaign/crew/old_npc.yaml').
 

@@ -211,3 +211,14 @@ Plans:
 - [x] 28.1-01-PLAN.md — Add onDataChanged option to useSSE + wire data-changed handler in SharedConsole.tsx (Wave 1)
 - [ ] 28.1-02-PLAN.md — Human UAT walkthrough: record all 11 pending Phase 28 UAT verdicts (Wave 1, autonomous=false)
 - [ ] 28.1-03-PLAN.md — Author 25-VERIFICATION.md, 27-VERIFICATION.md, 28-VERIFICATION.md (Wave 2, depends on 28.1-02)
+
+### Phase 29: Interactive deckplan map editor with live preview, YAML sync, and POI placement
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 28
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd:plan-phase 29 to break down)

@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  ship_template_multideck.svg - Multi-deck ship template for svg_to_map.py
+  Grid: 10px = 1 cell. Use the grid-scale option if rooms have too many cells.
+
+  MULTI-DECK STRUCTURE:
+    svg_to_map.py auto-detects multi-deck mode when any top-level layer
+    contains sublayers named "Rooms" or "Corridors".
+
+    Hull                  - top-level, outer ship silhouette, no sublayers
+    Deck Name             - top-level layer, one per deck
+      Rooms               - sublayer: room polygons with inkscape:label = room name
+      Corridors           - sublayer: corridor polygons, no label
+      Doors               - sublayer: optional 2-point door lines (replaces auto-detect)
+    Deck Name 2
+      Rooms
+      Corridors
+
+  Deck IDs in output are derived from the deck layer label (snake_cased).
+  First deck listed is the default deck shown on load.
+
+  SINGLE-DECK: see ship_template.svg
+
+  DOOR LABEL FORMAT:
+    type: standard | airlock | blast | emergency
+    status (optional): locked | sealed | open | damaged
+    e.g. "airlock", "blast locked", "standard sealed"
+-->
+<svg
+   width="1500px"
+   height="1200px"
+   viewBox="0 0 1500 1200"
+   version="1.1"
+   id="svg1"
+   xml:space="preserve"
+   sodipodi:docname="ship_template_multideck.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg">
+
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#12121c"
+     bordercolor="#2a2a4a"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="1.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#0a0a18"
+     inkscape:document-units="px"
+     showgrid="true">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="10"
+       spacingy="10"
+       empcolor="#3355aa"
+       empopacity="0.55"
+       color="#1a2255"
+       opacity="0.35"
+       empspacing="1"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
+
+  <defs id="defs1" />
+
+  <!-- ════════════════════════════════════════════════════════════════
+       NOTES  (layer is locked — click the padlock in Layers panel)
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_notes"
+     inkscape:label="Notes"
+     inkscape:color="#cccccc"
+     sodipodi:insensitive="true"
+     style="display:inline">
+
+    <rect x="8" y="8" width="600" height="238"
+          style="fill:#0d0d1a;fill-opacity:0.92;stroke:#334466;stroke-width:1" />
+
+    <text x="20" y="32"
+          style="fill:#8899cc;font-size:14px;font-family:monospace;font-weight:bold">
+      svg_to_map.py multi-deck guide — 10 px = 1 grid cell
+    </text>
+
+    <text x="20" y="54"
+          style="fill:#556688;font-size:11px;font-family:monospace">
+      Multi-deck auto-detected: any top-level layer with Rooms/Corridors sublayers = one deck.
+    </text>
+
+    <!-- Hull -->
+    <rect x="18" y="66" width="22" height="22"
+          style="fill:#3a3a3a;stroke:#7a7a7a;stroke-width:1" />
+    <text x="46" y="82"
+          style="fill:#cccccc;font-size:12px;font-family:monospace;font-weight:bold">Hull</text>
+    <text x="96" y="82"
+          style="fill:#556688;font-size:11px;font-family:monospace">top-level layer, outer polygon, no sublayers</text>
+
+    <!-- Deck -->
+    <rect x="18" y="96" width="22" height="22"
+          style="fill:#1a1a3a;stroke:#4455aa;stroke-width:1;stroke-dasharray:3,2" />
+    <text x="46" y="112"
+          style="fill:#cccccc;font-size:12px;font-family:monospace;font-weight:bold">&lt;Deck Name&gt;</text>
+    <text x="148" y="112"
+          style="fill:#556688;font-size:11px;font-family:monospace">top-level layer — contains Rooms, Corridors, Doors sublayers</text>
+
+    <!-- Rooms -->
+    <rect x="30" y="126" width="16" height="16"
+          style="fill:#1e3d80;stroke:none" />
+    <text x="52" y="138"
+          style="fill:#aabbdd;font-size:11px;font-family:monospace">  Rooms</text>
+    <text x="120" y="138"
+          style="fill:#445566;font-size:10px;font-family:monospace">sublayer — inkscape:label = room name on each path</text>
+
+    <!-- Corridors -->
+    <rect x="30" y="146" width="16" height="16"
+          style="fill:#0d3d3d;stroke:none" />
+    <text x="52" y="158"
+          style="fill:#aabbdd;font-size:11px;font-family:monospace">  Corridors</text>
+    <text x="126" y="158"
+          style="fill:#445566;font-size:10px;font-family:monospace">sublayer — no label needed</text>
+
+    <!-- Doors -->
+    <line x1="30" y1="166" x2="46" y2="166"
+          style="stroke:#cc6600;stroke-width:2;stroke-linecap:round" />
+    <text x="52" y="170"
+          style="fill:#aabbdd;font-size:11px;font-family:monospace">  Doors</text>
+    <text x="118" y="170"
+          style="fill:#445566;font-size:10px;font-family:monospace">sublayer (optional) — 2-point lines; label = type [status]; omit to auto-detect</text>
+
+    <!-- Deck order note -->
+    <text x="20" y="196"
+          style="fill:#445566;font-size:10px;font-family:monospace">
+      Deck order in output = document order. First deck is the default.
+    </text>
+    <text x="20" y="210"
+          style="fill:#445566;font-size:10px;font-family:monospace">
+      Rename "Main Deck" / "Engineering Deck" — deck IDs are snake_cased from the label.
+    </text>
+    <text x="20" y="224"
+          style="fill:#445566;font-size:10px;font-family:monospace">
+      Shapes must be &lt;path&gt; elements. Use the Pen tool, or Path &gt; Object to Path (Shift+Ctrl+C) on rectangles.
+    </text>
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       HULL — Ship outer silhouette (shared across all decks)
+       One closed polygon. No sublayers, no label needed.
+       Suggested fill: #3a3a3a  Stroke: none
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_hull"
+     inkscape:label="Hull"
+     inkscape:color="#888888"
+     style="display:inline">
+    <!-- DELETE ME — draw your ship outline here -->
+    <rect
+       id="hull_example"
+       x="200" y="250" width="1100" height="700"
+       style="fill:#3a3a3a;stroke:none"
+       inkscape:label="DELETE ME" />
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       MAIN DECK  (rename as needed — deck ID = snake_case of label)
+       This is the first deck and the default shown on load.
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_main_deck"
+     inkscape:label="Main Deck"
+     inkscape:color="#4477bb"
+     style="display:inline">
+
+    <!-- ── Rooms ─────────────────────────────────────── -->
+    <!-- Label each path: Ctrl+Shift+O › Label field     -->
+    <g
+       inkscape:groupmode="layer"
+       id="layer_main_rooms"
+       inkscape:label="Rooms"
+       inkscape:color="#4488cc"
+       style="display:inline">
+      <!-- DELETE ME — replace with real room polygons, label each one -->
+      <rect
+         id="main_room_bridge"
+         x="250" y="280" width="200" height="180"
+         style="fill:#1e3d80;fill-opacity:0.85;stroke:none"
+         inkscape:label="Bridge" />
+      <rect
+         id="main_room_mess"
+         x="800" y="350" width="250" height="200"
+         style="fill:#1e3d80;fill-opacity:0.85;stroke:none"
+         inkscape:label="Mess Hall" />
+    </g>
+
+    <!-- ── Corridors ──────────────────────────────────── -->
+    <!-- No label needed. Auto-named corridor_N in output -->
+    <g
+       inkscape:groupmode="layer"
+       id="layer_main_corridors"
+       inkscape:label="Corridors"
+       inkscape:color="#44aaaa"
+       style="display:inline">
+      <!-- DELETE ME — replace with corridor polygons -->
+      <rect
+         id="main_corridor_1"
+         x="450" y="340" width="350" height="60"
+         style="fill:#0d3d3d;fill-opacity:0.85;stroke:none" />
+    </g>
+
+    <!-- ── Doors (optional) ───────────────────────────── -->
+    <!-- Delete this sublayer to use auto-detection.      -->
+    <g
+       inkscape:groupmode="layer"
+       id="layer_main_doors"
+       inkscape:label="Doors"
+       inkscape:color="#cc6600"
+       style="display:inline">
+      <!-- DELETE ME — draw 2-point door lines, label each -->
+      <path
+         id="main_door_1"
+         d="M 450,340 L 450,400"
+         style="fill:none;stroke:#cc6600;stroke-width:2;stroke-linecap:round"
+         inkscape:label="standard" />
+    </g>
+
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       ENGINEERING DECK  (rename, add more decks by duplicating this group)
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_eng_deck"
+     inkscape:label="Engineering Deck"
+     inkscape:color="#33aaaa"
+     style="display:inline">
+
+    <!-- ── Rooms ─────────────────────────────────────── -->
+    <g
+       inkscape:groupmode="layer"
+       id="layer_eng_rooms"
+       inkscape:label="Rooms"
+       inkscape:color="#4488cc"
+       style="display:inline">
+      <!-- DELETE ME — replace with engine deck rooms -->
+      <rect
+         id="eng_room_engines"
+         x="250" y="700" width="350" height="360"
+         style="fill:#1e3d80;fill-opacity:0.85;stroke:none"
+         inkscape:label="Engine Room" />
+      <rect
+         id="eng_room_storage"
+         x="800" y="780" width="250" height="200"
+         style="fill:#1e3d80;fill-opacity:0.85;stroke:none"
+         inkscape:label="Storage" />
+    </g>
+
+    <!-- ── Corridors ──────────────────────────────────── -->
+    <g
+       inkscape:groupmode="layer"
+       id="layer_eng_corridors"
+       inkscape:label="Corridors"
+       inkscape:color="#44aaaa"
+       style="display:inline">
+      <!-- DELETE ME — replace with engine deck corridors -->
+      <rect
+         id="eng_corridor_1"
+         x="600" y="780" width="200" height="60"
+         style="fill:#0d3d3d;fill-opacity:0.85;stroke:none" />
+    </g>
+
+    <!-- No Doors sublayer here — auto-detection will be used for this deck -->
+
+  </g>
+
+</svg>

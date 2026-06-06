@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  ship_template.svg - Single-deck ship template for svg_to_map.py
+  Grid: 10px = 1 cell. Use the grid-scale option if rooms have too many cells.
+
+  LAYER GUIDE:
+    Hull        - outer ship silhouette, one closed polygon, no label needed
+    Rooms       - room polygons; set inkscape:label = room name on each path
+                  (Object Properties > Label, Ctrl+Shift+O)
+    Corridors   - corridor polygons, auto-named corridor_N in output, no label
+    Doors       - optional; 2-point line per door; inkscape:label = type + status
+                  type: standard | airlock | blast | emergency
+                  status (optional): locked | sealed | open | damaged
+                  e.g. "airlock", "blast locked", "standard sealed"
+                  If this layer exists it REPLACES auto-detected doors.
+                  Delete this layer to use auto door detection (the default).
+
+  MULTI-DECK: see ship_template_multideck.svg
+-->
+<svg
+   width="1500px"
+   height="1000px"
+   viewBox="0 0 1500 1000"
+   version="1.1"
+   id="svg1"
+   xml:space="preserve"
+   sodipodi:docname="ship_template.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg">
+
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#12121c"
+     bordercolor="#2a2a4a"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="1.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#0a0a18"
+     inkscape:document-units="px"
+     showgrid="true">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="10"
+       spacingy="10"
+       empcolor="#3355aa"
+       empopacity="0.55"
+       color="#1a2255"
+       opacity="0.35"
+       empspacing="1"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
+
+  <defs id="defs1" />
+
+  <!-- ════════════════════════════════════════════════════════════════
+       NOTES  (layer is locked — click the padlock in Layers panel)
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_notes"
+     inkscape:label="Notes"
+     inkscape:color="#cccccc"
+     sodipodi:insensitive="true"
+     style="display:inline">
+
+    <rect x="8" y="8" width="570" height="202"
+          style="fill:#0d0d1a;fill-opacity:0.92;stroke:#334466;stroke-width:1" />
+
+    <text x="20" y="32"
+          style="fill:#8899cc;font-size:14px;font-family:monospace;font-weight:bold">
+      svg_to_map.py layer guide — 10 px = 1 grid cell
+    </text>
+
+    <!-- Hull -->
+    <rect x="18" y="46" width="22" height="22"
+          style="fill:#3a3a3a;stroke:#7a7a7a;stroke-width:1" />
+    <text x="46" y="62"
+          style="fill:#cccccc;font-size:12px;font-family:monospace;font-weight:bold">Hull</text>
+    <text x="96" y="62"
+          style="fill:#556688;font-size:11px;font-family:monospace">outer ship polygon — no label needed</text>
+
+    <!-- Rooms -->
+    <rect x="18" y="76" width="22" height="22"
+          style="fill:#1e3d80;stroke:none" />
+    <text x="46" y="92"
+          style="fill:#cccccc;font-size:12px;font-family:monospace;font-weight:bold">Rooms</text>
+    <text x="108" y="92"
+          style="fill:#556688;font-size:11px;font-family:monospace">set inkscape:label = room name (Ctrl+Shift+O)</text>
+
+    <!-- Corridors -->
+    <rect x="18" y="106" width="22" height="22"
+          style="fill:#0d3d3d;stroke:none" />
+    <text x="46" y="122"
+          style="fill:#cccccc;font-size:12px;font-family:monospace;font-weight:bold">Corridors</text>
+    <text x="122" y="122"
+          style="fill:#556688;font-size:11px;font-family:monospace">no label — auto-named corridor_N in output</text>
+
+    <!-- Doors -->
+    <line x1="18" y1="140" x2="40" y2="140"
+          style="stroke:#cc6600;stroke-width:3;stroke-linecap:round" />
+    <text x="46" y="144"
+          style="fill:#cccccc;font-size:12px;font-family:monospace;font-weight:bold">Doors</text>
+    <text x="108" y="144"
+          style="fill:#556688;font-size:11px;font-family:monospace">2-point lines; label = type [status]  e.g. "airlock locked"</text>
+    <text x="108" y="158"
+          style="fill:#445566;font-size:10px;font-family:monospace">If layer absent → svg_to_map.py auto-detects doors from shared room edges</text>
+
+    <!-- Tips -->
+    <text x="20" y="174"
+          style="fill:#445566;font-size:10px;font-family:monospace">
+      Shapes must be &lt;path&gt; elements — use the Pen/Bezier tool, or Path &gt; Object to Path (Shift+Ctrl+C) on rectangles.
+    </text>
+    <text x="20" y="188"
+          style="fill:#445566;font-size:10px;font-family:monospace">
+      Delete example shapes, draw on the correct layer. Use the grid-scale flag if rooms have too many cells after conversion.
+    </text>
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       HULL — Ship outer silhouette
+       One closed polygon. No inkscape:label needed.
+       Suggested fill: #3a3a3a  Stroke: none
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_hull"
+     inkscape:label="Hull"
+     inkscape:color="#888888"
+     style="display:inline">
+    <!-- DELETE ME — draw your ship outline here -->
+    <rect
+       id="hull_example"
+       x="200" y="180" width="1100" height="640"
+       style="fill:#3a3a3a;stroke:none"
+       inkscape:label="DELETE ME" />
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       ROOMS — Interior compartments
+       Label each path: Ctrl+Shift+O › Label field (or Ctrl+Shift+X › inkscape:label)
+       Suggested fill: #1e3d80  Stroke: none
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_rooms"
+     inkscape:label="Rooms"
+     inkscape:color="#4488cc"
+     style="display:inline">
+    <!-- DELETE ME — replace with real room polygons, label each one -->
+    <rect
+       id="room_bridge"
+       x="250" y="230" width="200" height="200"
+       style="fill:#1e3d80;fill-opacity:0.85;stroke:none"
+       inkscape:label="Bridge" />
+    <rect
+       id="room_cargo"
+       x="800" y="450" width="300" height="250"
+       style="fill:#1e3d80;fill-opacity:0.85;stroke:none"
+       inkscape:label="Cargo Bay" />
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       CORRIDORS — Passage areas
+       No label needed. Auto-named corridor_0, corridor_1 … in output.
+       Suggested fill: #0d3d3d  Stroke: none
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_corridors"
+     inkscape:label="Corridors"
+     inkscape:color="#44aaaa"
+     style="display:inline">
+    <!-- DELETE ME — replace with corridor polygons -->
+    <rect
+       id="corridor_example"
+       x="450" y="300" width="350" height="60"
+       style="fill:#0d3d3d;fill-opacity:0.85;stroke:none" />
+  </g>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       DOORS (OPTIONAL) — Manual door placement
+       *** Delete this entire layer to use auto-detection instead. ***
+       Each door = a 2-vertex path (draw a straight line).
+       inkscape:label = door type, optionally followed by status:
+         standard | airlock | blast | emergency
+         + locked | sealed | open | damaged
+       Examples: "standard", "airlock", "blast locked", "standard sealed"
+       Line angle: horizontal (0°) = door in N/S wall
+                   vertical (90°) = door in E/W wall
+       Suggested stroke: #cc6600  Fill: none  Width: 2px
+       ════════════════════════════════════════════════════════════════ -->
+  <g
+     inkscape:groupmode="layer"
+     id="layer_doors"
+     inkscape:label="Doors"
+     inkscape:color="#cc6600"
+     style="display:inline">
+    <!-- DELETE ME — draw 2-point lines at door positions, label each -->
+    <path
+       id="door_example"
+       d="M 450,300 L 450,360"
+       style="fill:none;stroke:#cc6600;stroke-width:2;stroke-linecap:round"
+       inkscape:label="standard" />
+  </g>
+
+</svg>

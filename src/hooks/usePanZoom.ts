@@ -16,7 +16,7 @@ interface PanZoomHandlers {
 }
 
 const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 3;
+const MAX_ZOOM = 6;
 
 /**
  * Manages pan and zoom state for an SVG map container.

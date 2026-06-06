@@ -100,6 +100,7 @@ from .gm_data import (
     api_gm_data_list,
     api_gm_data_file,
     api_gm_data_list_append,
+    api_gm_data_map_edit,
     api_gm_data_rename,
     api_gm_session_context,
     api_gm_data_schema,

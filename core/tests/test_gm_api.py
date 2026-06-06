@@ -328,3 +328,166 @@ class GmDataListAppendTests(TestCase):
                 content_type='application/json',
             )
         self.assertEqual(r.status_code, 400)
+
+
+class MapEditResolverTests(TestCase):
+    """Unit tests for the pure deckplan element resolver."""
+
+    def _data(self):
+        return {'decks': [{'id': 'd1', 'rooms': [
+            {'id': 'mess_hall', 'name': 'Mess Hall'},
+            {'id': 'coolant_tanks', 'name': 'Coolant Tanks'},
+            {'id': 'coolant_tanks_2', 'name': 'Coolant Tanks'},
+            {'id': 'main_corridor', 'type': 'corridor'},
+        ], 'doors': [
+            {'rooms': ['mess_hall', 'main_corridor'], 'along': 0.5},
+            {'rooms': ['mess_hall']},
+        ]}]}
+
+    def _ids(self, query):
+        from core.views.gm_data import _resolve_map_element
+        return [m['id'] for m in _resolve_map_element(self._data(), query)['matches']]
+
+    def test_exact_id(self):
+        self.assertEqual(self._ids('mess_hall'), ['mess_hall'])
+
+    def test_slugified_label(self):
+        self.assertEqual(self._ids('Mess Hall'), ['mess_hall'])
+
+    def test_glob_matches_multiple(self):
+        self.assertEqual(self._ids('coolant_tanks*'), ['coolant_tanks', 'coolant_tanks_2'])
+
+    def test_colliding_labels_are_ambiguous(self):
+        self.assertEqual(self._ids('Coolant Tanks'), ['coolant_tanks', 'coolant_tanks_2'])
+
+    def test_room_name_does_not_match_its_door(self):
+        # "Mess Hall" must resolve to the room, never the exterior door labelled with it.
+        self.assertNotIn('mess_hall__exterior__1', self._ids('Mess Hall'))
+
+    def test_door_derived_id(self):
+        self.assertEqual(self._ids('mess_hall__main_corridor__0'), ['mess_hall__main_corridor__0'])
+
+    def test_unknown_returns_suggestions(self):
+        from core.views.gm_data import _resolve_map_element
+        res = _resolve_map_element(self._data(), 'zzzzz')
+        self.assertEqual(res['matches'], [])
+        self.assertTrue(res['suggestions'])
+
+
+class MapEditApiTests(TestCase):
+    """Tests for GET/POST /api/gm/data-map-edit/{path}."""
+
+    FIXTURE = (
+        "name: Test\n"
+        "decks:\n"
+        "- id: d1\n"
+        "  level: 1\n"
+        "  rooms:\n"
+        "  - {id: mess_hall, name: Mess Hall, description: galley, poi: [{icon: ration, label: Rations}]}\n"
+        "  - {id: coolant_tanks, name: Coolant Tanks}\n"
+        "  - {id: coolant_tanks_2, name: Coolant Tanks}\n"
+        "  - {id: main_corridor, type: corridor}\n"
+        "  doors:\n"
+        "  - {rooms: [mess_hall, main_corridor], along: 0.5, status: CLOSED}\n"
+    )
+
+    def setUp(self):
+        self.client = Client()
+        self.tmpdir = tempfile.mkdtemp()
+        self.path = 'ships/test/deckplan.yaml'
+        full = os.path.join(self.tmpdir, self.path)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, 'w') as f:
+            f.write(self.FIXTURE)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _url(self):
+        return f'/api/gm/data-map-edit/{self.path}'
+
+    def _read(self):
+        import yaml
+        with open(os.path.join(self.tmpdir, self.path)) as f:
+            return yaml.safe_load(f)
+
+    def _room(self, data, rid):
+        return next(r for r in data['decks'][0]['rooms'] if r['id'] == rid)
+
+    def _post(self, body):
+        with override_settings(DATA_DIR=self.tmpdir):
+            return self.client.post(self._url(), data=json.dumps(body), content_type='application/json')
+
+    def test_get_resolves_query(self):
+        with override_settings(DATA_DIR=self.tmpdir):
+            r = self.client.get(self._url(), {'q': 'Mess Hall'})
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual([m['id'] for m in body['matches']], ['mess_hall'])
+        self.assertNotIn('_obj', body['matches'][0])
+
+    def test_set_merges_only_named_fields(self):
+        r = self._post({'target': 'mess_hall', 'set': {'label_offset': [0, 2]}})
+        self.assertEqual(r.status_code, 200)
+        room = self._room(self._read(), 'mess_hall')
+        self.assertEqual(room['label_offset'], [0, 2])
+        self.assertEqual(room['description'], 'galley')          # untouched
+        self.assertEqual(len(room['poi']), 1)                     # untouched
+
+    def test_add_poi_preserves_existing(self):
+        r = self._post({'target': 'mess_hall', 'add_poi': {'icon': 'airlock', 'label': 'Airlock'}})
+        self.assertEqual(r.status_code, 200)
+        poi = self._room(self._read(), 'mess_hall')['poi']
+        self.assertEqual(len(poi), 2)
+        self.assertEqual(poi[0]['label'], 'Rations')
+        self.assertEqual(poi[1]['label'], 'Airlock')
+
+    def test_remove_poi_by_label(self):
+        r = self._post({'target': 'mess_hall', 'remove_poi': 'Rations'})
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('poi', self._room(self._read(), 'mess_hall'))  # last POI removed -> key dropped
+
+    def test_remove_poi_by_index(self):
+        r = self._post({'target': 'mess_hall', 'remove_poi': 0})
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('poi', self._room(self._read(), 'mess_hall'))
+
+    def test_set_door_status_via_derived_id(self):
+        r = self._post({'target': 'mess_hall__main_corridor__0', 'set': {'status': 'LOCKED'}})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['kind'], 'door')
+        self.assertEqual(self._read()['decks'][0]['doors'][0]['status'], 'LOCKED')
+
+    def test_ambiguous_target_409_no_write(self):
+        before = open(os.path.join(self.tmpdir, self.path)).read()
+        r = self._post({'target': 'Coolant Tanks', 'set': {'description': 'x'}})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(len(r.json()['candidates']), 2)
+        after = open(os.path.join(self.tmpdir, self.path)).read()
+        self.assertEqual(before, after)  # file untouched
+
+    def test_unknown_target_404_with_suggestions(self):
+        r = self._post({'target': 'zzzzz', 'set': {'description': 'x'}})
+        self.assertEqual(r.status_code, 404)
+        self.assertIn('suggestions', r.json())
+
+    def test_add_poi_to_door_returns_400(self):
+        r = self._post({'target': 'mess_hall__main_corridor__0', 'add_poi': {'icon': 'x'}})
+        self.assertEqual(r.status_code, 400)
+
+    def test_zero_ops_returns_400(self):
+        self.assertEqual(self._post({'target': 'mess_hall'}).status_code, 400)
+
+    def test_multiple_ops_returns_400(self):
+        r = self._post({'target': 'mess_hall', 'set': {'a': 1}, 'add_poi': {'icon': 'x'}})
+        self.assertEqual(r.status_code, 400)
+
+    def test_path_traversal_blocked(self):
+        with override_settings(DATA_DIR=self.tmpdir):
+            r = self.client.post(
+                '/api/gm/data-map-edit/../../etc/passwd',
+                data=json.dumps({'target': 'x', 'set': {}}),
+                content_type='application/json',
+            )
+        self.assertEqual(r.status_code, 400)

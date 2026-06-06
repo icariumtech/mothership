@@ -35,6 +35,7 @@ urlpatterns = [
     # api/gm/data/<path:filepath> so Django matches the fixed endpoints first.
     path('api/gm/data/', views.api_gm_data_list, name='gm_data_list'),
     path('api/gm/data-list-append/<path:filepath>', views.api_gm_data_list_append, name='gm_data_list_append'),
+    path('api/gm/data-map-edit/<path:filepath>', views.api_gm_data_map_edit, name='gm_data_map_edit'),
     path('api/gm/data-rename/<path:filepath>', views.api_gm_data_rename, name='gm_data_rename'),
     path('api/gm/data/<path:filepath>', views.api_gm_data_file, name='gm_data_file'),
     path('api/gm/session-context', views.api_gm_session_context, name='gm_session_context'),

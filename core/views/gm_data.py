@@ -812,8 +812,9 @@ def api_gm_upload_svg_map(request):
       filename, content_base64, out_dir, deck, name, type,
       unit_size, grid_scale, detect_doors
 
-    The SVG is saved to <out_dir>/<stem>.svg for future re-conversion.
-    svg_to_map.py writes location.yaml (if absent) and deckplan.yaml (canonical, overwritten).
+    The original SVG is saved to campaign/images/sources/<filename> for future
+    re-conversion. svg_to_map.py writes location.yaml (if absent) and deckplan.yaml
+    (canonical, overwritten) into out_dir.
 
     Returns:
       200 { out_dir, svg_path, files_created: [...], log: str }
@@ -868,10 +869,13 @@ def api_gm_upload_svg_map(request):
     if not location_dir.is_relative_to(data_root):
         return JsonResponse({'error': 'out_dir path not allowed'}, status=400)
 
-    # Write SVG into the location directory so it can be re-converted later
+    # Save the original SVG to the shared sources directory (alongside portrait
+    # originals) for future re-conversion. The deckplan output still goes to out_dir.
+    sources_dir = data_root / 'campaign' / 'images' / 'sources'
     try:
+        sources_dir.mkdir(parents=True, exist_ok=True)
         location_dir.mkdir(parents=True, exist_ok=True)
-        svg_dest = location_dir / filename
+        svg_dest = sources_dir / filename
         svg_dest.write_bytes(raw_bytes)
     except OSError as e:
         logger.exception('Error saving SVG file %s: %s', filename, e)

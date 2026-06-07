@@ -276,7 +276,7 @@ async def upload_svg_map(
       Multi-deck:  top-level deck layers (any label) each containing "Rooms" and/or
                    "Corridors" sublayers. Auto-detected — one upload produces all decks.
 
-    The SVG is saved as <out_dir>/<filename>.svg for future re-conversion.
+    The original SVG is saved to campaign/images/sources/<filename> for future re-conversion.
     Always writes <out_dir>/deckplan.yaml (canonical single-file format, overwritten each run).
     Returns:
       { out_dir, svg_path, files_created: [...], log: str }

@@ -262,7 +262,9 @@ written to a single `deckplan.yaml` at the location root. The first deck gets `d
 The `--deck` flag is only used in single-deck mode.
 
 The MCP `upload_svg_map` tool and `/janus-import-deckplan` skill both support multi-deck SVGs —
-a single upload/import can populate all decks at once.
+a single upload/import can populate all decks at once. On upload, the original SVG is stored in
+`campaign/images/sources/<filename>` (alongside portrait sources) for future re-conversion, while
+the generated `deckplan.yaml` is written to the target location root.
 
 Skills do NOT run this tool — it is a manual GM workflow for converting hand-drawn maps.
 

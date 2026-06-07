@@ -936,7 +936,7 @@ def api_gm_upload_svg_map(request):
 ALLOWED_IMAGE_TYPES = frozenset({'portrait', 'logo', 'map', 'misc'})
 
 _IMAGE_TYPE_DIRS = {
-    'portrait': 'campaign/NPCs/images_source',
+    'portrait': 'campaign/images/sources',
     'logo': 'campaign/images/logos',
     'map': 'campaign/images/maps',
     'misc': 'campaign/images/misc',
@@ -1025,7 +1025,7 @@ def api_gm_upload_image(request):
 
     # Portrait conversion (optional, non-fatal)
     if image_type == 'portrait' and convert:
-        images_dir = data_root / 'campaign' / 'NPCs' / 'images'
+        images_dir = data_root / 'campaign' / 'images' / 'portraits'
         stem = Path(filename).stem
         output_path = images_dir / f'{stem}.png'
         try:

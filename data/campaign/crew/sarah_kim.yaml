@@ -2,7 +2,7 @@ id: "sarah_kim"
 name: "Lt. Sarah Kim"
 role: "Security Chief"
 class: "Marine"
-portrait: "/static/portraits/kim.png"
+portrait: "/data/campaign/images/portraits/kim.png"
 
 stats:
   strength: 7

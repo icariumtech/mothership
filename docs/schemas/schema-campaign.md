@@ -41,7 +41,7 @@ Includes all 6 required fields above, plus:
 | Field | Type | Note |
 |---|---|---|
 | `class` | enum | `Teamster \| Scientist \| Marine \| Android` |
-| `portrait` | string | Path to portrait image |
+| `portrait` | string | URL path to converted portrait, e.g. `/data/campaign/images/portraits/<name>.png` |
 | `stats` | mapping | See stats block below |
 | `saves` | mapping | See saves block below |
 | `stress` | integer | Current stress level |
@@ -147,7 +147,7 @@ name: "Dr. Elena Vasquez"
 role: "Science Officer"
 faction: "Weyland-Yutani"
 class: "Scientist"
-portrait: "/static/portraits/vasquez.png"
+portrait: "/data/campaign/images/portraits/vasquez.png"
 
 stats:
   strength: 5

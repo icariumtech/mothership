@@ -2,8 +2,8 @@
 """
 Convert NPC portrait images to retro sci-fi amber gradient style.
 
-Scans images_source directory and converts any images that don't already
-exist in the images output directory.
+Scans the sources directory and converts any images that don't already
+exist in the portraits output directory.
 
 Features:
 - Resizes to 512x512 pixels (square crop from center)
@@ -14,8 +14,8 @@ Usage:
     python tools/convert_portraits.py [source_dir] [output_dir]
 
 Defaults:
-    source_dir: data/campaign/NPCs/images_source
-    output_dir: data/campaign/NPCs/images
+    source_dir: data/campaign/images/sources
+    output_dir: data/campaign/images/portraits
 """
 
 from PIL import Image
@@ -23,8 +23,8 @@ import sys
 import os
 
 # Default directories
-DEFAULT_SOURCE = "data/campaign/NPCs/images_source"
-DEFAULT_OUTPUT = "data/campaign/NPCs/images"
+DEFAULT_SOURCE = "data/campaign/images/sources"
+DEFAULT_OUTPUT = "data/campaign/images/portraits"
 
 # Portrait settings
 TARGET_SIZE = 512

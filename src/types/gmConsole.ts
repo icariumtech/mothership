@@ -45,7 +45,7 @@ export interface ShipDeckData {
 export interface NpcPortraitData {
   id: string;
   name: string;
-  portrait: string;  // URL path like "/data/campaign/NPCs/images/lucia_vance.png" or ""
+  portrait: string;  // URL path like "/data/campaign/images/portraits/lucia_vance.png" or ""
 }
 
 export interface ActiveView {

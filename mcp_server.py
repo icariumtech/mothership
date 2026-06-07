@@ -333,14 +333,15 @@ async def upload_image(
     pipeline bloats Claude's context window. Use get_django_url() + curl instead.
 
     image_type controls the destination:
-      - "portrait" → data/campaign/NPCs/images_source/<filename>
+      - "portrait" → data/campaign/images/sources/<filename> (original)
       - "logo"     → data/campaign/images/logos/<filename>
       - "map"      → data/campaign/images/maps/<filename>
       - "misc"     → data/campaign/images/misc/<filename>
 
     convert (default True, portrait only): when True and image_type is "portrait",
-    Django applies an amber-gradient 512x512 conversion using Pillow before saving.
-    Set to False to store the original bytes unchanged.
+    Django applies an amber-gradient 512x512 conversion using Pillow and writes the
+    display-ready result to data/campaign/images/portraits/<filename>. Set to False
+    to store only the original bytes in sources/ unchanged.
 
     Returns:
       {

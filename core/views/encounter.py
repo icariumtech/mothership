@@ -390,8 +390,8 @@ def api_encounter_token_images(request):
                 'source': 'npc'
             })
 
-    # Scan loose image files in NPCs/images/ directory
-    npc_images_dir = loader.data_dir / 'campaign' / 'NPCs' / 'images'
+    # Scan loose image files in the portraits directory
+    npc_images_dir = loader.data_dir / 'campaign' / 'images' / 'portraits'
     if npc_images_dir.exists():
         for img_file in npc_images_dir.iterdir():
             if img_file.is_file() and img_file.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp']:

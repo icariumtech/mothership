@@ -3,7 +3,7 @@ name: "Marcus Chen"
 callsign: "Wrench"
 role: "Engineer"
 class: "Teamster"
-portrait: "/static/portraits/chen.png"
+portrait: "/data/campaign/images/portraits/chen.png"
 
 stats:
   strength: 8

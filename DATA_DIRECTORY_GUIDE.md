@@ -264,7 +264,7 @@ id: "alex_novak"             # must match filename slug (alex_novak.yaml)
 name: "Alex Novak"
 role: "Pilot"
 class: "Teamster"
-portrait: "/static/portraits/novak.png"
+portrait: "/data/campaign/images/portraits/novak.png"
 
 stats:
   strength: 5
@@ -302,8 +302,19 @@ description: "Hotshot pilot with nerves of steel."
 ### 6.3 NPC format
 
 NPCs use the same file format and live in `data/campaign/npcs/`.
-Portrait images referenced by `portrait:` should be placed in
-`data/campaign/NPCs/images/`.
+
+All campaign images live under `data/campaign/images/`:
+
+| Directory | Contents |
+|---|---|
+| `images/portraits/` | Converted, display-ready portraits (NPC, creature, crew). The `portrait:` field points here, e.g. `/data/campaign/images/portraits/<name>.png`. |
+| `images/sources/` | Original, pre-conversion uploads. Not served to the UI — kept so portraits can be re-converted. |
+| `images/logos/` | Faction/corp logos. |
+| `images/maps/` | Map images. |
+| `images/misc/` | Anything else. |
+
+Portrait uploads (`image_type: portrait`) save the original to `images/sources/`
+and write the amber-gradient 512×512 conversion to `images/portraits/`.
 
 ---
 

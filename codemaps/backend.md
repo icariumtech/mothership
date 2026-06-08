@@ -22,7 +22,7 @@ terminal/               # Main Django app
 ├── data_loader.py      # File-based data loading
 ├── janus_ai.py        # JANUS AI response generation
 ├── janus_session.py   # In-memory JANUS conversation management
-├── janus_knowledge.py # CHARON location-specific knowledge
+├── janus_knowledge.py # JANUS location-specific knowledge
 └── templates/          # HTML template wrappers
 ```
 
@@ -141,12 +141,12 @@ terminal/               # Main Django app
 - `api_janus_clear()`: Clear JANUS conversation
 
 ### Helper Functions
-- `get_janus_location_path(active_view)`: Derive CHARON location context
+- `get_janus_location_path(active_view)`: Derive JANUS location context
   - Priority: ENCOUNTER view location → explicit janus_location_path
 
 ## JANUS AI System
 
-### CharonSessionManager (janus_session.py)
+### JanusSessionManager (janus_session.py)
 **Purpose**: In-memory conversation management (no DB persistence).
 
 **Storage**:
@@ -162,7 +162,7 @@ terminal/               # Main Django app
 - `clear_conversation()`: Reset conversation
 - `get_pending_responses()`: List pending for GM
 
-### CharonAI (janus_ai.py)
+### JanusAI (janus_ai.py)
 **Purpose**: Generate AI responses with location-specific knowledge.
 
 **Features**:
@@ -171,7 +171,7 @@ terminal/               # Main Django app
 - Anthropic Claude integration (planned)
 - Character voice consistency (terse, technical, ominous)
 
-### CharonKnowledge (janus_knowledge.py)
+### JanusKnowledgeLoader (janus_knowledge.py)
 **Purpose**: Load location-specific knowledge for JANUS context.
 
 **Methods**:
@@ -210,7 +210,7 @@ terminal/               # Main Django app
 /api/broadcast/          → api_broadcast
 /api/encounter/switch-level/ → api_encounter_switch_level
 /api/encounter/toggle-room/ → api_encounter_toggle_room
-/api/janus/*            → CHARON GM endpoints
+/api/janus/*            → JANUS GM endpoints
 ```
 
 ## Data Access Patterns

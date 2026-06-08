@@ -236,7 +236,7 @@ Doors connecting corridors to other rooms are defined in the top-level `doors:` 
 
 ## Tooling Note
 
-`tools/svg_to_map.py` (in the charon repo) generates deckplan YAML files from Inkscape SVGs.
+`tools/svg_to_map.py` (in the janus-console repo) generates deckplan YAML files from Inkscape SVGs.
 Key flags: `--detect-doors` (outputs B-pos door entries from shared SVG edges),
 `--grid-scale N` (groups N Inkscape grid cells into 1 output cell),
 `--unit-size N` (pixels per output cell, default 30).

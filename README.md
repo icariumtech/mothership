@@ -203,7 +203,7 @@ The app will be available at `http://localhost:8000`. The GM console is at `/gmc
 | `SECRET_KEY` | **Yes** | Django secret key — any long random string (e.g. `openssl rand -hex 32`) |
 | `DEBUG` | No | Set to `True` only for local troubleshooting. Defaults to `False`. |
 | `ALLOWED_HOSTS` | No | Comma-separated hostnames/IPs. Defaults to `localhost,127.0.0.1`. Set to your LAN IP for player access (e.g. `192.168.1.100,localhost`). |
-| `ANTHROPIC_API_KEY` | No | Required for CHARON AI features |
+| `ANTHROPIC_API_KEY` | No | Required for JANUS AI features |
 | `DJANGO_SUPERUSER_USERNAME` | No | Auto-creates GM account on first start (default: `admin`) |
 | `DJANGO_SUPERUSER_PASSWORD` | No | Required with `DJANGO_SUPERUSER_USERNAME` |
 

@@ -29,7 +29,7 @@ data/
 ├── campaign/           ← campaign state: ship, crew, NPCs, docs, sessions
 ├── galaxy/             ← celestial bodies ONLY — written once per campaign
 ├── ships/              ← all mobile vessels — can point at any body in the galaxy
-└── janus/              ← CHARON AI configuration
+└── janus/              ← JANUS AI configuration
 ```
 
 Each area has a distinct role:
@@ -39,7 +39,7 @@ Each area has a distinct role:
 | `campaign/` | The player ship + its crew/NPC rosters + session notes | Every session |
 | `galaxy/` | Stars, planets, moons, and permanent installations | Once per campaign setup |
 | `ships/` | Mobile vessels (patrol boats, freighters, derelicts) | When ships move or are discovered |
-| `janus/` | CHARON AI personality and system prompt | Rarely |
+| `janus/` | JANUS AI personality and system prompt | Rarely |
 
 ---
 

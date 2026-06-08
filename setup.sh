@@ -72,7 +72,7 @@ if [ -f ".env" ]; then
 else
     cp .env.example .env
     echo "✓ Created .env file from .env.example"
-    echo "NOTE: Edit .env to add your ANTHROPIC_API_KEY if using CHARON AI features"
+    echo "NOTE: Edit .env to add your ANTHROPIC_API_KEY if using JANUS AI features"
 fi
 echo ""
 
@@ -94,7 +94,7 @@ echo "========================================"
 echo ""
 echo "Next steps:"
 echo ""
-echo "1. (Optional) Edit .env to configure CHARON AI:"
+echo "1. (Optional) Edit .env to configure JANUS AI:"
 echo "   - Add your ANTHROPIC_API_KEY for AI features"
 echo "   - Set OBSIDIAN_VAULT_PATH if using Obsidian integration"
 echo ""

@@ -153,7 +153,7 @@ All animations synchronized through unified RAF loop:
 - `GET /api/orbit-map/{system_slug}/{body_slug}/` - Orbital data
 - `GET /api/encounter-map/{location_slug}/` - Encounter map data
 - `GET /api/terminal/{location_slug}/{terminal_slug}/` - Terminal messages
-- `POST /api/janus/submit-query/` - Player submits CHARON query (CSRF exempt)
+- `POST /api/janus/submit-query/` - Player submits JANUS query (CSRF exempt)
 - `POST /api/janus/toggle-dialog/` - Toggle JANUS dialog (CSRF exempt)
 - `POST /api/hide-terminal/` - Hide terminal overlay (CSRF exempt)
 

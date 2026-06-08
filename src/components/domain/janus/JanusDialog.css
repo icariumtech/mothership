@@ -102,7 +102,7 @@
   color: var(--color-amber, #8b7355);
 }
 
-.janus-dialog-backdrop .janus-message.charon {
+.janus-dialog-backdrop .janus-message.janus {
   color: var(--color-text-primary, #9a9a9a);
 }
 

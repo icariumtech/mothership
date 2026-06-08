@@ -100,7 +100,12 @@ class PayloadBuilder:
 
         npcs = self._get_npcs()
         response['encounter_npc_data'] = {
-            npc['id']: {'id': npc['id'], 'name': npc['name'], 'portrait': npc.get('portrait', '')}
+            npc['id']: {
+                'id': npc['id'],
+                'name': npc['name'],
+                'portrait': npc.get('portrait', ''),
+                'met': npc.get('met') is True,
+            }
             for npc in npcs
             if npc.get('id')
         }

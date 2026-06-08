@@ -32,7 +32,12 @@ MCP list: `list_files("campaign/npcs")`
 | `status` | enum | `ACTIVE \| INACTIVE \| DECEASED \| UNKNOWN` |
 | `description` | string | One-paragraph narrative description |
 
-Optional fields (background NPCs): `location` (string — in-world location name), `portrait` (path string)
+Optional fields (background NPCs): `location` (string — in-world location name), `portrait` (path string), `met` (bool — see below)
+
+**`met` (player visibility):** `met: true` means the players have met this NPC, so it appears in
+the player terminal's Personnel section. Absent or `false` → hidden from players (the GM still sees
+it). New NPCs default to hidden until met. The GM flips this from the NPC Portraits panel
+(MET/UNMET toggle) or by setting the field in YAML.
 
 ### Combatant / Significant NPC (full)
 

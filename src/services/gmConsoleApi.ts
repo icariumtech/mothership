@@ -124,6 +124,14 @@ async function getSessions(): Promise<SessionLog[]> {
   return response.data.sessions;
 }
 
+/** Mark whether the players have met an NPC. Omit `met` to flip the current value. */
+async function toggleNpcMet(npcId: string, met?: boolean): Promise<{ npc_id: string; met: boolean }> {
+  const body: { npc_id: string; met?: boolean } = { npc_id: npcId };
+  if (met !== undefined) body.met = met;
+  const response = await api.post<{ npc_id: string; met: boolean }>('/gm/npc/toggle-met/', body);
+  return response.data;
+}
+
 async function setShipLocation(locationSlug: string): Promise<void> {
   await api.post('/gm/ship/set-location/', { location_slug: locationSlug });
 }
@@ -197,6 +205,7 @@ export const gmConsoleApi = {
   updateSystemFault,
   updateSystemWarnings,
   getCrew,
+  toggleNpcMet,
   getSessions,
   setShipLocation,
   showDoc,

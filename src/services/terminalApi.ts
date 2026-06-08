@@ -3,6 +3,7 @@
  * Handles API calls for comm terminal data and messages.
  */
 import { api } from './api';
+import type { CrewMember, NPC } from '@components/domain/dashboard/BridgeView';
 
 export interface TerminalMessage {
   message_id: string;
@@ -84,6 +85,12 @@ async function updateBridgeLabel(label: string): Promise<void> {
   await api.post('/bridge-selection/', { label });
 }
 
+/** Player-facing personnel: crew + only the NPCs the players have met. */
+async function getPersonnel(): Promise<{ crew: CrewMember[]; npcs: NPC[] }> {
+  const response = await api.get<{ crew: CrewMember[]; npcs: NPC[] }>('/personnel/');
+  return response.data;
+}
+
 export const terminalApi = {
   getTerminalData,
   showTerminal,
@@ -91,4 +98,5 @@ export const terminalApi = {
   updateBridgeSelection,
   updateBridgeTab,
   updateBridgeLabel,
+  getPersonnel,
 };

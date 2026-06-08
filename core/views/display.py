@@ -75,7 +75,8 @@ def display_view_react(request):
     loader = get_loader()
     crew_data = loader.load_crew()
     crew_json = json.dumps(crew_data)
-    npcs_data = loader.load_npcs()
+    # Players only see NPCs they have met (met: true in the NPC YAML).
+    npcs_data = [npc for npc in loader.load_npcs() if npc.get('met') is True]
     npcs_json = json.dumps(npcs_data)
 
     # Load session logs

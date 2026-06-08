@@ -5,4 +5,5 @@ faction: "Weyland-Yutani"
 location: "Veil Station"
 portrait: "/data/campaign/images/portraits/lucia_vance.png"
 status: "ACTIVE"
+met: true
 description: "Oversees all operations aboard Veil Station. Calm under pressure but known to prioritize corporate interests over crew safety. Has extensive knowledge of xenobiological containment protocols."

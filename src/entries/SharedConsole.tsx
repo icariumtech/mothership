@@ -395,6 +395,9 @@ function SharedConsole() {
     }, []),
     onDataChanged: useCallback(async (payload: unknown) => {
       console.log('[SSE] data-changed received', payload);
+      // Notify section components (e.g. Personnel) that campaign data changed so
+      // they can re-fetch their own data alongside the active-view refresh.
+      window.dispatchEvent(new CustomEvent('janus:data-changed', { detail: payload }));
       const response = await fetch('/api/active-view/');
       if (!response.ok) { console.error('[SSE] active-view re-fetch failed', response.status); return; }
       const fresh = await response.json() as ActiveView;

@@ -46,6 +46,7 @@ export interface NpcPortraitData {
   id: string;
   name: string;
   portrait: string;  // URL path like "/data/campaign/images/portraits/lucia_vance.png" or ""
+  met: boolean;      // true = players have met this NPC; shown in their Personnel section
 }
 
 export interface ActiveView {

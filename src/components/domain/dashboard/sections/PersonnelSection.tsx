@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DashboardPanel } from '@components/ui/DashboardPanel';
 import { buildInfoHTML } from '../InfoPanel';
 import type { CrewMember, NPC } from '../BridgeView';
@@ -98,7 +98,28 @@ export function PersonnelSection() {
   const [selected, setSelected] = useState<SelectedPerson | null>(null);
 
   const crew = useMemo(() => getCrewData(), []);
-  const npcs = useMemo(() => getNpcData(), []);
+  // NPCs the players have met can change mid-session when the GM toggles them.
+  // Seed from the (already met-filtered) initial data, then keep in sync with the
+  // server on mount and whenever a data-changed event fires.
+  const [npcs, setNpcs] = useState<NPC[]>(() => getNpcData());
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const data = await terminalApi.getPersonnel();
+        if (!cancelled) setNpcs(data.npcs);
+      } catch {
+        /* keep last-known list on failure */
+      }
+    };
+    refresh();
+    window.addEventListener('janus:data-changed', refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('janus:data-changed', refresh);
+    };
+  }, []);
 
   // Group NPCs by location, sorted alphabetically
   const npcGroups = useMemo(() => {

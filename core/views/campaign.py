@@ -1,7 +1,9 @@
 from django.http import JsonResponse, FileResponse, Http404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from core.models import Message
 import json
+import logging
 import yaml
 import os
 import mimetypes
@@ -11,6 +13,8 @@ from core.data_loader import get_loader
 from core.active_view_store import get_state
 from core.sse_broadcaster import broadcaster, format_sse
 from .active_view import sync_state
+
+logger = logging.getLogger(__name__)
 
 
 def get_messages_json(request):
@@ -180,6 +184,78 @@ def api_crew(request):
     crew = loader.load_crew()
     npcs = loader.load_npcs()
     return JsonResponse({'crew': crew, 'npcs': npcs})
+
+
+@login_required
+def api_personnel(request):
+    """
+    Player endpoint — returns crew and only the NPCs the players have met.
+    An NPC is "met" when its YAML has `met: true`; absent/false stays hidden.
+    GET: Returns { crew: [...], npcs: [...] }
+    """
+    loader = get_loader()
+    crew = loader.load_crew()
+    npcs = [npc for npc in loader.load_npcs() if npc.get('met') is True]
+    return JsonResponse({'crew': crew, 'npcs': npcs})
+
+
+@csrf_exempt
+@login_required
+def api_gm_toggle_npc_met(request):
+    """
+    GM endpoint — mark whether the players have met an NPC.
+
+    POST /api/gm/npc/toggle-met/  body: { npc_id, met? }
+    When `met` is omitted the current value is flipped. Persists the `met`
+    field into the NPC's YAML file and broadcasts a data-changed event so
+    connected player terminals refresh their Personnel section.
+
+    Returns: 200 { npc_id, met } · 400 invalid · 404 unknown npc · 405 non-POST
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        body = json.loads(request.body or '{}')
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    npc_id = str(body.get('npc_id', '')).strip()
+    # Reject path traversal — npc_id is used to build a filename
+    if not npc_id or any(c in npc_id for c in ('/', '\\', '..')):
+        return JsonResponse({'error': 'Invalid npc_id'}, status=400)
+
+    npc_path = pathlib.Path(settings.DATA_DIR) / 'campaign' / 'npcs' / f'{npc_id}.yaml'
+    if not npc_path.is_file():
+        return JsonResponse({'error': f'NPC not found: {npc_id}'}, status=404)
+
+    try:
+        with open(npc_path) as f:
+            data = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError) as e:
+        return JsonResponse({'error': f'Could not read NPC file: {e}'}, status=400)
+
+    requested = body.get('met')
+    if requested is None:
+        new_met = not bool(data.get('met'))
+    else:
+        new_met = requested if isinstance(requested, bool) else str(requested).lower() in ('true', '1', 'yes')
+
+    data['met'] = new_met
+    try:
+        with open(npc_path, 'w') as f:
+            yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
+    except OSError as e:
+        return JsonResponse({'error': f'Could not write NPC file: {e}'}, status=500)
+
+    try:
+        broadcaster.announce_generic('data-changed', {
+            'path': f'campaign/npcs/{npc_id}.yaml', 'action': 'npc-met', 'met': new_met,
+        })
+    except Exception as e:
+        logger.warning('SSE broadcast failed after npc-met toggle: %s', e)
+
+    return JsonResponse({'npc_id': npc_id, 'met': new_met})
 
 
 

@@ -36,6 +36,19 @@ Key systems shipped in v1.0:
 - NPC portrait overlays on player terminal
 - Flat location hierarchy with orbit map self-registration
 
+## Current Milestone: v3.0 Better Deckplans
+
+**Goal:** Make deckplan maps richer and easier to author — a visual editor in the GM Console, blueprint-grade visual detail, and an isometric presentation mode.
+
+**Target features:**
+- Interactive deckplan editor (Phase 29 context ready) — legacy `map/` format removal, live preview under Monaco, deck selector, map→YAML click-to-jump, POI placement via surgical text edits
+- Map detail system — decorative linework (room interiors + hull greebles) authored in Inkscape "Details" sublayers, converted by `svg_to_map.py`; room details tied to room reveal, exterior details always visible
+- Per-deck hull polygons — each deck may declare its own hull outline
+- Circular room conversion — `svg_to_map.py` emits `circle` rooms from SVG circles/ellipses (renderer already supports them)
+- Isometric view — iso projection behind the `gridProjection`/`mapView` seam, live top-down↔iso toggle on player + GM views
+
+**Key constraints:** surgical YAML edits only (no reserialize); schema-sync rule on every format change.
+
 ## Requirements
 
 ### Validated
@@ -74,8 +87,12 @@ Key systems shipped in v1.0:
 
 ### Active
 
-- [ ] UI audio — click sounds, transition effects, ambient atmosphere (AUDI-01..03, deferred from v1.0)
-- [ ] Interactive deckplan map editor — live preview, YAML sync, POI placement (Phase 29, context gathered 2026-06-05)
+- [ ] Interactive deckplan map editor — live preview, YAML sync, POI placement (Phase 29, context gathered 2026-06-05) — v3.0
+- [ ] Map detail linework — room interiors + hull greebles via SVG Details layers — v3.0
+- [ ] Per-deck hull polygons — v3.0
+- [ ] Circular room SVG conversion — v3.0
+- [ ] Isometric view toggle (player + GM) — v3.0
+- [ ] UI audio — click sounds, transition effects, ambient atmosphere (AUDI-01..03, deferred from v1.0; not in v3.0)
 
 ### Out of Scope
 
@@ -128,5 +145,22 @@ Key systems shipped in v1.0:
 | Targeted map-element edit endpoint (resolver + verbs) | AI edits one room/door/POI without rewriting deckplan.yaml; 404/409 return suggestions instead of failing | ✓ Good |
 | Phase 26 shipped ad-hoc without plans | Small polish pass; formal planning overhead not justified | ✓ Accepted |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-06-12 after v2.0 milestone (AI Tooling) archived*
+*Last updated: 2026-06-12 — v3.0 Better Deckplans milestone started*

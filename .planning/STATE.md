@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: Phase 30 complete; STATE.md reconciled
-last_updated: "2026-06-12T15:25:22.629Z"
-last_activity: 2026-06-12 — Milestone v2.0 completed and archived
+milestone: v3.0
+milestone_name: Better Deckplans
+status: planning
+last_updated: "2026-06-12T17:02:11.183Z"
+last_activity: 2026-06-12
 progress:
-  total_phases: 9
-  completed_phases: 7
-  total_plans: 31
-  completed_plans: 31
-  percent: 78
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-12)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** Awaiting next milestone (/gsd:new-milestone) — Phase 29 (deckplan map editor) is the leading candidate; Phase 30 already shipped
+**Current focus:** v3.0 Better Deckplans — defining requirements
 
 ## Current Position
 
-Phase: Milestone v2.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-12 — Milestone v2.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-06-12 — Milestone v3.0 started
 
 ## v1.0 Milestone Archive
 
@@ -79,8 +78,8 @@ Items acknowledged and deferred at v2.0 milestone close on 2026-06-12 (all pre-d
 ## Session Continuity
 
 Last session: 2026-06-12
-Stopped at: v2.0 milestone archived
-Next step: /gsd:new-milestone
+Stopped at: v3.0 milestone started — defining requirements
+Next step: requirements → roadmap
 
 ## Performance Metrics
 

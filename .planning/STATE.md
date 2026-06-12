@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-06-12T17:02:11.183Z"
 last_activity: 2026-06-12
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-12)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** v3.0 Better Deckplans — defining requirements
+**Current focus:** v3.0 Better Deckplans — roadmap defined, ready to plan Phase 29
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 29 - Interactive deckplan map editor with live preview, YAML sync, and POI placement
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-12 — Milestone v3.0 started
+Status: Ready to plan
+Last activity: 2026-06-12 — v3.0 roadmap created (Phase 29, 31-33)
 
 ## v1.0 Milestone Archive
 

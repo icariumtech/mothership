@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1–20 (shipped 2026-05-07)
 - ✅ **v2.0 AI Tooling** — Phases 21–28 + 28.1 (shipped 2026-06-12)
-- 📋 **Next milestone** — Phase 29 onward (run `/gsd:new-milestone` to define)
+- 🚧 **v3.0 Better Deckplans** — Phase 29, 31–33 (in progress)
 
 ## Phases
 
@@ -53,22 +53,63 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
 
 </details>
 
-### 📋 Post-v2.0 (next milestone TBD)
+### 🚧 v3.0 Better Deckplans (Phase 29, 31–33)
 
 - [ ] Phase 29: Interactive deckplan map editor with live preview, YAML sync, and POI placement
-  - **Goal:** [To be planned — context gathered 2026-06-05]
-  - **Requirements**: TBD
+  - **Goal:** Give the GM a visual way to author deckplan maps — consolidate on `deckplan.yaml` as the sole format, then extend the GM Console file editor with a live map preview, deck selector, click-to-jump, and POI placement/move via surgical text edits.
   - **Depends on:** Phase 28
+  - **Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EDIT-05, EDIT-06
+  - **Success Criteria** (what must be TRUE):
+    1. Every location's deckplan loads from `deckplan.yaml` only — somnus migrated, legacy `map/manifest.yaml` + per-deck `map/*.yaml` loaders and fallback branches removed
+    2. GM opens a `deckplan.yaml` in the file editor and sees a live rendered map preview below Monaco
+    3. GM can switch which deck the preview renders via a deck selector
+    4. GM clicks a room or POI on the preview and Monaco reveals + highlights the corresponding YAML line
+    5. GM can drag a POI to move it or click an empty cell to add a POI stub, with both written back as surgical text patches (no reserialize)
   - **Plans:** 0 plans (run `/gsd:plan-phase 29` to break down)
   - Context: `.planning/phases/29-interactive-deckplan-map-editor-with-live-preview-yaml-sync-/29-CONTEXT.md`
 
-- [x] Phase 30: AI map editing — element resolver + targeted edit MCP tools (3/3 plans) — completed 2026-06-06 (executed out of order, ahead of Phase 29)
+- [x] Phase 30: AI map editing — element resolver + targeted edit MCP tools (3/3 plans) — completed 2026-06-06 (executed out of order, ahead of Phase 29; ad-interim, not v3.0 scope)
   - **Goal:** Let the JANUS AI edit a single deckplan element (room/corridor/door) and add/remove POIs without reading or rewriting the whole `deckplan.yaml`. Adds a server-side element resolver (id / slugified label / glob / fuzzy), an atomic targeted-edit endpoint (`set` field-merge + `add_poi`/`remove_poi` list verbs) with `data-changed` SSE, two MCP tools (`find_map_element`, `edit_map_element`), and deterministic human-readable element ids from `svg_to_map.py`. Independent of Phase 29's GUI editor but provides a resolution layer it can reuse.
   - **Requirements**: E-01–E-07 (defined in 30-CONTEXT.md)
   - Plans:
     - [x] 30-01-PLAN.md — Backend: `_resolve_map_element` + `api_gm_data_map_edit` endpoint + tests (Wave 1)
     - [x] 30-02-PLAN.md — Stable element ids — already satisfied (slug+unique exists; doors use derived id) (Wave 1)
     - [x] 30-03-PLAN.md — MCP tools `find_map_element`/`edit_map_element` + schema docs (Wave 2)
+
+- [ ] Phase 31: Deckplan Format — Per-Deck Hulls & Detail Linework
+  - **Goal:** Extend the `deckplan.yaml` schema and `EncounterMapRenderer` so decks can declare their own hull geometry and decorative detail linework, with interior details gated by room reveal.
+  - **Depends on:** Phase 29 (deckplan.yaml is the sole format; editor preview benefits from but does not require this)
+  - **Requirements**: HULL-01, HULL-02, DET-01, DET-03
+  - **Success Criteria** (what must be TRUE):
+    1. A deck in `deckplan.yaml` can declare its own hull polygon that overrides the location-level hull when present
+    2. A deck hull can consist of multiple disjoint polygons (pods, nacelles, detached modules), and the renderer draws each correctly
+    3. `deckplan.yaml` supports decorative detail linework attached to a room and to the deck exterior, and `EncounterMapRenderer` draws it
+    4. Players viewing an unrevealed room do not see its interior detail linework; once revealed, the details appear
+    5. Exterior/hull detail linework is always visible regardless of room reveal state
+  - **Plans:** 0 plans (run `/gsd:plan-phase 31` to break down)
+  - **UI hint**: yes
+
+- [ ] Phase 32: SVG Converter — Details, Per-Deck Hulls, Circular Rooms
+  - **Goal:** Extend `tools/svg_to_map.py` to emit the new Phase 31 schema fields and circular rooms, so Inkscape-authored decks convert directly into richer `deckplan.yaml` output.
+  - **Depends on:** Phase 31 (emits the format Phase 31 defines)
+  - **Requirements**: DET-02, HULL-03, CIRC-01
+  - **Success Criteria** (what must be TRUE):
+    1. Running `svg_to_map.py` on an SVG with a "Details" sublayer produces detail linework entries in the output `deckplan.yaml`, correctly associated with their room or the deck exterior
+    2. Running `svg_to_map.py` on an SVG with per-deck "Hull" sublayers produces per-deck hull polygons (including multi-polygon hulls) in the output
+    3. Running `svg_to_map.py` on an SVG containing `<circle>`/`<ellipse>` elements in a room layer produces `circle` room entries in the output, renderable by the existing renderer
+    4. Converted output remains valid per `docs/schemas/schema-encounters.md`, updated in the same commit as the format change
+  - **Plans:** 0 plans (run `/gsd:plan-phase 32` to break down)
+
+- [ ] Phase 33: Isometric View
+  - **Goal:** Add an isometric projection alongside the existing top-down view, with a live toggle on both the player encounter view and the GM console map.
+  - **Depends on:** Phase 31 (details/hulls must project correctly in iso)
+  - **Requirements**: ISO-01, ISO-02, ISO-03
+  - **Success Criteria** (what must be TRUE):
+    1. Any deckplan can render in an isometric projection via the existing `gridProjection`/`mapView` seam — rooms, doors, vents, POIs, tokens, and detail linework all appear correctly positioned
+    2. Players can toggle the encounter view between top-down and isometric, with the change applying live (a cut, not an animated transition)
+    3. The GM can independently toggle the GM console map between top-down and isometric, live
+  - **Plans:** 0 plans (run `/gsd:plan-phase 33` to break down)
+  - **UI hint**: yes
 
 ## Progress
 
@@ -84,5 +125,8 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
 | 27. MCP Image Upload | v2.0 | 3/3 | ✓ Complete | 2026-05-27 |
 | 28. GM Console File Editor | v2.0 | 3/3 | ✓ Complete | 2026-06-01 |
 | 28.1. Audit Gap Closure (INSERTED) | v2.0 | 3/3 | ✓ Complete | 2026-06-05 |
-| 29. Deckplan Map Editor | TBD | 0/? | Context gathered | - |
-| 30. AI Map Editing MCP Tools | TBD | 3/3 | ✓ Complete | 2026-06-06 |
+| 29. Deckplan Map Editor | v3.0 | 0/? | Context gathered | - |
+| 30. AI Map Editing MCP Tools | (ad-interim) | 3/3 | ✓ Complete | 2026-06-06 |
+| 31. Deckplan Format — Hulls & Details | v3.0 | 0/? | Not started | - |
+| 32. SVG Converter — Details/Hulls/Circles | v3.0 | 0/? | Not started | - |
+| 33. Isometric View | v3.0 | 0/? | Not started | - |

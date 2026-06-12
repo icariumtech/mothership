@@ -58,3 +58,19 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
+| EDIT-01 | Phase 29 | Pending |
+| EDIT-02 | Phase 29 | Pending |
+| EDIT-03 | Phase 29 | Pending |
+| EDIT-04 | Phase 29 | Pending |
+| EDIT-05 | Phase 29 | Pending |
+| EDIT-06 | Phase 29 | Pending |
+| HULL-01 | Phase 31 | Pending |
+| HULL-02 | Phase 31 | Pending |
+| DET-01 | Phase 31 | Pending |
+| DET-03 | Phase 31 | Pending |
+| DET-02 | Phase 32 | Pending |
+| HULL-03 | Phase 32 | Pending |
+| CIRC-01 | Phase 32 | Pending |
+| ISO-01 | Phase 33 | Pending |
+| ISO-02 | Phase 33 | Pending |
+| ISO-03 | Phase 33 | Pending |

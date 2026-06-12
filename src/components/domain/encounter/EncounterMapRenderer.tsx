@@ -657,6 +657,8 @@ export function EncounterMapRenderer({
       const transform = mapRotation !== 0
         ? `rotate(${-mapRotation}, ${lx}, ${ly})`
         : undefined;
+      // SVG <text> ignores newlines — split into tspans, vertically centered on ly
+      const lines = room.name!.split('\n');
       return (
         <text
           x={lx}
@@ -668,7 +670,15 @@ export function EncounterMapRenderer({
           dominantBaseline="middle"
           transform={transform}
         >
-          {room.name}
+          {lines.map((line, i) => (
+            <tspan
+              key={i}
+              x={lx}
+              dy={i === 0 ? `${-(lines.length - 1) * 0.55}em` : '1.1em'}
+            >
+              {line}
+            </tspan>
+          ))}
         </text>
       );
     })() : null;

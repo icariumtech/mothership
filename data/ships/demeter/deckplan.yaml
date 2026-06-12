@@ -461,7 +461,7 @@ decks:
     # description: ""
     # type: ""
   - id: captain_s_quarters
-    name: CAPTAIN'S QUARTERS
+    name: "CAPTAIN'S\nQUARTERS"
     polygon:
     - [10, 68]
     - [10, 69]

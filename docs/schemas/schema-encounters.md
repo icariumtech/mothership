@@ -83,7 +83,7 @@ Each room entry in the `rooms:` list.
 | Field | Type | Required | Note |
 |---|---|---|---|
 | `id` | string | yes | Unique within this deck |
-| `name` | string | no | Display label — empty string suppresses label |
+| `name` | string | no | Display label — empty string suppresses label; `\n` (in a double-quoted YAML string, e.g. `"CAPTAIN'S\nQUARTERS"`) renders as a line break on the map |
 | `type` | string | no | `"corridor"` skips label rendering |
 | `rects` | list | shape | Rectangle(s) — see rect fields |
 | `polygon` | list | shape | Freeform vertices: `[[x,y], ...]` in grid cells |

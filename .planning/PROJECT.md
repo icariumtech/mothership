@@ -10,15 +10,24 @@ Give the GM a single tool that enhances the tabletop experience with atmospheric
 
 ## Current State
 
-**Shipped:** v1.0 MVP (2026-05-07) · **Active:** v2.0 geometry deepening
+**Shipped:** v1.0 MVP (2026-05-07) · v2.0 AI Tooling (2026-06-12) · **Active:** between milestones (Phase 30 shipped ad-interim; Phase 29 context gathered)
 
-- 24 phases complete · Phase 24 (janus-skills) complete 2026-05-20
-- ~171,534 LOC (TypeScript + Python) + standalone `janus-skills` repo (8 Claude Code skills, 5 schema resources, install.sh)
+- 30 phases complete (Phase 29 pending) · v2.0 archived 2026-06-12
+- ~40k LOC first-party source (TypeScript + Python) + standalone `janus-skills` repo (10 Claude Code skills, schema resources, install.sh)
 - Tech stack: Django 5.2.7, React 19, TypeScript, Vite 5.4, React Three Fiber 9.0, Zustand, GSAP, Ant Design 6.1
 - Data: YAML/Markdown files, flat location directory, per-entity character files
+- Deployed: Docker image on GHCR, docker-compose homelab deploy (icarium), MCP server on port 8001
+
+Key systems shipped in v2.0:
+- Encounter renderer deepening — four-module geometry stack, canonical Door model, reveal-cascade scheduler, interaction hooks; Vitest infrastructure
+- Containerization — multi-stage Docker image, external data mount, GHCR CI publish
+- JANUS MCP server (FastMCP HTTP) — campaign read/write tools delegating to Django REST, plus image upload and targeted map-element editing (Phase 30)
+- janus-skills repo — Claude Code skills for AI-driven campaign data management
+- Map playback controls (Chronoscope) + map polish on 3D views
+- GM Console file editor — Monaco-based data-directory editing with `data-changed` SSE auto-refresh on player terminals
 
 Key systems shipped in v1.0:
-- Grid-based encounter maps with wall-segment rendering and room reveal (Phase 21: geometry deepened — canonical Door model, pure roomGeometry/mapView/polygon2d modules, doorNormalizer, scheduleReveal hook, all YAML maps migrated)
+- Grid-based encounter maps with wall-segment rendering and room reveal
 - GM Console redesigned as view-driven architecture (ViewRail/ToolRail/SlideOutPanel)
 - Real-time SSE push replacing 2s polling; ActiveView in-memory store
 - Atmospheric CRT animations across all player-facing transitions
@@ -54,10 +63,19 @@ Key systems shipped in v1.0:
 - ✓ Flat location hierarchy with orbit map self-registration — v1.0
 - ✓ Per-entity character files (crew + NPCs) — v1.0
 - ✓ DATA_DIRECTORY_GUIDE.md — documented data structure — v1.0
+- ✓ Encounter renderer deepening — geometry modules, canonical Door model, reveal scheduler, interaction hooks, Vitest — v2.0
+- ✓ Containerized deployment — Docker image on GHCR, external data mount, compose deploy — v2.0
+- ✓ JANUS MCP server — AI read/write access to campaign YAML over HTTP — v2.0
+- ✓ janus-skills — Claude Code skill library for campaign data management — v2.0
+- ✓ Map playback controls (Chronoscope) + map polish — v2.0
+- ✓ MCP image upload — portraits/logos/maps with conversion — v2.0
+- ✓ GM Console file editor — Monaco editor + data-changed SSE refresh — v2.0
+- ✓ AI targeted map editing — element resolver + find/edit_map_element MCP tools — post-v2.0 (Phase 30)
 
 ### Active
 
 - [ ] UI audio — click sounds, transition effects, ambient atmosphere (AUDI-01..03, deferred from v1.0)
+- [ ] Interactive deckplan map editor — live preview, YAML sync, POI placement (Phase 29, context gathered 2026-06-05)
 
 ### Out of Scope
 
@@ -103,6 +121,12 @@ Key systems shipped in v1.0:
 | Ant Design for layout/forms | Rapid development, consistent components | ✓ Good |
 | PORT-03 design revert | NPCPortraitOverlay not needed on GM screen; toggle controls in NPC Portraits panel are sufficient | ✓ Accepted |
 | api_bridge_selection intentionally public | Player terminal is the caller; player auth not yet implemented; ephemeral write-only, low risk | ✓ Accepted |
+| MCP server delegates to Django REST (no direct file access) | Single write path with traversal guard + atomic YAML write; SSE broadcast for free | ✓ Good |
+| janus-skills as standalone repo with symlink installer | Skills versioned independently; schema docs synced from main repo via CI | ✓ Good |
+| Monaco editor for GM file editing | Full YAML/MD editing in browser; eliminates SSH round-trips during play | ✓ Good |
+| Generic `data-changed` SSE event | One event covers all AI/GM data writes; player terminals re-fetch active view | ✓ Good |
+| Targeted map-element edit endpoint (resolver + verbs) | AI edits one room/door/POI without rewriting deckplan.yaml; 404/409 return suggestions instead of failing | ✓ Good |
+| Phase 26 shipped ad-hoc without plans | Small polish pass; formal planning overhead not justified | ✓ Accepted |
 
 ---
-*Last updated: 2026-05-20 after Phase 24 (janus-skills — Claude Code skill library)*
+*Last updated: 2026-06-12 after v2.0 milestone (AI Tooling) archived*

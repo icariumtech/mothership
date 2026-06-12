@@ -2,34 +2,33 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: Ready to archive milestone
-stopped_at: Phase 29 context gathered
-last_updated: "2026-06-05T22:18:38.277Z"
-last_activity: 2026-06-05
+status: Awaiting next milestone
+stopped_at: Phase 30 complete; STATE.md reconciled
+last_updated: "2026-06-12T15:25:22.629Z"
+last_activity: 2026-06-12 — Milestone v2.0 completed and archived
 progress:
-  total_phases: 8
-  completed_phases: 6
-  total_plans: 28
-  completed_plans: 28
-  percent: 75
+  total_phases: 9
+  completed_phases: 7
+  total_plans: 31
+  completed_plans: 31
+  percent: 78
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-07)
+See: .planning/PROJECT.md (updated 2026-06-12)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** v2.0 Milestone complete — ready to archive
+**Current focus:** Awaiting next milestone (/gsd:new-milestone) — Phase 29 (deckplan map editor) is the leading candidate; Phase 30 already shipped
 
 ## Current Position
 
-Phase: 28.1 (close-gap-d-10-data-changed-sse-consumer) — COMPLETE
-Plan: 3 of 3
-All v2.0 phases + audit gap closure complete. Ready to archive milestone.
-
-Last activity: 2026-06-05
+Phase: Milestone v2.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-12 — Milestone v2.0 completed and archived
 
 ## v1.0 Milestone Archive
 
@@ -51,12 +50,37 @@ See `.planning/milestones/v1.0-ROADMAP.md` for full v1.0 decision log.
 - Phase 28 added: GM Console Data Directory File Editor
 - Phase 28.1 inserted (URGENT) after 28: Close gap: D-10 — data-changed SSE consumer + Phase 28 UAT + VERIFICATION.md for phases 25/27/28
 - Phase 29 added: Interactive deckplan map editor with live preview, YAML sync, and POI placement
+- Phase 30 added + executed (2026-06-06, out of order before 29): AI map editing — element resolver + find_map_element/edit_map_element MCP tools
+
+## Deferred Items
+
+Items acknowledged and deferred at v2.0 milestone close on 2026-06-12 (all pre-date v2.0 scope):
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | custom-token-not-placeable | investigating (stale, 2026-02-16) |
+| debug | token-drag-preview-too-large | diagnosed (stale, 2026-02-16) |
+| debug | token-labels-gm-console | investigating (stale, 2026-02-16) |
+| debug | token-popup-missing-controls | investigating (stale, 2026-02-16) |
+| debug | token-visibility-hidden-rooms | diagnosed (stale, 2026-02-16) |
+| uat | Phase 02 02-UAT.md | passed, 0 pending (status-field noise) |
+| uat | Phase 03 03-UAT.md | diagnosed, 0 pending (status-field noise) |
+| uat | Phase 14 14-UAT.md | passed, 0 pending (status-field noise) |
+| uat | Phase 16 16-HUMAN-UAT.md | partial — 2 pending scenarios (v1.0) |
+| uat | Phase 17 17-HUMAN-UAT.md | partial — 2 pending scenarios (v1.0) |
+| uat | Phase 18 18-UAT.md | testing, 0 pending (status-field noise) |
+| verification | Phase 09 09-VERIFICATION.md | human_needed (v1.0) |
+| verification | Phase 16 16-VERIFICATION.md | human_needed (v1.0) |
+| verification | Phase 17 17-VERIFICATION.md | human_needed (v1.0) |
+| verification | Phase 18 18-VERIFICATION.md | human_needed (v1.0) |
+| todo | 2026-03-26-replace-charon-view-with-overlay-tool-on-standby-view | pending (ui) |
+| todo | 2026-03-26-show-docs-and-npc-portraits-on-standby-view | pending (ui) |
 
 ## Session Continuity
 
-Last session: 2026-06-05T22:18:38.268Z
-Stopped at: Phase 29 context gathered
-Next step: /gsd:complete-milestone
+Last session: 2026-06-12
+Stopped at: v2.0 milestone archived
+Next step: /gsd:new-milestone
 
 ## Performance Metrics
 
@@ -68,3 +92,7 @@ Next step: /gsd:complete-milestone
 | Phase 28.1 P01 | 12min | 2 tasks | 2 files |
 | Phase 28.1 P02 | interactive | 11 UAT tests | all pass |
 | Phase 28.1 P03 | 15min | 3 tasks | 3 VERIFICATION files |
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd:new-milestone

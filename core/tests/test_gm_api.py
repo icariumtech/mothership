@@ -29,6 +29,23 @@ class GmDataApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
 
+    def test_list_files_accepts_path_alias(self):
+        """GET ?path= is accepted as an alias for ?dir= (param parity with read/write tools)."""
+        response = self.client.get('/api/gm/data/', {'path': 'campaign'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+
+    def test_list_missing_dir_returns_empty_list(self):
+        """A directory that does not exist returns 200 + [] (treated as empty), not 404."""
+        response = self.client.get('/api/gm/data/', {'dir': 'campaign/does-not-exist-xyz'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_list_path_traversal_still_blocked(self):
+        """Path traversal remains a hard 400 even with empty-on-missing behavior."""
+        response = self.client.get('/api/gm/data/', {'dir': '../../config'})
+        self.assertEqual(response.status_code, 400)
+
     def test_read_file_returns_yaml_content(self):
         """GET /api/gm/data/{path} returns 200 + text content."""
         response = self.client.get('/api/gm/data/campaign/ship/ship.yaml')

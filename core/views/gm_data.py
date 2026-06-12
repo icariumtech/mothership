@@ -269,17 +269,19 @@ def _public_element(e: dict) -> dict:
 def api_gm_data_list(request):
     """List files and directories in a data subdirectory.
 
-    GET /api/gm/data/?dir=<relative_path>
+    GET /api/gm/data/?dir=<relative_path>   (param 'path' is accepted as an alias)
     Returns a sorted JSON array of objects with "name" and "type" fields.
     Directories appear before files; each group sorted alphabetically.
     dir='' or omitting dir entirely returns the data root listing.
     400 if resolved path escapes DATA_DIR (path traversal attempt).
-    404 if directory does not exist.
+    A directory that does not exist is treated as empty: 200 + [] (NOT 404).
     """
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    rel_dir = request.GET.get('dir', '').strip()
+    # Accept 'path' as an alias for 'dir' so the listing param matches the
+    # read/write tools (which all use 'path') — eliminates a recurring wrong-param guess.
+    rel_dir = (request.GET.get('dir') or request.GET.get('path') or '').strip()
     data_root = Path(settings.DATA_DIR).resolve()
 
     if rel_dir:
@@ -291,8 +293,13 @@ def api_gm_data_list(request):
         # Empty dir param — list the data root
         target = data_root
 
+    # A missing directory returns an empty list, not an error. This lets the AI create
+    # the first file in a not-yet-existing location (e.g. campaign/npcs/) without a
+    # tree-probing detour, and matches the dominant skill pattern of listing a PARENT
+    # and checking membership. Path traversal (above) and "exists but is a file" (below)
+    # remain hard errors.
     if not target.exists():
-        return JsonResponse({'error': f'Directory not found: {rel_dir or "."}'}, status=404)
+        return JsonResponse([], safe=False)
 
     if not target.is_dir():
         return JsonResponse({'error': f'Not a directory: {rel_dir}'}, status=400)

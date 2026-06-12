@@ -26,29 +26,56 @@ JANUS_EXTERNAL_URL = os.environ.get("JANUS_EXTERNAL_URL") or DJANGO_BASE_URL
 
 mcp = FastMCP("JanusGM")
 
+# Generous timeout for data round-trips. The default httpx timeout is 5s, which is
+# easily exceeded by a cold gunicorn worker or a slow SSE broadcast and surfaces to the
+# AI as a spurious "upstream request timed out" — triggering needless retries. Writes
+# are idempotent (PUT overwrites), so a retry after a genuine timeout is always safe.
+_DATA_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
+
 
 @mcp.tool
 async def get_session_context() -> dict:
     """Return current game state snapshot: active encounter, tokens, room visibility, ship status, NPC list."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.get(f"{DJANGO_BASE_URL}/api/gm/session-context")
         r.raise_for_status()
         return r.json()
 
 
 @mcp.tool
-async def list_files(dir: str) -> list:
-    """List files in a data directory. dir is relative to data/ (e.g. 'campaign/crew')."""
-    async with httpx.AsyncClient() as client:
-        r = await client.get(f"{DJANGO_BASE_URL}/api/gm/data/", params={"dir": dir})
+async def list_files(path: str) -> list:
+    """List files and directories in a data directory. `path` is relative to data/.
+
+    Returns a list of {"name", "type"} entries (directories first, then files).
+    A directory that does not exist yet returns an EMPTY LIST ([]), not an error — so if
+    you list a target like 'campaign/npcs' and it comes back empty, just create the first
+    file there; do NOT go probing parent directories. To check whether a location exists,
+    list its PARENT and look for the slug among the entries.
+
+    Canonical locations (no need to probe for these):
+      campaign/npcs               NPC files (one .yaml per NPC)
+      campaign/crew               player crew files
+      campaign/sessions           session logs
+      campaign/ship               player ship + deckplan
+      campaign/images/portraits   converted portraits
+      campaign/corporation.yaml   corporations (single file, not a dir)
+      galaxy/<system>             bodies within a star system
+      ships/<slug>                a ship's location.yaml + deckplan.yaml
+    """
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
+        r = await client.get(f"{DJANGO_BASE_URL}/api/gm/data/", params={"dir": path})
         r.raise_for_status()
         return r.json()
 
 
 @mcp.tool
 async def read_file(path: str) -> str:
-    """Read raw YAML content of a campaign file. path is relative to data/ (e.g. 'campaign/ship/ship.yaml')."""
-    async with httpx.AsyncClient() as client:
+    """Read raw YAML content of a campaign file. path is relative to data/ (e.g. 'campaign/ship/ship.yaml').
+
+    To change just a few fields, prefer patch_yaml (no read needed) over read_file + write_file —
+    it avoids spending tokens loading the whole file.
+    """
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.get(f"{DJANGO_BASE_URL}/api/gm/data/{path}")
         r.raise_for_status()
         return r.text
@@ -58,6 +85,12 @@ async def read_file(path: str) -> str:
 async def write_file(path: str, content: str) -> dict:
     """Write content to a campaign file. Triggers SSE broadcast to player terminals.
 
+    Idempotent: this is a full-file overwrite (PUT). If a call returns a timeout/network
+    error, it is safe to retry — a duplicate write produces the same result. To confirm a
+    suspect write landed, read_file the path rather than re-listing the directory.
+
+    For changing only a few fields of an existing file, prefer patch_yaml instead.
+
     Supported extensions:
       .yaml / .yml — full YAML validation applied; content must be valid YAML.
       .md          — YAML frontmatter block (between leading --- fences) is validated if present;
@@ -65,7 +98,7 @@ async def write_file(path: str, content: str) -> dict:
                      (e.g. comms/analysis-lab/logs/001-entry.md) and routed messages
                      (e.g. comms/messages/001_discovery.md).
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.put(
             f"{DJANGO_BASE_URL}/api/gm/data/{path}",
             content=content,
@@ -82,7 +115,7 @@ async def read_field(path: str, field_path: str) -> Any:
     path: relative to data/ (e.g. 'galaxy/star_map.yaml')
     field_path: dot-separated path to the field (e.g. 'star.name', 'camera.fov', 'systems')
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.get(
             f"{DJANGO_BASE_URL}/api/gm/data/{path}",
             params={"field": field_path},
@@ -102,7 +135,7 @@ async def append_list_item(path: str, list_key: str, item: dict) -> dict:
 
     If list_key does not exist in the file yet, it is created as an empty list first.
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.post(
             f"{DJANGO_BASE_URL}/api/gm/data-list-append/{path}",
             json={"list_key": list_key, "item": item},
@@ -120,7 +153,7 @@ async def patch_yaml(path: str, patch: dict) -> dict:
     path: relative to data/ (e.g. 'campaign/corporation.yaml')
     patch: dict of fields to set (supports nested dicts for deep merge)
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.patch(
             f"{DJANGO_BASE_URL}/api/gm/data/{path}",
             json=patch,
@@ -145,7 +178,7 @@ async def find_map_element(deckplan: str, query: str) -> dict:
     kind is one of room | corridor | door. Rooms/corridors are matched by id or display name;
     doors are matched by their id of the form '<roomA>__<roomB>__<index>' (or '<room>__exterior__<index>').
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.get(
             f"{DJANGO_BASE_URL}/api/gm/data-map-edit/{deckplan}",
             params={"q": query},
@@ -193,7 +226,7 @@ async def edit_map_element(
         body["add_poi"] = add_poi
     if remove_poi is not None:
         body["remove_poi"] = remove_poi
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.post(
             f"{DJANGO_BASE_URL}/api/gm/data-map-edit/{deckplan}",
             json=body,
@@ -213,7 +246,7 @@ async def delete_file(path: str) -> dict:
     Triggers SSE broadcast on success. Cannot delete directories.
     Returns: {"ok": true, "path": str, "action": "deleted"}
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.delete(f"{DJANGO_BASE_URL}/api/gm/data/{path}")
         r.raise_for_status()
         return r.json()
@@ -230,7 +263,7 @@ async def rename_file(path: str, new_path: str) -> dict:
     Fails with 409 if destination already exists. Triggers SSE broadcast on success.
     Returns: {"ok": true, "old_path": str, "new_path": str}
     """
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.post(
             f"{DJANGO_BASE_URL}/api/gm/data-rename/{path}",
             json={"new_path": new_path},
@@ -308,7 +341,7 @@ async def upload_svg_map(
 @mcp.tool
 async def get_data_schema() -> str:
     """Return the DATA_DIRECTORY_GUIDE summary so the AI understands the campaign file structure and what files exist."""
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_DATA_TIMEOUT) as client:
         r = await client.get(f"{DJANGO_BASE_URL}/api/gm/data-schema")
         r.raise_for_status()
         return r.text

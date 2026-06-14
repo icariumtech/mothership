@@ -65,7 +65,11 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
     3. GM can switch which deck the preview renders via a deck selector
     4. GM clicks a room or POI on the preview and Monaco reveals + highlights the corresponding YAML line
     5. GM can drag a POI to move it or click an empty cell to add a POI stub, with both written back as surgical text patches (no reserialize)
-  - **Plans:** 0 plans (run `/gsd:plan-phase 29` to break down)
+  - **Plans:** 4 plans
+    - [ ] 29-01-PLAN.md — Consolidate on deckplan.yaml: migrate somnus, remove legacy loaders/fallbacks, schema doc + Django test (Wave 1)
+    - [ ] 29-02-PLAN.md — Pure YAML model + surgical edit builders (buildIdRangeMap/buildPositionEdit/buildAddPoiEdit) + vitest fixture/tests (Wave 2)
+    - [ ] 29-03-PLAN.md — Renderer POI editor props + DeckSelector + DeckplanPreviewPane mounted below Monaco (Wave 3)
+    - [ ] 29-04-PLAN.md — Wire click-to-jump, POI drag-to-move, click-to-add into Monaco + human-verify checkpoint (Wave 4)
   - Context: `.planning/phases/29-interactive-deckplan-map-editor-with-live-preview-yaml-sync-/29-CONTEXT.md`
 
 - [x] Phase 30: AI map editing — element resolver + targeted edit MCP tools (3/3 plans) — completed 2026-06-06 (executed out of order, ahead of Phase 29; ad-interim, not v3.0 scope)
@@ -125,7 +129,7 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
 | 27. MCP Image Upload | v2.0 | 3/3 | ✓ Complete | 2026-05-27 |
 | 28. GM Console File Editor | v2.0 | 3/3 | ✓ Complete | 2026-06-01 |
 | 28.1. Audit Gap Closure (INSERTED) | v2.0 | 3/3 | ✓ Complete | 2026-06-05 |
-| 29. Deckplan Map Editor | v3.0 | 0/? | Context gathered | - |
+| 29. Deckplan Map Editor | v3.0 | 0/4 | Planned | - |
 | 30. AI Map Editing MCP Tools | (ad-interim) | 3/3 | ✓ Complete | 2026-06-06 |
 | 31. Deckplan Format — Hulls & Details | v3.0 | 0/? | Not started | - |
 | 32. SVG Converter — Details/Hulls/Circles | v3.0 | 0/? | Not started | - |

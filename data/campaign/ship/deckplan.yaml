@@ -155,3 +155,81 @@ decks:
   - {id: bridge_door_0, rooms: [bridge, corridor_3], type: standard, status: CLOSED, along: 0.5}
   - {id: corridor_1_door_0, rooms: [corridor_1, corridor_3], type: standard, status: CLOSED, along: 0.5}
   - {id: corridor_2_door_0, rooms: [corridor_2, corridor_3], type: standard, status: CLOSED, along: 0.5}
+- id: lower_deck
+  name: Lower Deck
+  level: 2
+  unit_size: 30
+  rooms:
+  - id: cryo_bay
+    name: CRYO BAY
+    polygon:
+    - [20, 20]
+    - [25, 20]
+    - [25, 29]
+    - [20, 29]
+  - id: med_bay
+    name: MED BAY
+    polygon:
+    - [25, 20]
+    - [30, 20]
+    - [30, 25]
+    - [25, 25]
+  - id: engine_room
+    name: ENGINE ROOM
+    polygon:
+    - [25, 25]
+    - [30, 25]
+    - [30, 29]
+    - [25, 29]
+  - id: armory
+    name: ARMORY
+    polygon:
+    - [20, 9.5]
+    - [25, 9.5]
+    - [25, 15]
+    - [20, 15]
+  - id: storage
+    name: STORAGE
+    polygon:
+    - [25, 9.5]
+    - [30, 9.5]
+    - [30, 15]
+    - [25, 15]
+  - id: airlock
+    name: AIRLOCK
+    polygon:
+    - [23, 3]
+    - [27, 3]
+    - [27, 7]
+    - [23, 7]
+  - id: lower_corridor_1
+    name: ''
+    polygon:
+    - [20, 15]
+    - [20, 20]
+    - [25, 20]
+    - [25, 15]
+    type: corridor
+  - id: lower_corridor_2
+    name: ''
+    polygon:
+    - [25, 15]
+    - [30, 15]
+    - [30, 20]
+    - [25, 20]
+    type: corridor
+  - id: lower_corridor_3
+    name: ''
+    polygon:
+    - [22, 7]
+    - [28, 7]
+    - [28, 9.5]
+    - [22, 9.5]
+    type: corridor
+  doors:
+  - {id: cryo_door_0, rooms: [cryo_bay, lower_corridor_1], type: standard, status: CLOSED, along: 0.5}
+  - {id: med_door_0, rooms: [med_bay, lower_corridor_2], type: standard, status: CLOSED, along: 0.5}
+  - {id: engine_door_0, rooms: [engine_room, lower_corridor_2], type: standard, status: CLOSED, along: 0.5}
+  - {id: armory_door_0, rooms: [armory, lower_corridor_1], type: standard, status: CLOSED, along: 0.5}
+  - {id: storage_door_0, rooms: [storage, lower_corridor_2], type: standard, status: CLOSED, along: 0.5}
+  - {id: airlock_door_0, rooms: [airlock, lower_corridor_3], type: standard, status: CLOSED, along: 0.5}

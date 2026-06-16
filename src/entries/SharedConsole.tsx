@@ -85,6 +85,7 @@ interface ActiveView {
   // Ship deck map (BRIDGE view)
   ship_deck_data?: import('../types/gmConsole').ShipDeckData;
   ship_deck_total_decks?: number;
+  ship_deck_all_decks?: Record<string, import('../types/gmConsole').ShipDeckData['current_deck']>;
 }
 
 interface CorporationData {
@@ -947,6 +948,7 @@ function SharedConsole() {
           shipData={shipData}
           shipDeckData={activeView?.ship_deck_data}
           shipDeckTotalDecks={activeView?.ship_deck_total_decks}
+          shipDeckAllDecks={activeView?.ship_deck_all_decks}
           revealKey={bridgeRevealKey}
         >
           {/* Map components - only visible when map tab is active */}

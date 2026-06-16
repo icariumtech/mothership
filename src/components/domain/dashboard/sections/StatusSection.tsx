@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import type { ShipStatusData, SystemStatus } from '@/types/shipStatus';
 import { EncounterMapDisplay } from '@/components/domain/encounter/EncounterMapDisplay';
 import { DashboardPanel } from '@/components/ui/DashboardPanel';
@@ -13,6 +13,7 @@ interface StatusSectionProps {
   shipData: ShipStatusData | null;
   shipDeckData?: ShipDeckData;
   shipDeckTotalDecks?: number;
+  shipDeckAllDecks?: Record<string, ShipDeckData['current_deck']>;
   revealKey?: number;
 }
 
@@ -82,9 +83,38 @@ function getThresholdClass(pct: number): string {
   return '';
 }
 
-export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, revealKey }: StatusSectionProps) {
+export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, shipDeckAllDecks, revealKey }: StatusSectionProps) {
   const [staggerComplete, setStaggerComplete] = useState(false);
-  const [currentDeckLevel] = useState(1);
+  const [currentDeckId, setCurrentDeckId] = useState<string>(() => shipDeckData?.current_deck_id ?? '');
+
+  // Sync when SSE data arrives after initial render (init to '' if shipDeckData not yet loaded)
+  useEffect(() => {
+    if (shipDeckData?.current_deck_id && !currentDeckId) {
+      setCurrentDeckId(shipDeckData.current_deck_id);
+    }
+  }, [shipDeckData?.current_deck_id, currentDeckId]);
+
+  const deckList = shipDeckData?.manifest?.decks ?? [];
+  const currentDeckMeta = deckList.find(d => d.id === currentDeckId) ?? deckList[0];
+  const currentDeckLevel = currentDeckMeta?.level ?? 1;
+  const currentDeckName = currentDeckMeta?.name ?? '';
+  const rawDeckIndex = deckList.findIndex(d => d.id === currentDeckId);
+  const currentDeckIndex = rawDeckIndex >= 0 ? rawDeckIndex : 0;
+
+  const activeDeckData = useMemo<ShipDeckData | null>(() => {
+    if (!shipDeckData) return null;
+    const overrideDeck = shipDeckAllDecks?.[currentDeckId] ?? null;
+    if (!overrideDeck || currentDeckId === shipDeckData.current_deck_id) return shipDeckData;
+    return { ...shipDeckData, current_deck: overrideDeck, current_deck_id: currentDeckId };
+  }, [shipDeckData, shipDeckAllDecks, currentDeckId]);
+
+  const handlePrevDeck = useCallback(() => {
+    if (currentDeckIndex > 0) setCurrentDeckId(deckList[currentDeckIndex - 1].id);
+  }, [currentDeckIndex, deckList]);
+
+  const handleNextDeck = useCallback(() => {
+    if (currentDeckIndex < deckList.length - 1) setCurrentDeckId(deckList[currentDeckIndex + 1].id);
+  }, [currentDeckIndex, deckList]);
   const previousStatusesRef = useRef<Record<string, SystemStatus> | null>(null);
   const [changingFlags, setChangingFlags] = useState<Record<string, boolean>>({});
   const mapFillRef = useRef<HTMLDivElement>(null);
@@ -414,22 +444,46 @@ export function StatusSection({ shipData, shipDeckData, shipDeckTotalDecks, reve
           className={`status-map-fill glitch-enter${hasCrisis ? ' crisis-tint' : ''}`}
           ref={mapFillRef}
         >
-          {shipDeckData ? (
+          {activeDeckData ? (
             <EncounterMapDisplay
               locationData={{
                 slug: 'campaign_ship',
                 name: ship.name || 'USCSS Morrigan',
                 type: 'ship',
-                map: shipDeckData,
+                map: activeDeckData,
               }}
               isGM={false}
               currentLevel={currentDeckLevel}
               totalLevels={shipDeckTotalDecks || 1}
+              deckName={currentDeckName}
               viewPadding={8}
               showLegend={false}
             />
           ) : (
             <div className="status-map-unavailable">DECK MAP UNAVAILABLE</div>
+          )}
+
+          {/* Deck navigation — inside status-map-fill so it shares the same positioned ancestor
+              as the Reset View button (which is inside the renderer's overlays div at inset:0) */}
+          {deckList.length > 1 && (
+            <div className="status-deck-nav" onClick={e => e.stopPropagation()}>
+              <button
+                className="status-deck-nav__btn status-deck-nav__btn--prev"
+                onClick={handlePrevDeck}
+                disabled={currentDeckIndex <= 0}
+                title="Previous deck"
+              />
+              <div className="status-deck-nav__label">
+                <span className="status-deck-nav__name">{currentDeckName.toUpperCase()}</span>
+                <span className="status-deck-nav__count">{currentDeckIndex + 1}/{deckList.length}</span>
+              </div>
+              <button
+                className="status-deck-nav__btn status-deck-nav__btn--next"
+                onClick={handleNextDeck}
+                disabled={currentDeckIndex >= deckList.length - 1}
+                title="Next deck"
+              />
+            </div>
           )}
         </div>
 

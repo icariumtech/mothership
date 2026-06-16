@@ -70,6 +70,10 @@ class PayloadBuilder:
                 'slug': 'deckplan',
             },
             'ship_deck_total_decks': deckplan['total_decks'],
+            'ship_deck_all_decks': {
+                deck['id']: normalize_deck_poi({**deck, 'deck_id': deck['id']})
+                for deck in decks
+            },
         }
 
     def build(self, state: dict) -> dict:

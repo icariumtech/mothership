@@ -85,6 +85,7 @@ export interface BridgeViewProps {
   shipData?: ShipStatusData | null;
   shipDeckData?: ShipDeckData;
   shipDeckTotalDecks?: number;
+  shipDeckAllDecks?: Record<string, ShipDeckData['current_deck']>;
   revealKey?: number;
 }
 
@@ -111,6 +112,7 @@ export function BridgeView({
   shipData,
   shipDeckData,
   shipDeckTotalDecks,
+  shipDeckAllDecks,
   revealKey,
 }: BridgeViewProps) {
   const [staggerDone, setStaggerDone] = useState(false);
@@ -158,7 +160,7 @@ export function BridgeView({
         {tab === 'map' && children}
         {tab === 'personnel' && <PersonnelSection />}
         {tab === 'logs' && <LogsSection />}
-        {tab === 'status' && <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} revealKey={revealKey} />}
+        {tab === 'status' && <StatusSection shipData={shipData ?? null} shipDeckData={shipDeckData} shipDeckTotalDecks={shipDeckTotalDecks} shipDeckAllDecks={shipDeckAllDecks} revealKey={revealKey} />}
       </Wrap>
     );
   };

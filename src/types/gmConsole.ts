@@ -77,6 +77,7 @@ export interface ActiveView {
   // Ship deck map data (populated when view_type == 'BRIDGE')
   ship_deck_data?: ShipDeckData;
   ship_deck_total_decks?: number;
+  ship_deck_all_decks?: Record<string, ShipDeckData['current_deck']>;
   updated_at: string;
 }
 

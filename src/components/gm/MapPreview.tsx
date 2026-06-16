@@ -77,6 +77,18 @@ interface MapPreviewProps {
   /** Vent visibility state (per-vent) */
   ventsVisible?: boolean;
   onVentsToggle?: (visible: boolean) => void;
+  // ----------------------------------------------------------------
+  // Editor-mode props (Plan 29-03) — forwarded to EncounterMapRenderer.
+  // All four are inert unless `editable` is true.
+  // ----------------------------------------------------------------
+  /** Enable editor-mode POI interactions (click-to-select, drag-to-move, empty-cell-click). */
+  editable?: boolean;
+  /** Called when the user clicks a POI in editor mode. */
+  onPoiClick?: (poiId: string) => void;
+  /** Called when the user drags a POI in editor mode. */
+  onPoiMove?: (poiId: string, x: number, y: number) => void;
+  /** Called when the user clicks an empty grid cell in editor mode. */
+  onEmptyCellClick?: (x: number, y: number) => void;
 }
 
 // V2-1 Color palette (simplified for preview)
@@ -120,6 +132,10 @@ export function MapPreview({
   fill,
   ventsVisible,
   onVentsToggle,
+  editable,
+  onPoiClick,
+  onPoiMove,
+  onEmptyCellClick,
 }: MapPreviewProps) {
   // Grid-format maps: delegate to EncounterMapRenderer with GM controls.
   //
@@ -200,6 +216,10 @@ export function MapPreview({
             onTokenStatusToggle={onTokenStatusToggle}
             ventsVisible={ventsVisible}
             onVentsToggle={onVentsToggle}
+            editable={editable}
+            onPoiClick={onPoiClick}
+            onPoiMove={onPoiMove}
+            onEmptyCellClick={onEmptyCellClick}
           />
         </div>
       </div>

@@ -68,7 +68,7 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
   - **Plans:** 4 plans
     - [x] 29-01-PLAN.md — Consolidate on deckplan.yaml: migrate somnus, remove legacy loaders/fallbacks, schema doc + Django test (Wave 1)
     - [x] 29-02-PLAN.md — Pure YAML model + surgical edit builders (buildIdRangeMap/buildPositionEdit/buildAddPoiEdit) + vitest fixture/tests (Wave 2)
-    - [ ] 29-03-PLAN.md — Renderer POI editor props + DeckSelector + DeckplanPreviewPane mounted below Monaco (Wave 3)
+    - [x] 29-03-PLAN.md — Renderer POI editor props + DeckSelector + DeckplanPreviewPane mounted below Monaco (Wave 3)
     - [ ] 29-04-PLAN.md — Wire click-to-jump, POI drag-to-move, click-to-add into Monaco + human-verify checkpoint (Wave 4)
   - Context: `.planning/phases/29-interactive-deckplan-map-editor-with-live-preview-yaml-sync-/29-CONTEXT.md`
 
@@ -129,7 +129,7 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
 | 27. MCP Image Upload | v2.0 | 3/3 | ✓ Complete | 2026-05-27 |
 | 28. GM Console File Editor | v2.0 | 3/3 | ✓ Complete | 2026-06-01 |
 | 28.1. Audit Gap Closure (INSERTED) | v2.0 | 3/3 | ✓ Complete | 2026-06-05 |
-| 29. Deckplan Map Editor | v3.0 | 2/4 | In Progress|  |
+| 29. Deckplan Map Editor | v3.0 | 3/4 | In Progress|  |
 | 30. AI Map Editing MCP Tools | (ad-interim) | 3/3 | ✓ Complete | 2026-06-06 |
 | 31. Deckplan Format — Hulls & Details | v3.0 | 0/? | Not started | - |
 | 32. SVG Converter — Details/Hulls/Circles | v3.0 | 0/? | Not started | - |

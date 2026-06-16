@@ -4,8 +4,8 @@ milestone: v3.0
 milestone_name: Better Deckplans
 status: executing
 stopped_at: Phase 29 UI-SPEC approved
-last_updated: "2026-06-14T04:10:03.382Z"
-last_activity: 2026-06-14 -- Phase 29 planning complete
+last_updated: "2026-06-16T19:43:19.423Z"
+last_activity: 2026-06-16 -- Phase 29 execution started
 progress:
   total_phases: 21
   completed_phases: 19
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-12)
 
 **Core value:** Give the GM a single tool that enhances the tabletop experience with atmospheric digital interfaces without interrupting gameplay flow.
-**Current focus:** v3.0 Better Deckplans — roadmap defined, ready to plan Phase 29
+**Current focus:** Phase 29 — interactive-deckplan-map-editor-with-live-preview-yaml-sync-
 
 ## Current Position
 
-Phase: 29 - Interactive deckplan map editor with live preview, YAML sync, and POI placement
-Plan: —
-Status: Ready to execute
-Last activity: 2026-06-14 -- Phase 29 planning complete
+Phase: 29 (interactive-deckplan-map-editor-with-live-preview-yaml-sync-) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 29
+Last activity: 2026-06-16 -- Phase 29 execution started
 
 ## v1.0 Milestone Archive
 

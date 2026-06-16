@@ -1,0 +1,54 @@
+name: Test Vessel
+facility_type: ship
+total_decks: 2
+unit_size: 30
+hull:
+  polygon:
+  - [0, 0]
+  - [20, 0]
+  - [20, 15]
+  - [0, 15]
+decks:
+- id: main_deck
+  name: Main Deck
+  level: 1
+  default: true
+  unit_size: 30
+  rooms:
+  - id: bridge
+    name: BRIDGE
+    polygon:
+    - [2, 2]
+    - [8, 2]
+    - [8, 6]
+    - [2, 6]
+  - id: corridor_1
+    name: ''
+    polygon:
+    - [8, 3]
+    - [12, 3]
+    - [12, 5]
+    - [8, 5]
+    type: corridor
+  poi:
+  - {id: poi_alpha, name: Reactor Control, type: objective, icon: reactor core, position: {x: 5, y: 4}}
+- id: lower_deck
+  name: Lower Deck
+  level: 2
+  unit_size: 30
+  rooms:
+  - id: engineering
+    name: ENGINEERING
+    polygon:
+    - [3, 8]
+    - [10, 8]
+    - [10, 13]
+    - [3, 13]
+  - id: corridor_1
+    name: ''
+    polygon:
+    - [10, 9]
+    - [14, 9]
+    - [14, 11]
+    - [10, 11]
+    type: corridor

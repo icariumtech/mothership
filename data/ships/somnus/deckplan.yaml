@@ -1,0 +1,254 @@
+name: "Somnus"
+facility_type: "ship"
+total_decks: 1
+hull:
+  polygon:
+  - [2, 35]
+  - [5, 32]
+  - [5, 28]
+  - [6, 27]
+  - [6, 9]
+  - [10, 5]
+  - [12, 5]
+  - [12, 4]
+  - [14, 2]
+  - [17, 2]
+  - [17, 4]
+  - [18, 4]
+  - [26, 12]
+  - [26, 23]
+  - [24, 25]
+  - [24, 52]
+  - [26, 54]
+  - [26, 78]
+  - [25, 78]
+  - [23, 80]
+  - [15, 80]
+  - [14, 81]
+  - [12, 81]
+  - [10, 83]
+  - [4, 83]
+  - [4, 79]
+  - [3, 79]
+  - [2, 78]
+  - [2, 71]
+  - [3, 70]
+  - [3, 65]
+  - [5, 63]
+  - [5, 59]
+  - [2, 56]
+decks:
+- id: main_deck
+  name: "Main Deck"
+  level: 1
+  default: true
+  unit_size: 30
+  rotation: 90
+  rooms:
+  - id: engineering
+    name: ENGINEERING
+    description: Drive and propulsion systems. Radiation levels nominal. Emergency shutdown panel on the aft bulkhead.
+    polygon:
+    - [7.0, 10.0]
+    - [10.0, 7.0]
+    - [13.0, 7.0]
+    - [13.0, 21.0]
+    - [7.0, 21.0]
+  - id: operations
+    name: OPERATIONS
+    description: Ship systems monitoring and crew coordination. Comms array terminal operational.
+    polygon:
+    - [16.0, 7.0]
+    - [19.0, 7.0]
+    - [24.0, 12.0]
+    - [24.0, 21.0]
+    - [16.0, 21.0]
+  - id: engine_core
+    name: ENGINE CORE
+    polygon:
+    - [8.0, 28.0]
+    - [9.0, 27.0]
+    - [15.0, 27.0]
+    - [16.0, 28.0]
+    - [16.0, 34.0]
+    - [15.0, 35.0]
+    - [9.0, 35.0]
+    - [8.0, 34.0]
+  - id: cargo
+    name: CARGO
+    polygon:
+    - [3.0, 38.0]
+    - [7.0, 38.0]
+    - [10.0, 41.0]
+    - [10.0, 53.0]
+    - [9.0, 54.0]
+    - [3.0, 54.0]
+  - id: computer_core
+    name: COMPUTER CORE
+    description: JANUS AI primary processing node. Access restricted. Unauthorized interface attempts logged and reported.
+    polygon:
+    - [11.0, 38.0]
+    - [19.0, 38.0]
+    - [19.0, 51.0]
+    - [18.0, 51.0]
+    - [18.0, 47.0]
+    - [11.0, 47.0]
+    - [11.0, 46.0]
+    - [10.0, 46.0]
+    - [10.0, 45.0]
+    - [11.0, 45.0]
+  - id: cyropod_chamber
+    name: CYROPOD CHAMBER
+    description: Cryogenic suspension bays for 8 crew. Revival sequence requires 40 min. Bay 3 shows irregular cell membrane degradation — do not use.
+    polygon:
+    - [11.0, 48.0]
+    - [16.0, 48.0]
+    - [16.0, 56.0]
+    - [17.0, 56.0]
+    - [17.0, 62.0]
+    - [16.0, 62.0]
+    - [16.0, 63.0]
+    - [11.0, 63.0]
+    - [11.0, 62.0]
+    - [9.0, 62.0]
+    - [9.0, 56.0]
+    - [11.0, 56.0]
+  - id: barracks
+    name: BARRACKS
+    polygon:
+    - [5.0, 65.0]
+    - [6.0, 64.0]
+    - [10.0, 64.0]
+    - [11.0, 65.0]
+    - [11.0, 71.0]
+    - [12.0, 71.0]
+    - [12.0, 77.0]
+    - [11.0, 77.0]
+    - [11.0, 79.0]
+    - [9.0, 81.0]
+    - [5.0, 81.0]
+    - [5.0, 77.0]
+    - [3.0, 77.0]
+    - [3.0, 72.0]
+    - [5.0, 70.0]
+  - id: conference
+    name: CONFERENCE
+    polygon:
+    - [13.0, 70.0]
+    - [22.0, 70.0]
+    - [22.0, 77.0]
+    - [13.0, 77.0]
+    - [13.0, 75.0]
+    - [12.0, 75.0]
+    - [12.0, 73.0]
+    - [13.0, 73.0]
+  - id: bridge
+    name: BRIDGE
+    description: Command and navigation. Full sensor suite. Captain's console has been wiped — last 72 hours of logs unrecoverable.
+    polygon:
+    - [18.0, 51.0]
+    - [22.0, 51.0]
+    - [22.0, 52.0]
+    - [25.0, 55.0]
+    - [25.0, 69.0]
+    - [18.0, 69.0]
+  - id: airlock
+    name: AIRLOCK
+    polygon:
+    - [13.0, 4.0]
+    - [14.0, 3.0]
+    - [14.0, 2.0]
+    - [15.0, 2.0]
+    - [15.0, 3.0]
+    - [16.0, 3.0]
+    - [16.0, 6.0]
+    - [13.0, 6.0]
+  - id: corridor_1
+    name: ''
+    polygon:
+    - [14.0, 6.0]
+    - [15.0, 6.0]
+    - [15.0, 13.0]
+    - [16.0, 13.0]
+    - [16.0, 14.0]
+    - [15.0, 14.0]
+    - [15.0, 24.0]
+    - [18.0, 24.0]
+    - [20.0, 22.0]
+    - [20.0, 21.0]
+    - [21.0, 21.0]
+    - [21.0, 24.0]
+    - [22.0, 25.0]
+    - [22.0, 51.0]
+    - [21.0, 51.0]
+    - [21.0, 26.0]
+    - [20.0, 25.0]
+    - [11.0, 25.0]
+    - [11.0, 27.0]
+    - [10.0, 27.0]
+    - [10.0, 21.0]
+    - [11.0, 21.0]
+    - [11.0, 24.0]
+    - [14.0, 24.0]
+    - [14.0, 14.0]
+    - [13.0, 14.0]
+    - [13.0, 13.0]
+    - [14.0, 13.0]
+    type: corridor
+  - id: corridor_2
+    name: ''
+    polygon:
+    - [7.0, 54.0]
+    - [7.0, 64.0]
+    - [8.0, 64.0]
+    - [8.0, 54.0]
+    type: corridor
+  - id: corridor_3
+    name: ''
+    polygon:
+    - [13.0, 63.0]
+    - [13.0, 68.0]
+    - [11.0, 68.0]
+    - [11.0, 69.0]
+    - [14.0, 69.0]
+    - [14.0, 63.0]
+    type: corridor
+  - id: corridor_4
+    name: ''
+    polygon:
+    - [15.0, 63.0]
+    - [15.0, 70.0]
+    - [16.0, 70.0]
+    - [16.0, 63.0]
+    type: corridor
+  - id: corridor_5
+    name: ''
+    polygon:
+    - [11.0, 35.0]
+    - [11.0, 37.0]
+    - [6.0, 37.0]
+    - [6.0, 38.0]
+    - [5.0, 38.0]
+    - [5.0, 36.0]
+    - [10.0, 36.0]
+    - [10.0, 35.0]
+    type: corridor
+  doors:
+  - {id: engineering_door_0, rooms: [engineering, corridor_1], type: standard, status: CLOSED, position: {x: 13, y: 13.5, angle: 90}}
+  - {id: engineering_door_1, rooms: [engineering, corridor_1], type: standard, status: CLOSED, position: {x: 10.5, y: 21, angle: 0}}
+  - {id: operations_door_0, rooms: [operations, corridor_1], type: standard, status: CLOSED, position: {x: 16, y: 13.5, angle: 90}}
+  - {id: operations_door_1, rooms: [operations, corridor_1], type: standard, status: CLOSED, position: {x: 20.5, y: 21, angle: 0}}
+  - {id: engine_core_door_0, rooms: [engine_core, corridor_1], type: standard, status: CLOSED, along: 0.5}
+  - {id: engine_core_door_1, rooms: [engine_core, corridor_5], type: standard, status: CLOSED, along: 0.5}
+  - {id: cargo_door_0, rooms: [cargo, corridor_5], type: standard, status: CLOSED, along: 0.5}
+  - {id: cargo_door_1, rooms: [cargo, computer_core], type: standard, status: CLOSED, along: 0.5}
+  - {id: cargo_door_2, rooms: [cargo, corridor_2], type: standard, status: CLOSED, along: 0.5}
+  - {id: computer_core_door_1, rooms: [computer_core, bridge], type: standard, status: CLOSED, along: 0.5}
+  - {id: cyropod_chamber_door_0, rooms: [cyropod_chamber, corridor_3], type: standard, status: CLOSED, along: 0.5}
+  - {id: cyropod_chamber_door_1, rooms: [cyropod_chamber, corridor_4], type: standard, status: CLOSED, along: 0.5}
+  - {id: barracks_door_0, rooms: [barracks, corridor_2], type: standard, status: CLOSED, along: 0.5}
+  - {id: barracks_door_1, rooms: [barracks, corridor_3], type: standard, status: CLOSED, along: 0.5}
+  - {id: barracks_door_2, rooms: [barracks, conference], type: standard, status: CLOSED, along: 0.5}
+  - {id: conference_door_0, rooms: [conference, corridor_4], type: standard, status: CLOSED, along: 0.5}
+  - {id: bridge_door_1, rooms: [bridge, corridor_1], type: standard, status: CLOSED, along: 0.5}
+  - {id: airlock_door_0, rooms: [airlock, corridor_1], type: standard, status: CLOSED, along: 0.5}

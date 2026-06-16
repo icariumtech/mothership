@@ -347,9 +347,7 @@ class DataLoader:
                     loc = yaml.safe_load(f) or {}
             loc['slug'] = slug
             loc['directory'] = str(ship_dir)
-            loc['map'] = self.load_map(ship_dir)
-            loc['has_map'] = loc['map'] is not None
-            loc['maps'] = [loc['map']] if loc['map'] else []
+            loc['has_map'] = len(self.load_deckplan(ship_dir)['decks']) > 0
             loc['terminals'] = self._terminals.load_terminals(ship_dir)
             loc['children'] = []
             system_slug = loc.get('system_slug')
@@ -402,14 +400,8 @@ class DataLoader:
         location_data['slug'] = location_dir.name
         location_data['directory'] = str(location_dir)
 
-        # Load map if exists (single map per location in map/ directory)
-        location_data['map'] = self.load_map(location_dir)
-
-        # Set has_map flag for tree selection
-        location_data['has_map'] = location_data['map'] is not None
-
-        # For backwards compatibility, also set 'maps' as a list
-        location_data['maps'] = [location_data['map']] if location_data['map'] else []
+        # Set has_map flag for tree selection (sourced from deckplan)
+        location_data['has_map'] = len(self.load_deckplan(location_dir)['decks']) > 0
 
         # Load comm terminals at this level
         location_data['terminals'] = self._terminals.load_terminals(location_dir)
@@ -423,92 +415,6 @@ class DataLoader:
                     location_data['children'].append(child_location)
 
         return location_data
-
-    def load_encounter_manifest(self, location_dir: Path) -> Dict[str, Any]:
-        """Load the multi-deck manifest file if present."""
-        manifest_file = location_dir / "map" / "manifest.yaml"
-        if manifest_file.exists():
-            with open(manifest_file, 'r') as f:
-                return yaml.safe_load(f)
-        return None
-
-    def load_deck_map(self, location_dir: Path, deck_id: str) -> Dict[str, Any]:
-        """Load a specific deck's map data by deck ID."""
-        manifest = self.load_encounter_manifest(location_dir)
-        if not manifest:
-            return None
-
-        # Find the deck in manifest
-        for deck in manifest.get('decks', []):
-            if deck['id'] == deck_id:
-                deck_file = location_dir / "map" / deck['file']
-                if deck_file.exists():
-                    with open(deck_file, 'r') as f:
-                        deck_data = yaml.safe_load(f)
-                    deck_data['slug'] = deck_file.stem
-                    deck_data['deck_id'] = deck_id
-
-                    # Check for corresponding image file
-                    for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
-                        img_file = deck_file.parent / f"{deck_file.stem}{ext}"
-                        if img_file.exists():
-                            deck_data['image_path'] = str(img_file.relative_to(self.data_dir))
-                            break
-
-                    return deck_data
-        return None
-
-    def load_map(self, location_dir: Path) -> Dict[str, Any]:
-        """
-        Load map(s) for a location from map/ directory.
-        Supports both single-deck and multi-deck (manifest) formats.
-        """
-        map_dir = location_dir / "map"
-
-        if not map_dir.exists():
-            return None
-
-        # Check for multi-deck manifest first
-        manifest = self.load_encounter_manifest(location_dir)
-        if manifest:
-            # Find default deck or use first deck
-            default_deck = next(
-                (d for d in manifest.get('decks', []) if d.get('default')),
-                manifest['decks'][0] if manifest.get('decks') else None
-            )
-
-            if default_deck:
-                deck_data = self.load_deck_map(location_dir, default_deck['id'])
-                if deck_data:
-                    return {
-                        'is_multi_deck': True,
-                        'manifest': manifest,
-                        'current_deck': deck_data,
-                        'current_deck_id': default_deck['id'],
-                        'slug': 'manifest',
-                    }
-
-        # Fall back to single-deck (look for any .yaml file that's not manifest)
-        yaml_files = [f for f in map_dir.glob("*.yaml") if f.name != "manifest.yaml"]
-        if not yaml_files:
-            return None
-
-        map_file = yaml_files[0]  # Use first yaml file found
-
-        with open(map_file, 'r') as f:
-            map_data = yaml.safe_load(f)
-
-        map_slug = map_file.stem
-        map_data['slug'] = map_slug
-
-        # Check for corresponding image file
-        for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
-            img_file = map_dir / f"{map_slug}{ext}"
-            if img_file.exists():
-                map_data['image_path'] = str(img_file.relative_to(self.data_dir))
-                break
-
-        return map_data
 
     def load_terminals(self, location_dir: Path) -> List[Dict[str, Any]]:
         """Load all comm terminals for a location."""

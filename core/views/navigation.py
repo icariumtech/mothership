@@ -65,32 +65,16 @@ def api_switch_view(request):
         update_kwargs['encounter_active_portraits'] = []
         loader = get_loader()
         location = loader.find_location_by_slug(new_location_slug)
-        if location and location.get('map'):
-            map_data = location['map']
-            # Collect all room IDs from all decks and set them to hidden
-            all_room_ids = []
-            if map_data.get('is_multi_deck'):
-                # Multi-deck: load all decks and get room IDs
-                manifest = map_data.get('manifest', {})
-                if location.get('directory'):
-                    location_dir = Path(location['directory'])
-                    for deck_info in manifest.get('decks', []):
-                        deck_data = loader.load_deck_map(location_dir, deck_info['id'])
-                        if deck_data and deck_data.get('rooms'):
-                            all_room_ids.extend(r['id'] for r in deck_data['rooms'])
-            else:
-                # Single deck: get room IDs directly
-                if map_data.get('rooms'):
-                    all_room_ids = [r['id'] for r in map_data['rooms']]
+        if location and location.get('directory'):
+            location_dir = Path(location['directory'])
+            deckplan = loader.load_deckplan(location_dir)
+            if deckplan and deckplan.get('decks'):
+                decks = deckplan['decks']
+                # Collect all room IDs from all decks and set them to hidden
+                all_room_ids = [r['id'] for deck in decks for r in deck.get('rooms', [])]
+                update_kwargs['encounter_room_visibility'] = {rid: False for rid in all_room_ids}
 
-            # Set all rooms to hidden (False)
-            update_kwargs['encounter_room_visibility'] = {room_id: False for room_id in all_room_ids}
-
-            # Set default deck level and ID
-            if map_data.get('is_multi_deck'):
-                manifest = map_data.get('manifest', {})
-                decks = manifest.get('decks', [])
-                # Find the default deck, or use the first one
+                # Set default deck level and ID
                 default_deck = next((d for d in decks if d.get('default')), decks[0] if decks else None)
                 if default_deck:
                     update_kwargs['encounter_level'] = default_deck.get('level', 1)
@@ -98,10 +82,6 @@ def api_switch_view(request):
                 else:
                     update_kwargs['encounter_level'] = 1
                     update_kwargs['encounter_deck_id'] = ''
-            else:
-                # Single deck map
-                update_kwargs['encounter_level'] = 1
-                update_kwargs['encounter_deck_id'] = map_data.get('deck_id', '')
 
     new_state = sync_state(**update_kwargs)
 

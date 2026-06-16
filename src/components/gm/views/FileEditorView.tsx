@@ -9,12 +9,16 @@ import {
 } from '@ant-design/icons';
 import { DataFileTree } from '../DataFileTree';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
+import { DeckplanPreviewPane } from './deckplan/DeckplanPreviewPane';
 import './FileEditorView.css';
 
 const MONOSPACE_FONT = "'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace";
 const BINARY_EXTENSIONS = ['.exe', '.bin', '.dll', '.so', '.dylib', '.zip', '.tar', '.gz', '.db', '.sqlite', '.pak'];
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'];
 const LS_KEY = 'janus_file_editor_last_path';
+/** localStorage key for persisting the Monaco/preview split ratio (0.0–1.0). */
+const LS_SPLIT_KEY = 'janus_file_editor_split_ratio';
+const DEFAULT_SPLIT_RATIO = 0.6; // 60% Monaco / 40% preview (per D-07)
 
 function getLanguage(path: string): 'yaml' | 'markdown' | 'plaintext' {
   const ext = path.split('.').pop()?.toLowerCase() || '';
@@ -31,6 +35,14 @@ function isBinaryOrUnknown(path: string): boolean {
   return BINARY_EXTENSIONS.some(e => path.toLowerCase().endsWith(e));
 }
 
+/**
+ * Returns true when the open file is a deckplan.yaml (by basename, per D-07).
+ * Only the exact basename triggers the preview pane — not other YAML files.
+ */
+function isDeckplan(path: string): boolean {
+  return path.split('/').pop() === 'deckplan.yaml';
+}
+
 export function FileEditorView() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
@@ -38,6 +50,47 @@ export function FileEditorView() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Deckplan preview state
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+
+  // Split ratio state: 0.0–1.0 = fraction of height given to Monaco
+  const [splitRatio, setSplitRatio] = useState<number>(() => {
+    const stored = localStorage.getItem(LS_SPLIT_KEY);
+    if (stored) {
+      const v = parseFloat(stored);
+      if (!isNaN(v) && v >= 0.2 && v <= 0.85) return v;
+    }
+    return DEFAULT_SPLIT_RATIO;
+  });
+  const splitRatioRef = useRef(splitRatio);
+  const isResizingRef = useRef(false);
+  const resizeStartRef = useRef({ y: 0, ratio: DEFAULT_SPLIT_RATIO });
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    resizeStartRef.current = { y: e.clientY, ratio: splitRatioRef.current };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const handleResizePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isResizingRef.current) return;
+    const container = splitContainerRef.current;
+    if (!container) return;
+    const totalH = container.getBoundingClientRect().height;
+    const dy = e.clientY - resizeStartRef.current.y;
+    const newRatio = Math.min(0.85, Math.max(0.2, resizeStartRef.current.ratio + dy / totalH));
+    splitRatioRef.current = newRatio;
+    setSplitRatio(newRatio);
+  }, []);
+
+  const handleResizePointerUp = useCallback(() => {
+    if (!isResizingRef.current) return;
+    isResizingRef.current = false;
+    localStorage.setItem(LS_SPLIT_KEY, String(splitRatioRef.current));
+  }, []);
 
   const errorDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
@@ -194,6 +247,60 @@ export function FileEditorView() {
     }
 
     // Text file (editable or read-only plaintext)
+    // For deckplan.yaml files: render Monaco (top) + DeckplanPreviewPane (bottom) as a resizable 60/40 split.
+    // For all other text files: render Monaco in a single full-height pane (unchanged).
+    if (isDeckplan(selectedPath) && fileLanguage === 'yaml') {
+      return (
+        <div
+          ref={splitContainerRef}
+          className="gm-file-editor-view__split-container"
+          onPointerMove={handleResizePointerMove}
+          onPointerUp={handleResizePointerUp}
+        >
+          {/* Top pane: Monaco editor (flex: 0 0 splitRatio%) */}
+          <div
+            className="gm-file-editor-view__split-monaco"
+            style={{ flex: `0 0 ${(splitRatio * 100).toFixed(1)}%` }}
+          >
+            <Editor
+              theme="vs-dark"
+              language={fileLanguage}
+              value={content}
+              onChange={(val) => { if (!isReadOnly) setContent(val ?? ''); }}
+              onMount={onEditorMount}
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: 'off',
+                fontFamily: "'Cascadia Code', 'Courier New', monospace",
+                fontSize: 14,
+                readOnly: isReadOnly,
+              }}
+              height="100%"
+              width="100%"
+            />
+          </div>
+
+          {/* Resize handle: 4px visual / 44px hit target (per Spacing exceptions in UI-SPEC) */}
+          <div
+            className="gm-file-editor-view__resize-handle"
+            onPointerDown={handleResizePointerDown}
+            title="Drag to resize"
+          />
+
+          {/* Bottom pane: live deck preview.
+              TODO(29-04): Wire onRoomClick, onPoiClick, onPoiMove, onEmptyCellClick to Monaco edits */}
+          <div className="gm-file-editor-view__split-preview">
+            <DeckplanPreviewPane
+              yamlText={content}
+              selectedDeckId={selectedDeckId}
+              onDeckSelect={setSelectedDeckId}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="gm-file-editor-view__monaco">
         <Editor

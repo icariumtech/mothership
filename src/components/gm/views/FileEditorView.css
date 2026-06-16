@@ -92,3 +92,60 @@
   background: #080e0e;
   padding: 24px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Deckplan 60/40 split-pane layout (Plan 29-03)                       */
+/* ------------------------------------------------------------------ */
+
+.gm-file-editor-view__split-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  /* Prevent text selection while dragging the resize handle */
+  user-select: none;
+}
+
+.gm-file-editor-view__split-monaco {
+  /* flex: 0 0 <ratio>% is set inline from React state (splitRatio) */
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 4px visual divider / 44px invisible hit target for resize (Spacing exceptions) */
+.gm-file-editor-view__resize-handle {
+  flex-shrink: 0;
+  height: 44px;
+  position: relative;
+  cursor: row-resize;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+.gm-file-editor-view__resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  background: #1e3333;
+  pointer-events: none;
+}
+
+.gm-file-editor-view__resize-handle:hover::after,
+.gm-file-editor-view__resize-handle:active::after {
+  background: #4a8b8b;
+}
+
+.gm-file-editor-view__split-preview {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #080e0e;
+  border-top: 1px solid #1e3333;
+}

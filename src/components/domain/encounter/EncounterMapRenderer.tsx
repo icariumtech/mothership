@@ -6,10 +6,11 @@
  * faint background grid, and GM right-click context menu for room visibility.
  */
 
-import React, { useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect, useState } from 'react';
 import { usePanZoom } from '../../../hooks/usePanZoom';
 import { useExclusivePopover } from '../../../hooks/useExclusivePopover';
 import { useTokenPlacement } from '../../../hooks/useTokenPlacement';
+import { screenToSVG, inverseRotatePoint, snapToGrid } from '../../../utils/svgCoordinates';
 import {
   Door,
   GridEncounterMapData,
@@ -77,6 +78,18 @@ interface EncounterMapRendererProps {
   ventsVisible?: boolean;
   /** Callback when GM right-clicks a vent to toggle all vents */
   onVentsToggle?: (visible: boolean) => void;
+  // ----------------------------------------------------------------
+  // Editor-mode props (Plan 29-03) — all four are inert unless `editable` is true.
+  // Wiring these callbacks to Monaco edits is Plan 29-04.
+  // ----------------------------------------------------------------
+  /** Enable editor-mode POI interactions (click-to-select, drag-to-move, empty-cell-click). */
+  editable?: boolean;
+  /** Called when the user clicks a POI in editor mode (no drag occurred). */
+  onPoiClick?: (poiId: string) => void;
+  /** Called when the user drags a POI in editor mode; (gridX, gridY) are the snapped drop cell. */
+  onPoiMove?: (poiId: string, x: number, y: number) => void;
+  /** Called when the user clicks an empty grid cell (no room/POI hit) in editor mode. */
+  onEmptyCellClick?: (x: number, y: number) => void;
 }
 
 // V2-1 Color palette
@@ -151,6 +164,10 @@ export function EncounterMapRenderer({
   showLegend = true,
   ventsVisible,
   onVentsToggle,
+  editable = false,
+  onPoiClick,
+  onPoiMove,
+  onEmptyCellClick,
 }: EncounterMapRendererProps) {
   // Hull override (manifest-level) takes precedence over per-deck hull
   const effectiveHull = hullProp ?? mapData.hull;
@@ -307,6 +324,136 @@ export function EncounterMapRenderer({
     if (!tokens) return false;
     return Object.values(tokens).some(t => t.x === gridX && t.y === gridY);
   }, [tokens]);
+
+  // -------------------------------------------------------------------
+  // Editor-mode POI drag state (Plan 29-03)
+  // Mirrors TokenLayer's pendingDrag/DRAG_THRESHOLD pattern.
+  // Uses document-level pointer events (same as TokenLayer) for reliable
+  // drag tracking even when pointer leaves the POI element.
+  // Active only when editable=true; inert otherwise.
+  // -------------------------------------------------------------------
+  const POI_DRAG_THRESHOLD = 5;
+  const poiPendingDrag = useRef<{ id: string; startX: number; startY: number } | null>(null);
+  const poiIsDraggingRef = useRef(false);
+  const [poiDragState, setPoiDragState] = useState<{
+    id: string;
+    ghostX: number;
+    ghostY: number;
+  } | null>(null);
+  const poiDragStateRef = useRef<typeof poiDragState>(null);
+
+  // Keep ref in sync with state for stable callbacks
+  useEffect(() => {
+    poiDragStateRef.current = poiDragState;
+  }, [poiDragState]);
+
+  // Stable refs for editable callbacks (avoids closure staleness in document handlers)
+  const editableRef = useRef(editable);
+  const onPoiMoveRef = useRef(onPoiMove);
+  const onPoiClickRef = useRef(onPoiClick);
+  const onEmptyCellClickRef = useRef(onEmptyCellClick);
+  useEffect(() => { editableRef.current = editable; }, [editable]);
+  useEffect(() => { onPoiMoveRef.current = onPoiMove; }, [onPoiMove]);
+  useEffect(() => { onPoiClickRef.current = onPoiClick; }, [onPoiClick]);
+  useEffect(() => { onEmptyCellClickRef.current = onEmptyCellClick; }, [onEmptyCellClick]);
+
+  // Stable refs for map geometry (needed in document-level handlers)
+  const mapRotationRef = useRef(mapRotation);
+  const mapCenterXRef = useRef(mapCenterX);
+  const mapCenterYRef = useRef(mapCenterY);
+  const unitSizeRef = useRef(unitSize);
+  useEffect(() => { mapRotationRef.current = mapRotation; }, [mapRotation]);
+  useEffect(() => { mapCenterXRef.current = mapCenterX; }, [mapCenterX]);
+  useEffect(() => { mapCenterYRef.current = mapCenterY; }, [mapCenterY]);
+  useEffect(() => { unitSizeRef.current = unitSize; }, [unitSize]);
+
+  // Document-level POI drag handlers (attached only when editable)
+  useEffect(() => {
+    if (!editable) return;
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!poiPendingDrag.current && !poiIsDraggingRef.current) return;
+      if (poiPendingDrag.current && !poiIsDraggingRef.current) {
+        // Check drag threshold
+        const dx = e.clientX - poiPendingDrag.current.startX;
+        const dy = e.clientY - poiPendingDrag.current.startY;
+        if (Math.sqrt(dx * dx + dy * dy) < POI_DRAG_THRESHOLD) return;
+        // Threshold crossed — enter drag mode
+        poiIsDraggingRef.current = true;
+      }
+      if (!poiIsDraggingRef.current) return;
+      const svg = svgRef.current;
+      if (!svg) return;
+      const svgCoords = screenToSVG(svg, e.clientX, e.clientY);
+      const unrotated = inverseRotatePoint(
+        svgCoords.x, svgCoords.y,
+        mapRotationRef.current, mapCenterXRef.current, mapCenterYRef.current,
+      );
+      const snapped = snapToGrid(unrotated.x, unrotated.y, unitSizeRef.current);
+      const pending = poiPendingDrag.current;
+      if (pending) {
+        setPoiDragState({ id: pending.id, ghostX: snapped.gridX, ghostY: snapped.gridY });
+        poiDragStateRef.current = { id: pending.id, ghostX: snapped.gridX, ghostY: snapped.gridY };
+      }
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      const pending = poiPendingDrag.current;
+      const wasDragging = poiIsDraggingRef.current;
+      poiPendingDrag.current = null;
+      poiIsDraggingRef.current = false;
+      if (wasDragging) {
+        // Commit drag move
+        const svg = svgRef.current;
+        if (svg && onPoiMoveRef.current && pending) {
+          const svgCoords = screenToSVG(svg, e.clientX, e.clientY);
+          const unrotated = inverseRotatePoint(
+            svgCoords.x, svgCoords.y,
+            mapRotationRef.current, mapCenterXRef.current, mapCenterYRef.current,
+          );
+          const snapped = snapToGrid(unrotated.x, unrotated.y, unitSizeRef.current);
+          onPoiMoveRef.current(pending.id, snapped.gridX, snapped.gridY);
+        }
+        setPoiDragState(null);
+        poiDragStateRef.current = null;
+      } else if (pending) {
+        // Was a tap/click — call onPoiClick
+        if (onPoiClickRef.current) onPoiClickRef.current(pending.id);
+      }
+    };
+
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    return () => {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+    };
+  }, [editable]); // stable — reads all geometry from refs
+
+  const handlePoiPointerDown = useCallback((e: React.PointerEvent, poiId: string) => {
+    if (!editable) return;
+    e.stopPropagation(); // Prevent pan from starting
+    poiPendingDrag.current = { id: poiId, startX: e.clientX, startY: e.clientY };
+    poiIsDraggingRef.current = false;
+  }, [editable]);
+
+  // Handle click on SVG background for empty-cell detection (editor mode)
+  const handleSvgBackgroundClick = useCallback((e: React.MouseEvent) => {
+    if (!editable || !onEmptyCellClick) return;
+    // Only handle clicks that bubbled from the background (not rooms/POIs)
+    const target = e.target as Element;
+    const isBackground = target.closest('.encounter-map__rooms') === null
+      && target.closest('.encounter-map__pois') === null
+      && target.closest('.encounter-map__doors') === null
+      && target.closest('.encounter-map__token-layer') === null;
+    if (!isBackground) return;
+    const svg = svgRef.current;
+    if (!svg) return;
+    const svgCoords = screenToSVG(svg, e.clientX, e.clientY);
+    const unrotated = inverseRotatePoint(svgCoords.x, svgCoords.y, mapRotation, mapCenterX, mapCenterY);
+    const snapped = snapToGrid(unrotated.x, unrotated.y, unitSize);
+    onEmptyCellClick(snapped.gridX, snapped.gridY);
+  }, [editable, onEmptyCellClick, mapRotation, mapCenterX, mapCenterY, unitSize]);
 
   // -------------------------------------------------------------------
   // Door right-click handler — opens DoorStatusPopup at cursor position.
@@ -933,11 +1080,19 @@ export function EncounterMapRenderer({
   // -------------------------------------------------------------------
   // renderPoi — SVG vector icon + label for a point of interest
   // Icons sourced from @ant-design/icons-svg, colorized via fill on <use>
+  //
+  // Editor mode (editable=true): POI supports drag-to-move and click-to-select.
+  // The drag affordance uses amber #c9a050 per UI-SPEC (vs token mode's color).
   // -------------------------------------------------------------------
-  const renderPoi = (poi: import('../../../types/encounterMap').PoiData) => {
+  const renderPoi = (poi: PoiData) => {
     if (!isGM && !isRoomVisible(poi.room)) return null;
 
-    const center = view.project({ gx: poi.position.x, gy: poi.position.y });
+    // In editor mode, use the ghost position if this POI is being dragged
+    const isBeingDragged = editable && poiDragState?.id === poi.id;
+    const renderX = isBeingDragged ? poiDragState!.ghostX : poi.position.x;
+    const renderY = isBeingDragged ? poiDragState!.ghostY : poi.position.y;
+
+    const center = view.project({ gx: renderX, gy: renderY });
     const cx = center.x;
     const cy = center.y;
 
@@ -958,10 +1113,64 @@ export function EncounterMapRenderer({
     const half = iconSize / 2;
 
     const handlePoiHover = (e: React.MouseEvent) => {
+      if (editable) return; // Editor mode: no hover popover; use onPoiClick instead
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
       openPopover({ type: 'poi', payload: { poi, x: e.clientX - rect.left, y: e.clientY - rect.top } });
     };
+
+    // Editor-mode: amber drag outline when actively dragging this POI
+    const editorDragOutline = isBeingDragged ? (
+      <rect
+        x={cx - half - 3}
+        y={cy - half - 3}
+        width={iconSize + 6}
+        height={iconSize + 6}
+        fill="none"
+        stroke="#c9a050"
+        strokeWidth={2}
+        rx={2}
+        pointerEvents="none"
+      />
+    ) : null;
+
+    if (editable) {
+      // Editor mode: use pointer events for drag-to-move; suppress hover popover.
+      // Move/up are handled at document level (see useEffect above).
+      return (
+        <g
+          key={poi.id}
+          className={`encounter-map__poi encounter-map__poi--${poi.type}`}
+          opacity={opacity}
+          style={{ color: poiColor, cursor: 'pointer' }}
+          onPointerDown={(e) => handlePoiPointerDown(e, poi.id)}
+        >
+          {editorDragOutline}
+          {iconName ? (
+            <use
+              href={`#${iconSymbolId(iconName)}`}
+              x={cx - half}
+              y={cy - half}
+              width={iconSize}
+              height={iconSize}
+            />
+          ) : (
+            <path
+              d={`M${cx},${cy - half} L${cx + half},${cy} L${cx},${cy + half} L${cx - half},${cy} Z`}
+              fill={poiColor}
+            />
+          )}
+          {/* Transparent hit target for reliable pointer events */}
+          <rect
+            x={cx - half}
+            y={cy - half}
+            width={iconSize}
+            height={iconSize}
+            fill="transparent"
+          />
+        </g>
+      );
+    }
 
     return (
       <g
@@ -1034,6 +1243,7 @@ export function EncounterMapRenderer({
           transform: `translate(${viewState.panX}px, ${viewState.panY}px) scale(${viewState.zoom})`,
           transformOrigin: '0 0',
         }}
+        onClick={editable ? handleSvgBackgroundClick : undefined}
       >
         <defs>
           {/* POI icon symbols — Mothership RPG Map Icons (MIT, László Varga) */}

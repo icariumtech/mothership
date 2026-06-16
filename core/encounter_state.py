@@ -72,61 +72,86 @@ def set_vents_visible(visible: bool) -> dict:
 # Tokens
 # ---------------------------------------------------------------------------
 
-def _get_tokens(slug: str) -> tuple[dict, dict]:
-    """Return (tokens_by_loc, tokens) for the current location."""
+def _is_deck_keyed(loc_bucket: dict) -> bool:
+    """True if loc_bucket is already {deck_id: {token_id: token_data}}."""
+    return all(isinstance(v, dict) and 'type' not in v for v in loc_bucket.values())
+
+
+def get_tokens_for_location(slug: str, deck_id: str) -> dict:
+    """Read-only lookup of tokens for a location/deck.
+
+    Handles back-compat with the old flat `{slug: {token_id: ...}}` shape
+    by treating a pre-existing flat bucket as belonging to `deck_id`.
+    """
+    current = get_state()
+    loc_bucket = dict((current.get('encounter_tokens_by_location') or {}).get(slug) or {})
+    if loc_bucket and not _is_deck_keyed(loc_bucket):
+        loc_bucket = {deck_id: loc_bucket}
+    return dict(loc_bucket.get(deck_id) or {})
+
+
+def _get_tokens(slug: str, deck_id: str) -> tuple[dict, dict]:
+    """Return (tokens_by_loc, tokens) for the current location + deck.
+
+    Handles back-compat with the old flat `{slug: {token_id: ...}}` shape
+    by treating a pre-existing flat bucket as belonging to `deck_id`.
+    """
     current = get_state()
     tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
-    tokens = dict(tokens_by_loc.get(slug) or {})
+    loc_bucket = dict(tokens_by_loc.get(slug) or {})
+    if loc_bucket and not _is_deck_keyed(loc_bucket):
+        loc_bucket = {deck_id: loc_bucket}
+    tokens_by_loc[slug] = loc_bucket
+    tokens = dict(loc_bucket.get(deck_id) or {})
     return tokens_by_loc, tokens
 
 
-def place_token(slug: str, token_id: str, token_data: dict) -> dict:
-    """Store a new token. Returns the updated tokens dict for this location."""
-    tokens_by_loc, tokens = _get_tokens(slug)
+def place_token(slug: str, deck_id: str, token_id: str, token_data: dict) -> dict:
+    """Store a new token. Returns the updated tokens dict for this location/deck."""
+    tokens_by_loc, tokens = _get_tokens(slug, deck_id)
     tokens[token_id] = token_data
-    tokens_by_loc[slug] = tokens
+    tokens_by_loc[slug][deck_id] = tokens
     _sync(encounter_tokens_by_location=tokens_by_loc)
     return tokens
 
 
-def move_token(slug: str, token_id: str, x: int, y: int, room_id: str) -> dict:
+def move_token(slug: str, deck_id: str, token_id: str, x: int, y: int, room_id: str) -> dict:
     """Move an existing token. Raises KeyError if token not found."""
-    tokens_by_loc, tokens = _get_tokens(slug)
+    tokens_by_loc, tokens = _get_tokens(slug, deck_id)
     if token_id not in tokens:
         raise KeyError(token_id)
     tokens[token_id] = {**tokens[token_id], 'x': x, 'y': y, 'room_id': room_id}
-    tokens_by_loc[slug] = tokens
+    tokens_by_loc[slug][deck_id] = tokens
     _sync(encounter_tokens_by_location=tokens_by_loc)
     return tokens
 
 
-def remove_token(slug: str, token_id: str) -> dict:
+def remove_token(slug: str, deck_id: str, token_id: str) -> dict:
     """Remove a token. Raises KeyError if token not found."""
-    tokens_by_loc, tokens = _get_tokens(slug)
+    tokens_by_loc, tokens = _get_tokens(slug, deck_id)
     if token_id not in tokens:
         raise KeyError(token_id)
     del tokens[token_id]
-    tokens_by_loc[slug] = tokens
+    tokens_by_loc[slug][deck_id] = tokens
     _sync(encounter_tokens_by_location=tokens_by_loc)
     return tokens
 
 
-def update_token_status(slug: str, token_id: str, status: list) -> dict:
+def update_token_status(slug: str, deck_id: str, token_id: str, status: list) -> dict:
     """Update a token's status list. Raises KeyError if token not found."""
-    tokens_by_loc, tokens = _get_tokens(slug)
+    tokens_by_loc, tokens = _get_tokens(slug, deck_id)
     if token_id not in tokens:
         raise KeyError(token_id)
     tokens[token_id] = {**tokens[token_id], 'status': status}
-    tokens_by_loc[slug] = tokens
+    tokens_by_loc[slug][deck_id] = tokens
     _sync(encounter_tokens_by_location=tokens_by_loc)
     return tokens
 
 
-def clear_tokens(slug: str) -> dict:
-    """Remove all tokens for this location. Returns empty dict."""
-    current = get_state()
-    tokens_by_loc = dict(current.get('encounter_tokens_by_location') or {})
-    tokens_by_loc[slug] = {}
+def clear_tokens(slug: str, deck_id: str) -> dict:
+    """Remove all tokens for this location/deck. Returns empty dict."""
+    tokens_by_loc, _ = _get_tokens(slug, deck_id)
+    tokens_by_loc[slug][deck_id] = {}
     _sync(encounter_tokens_by_location=tokens_by_loc)
     return {}
 

@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 from typing import Any
 from core.encounter_utils import normalize_deck_poi
+from core import encounter_state
 
 _NPC_TTL = 30.0
 _SHIP_DECK_TTL = 30.0
@@ -91,9 +92,8 @@ class PayloadBuilder:
             'encounter_room_visibility': state.get('encounter_room_visibility', {}),
             'encounter_door_status': state.get('encounter_door_status', {}),
             'encounter_vents_visible': state.get('encounter_vents_visible', False),
-            'encounter_tokens': (
-                state.get('encounter_tokens_by_location', {})
-                .get(state.get('location_slug', ''), {})
+            'encounter_tokens': encounter_state.get_tokens_for_location(
+                state.get('location_slug', ''), state.get('encounter_deck_id', '')
             ),
             'encounter_active_portraits': list(state.get('encounter_active_portraits', [])),
         }

@@ -198,8 +198,10 @@ def api_encounter_place_token(request):
         'room_id': room_id,
     }
 
-    slug = get_state().get('location_slug', '')
-    tokens = enc.place_token(slug, token_id, token_data)
+    state = get_state()
+    slug = state.get('location_slug', '')
+    deck_id = state.get('encounter_deck_id', '')
+    tokens = enc.place_token(slug, deck_id, token_id, token_data)
 
     return JsonResponse({'success': True, 'token_id': token_id, 'tokens': tokens})
 
@@ -232,9 +234,11 @@ def api_encounter_move_token(request):
     if not isinstance(x, int) or not isinstance(y, int):
         return JsonResponse({'error': 'x and y must be integers'}, status=400)
 
-    slug = get_state().get('location_slug', '')
+    state = get_state()
+    slug = state.get('location_slug', '')
+    deck_id = state.get('encounter_deck_id', '')
     try:
-        tokens = enc.move_token(slug, token_id, x, y, room_id)
+        tokens = enc.move_token(slug, deck_id, token_id, x, y, room_id)
     except KeyError:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
@@ -262,9 +266,11 @@ def api_encounter_remove_token(request):
     if not token_id:
         return JsonResponse({'error': 'token_id is required'}, status=400)
 
-    slug = get_state().get('location_slug', '')
+    state = get_state()
+    slug = state.get('location_slug', '')
+    deck_id = state.get('encounter_deck_id', '')
     try:
-        tokens = enc.remove_token(slug, token_id)
+        tokens = enc.remove_token(slug, deck_id, token_id)
     except KeyError:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
@@ -297,9 +303,11 @@ def api_encounter_update_token_status(request):
     if not isinstance(status, list):
         return JsonResponse({'error': 'status must be an array'}, status=400)
 
-    slug = get_state().get('location_slug', '')
+    state = get_state()
+    slug = state.get('location_slug', '')
+    deck_id = state.get('encounter_deck_id', '')
     try:
-        tokens = enc.update_token_status(slug, token_id, status)
+        tokens = enc.update_token_status(slug, deck_id, token_id, status)
     except KeyError:
         return JsonResponse({'error': 'Token not found'}, status=404)
 
@@ -318,8 +326,10 @@ def api_encounter_clear_tokens(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    slug = get_state().get('location_slug', '')
-    enc.clear_tokens(slug)
+    state = get_state()
+    slug = state.get('location_slug', '')
+    deck_id = state.get('encounter_deck_id', '')
+    enc.clear_tokens(slug, deck_id)
 
     return JsonResponse({'success': True, 'tokens': {}})
 

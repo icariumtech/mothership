@@ -22,8 +22,8 @@ Deckplans live under the location they describe:
 | Galaxy location | `galaxy/<system>/<body>/<slug>/deckplan.yaml` |
 | Player ship | `campaign/ship/deckplan.yaml` |
 
-Legacy format (old locations): `galaxy/<system>/<body>/map/manifest.yaml` + individual deck files.
-New format: single `deckplan.yaml` with a `decks:` list. Skills should write new format only.
+The legacy `map/manifest.yaml` + per-deck `map/*.yaml` format was removed in Phase 29. All
+locations must use `deckplan.yaml`. Skills should write `deckplan.yaml` only.
 
 MCP write: `write_file("ships/patrol_gunboat/deckplan.yaml", content)`
 
@@ -181,6 +181,11 @@ POIs are entries in a room's `poi:` list. The backend auto-generates `id`, `room
 | `hazard` | red | Dangers, environmental threats |
 | `npc` | teal | NPC markers |
 | `player` | teal | Player markers |
+
+**P2 — Do not create `map/manifest.yaml` or per-deck `map/*.yaml` files.** The legacy
+`map/` directory format was removed in Phase 29. The loaders `load_map`,
+`load_encounter_manifest`, and `load_deck_map` no longer exist. Write `deckplan.yaml`
+only — all decks inline in a single file.
 
 **P1 — Use plain ASCII in YAML string values.** Em-dashes (`—`), curly quotes (`""`), and
 backslash-escaped quotes (`\"`) inside YAML double-quoted strings cause MCP `write_file`

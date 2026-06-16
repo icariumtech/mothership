@@ -40,7 +40,7 @@ const CASES = [
   // (rel path, deck id or null for single-deck, room with corridor neighbour, corridor id)
   ['data/ships/patrol_gunboat/deckplan.yaml', 'main_deck', 'bridge', 'corridor_3'] as const,
   ['data/campaign/ship/deckplan.yaml', 'main_deck', 'bridge', 'corridor_3'] as const,
-  ['data/galaxy/tau-ceti/somnus/map/main_deck.yaml', null, 'cyropod_chamber', 'corridor_3'] as const,
+  ['data/ships/somnus/deckplan.yaml', 'main_deck', 'cyropod_chamber', 'corridor_3'] as const,
 ];
 
 function decksFor(doc: MapDocLike): DeckLike[] {

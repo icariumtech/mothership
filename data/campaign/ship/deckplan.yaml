@@ -229,7 +229,7 @@ decks:
   doors:
   - {id: cryo_door_0, rooms: [cryo_bay, lower_corridor_1], type: standard, status: CLOSED, along: 0.5}
   - {id: med_door_0, rooms: [med_bay, lower_corridor_2], type: standard, status: CLOSED, along: 0.5}
-  - {id: engine_door_0, rooms: [engine_room, lower_corridor_2], type: standard, status: CLOSED, along: 0.5}
+  - {id: engine_door_0, rooms: [engine_room, med_bay], type: standard, status: CLOSED, along: 0.5}
   - {id: armory_door_0, rooms: [armory, lower_corridor_1], type: standard, status: CLOSED, along: 0.5}
   - {id: storage_door_0, rooms: [storage, lower_corridor_2], type: standard, status: CLOSED, along: 0.5}
   - {id: airlock_door_0, rooms: [airlock, lower_corridor_3], type: standard, status: CLOSED, along: 0.5}

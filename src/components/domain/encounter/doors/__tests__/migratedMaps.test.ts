@@ -26,7 +26,7 @@ interface MapDocLike extends DeckLike {
 }
 
 const MIGRATED_FILES = [
-  'data/galaxy/tau-ceti/somnus/map/main_deck.yaml',
+  'data/ships/somnus/deckplan.yaml',
   'data/galaxy/kepler-442/kepler-442b/base_alpha/deckplan.yaml',
   'data/ships/patrol_gunboat/deckplan.yaml',
   'data/campaign/ship/deckplan.yaml',

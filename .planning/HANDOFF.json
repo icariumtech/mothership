@@ -1,47 +1,33 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-12T04:21:43.129Z",
-  "phase": "14",
-  "phase_name": "rework-bridge-status-tab-ship-systems-remove-armor-add-react",
-  "phase_dir": ".planning/phases/14-rework-bridge-status-tab-ship-systems-remove-armor-add-react",
-  "plan": 3,
-  "task": null,
-  "total_tasks": null,
+  "timestamp": "2026-06-26T01:41:36.128Z",
+  "phase": "29",
+  "phase_name": "interactive-deckplan-map-editor-with-live-preview-yaml-sync-",
+  "phase_dir": ".planning/phases/29-interactive-deckplan-map-editor-with-live-preview-yaml-sync-",
+  "plan": 4,
+  "task": 3,
+  "total_tasks": 3,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Plan 14-01 — Extend ship data model (reactor + resources)", "status": "done", "commit": "dc56077"},
-    {"id": 2, "name": "Plan 14-02 — Backend API + SSE for systems/resources", "status": "done", "commit": "dc56077"},
-    {"id": 3, "name": "Plan 14-03 — Redesign STATUS tab dual-panel UI", "status": "done", "commit": "a0c1f36"}
+    {"id": 1, "name": "Wire click-to-jump (EDIT-04) — revealRangeInCenter + deltaDecorations", "status": "done", "commit": "218cba4"},
+    {"id": 2, "name": "Wire POI drag-to-move (EDIT-05) and click-to-add (EDIT-06) as surgical edits", "status": "done", "commit": "e389652"},
+    {"id": 3, "name": "Human verification of full editor loop (EDIT-02..06)", "status": "in_progress", "progress": "Preview, deck selector, room click-to-jump, door click-to-jump verified. POI drag, Ctrl+S diff, non-deckplan YAML check still pending."}
   ],
-  "remaining_tasks": [
-    {"id": 4, "name": "UAT — 10 tests pending (all human verification)", "status": "not_started"}
-  ],
+  "remaining_tasks": [],
   "blockers": [],
   "human_actions_pending": [
     {
-      "action": "Run UAT — all 10 tests require live server + visual inspection",
-      "context": "14-UAT.md has 10 tests covering dual-panel layout, system colors, resource threshold colors, stagger animation, crisis tint, GM controls, and SSE live updates. All marked pending.",
+      "action": "Complete remaining verification steps: POI drag (step 5), empty-cell add (step 6), Ctrl+S surgical diff (step 7), non-deckplan YAML shows no preview (step 8)",
+      "context": "Task 3 is a blocking human-verify checkpoint. Steps 1-4 passed. Several bugs were found and fixed during verification — all committed. Resume by running the app and completing steps 5-8, then type 'approved'.",
       "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "Moved reset view button to top-center of STATUS tab", "rationale": "Better visual hierarchy, less clutter in panels", "phase": "14"},
-    {"decision": "Restyled offline systems with dimmed/greyed appearance", "rationale": "Clear visual distinction from online systems", "phase": "14"},
-    {"decision": "Added row separators and condition % to system rows", "rationale": "More information density without extra panels", "phase": "14"}
+    {"decision": "Added onRoomClick/onDoorClick props to EncounterMapRenderer and MapPreview rather than reusing onRoomToggle", "rationale": "onRoomToggle only fires from right-click context menu; needed a dedicated left-click signal for editor preview", "phase": "29"},
+    {"decision": "Added door click-to-jump (EDIT-04 extension) even though not in original plan scope", "rationale": "User requested during verification; doors have explicit id: fields in YAML so buildIdRangeMap can index them", "phase": "29"},
+    {"decision": "Extended buildIdRangeMap kind union to include 'door'", "rationale": "Doors at deck level in deckplan.yaml have id: fields; walk doors[] seq per deck just like rooms/poi", "phase": "29"}
   ],
-  "uncommitted_files": [
-    "data/campaign/ship.yaml",
-    "src/components/domain/dashboard/sections/StatusSection.css",
-    "src/components/domain/dashboard/sections/StatusSection.tsx",
-    "src/components/domain/encounter/EncounterMapRenderer.tsx",
-    "src/components/gm/ShipStatusPanel.tsx",
-    "src/components/gm/views/BridgeView.tsx",
-    "src/services/gmConsoleApi.ts",
-    "src/types/shipStatus.ts",
-    "terminal/data_loader.py",
-    "terminal/urls.py",
-    "terminal/views.py"
-  ],
-  "next_action": "Run the server and conduct UAT from 14-UAT.md — all 10 tests pending human verification",
-  "context_notes": "Phase 14 implementation is complete across all 3 plans. 12/12 automated checks passed (VERIFICATION.md). Only human UAT remains. Changes are substantial (1810+ insertions) but all uncommitted — need to run UAT before committing."
+  "uncommitted_files": [],
+  "next_action": "Run the app (pnpm run build + ./start_server.sh from /home/gjohnson/mothership/charon). Open patrol_gunboat deckplan.yaml. Complete verification steps 5-8, then type 'approved' to close the checkpoint and finish Phase 29.",
+  "context_notes": "The executor committed a SUMMARY.md before the checkpoint, but the checkpoint (Task 3) is not yet approved. Several bugs in EncounterMapRenderer were fixed during verification: GM hit targets missing pointer handlers, handleRoomPointerDown had isGM early return, background click filter missing hull/vent classes. All fixes committed on main. The 29-04-SUMMARY.md exists but phase is not complete until checkpoint approved and VERIFICATION.md written."
 }

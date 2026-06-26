@@ -152,6 +152,11 @@ export function buildPositionEdit(
 
 /** Options for the new POI stub added by buildAddPoiEdit. */
 export interface AddPoiOpts {
+  /** POI id override (default: auto-generated `poi_${Date.now()}`).
+   *  Callers that need to jump to the newly-inserted POI should generate the id
+   *  before calling buildAddPoiEdit and pass it here so they can look it up via
+   *  jumpToElement after the edit is applied. */
+  id?: string;
   /** POI display name (default: "New POI") */
   name?: string;
   /** POI type (default: "marker") */
@@ -197,7 +202,7 @@ export function buildAddPoiEdit(
     const name = opts?.name ?? 'New POI';
     const type = opts?.type ?? 'marker';
     const icon = opts?.icon ?? 'marker';
-    const poiStubId = `poi_${Date.now()}`;
+    const poiStubId = opts?.id ?? `poi_${Date.now()}`;
     const poiItem = `- {id: ${poiStubId}, name: "${name}", type: ${type}, icon: ${icon}, position: {x: ${x}, y: ${y}}}`;
 
     // Check if deck already has a poi: seq

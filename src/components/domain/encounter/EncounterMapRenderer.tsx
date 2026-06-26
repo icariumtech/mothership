@@ -55,6 +55,8 @@ interface EncounterMapRendererProps {
   isGM?: boolean;
   /** Callback when GM toggles room visibility */
   onRoomToggle?: (roomId: string, visible: boolean) => void;
+  /** Callback when any user clicks (taps) a room — used by editor preview for click-to-jump */
+  onRoomClick?: (roomId: string) => void;
   /** Door status overrides from GM */
   doorStatus?: DoorStatusState;
   /** Callback when GM changes door status */
@@ -152,6 +154,7 @@ export function EncounterMapRenderer({
   tokens,
   isGM = false,
   onRoomToggle,
+  onRoomClick,
   doorStatus,
   onDoorStatusChange,
   onTokenPlace,
@@ -505,13 +508,14 @@ export function EncounterMapRenderer({
   }, [isGM]);
 
   const handleRoomPointerUp = useCallback((e: React.PointerEvent, room: GridRoom) => {
-    if (isGM) return;
     const start = roomTapStart.current;
     roomTapStart.current = null;
     if (!start) return;
     const dx = e.clientX - start.x;
     const dy = e.clientY - start.y;
     if (Math.sqrt(dx * dx + dy * dy) > 8) return; // was a drag, not a tap
+    onRoomClick?.(room.id);
+    if (isGM) return;
     e.stopPropagation();
     const container = containerRef.current;
     const rect = container?.getBoundingClientRect();
@@ -520,7 +524,7 @@ export function EncounterMapRenderer({
       x: e.clientX - (rect?.left || 0),
       y: e.clientY - (rect?.top || 0),
     } });
-  }, [isGM, openPopover]);
+  }, [isGM, onRoomClick, openPopover]);
 
   const { handleDragOver, handleDrop } = useTokenPlacement({
     svgRef,

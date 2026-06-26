@@ -231,7 +231,7 @@ export function DeckplanPreviewPane({
             fill
             isGM
             editable
-            onRoomToggle={onRoomClick ? (roomId: string) => onRoomClick(roomId) : undefined}
+            onRoomClick={onRoomClick}
             onPoiClick={onPoiClick}
             onPoiMove={onPoiMove}
             onEmptyCellClick={onEmptyCellClick}

@@ -72,6 +72,8 @@ interface MapPreviewProps {
   onTokenStatusToggle?: (id: string, status: TokenStatus) => void;
   /** Callback when GM clicks a room on the map to toggle reveal/hide */
   onRoomToggle?: (roomId: string, visible: boolean) => void;
+  /** Callback when any user taps a room — used by editor preview for click-to-jump */
+  onRoomClick?: (roomId: string) => void;
   /** Hull polygon from manifest — same silhouette on every deck */
   hull?: HullDef;
   /** Vent visibility state (per-vent) */
@@ -128,6 +130,7 @@ export function MapPreview({
   onTokenRemove,
   onTokenStatusToggle,
   onRoomToggle,
+  onRoomClick,
   hull,
   fill,
   ventsVisible,
@@ -208,6 +211,7 @@ export function MapPreview({
             tokens={tokens}
             isGM={isGM ?? true}
             onRoomToggle={onRoomToggle}
+            onRoomClick={onRoomClick}
             doorStatus={doorStatus}
             onDoorStatusChange={onDoorStatusChange}
             onTokenPlace={onTokenPlace}

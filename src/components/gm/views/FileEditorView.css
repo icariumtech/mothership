@@ -149,3 +149,14 @@
   background: #080e0e;
   border-top: 1px solid #1e3333;
 }
+
+/* ------------------------------------------------------------------ */
+/* Click-to-jump line highlight (Plan 29-04, EDIT-04)                  */
+/* Applied via editor.deltaDecorations with className: 'deckplan-jump-highlight' */
+/* Persists until next jump or manual caret move (no auto-timer).       */
+/* ------------------------------------------------------------------ */
+
+.deckplan-jump-highlight {
+  background: rgba(201, 160, 80, 0.18);
+  border-left: 2px solid #c9a050;
+}

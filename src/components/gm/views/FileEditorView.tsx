@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import Editor, { type OnMount } from '@monaco-editor/react';
+import Editor, { type OnMount, type Monaco } from '@monaco-editor/react';
 import { Button, Tooltip } from 'antd';
 import {
   SaveOutlined,
@@ -10,6 +10,8 @@ import {
 import { DataFileTree } from '../DataFileTree';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { DeckplanPreviewPane } from './deckplan/DeckplanPreviewPane';
+import { buildIdRangeMap } from './deckplan/useDeckplanModel';
+import { buildPositionEdit, buildAddPoiEdit, type TextEdit } from './deckplan/deckplanYamlEdits';
 import './FileEditorView.css';
 
 const MONOSPACE_FONT = "'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace";
@@ -50,9 +52,16 @@ export function FileEditorView() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /** Title shown in the error banner — changes between VALIDATION ERROR and MAP SYNC ERROR. */
+  const [errorTitle, setErrorTitle] = useState<string>('VALIDATION ERROR');
 
   // Deckplan preview state
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+
+  // Keep a ref in sync with selectedDeckId so stable callbacks always read the latest value
+  // without being added to dependency arrays (same pattern as handleSaveRef).
+  const selectedDeckIdRef = useRef<string | null>(selectedDeckId);
+  selectedDeckIdRef.current = selectedDeckId;
 
   // Split ratio state: 0.0–1.0 = fraction of height given to Monaco
   const [splitRatio, setSplitRatio] = useState<number>(() => {
@@ -94,6 +103,10 @@ export function FileEditorView() {
 
   const errorDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  /** Stored monaco namespace (the second arg from onMount) for constructing Range objects. */
+  const monacoRef = useRef<Monaco | null>(null);
+  /** Decoration ids returned by the last deltaDecorations call; cleared on next jump or caret move. */
+  const decorationIdsRef = useRef<string[]>([]);
   const handleSaveRef = useRef<(() => Promise<void>) | null>(null);
 
   const isDirty = content !== savedContent;
@@ -107,6 +120,7 @@ export function FileEditorView() {
     try {
       await gmConsoleApi.writeDataFile(selectedPath, content);
       setErrorMessage(null);
+      setErrorTitle('VALIDATION ERROR');
       setSavedContent(content);
       setSaveFlash(true);
       setTimeout(() => setSaveFlash(false), 150);
@@ -116,6 +130,7 @@ export function FileEditorView() {
         axiosErr.response?.data?.detail ||
         axiosErr.response?.data?.error ||
         'Save failed';
+      setErrorTitle('VALIDATION ERROR');
       setErrorMessage(msg);
       if (errorDismissTimer.current) clearTimeout(errorDismissTimer.current);
       errorDismissTimer.current = setTimeout(() => setErrorMessage(null), 8000);
@@ -133,6 +148,7 @@ export function FileEditorView() {
     setContent('');
     setSavedContent('');
     setErrorMessage(null);
+    setErrorTitle('VALIDATION ERROR');
 
     if (isImage(path) || isBinaryOrUnknown(path)) {
       return;
@@ -155,12 +171,145 @@ export function FileEditorView() {
     }
   }, [handleSelectFile]);
 
+  // -----------------------------------------------------------------------
+  // Click-to-jump: EDIT-04
+  // Rebuilds the id→range map from the live Monaco model (Pitfall 4) and
+  // reveals + amber-highlights the matching deck-scoped `id:` line.
+  // -----------------------------------------------------------------------
+
+  /**
+   * Jump the Monaco editor to the line of the given element on the currently-selected deck.
+   *
+   * - Always rebuilds the id→range map from `editor.getModel().getValue()` at call time
+   *   (not from debounced React content state — Pitfall 4).
+   * - Lookup is deck-scoped: `${selectedDeckId}|${kind}|${id}` (Pitfall 3).
+   * - On match: reveals the line and applies a whole-line amber decoration.
+   * - On no-match: shows a transient MAP SYNC ERROR banner.
+   */
+  const jumpToElement = useCallback((kind: 'room' | 'poi', id: string) => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    const deckId = selectedDeckIdRef.current;
+    if (!editor || !monaco || !deckId) return;
+
+    // Source of truth: live Monaco model value, NOT debounced React content state (Pitfall 4)
+    const liveText = editor.getModel()?.getValue();
+    if (!liveText) return;
+
+    const rangeMap = buildIdRangeMap(liveText);
+    const key = `${deckId}|${kind}|${id}`;
+    const entry = rangeMap.get(key);
+
+    if (!entry) {
+      // MAP SYNC ERROR — element not found (YAML edited since last preview refresh)
+      setErrorTitle('MAP SYNC ERROR');
+      setErrorMessage(
+        'Could not match this element to a line in the editor. The YAML may have been edited since the last preview refresh.',
+      );
+      if (errorDismissTimer.current) clearTimeout(errorDismissTimer.current);
+      errorDismissTimer.current = setTimeout(() => setErrorMessage(null), 8000);
+      return;
+    }
+
+    const line = entry.idLineStart;
+
+    // Reveal without ScrollType to avoid const-enum runtime issues
+    editor.revealRangeInCenter(new monaco.Range(line, 1, line, 1));
+
+    // Apply whole-line amber highlight, clearing any previous decoration
+    decorationIdsRef.current = editor.deltaDecorations(decorationIdsRef.current, [
+      {
+        range: new monaco.Range(line, 1, line, Number.MAX_SAFE_INTEGER),
+        options: { isWholeLine: true, className: 'deckplan-jump-highlight' },
+      },
+    ]);
+  }, []); // all deps are refs — stable across renders
+
   const onEditorMount = useCallback<OnMount>((editorInstance, monaco) => {
     editorRef.current = editorInstance;
+    monacoRef.current = monaco;
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSaveRef.current?.();
     });
+    // Clear the jump highlight whenever the user manually moves the caret (UI-SPEC)
+    editorInstance.onDidChangeCursorPosition(() => {
+      if (decorationIdsRef.current.length > 0) {
+        decorationIdsRef.current = editorInstance.deltaDecorations(decorationIdsRef.current, []);
+      }
+    });
   }, []);
+
+  // -----------------------------------------------------------------------
+  // Surgical text edits: EDIT-05 (POI drag-to-move) + EDIT-06 (add POI)
+  // Both use editor.executeEdits() — never YAML.stringify / setValue (D-12).
+  // -----------------------------------------------------------------------
+
+  /**
+   * Apply a TextEdit (1-based line/col) to the Monaco editor via executeEdits.
+   *
+   * This fires Monaco's onDidChangeModelContent → onChange prop → setContent(val)
+   * → isDirty flips to true. The existing handleSave / writeDataFile / PUT path
+   * persists the result (D-15). No new save code needed.
+   */
+  const applyDeckplanEdit = useCallback((textEdit: TextEdit | null) => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!textEdit || !editor || !monaco) return;
+
+    const range = new monaco.Range(
+      textEdit.startLine,
+      textEdit.startCol,
+      textEdit.endLine,
+      textEdit.endCol,
+    );
+    editor.executeEdits('deckplan', [{ range, text: textEdit.text }]);
+  }, []);
+
+  /**
+   * POI drag-to-move (EDIT-05): surgically replace the POI's `position:` value.
+   *
+   * No confirmation dialog — Ctrl+Z undoes it (UI-SPEC).
+   * Reads the live model at interaction time (Pitfall 4).
+   */
+  const onPoiMove = useCallback((poiId: string, x: number, y: number) => {
+    const editor = editorRef.current;
+    const deckId = selectedDeckIdRef.current;
+    if (!editor || !deckId) return;
+    const liveText = editor.getModel()?.getValue() ?? '';
+    applyDeckplanEdit(buildPositionEdit(liveText, deckId, poiId, x, y));
+  }, [applyDeckplanEdit]);
+
+  /**
+   * Empty-cell click-to-add POI (EDIT-06): insert a POI stub into the deck's poi: list.
+   *
+   * Defaults: name "New POI", type/icon "marker" (UI-SPEC).
+   * After inserting, highlights the new stub's line so the GM can immediately edit it.
+   * Reads the live model at interaction time (Pitfall 4).
+   */
+  const onEmptyCellClick = useCallback((x: number, y: number) => {
+    const editor = editorRef.current;
+    const deckId = selectedDeckIdRef.current;
+    if (!editor || !deckId) return;
+
+    // Generate the id before building the edit so we can jump to it after insertion
+    const poiId = `poi_${Date.now()}`;
+    const liveText = editor.getModel()?.getValue() ?? '';
+    const edit = buildAddPoiEdit(liveText, deckId, x, y, {
+      id: poiId,
+      name: 'New POI',
+      type: 'marker',
+      icon: 'marker',
+    });
+
+    applyDeckplanEdit(edit);
+
+    if (edit) {
+      // Let Monaco process the executeEdits before jumping; rAF ensures the model is settled
+      requestAnimationFrame(() => {
+        jumpToElement('poi', poiId);
+      });
+    }
+  }, [applyDeckplanEdit, jumpToElement]);
 
   // Breadcrumb rendering
   function renderBreadcrumb() {
@@ -288,13 +437,16 @@ export function FileEditorView() {
             title="Drag to resize"
           />
 
-          {/* Bottom pane: live deck preview.
-              TODO(29-04): Wire onRoomClick, onPoiClick, onPoiMove, onEmptyCellClick to Monaco edits */}
+          {/* Bottom pane: live deck preview wired to Monaco edit callbacks (EDIT-04..06) */}
           <div className="gm-file-editor-view__split-preview">
             <DeckplanPreviewPane
               yamlText={content}
               selectedDeckId={selectedDeckId}
               onDeckSelect={setSelectedDeckId}
+              onRoomClick={(roomId) => jumpToElement('room', roomId)}
+              onPoiClick={(poiId) => jumpToElement('poi', poiId)}
+              onPoiMove={onPoiMove}
+              onEmptyCellClick={onEmptyCellClick}
             />
           </div>
         </div>
@@ -361,13 +513,13 @@ export function FileEditorView() {
           )}
         </div>
 
-        {/* Error banner */}
+        {/* Error banner — title switches between VALIDATION ERROR and MAP SYNC ERROR */}
         {errorMessage && (
           <div className="gm-file-editor-view__error-banner">
             <ExclamationCircleOutlined style={{ fontSize: 16, color: '#c0392b', flexShrink: 0, marginTop: 2 }} />
             <div>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#c0392b', letterSpacing: '1px', fontFamily: MONOSPACE_FONT }}>
-                VALIDATION ERROR
+                {errorTitle}
               </div>
               <div style={{ fontSize: 12, color: '#7ab8b8', fontFamily: MONOSPACE_FONT, marginTop: 2 }}>
                 {errorMessage}

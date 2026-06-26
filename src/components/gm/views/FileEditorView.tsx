@@ -186,7 +186,7 @@ export function FileEditorView() {
    * - On match: reveals the line and applies a whole-line amber decoration.
    * - On no-match: shows a transient MAP SYNC ERROR banner.
    */
-  const jumpToElement = useCallback((kind: 'room' | 'poi', id: string) => {
+  const jumpToElement = useCallback((kind: 'room' | 'poi' | 'door', id: string) => {
     const editor = editorRef.current;
     const monaco = monacoRef.current;
     const deckId = selectedDeckIdRef.current;
@@ -444,6 +444,7 @@ export function FileEditorView() {
               selectedDeckId={selectedDeckId}
               onDeckSelect={setSelectedDeckId}
               onRoomClick={(roomId) => jumpToElement('room', roomId)}
+              onDoorClick={(doorId) => jumpToElement('door', doorId)}
               onPoiClick={(poiId) => jumpToElement('poi', poiId)}
               onPoiMove={onPoiMove}
               onEmptyCellClick={onEmptyCellClick}

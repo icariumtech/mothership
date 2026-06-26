@@ -26,7 +26,7 @@ import type { GridEncounterMapData } from '@/types/encounterMap';
  */
 export interface IdRangeEntry {
   deckId: string;
-  kind: 'room' | 'poi';
+  kind: 'room' | 'poi' | 'door';
   id: string;
   /** 1-based line of the `id:` key */
   idLineStart: number;
@@ -102,6 +102,15 @@ export function buildIdRangeMap(yamlText: string): Map<string, IdRangeEntry> {
         for (const poiNode of deckPoiSeq.items) {
           if (!poiNode || !Array.isArray(poiNode.items)) continue;
           _extractIdEntry(poiNode, deckId, 'poi', lineCounter, result);
+        }
+      }
+
+      // Walk deck-level doors[]
+      const doorsSeq = deckNode.get('doors', true) as any;
+      if (doorsSeq && Array.isArray(doorsSeq.items)) {
+        for (const doorNode of doorsSeq.items) {
+          if (!doorNode || !Array.isArray(doorNode.items)) continue;
+          _extractIdEntry(doorNode, deckId, 'door', lineCounter, result);
         }
       }
     }

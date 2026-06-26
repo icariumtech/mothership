@@ -33,6 +33,7 @@ interface DeckplanPreviewPaneProps {
   onDeckSelect: (deckId: string) => void;
   // Editor-mode callbacks (Plan 29-04 wires these to Monaco)
   onRoomClick?: (roomId: string) => void;
+  onDoorClick?: (doorId: string) => void;
   onPoiClick?: (poiId: string) => void;
   onPoiMove?: (poiId: string, x: number, y: number) => void;
   onEmptyCellClick?: (x: number, y: number) => void;
@@ -76,6 +77,7 @@ export function DeckplanPreviewPane({
   selectedDeckId,
   onDeckSelect,
   onRoomClick,
+  onDoorClick,
   onPoiClick,
   onPoiMove,
   onEmptyCellClick,
@@ -232,6 +234,7 @@ export function DeckplanPreviewPane({
             isGM
             editable
             onRoomClick={onRoomClick}
+            onDoorClick={onDoorClick}
             onPoiClick={onPoiClick}
             onPoiMove={onPoiMove}
             onEmptyCellClick={onEmptyCellClick}

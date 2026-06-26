@@ -74,6 +74,8 @@ interface MapPreviewProps {
   onRoomToggle?: (roomId: string, visible: boolean) => void;
   /** Callback when any user taps a room — used by editor preview for click-to-jump */
   onRoomClick?: (roomId: string) => void;
+  /** Callback when any user clicks a door — used by editor preview for click-to-jump */
+  onDoorClick?: (doorId: string) => void;
   /** Hull polygon from manifest — same silhouette on every deck */
   hull?: HullDef;
   /** Vent visibility state (per-vent) */
@@ -131,6 +133,7 @@ export function MapPreview({
   onTokenStatusToggle,
   onRoomToggle,
   onRoomClick,
+  onDoorClick,
   hull,
   fill,
   ventsVisible,
@@ -212,6 +215,7 @@ export function MapPreview({
             isGM={isGM ?? true}
             onRoomToggle={onRoomToggle}
             onRoomClick={onRoomClick}
+            onDoorClick={onDoorClick}
             doorStatus={doorStatus}
             onDoorStatusChange={onDoorStatusChange}
             onTokenPlace={onTokenPlace}

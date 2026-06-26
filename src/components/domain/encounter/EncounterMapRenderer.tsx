@@ -61,6 +61,8 @@ interface EncounterMapRendererProps {
   doorStatus?: DoorStatusState;
   /** Callback when GM changes door status */
   onDoorStatusChange?: (doorId: string, status: DoorStatus) => void;
+  /** Callback when any user left-clicks a door — used by editor preview for click-to-jump */
+  onDoorClick?: (doorId: string) => void;
   /** Token callbacks */
   onTokenPlace?: (type: TokenType, name: string, x: number, y: number, imageUrl: string, roomId: string) => void;
   onTokenMove?: (id: string, x: number, y: number, roomId: string) => void;
@@ -155,6 +157,7 @@ export function EncounterMapRenderer({
   isGM = false,
   onRoomToggle,
   onRoomClick,
+  onDoorClick,
   doorStatus,
   onDoorStatusChange,
   onTokenPlace,
@@ -551,7 +554,8 @@ export function EncounterMapRenderer({
     orientation: 'horizontal' | 'vertical',
     key: string,
     onContextMenuHandler?: (e: React.MouseEvent) => void,
-    widthCells: number = 1
+    widthCells: number = 1,
+    onClickHandler?: (e: React.MouseEvent) => void
   ) => {
     const doorWidth = orientation === 'horizontal' ? 20 * widthCells : 12;
     const doorHeight = orientation === 'horizontal' ? 12 : 20 * widthCells;
@@ -580,7 +584,8 @@ export function EncounterMapRenderer({
         key={key}
         className={`encounter-map__door encounter-map__door--${doorType} ${statusClass}`}
         onContextMenu={onContextMenuHandler}
-        style={{ cursor: onContextMenuHandler ? 'context-menu' : 'default' }}
+        onClick={onClickHandler}
+        style={{ cursor: onClickHandler ? 'pointer' : onContextMenuHandler ? 'context-menu' : 'default' }}
       >
         {/* Opaque background to cover wall lines behind door */}
         <rect
@@ -1407,10 +1412,13 @@ export function EncounterMapRenderer({
             const contextMenuHandler = (isGM && onDoorStatusChange)
               ? (e: React.MouseEvent) => handleDoorClick(e, door)
               : undefined;
+            const clickHandler = onDoorClick
+              ? (e: React.MouseEvent) => { e.stopPropagation(); onDoorClick(door.id); }
+              : undefined;
             return renderDoorSymbol(
               svgPos.x, svgPos.y, door.type, getEffectiveDoorStatus(door),
               styleEntry, orientation, `door-${door.id}`, contextMenuHandler,
-              door.width ?? 1
+              door.width ?? 1, clickHandler
             );
           })}
         </g>

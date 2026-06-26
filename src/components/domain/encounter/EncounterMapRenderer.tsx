@@ -856,6 +856,8 @@ export function EncounterMapRenderer({
               fill="transparent"
               style={{ cursor: 'context-menu' }}
               onContextMenu={(e) => handleRoomContextMenu(e, room)}
+              onPointerDown={handleRoomPointerDown}
+              onPointerUp={(e) => handleRoomPointerUp(e, room)}
               className="encounter-map__room"
             />
           ) : room.name && (
@@ -910,6 +912,8 @@ export function EncounterMapRenderer({
                 fill="transparent"
                 style={{ cursor: 'context-menu' }}
                 onContextMenu={(e) => handleRoomContextMenu(e, room)}
+                onPointerDown={handleRoomPointerDown}
+                onPointerUp={(e) => handleRoomPointerUp(e, room)}
                 className="encounter-map__room"
               />
             ) : (
@@ -918,6 +922,8 @@ export function EncounterMapRenderer({
                 fill="transparent"
                 style={{ cursor: 'context-menu' }}
                 onContextMenu={(e) => handleRoomContextMenu(e, room)}
+                onPointerDown={handleRoomPointerDown}
+                onPointerUp={(e) => handleRoomPointerUp(e, room)}
                 className="encounter-map__room"
               />
             )
@@ -1034,6 +1040,8 @@ export function EncounterMapRenderer({
             fill="transparent"
             style={{ cursor: 'context-menu' }}
             onContextMenu={(e) => handleRoomContextMenu(e, room)}
+            onPointerDown={handleRoomPointerDown}
+            onPointerUp={(e) => handleRoomPointerUp(e, room)}
             className="encounter-map__room"
           />
         ))}
@@ -1044,6 +1052,8 @@ export function EncounterMapRenderer({
             fill="transparent"
             style={{ cursor: 'context-menu' }}
             onContextMenu={(e) => handleRoomContextMenu(e, room)}
+            onPointerDown={handleRoomPointerDown}
+            onPointerUp={(e) => handleRoomPointerUp(e, room)}
             className="encounter-map__room"
           />
         ))}

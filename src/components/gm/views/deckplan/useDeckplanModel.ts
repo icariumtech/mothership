@@ -129,7 +129,7 @@ export function buildIdRangeMap(yamlText: string): Map<string, IdRangeEntry> {
 function _extractIdEntry(
   node: any,
   deckId: string,
-  kind: 'room' | 'poi',
+  kind: 'room' | 'poi' | 'door',
   lineCounter: LineCounter,
   result: Map<string, IdRangeEntry>,
 ): void {

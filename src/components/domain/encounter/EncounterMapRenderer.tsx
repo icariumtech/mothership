@@ -503,9 +503,8 @@ export function EncounterMapRenderer({
   const roomTapStart = useRef<{ x: number; y: number } | null>(null);
 
   const handleRoomPointerDown = useCallback((e: React.PointerEvent) => {
-    if (isGM) return;
     roomTapStart.current = { x: e.clientX, y: e.clientY };
-  }, [isGM]);
+  }, []);
 
   const handleRoomPointerUp = useCallback((e: React.PointerEvent, room: GridRoom) => {
     const start = roomTapStart.current;

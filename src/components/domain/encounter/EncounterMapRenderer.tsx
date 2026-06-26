@@ -448,7 +448,9 @@ export function EncounterMapRenderer({
     const isBackground = target.closest('.encounter-map__rooms') === null
       && target.closest('.encounter-map__pois') === null
       && target.closest('.encounter-map__doors') === null
-      && target.closest('.encounter-map__token-layer') === null;
+      && target.closest('.encounter-map__token-layer') === null
+      && target.closest('.encounter-map__hull') === null
+      && target.closest('.encounter-map__vents') === null;
     if (!isBackground) return;
     const svg = svgRef.current;
     if (!svg) return;

@@ -14,6 +14,7 @@ interface RoomContextMenuProps {
   x: number;
   y: number;
   onToggleVisibility?: () => void;
+  onAddPoi?: () => void;
   onClose: () => void;
 }
 
@@ -23,6 +24,7 @@ export function RoomContextMenu({
   x,
   y,
   onToggleVisibility,
+  onAddPoi,
   onClose,
 }: RoomContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -122,34 +124,65 @@ export function RoomContextMenu({
         </div>
       )}
 
-      {/* Reveal/Hide button — GM only */}
-      {onToggleVisibility && <button
-        onClick={onToggleVisibility}
-        style={{
-          background: '#1a1a1a',
-          border: `1px solid ${isVisible ? '#8b7355' : '#4a6b6b'}`,
-          color: isVisible ? '#8b7355' : '#4a6b6b',
-          padding: '4px 8px',
-          fontSize: '10px',
-          fontFamily: 'inherit',
-          letterSpacing: '1px',
-          cursor: 'pointer',
-          transition: 'all 0.15s ease',
-          textAlign: 'center',
-        }}
-        onMouseEnter={(e) => {
-          const color = isVisible ? '#8b7355' : '#4a6b6b';
-          e.currentTarget.style.background = color;
-          e.currentTarget.style.color = '#0a0a0a';
-        }}
-        onMouseLeave={(e) => {
-          const color = isVisible ? '#8b7355' : '#4a6b6b';
-          e.currentTarget.style.background = '#1a1a1a';
-          e.currentTarget.style.color = color;
-        }}
-      >
-        {isVisible ? 'HIDE ROOM' : 'REVEAL ROOM'}
-      </button>}
+      {/* Add POI — editor mode */}
+      {onAddPoi && (
+        <button
+          onClick={onAddPoi}
+          style={{
+            background: '#1a1a1a',
+            border: '1px solid #4a6b6b',
+            color: '#4a6b6b',
+            padding: '4px 8px',
+            fontSize: '10px',
+            fontFamily: 'inherit',
+            letterSpacing: '1px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            textAlign: 'center',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#4a6b6b';
+            e.currentTarget.style.color = '#0a0a0a';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#1a1a1a';
+            e.currentTarget.style.color = '#4a6b6b';
+          }}
+        >
+          ADD POI
+        </button>
+      )}
+
+      {/* Reveal/Hide button — GM only, not in editor mode */}
+      {onToggleVisibility && (
+        <button
+          onClick={onToggleVisibility}
+          style={{
+            background: '#1a1a1a',
+            border: `1px solid ${isVisible ? '#8b7355' : '#4a6b6b'}`,
+            color: isVisible ? '#8b7355' : '#4a6b6b',
+            padding: '4px 8px',
+            fontSize: '10px',
+            fontFamily: 'inherit',
+            letterSpacing: '1px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            textAlign: 'center',
+          }}
+          onMouseEnter={(e) => {
+            const color = isVisible ? '#8b7355' : '#4a6b6b';
+            e.currentTarget.style.background = color;
+            e.currentTarget.style.color = '#0a0a0a';
+          }}
+          onMouseLeave={(e) => {
+            const color = isVisible ? '#8b7355' : '#4a6b6b';
+            e.currentTarget.style.background = '#1a1a1a';
+            e.currentTarget.style.color = color;
+          }}
+        >
+          {isVisible ? 'HIDE ROOM' : 'REVEAL ROOM'}
+        </button>
+      )}
     </div>
   );
 }

@@ -203,20 +203,43 @@ export function buildAddPoiEdit(
     const type = opts?.type ?? 'marker';
     const icon = opts?.icon ?? 'marker';
     const poiStubId = opts?.id ?? `poi_${Date.now()}`;
+
+    // Primary path: add POI directly to the room containing (x, y).
+    // This keeps the entry room-scoped, matching how the schema organises POIs.
+    const plainDeck = (parseYaml(yamlText) as any)?.decks?.find((d: any) => d?.id === deckId);
+    if (plainDeck) {
+      const targetRoom = _findRoomForPoint(plainDeck.rooms ?? [], x, y);
+      if (targetRoom) {
+        const targetRoomNode = _findRoomNodeById(deckNode, targetRoom.id);
+        if (targetRoomNode) {
+          return _buildAddPoiToRoomNodeEdit(yamlText, lineCounter, targetRoomNode,
+            { id: poiStubId, name, type, icon }, x, y);
+        }
+      }
+    }
+
+    // Fallback: no room found (click outside all polygons) — add to deck-level poi list.
     const poiItem = `- {id: ${poiStubId}, name: "${name}", type: ${type}, icon: ${icon}, position: {x: ${x}, y: ${y}}}`;
 
-    // Check if deck already has a poi: seq
+    // Check if deck already has a poi: key (even if its value is empty/null)
     const deckPoiSeq = deckNode.get?.('poi', true) as any;
+    const deckPoiPair = (deckNode.items as any[])?.find((p: any) => p?.key?.value === 'poi');
+    const hasPoiItems = deckPoiSeq && Array.isArray(deckPoiSeq.items) && deckPoiSeq.items.length > 0;
 
-    if (deckPoiSeq && Array.isArray(deckPoiSeq.items) && deckPoiSeq.items.length > 0) {
+    if (hasPoiItems) {
       // poi-exists branch: insert after the last item
       const lastItem = deckPoiSeq.items[deckPoiSeq.items.length - 1];
       const [, lastItemValueEnd] = lastItem.range as [number, number, number];
 
-      // Determine indentation from the first item's column (1-based → count spaces)
+      // Determine indentation from the '-' column of the first item.
+      // items[0].range[0] points to the value start (the '{' in a flow map),
+      // NOT the '-' dash. Scan back to the start of the line to find '-'.
       const firstItemStart = deckPoiSeq.items[0].range[0] as number;
-      const firstItemCol = lineCounter.linePos(firstItemStart).col; // 1-based
-      const indent = ' '.repeat(firstItemCol - 1); // col-1 spaces before '-'
+      const lineStart = yamlText.lastIndexOf('\n', firstItemStart - 1) + 1;
+      const linePrefix = yamlText.slice(lineStart, firstItemStart);
+      const dashRelIdx = linePrefix.indexOf('-');
+      const dashColOneBased = dashRelIdx >= 0 ? dashRelIdx + 1 : lineCounter.linePos(firstItemStart).col;
+      const indent = ' '.repeat(dashColOneBased - 1);
 
       // Insert point: the lastItemValueEnd is at the start of the next line
       // (the '\n- id:' of the next sibling or EOF). We insert BEFORE that '\n'
@@ -231,6 +254,27 @@ export function buildAddPoiEdit(
         endLine: lineOfInsert.line,
         endCol: lineOfInsert.col,
         text: '\n' + indent + poiItem,
+      };
+    } else if (deckPoiPair?.key?.range) {
+      // poi-empty branch: poi: key exists but value is null (last item was deleted
+      // but the key wasn't cleaned up). Insert the new item right after the poi: line.
+      const poiKeyStart = deckPoiPair.key.range[0] as number;
+      const keyCol = lineCounter.linePos(poiKeyStart).col; // 1-based col of 'p'
+      const itemIndent = ' '.repeat(keyCol - 1 + 2); // 2 more than key indent
+
+      // Find the \n that ends the `poi:` line and insert after it (at the \n position
+      // so the new item appears on the next line, before any sibling key).
+      const lfIdx = yamlText.indexOf('\n', poiKeyStart);
+      const insertPos = lfIdx >= 0
+        ? lineCounter.linePos(lfIdx)
+        : lineCounter.linePos(Math.max(0, yamlText.length - 1));
+
+      return {
+        startLine: insertPos.line,
+        startCol: insertPos.col,
+        endLine: insertPos.line,
+        endCol: insertPos.col,
+        text: '\n' + itemIndent + poiItem,
       };
     } else {
       // poi-absent branch: insert a new poi: key + first item after the deck's last key

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-28T03:43:32.982Z",
+  "timestamp": "2026-06-28T18:01:46.965Z",
   "phase": "29",
   "phase_name": "interactive-deckplan-map-editor-with-live-preview-yaml-sync-",
   "phase_dir": ".planning/phases/29-interactive-deckplan-map-editor-with-live-preview-yaml-sync-",
@@ -9,34 +9,32 @@
   "total_tasks": 3,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Wire click-to-jump (EDIT-04) — revealRangeInCenter + deltaDecorations", "status": "done", "commit": "218cba4"},
-    {"id": 2, "name": "Wire POI drag/add (EDIT-05/06) — applyDeckplanEdit, onPoiMove, onEmptyCellClick", "status": "done", "commit": "e389652"},
-    {"id": 3, "name": "Human verification + bug fixes (ongoing this session)", "status": "in_progress", "progress": "Steps 1-4 verified previously. This session: fixed POI not showing in preview (normalizeClientPoi), fixed map pan during POI drag (usePanZoom guard), fixed cross-room POI move in YAML (buildPoiRoomMoveEdit), fixed spurious POI after drag (poiJustDroppedRef). Steps 5-8 still need sign-off."}
+    {"id": 1, "name": "Wire click-to-jump (EDIT-04)", "status": "done", "commit": "218cba4"},
+    {"id": 2, "name": "Wire POI drag/add (EDIT-05/06)", "status": "done", "commit": "e389652"},
+    {"id": 3, "name": "Human verification + bug fixes", "status": "in_progress", "progress": "Steps 1-5 pass. Step 6 (Add POI via right-click on room) works. Step 7 (no CRLF) implemented but needs re-verification. Step 8 passes. All fixes uncommitted."}
   ],
   "remaining_tasks": [],
   "blockers": [],
   "human_actions_pending": [
     {
-      "action": "Commit current fixes, run the app, complete verification steps 5-8, then type 'approved'",
-      "context": "All bug fixes this session are uncommitted. After committing: run pnpm run build && ./start_server.sh, open patrol_gunboat deckplan.yaml in File Editor. Step 5: drag POI to new room → position updates AND entry moves to new room's poi list in YAML. Step 6: click empty cell → New POI stub inserted + highlighted. Step 7: Ctrl+S → git diff shows only edited lines changed, flow-style preserved. Step 8: open location.yaml → no preview pane appears.",
+      "action": "1) Commit 4 source files. 2) Fix data/campaign/ship/deckplan.yaml — remove duplicate empty 'poi:' line (the blank one before the real poi: list). 3) Run app, re-verify step 7: Ctrl+S then git diff shows no ^M and only POI lines changed. Then type 'approved'.",
+      "context": "Four source files have uncommitted fixes this session. data/campaign/ship/deckplan.yaml has a duplicate poi: key from a bug now fixed — do NOT commit it as-is.",
       "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "normalizeClientPoi() added to deckToMapData (useDeckplanModel.ts)", "rationale": "Frontend preview did not lift room-level poi[] to top-level; backend normalize_deck_poi does but deckToMapData did not", "phase": "29"},
-    {"decision": ".encounter-map__poi added to usePanZoom closest() guard for mouse and touch", "rationale": "stopPropagation on pointer events does not cancel React synthetic mouse events; closest() is the correct guard pattern", "phase": "29"},
-    {"decision": "buildPoiRoomMoveEdit replaces buildPositionEdit for onPoiMove — point-in-polygon + atomic delete+insert for cross-room moves", "rationale": "POIs are room-scoped in YAML; position-only edit left the entry under the old room", "phase": "29"},
-    {"decision": "poiJustDroppedRef suppresses handleSvgBackgroundClick after drag-drop", "rationale": "Browser fires click after pointerup; without suppression triggered onEmptyCellClick creating a spurious New POI on every drag", "phase": "29"},
-    {"decision": "Added onRoomClick/onDoorClick props to EncounterMapRenderer and MapPreview", "rationale": "onRoomToggle only fires from right-click context menu; needed dedicated left-click signal for editor preview", "phase": "29"}
+    {"decision": "Add POI via right-click on room context menu, not left-click on empty background", "rationale": "Left-click outside hull was wrong UX; right-click on room provides correct room context and coordinates", "phase": "29"},
+    {"decision": "buildAddPoiEdit primary path uses point-in-polygon to find containing room, then _buildAddPoiToRoomNodeEdit", "rationale": "POIs should be room-scoped in YAML; deck-level poi is now only a fallback for clicks outside all room polygons", "phase": "29"},
+    {"decision": "poi-empty branch in buildAddPoiEdit handles null poi: key after last-item delete", "rationale": "After buildPoiRoomMoveEdit removes last item, poi: key stays as null; old poi-absent branch was inserting a duplicate key", "phase": "29"},
+    {"decision": "Dash-column fix: scan linePrefix.indexOf('-') not firstItemCol-1", "rationale": "items[0].range[0] points to '{' of flow map not '-'; indent was 2 cols too wide causing YAML parse errors on second add", "phase": "29"},
+    {"decision": "setEOL(0) in onEditorMount + normalize \\r\\n on save", "rationale": "Monaco defaults to CRLF on WSL2/Windows causing ^M on every line in git diff; 0=EndOfLineSequence.LF", "phase": "29"}
   ],
   "uncommitted_files": [
-    "data/ships/patrol_gunboat/deckplan.yaml",
     "src/components/domain/encounter/EncounterMapRenderer.tsx",
+    "src/components/domain/encounter/RoomContextMenu.tsx",
     "src/components/gm/views/FileEditorView.tsx",
-    "src/components/gm/views/deckplan/deckplanYamlEdits.ts",
-    "src/components/gm/views/deckplan/useDeckplanModel.ts",
-    "src/hooks/usePanZoom.ts"
+    "src/components/gm/views/deckplan/deckplanYamlEdits.ts"
   ],
-  "next_action": "Commit the 6 modified source files + HANDOFF.json + .continue-here.md. Then run pnpm run build && ./start_server.sh. Open patrol_gunboat deckplan.yaml in File Editor. Complete verification steps 5-8, then type 'approved' to close Phase 29.",
-  "context_notes": "patrol_gunboat/deckplan.yaml has a test reactor_core POI under engineering room at position {x:25, y:25}. Four bugs fixed this session, all uncommitted. Build is TypeScript clean. The 29-04-SUMMARY.md was committed by the executor pre-checkpoint — phase closes when VERIFICATION.md is written after approved."
+  "next_action": "Commit 4 source files. Fix data/campaign/ship/deckplan.yaml (remove duplicate poi: line). Re-run app, verify step 7 (no ^M, surgical write). On 'approved': write 29-VERIFICATION.md, mark phase complete.",
+  "context_notes": "ship_gamma staged deletions (3 files) are pre-existing and unrelated to Phase 29 — handle separately. data/campaign/ship/deckplan.yaml must NOT be committed until duplicate poi: key is removed manually."
 }

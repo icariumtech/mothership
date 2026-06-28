@@ -118,7 +118,7 @@ export function FileEditorView() {
 
     setIsSaving(true);
     try {
-      await gmConsoleApi.writeDataFile(selectedPath, content);
+      await gmConsoleApi.writeDataFile(selectedPath, content.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
       setErrorMessage(null);
       setErrorTitle('VALIDATION ERROR');
       setSavedContent(content);
@@ -228,6 +228,10 @@ export function FileEditorView() {
   const onEditorMount = useCallback<OnMount>((editorInstance, monaco) => {
     editorRef.current = editorInstance;
     monacoRef.current = monaco;
+    // Force LF line endings — Monaco defaults to CRLF on Windows/WSL2, which
+    // causes ^M on every line in git diff when saving. Numeric 0 = EndOfLineSequence.LF
+    // (const enum avoided to prevent runtime lookup issues).
+    editorInstance.getModel()?.setEOL(0);
     editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       handleSaveRef.current?.();
     });

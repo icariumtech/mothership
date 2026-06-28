@@ -144,7 +144,7 @@ type EncounterPopover =
   | { type: 'token'; payload: { id: string; pos: { x: number; y: number } } }
   | { type: 'door';  payload: { id: string; x: number; y: number; status: DoorStatus } }
   | { type: 'poi';   payload: { poi: PoiData; x: number; y: number } }
-  | { type: 'room';  payload: { room: GridRoom; x: number; y: number } }
+  | { type: 'room';  payload: { room: GridRoom; x: number; y: number; gridX?: number; gridY?: number } }
   | { type: 'vent';  payload: { x: number; y: number; currentlyVisible: boolean } }
 
 export function EncounterMapRenderer({
@@ -358,11 +358,9 @@ export function EncounterMapRenderer({
   const editableRef = useRef(editable);
   const onPoiMoveRef = useRef(onPoiMove);
   const onPoiClickRef = useRef(onPoiClick);
-  const onEmptyCellClickRef = useRef(onEmptyCellClick);
   useEffect(() => { editableRef.current = editable; }, [editable]);
   useEffect(() => { onPoiMoveRef.current = onPoiMove; }, [onPoiMove]);
   useEffect(() => { onPoiClickRef.current = onPoiClick; }, [onPoiClick]);
-  useEffect(() => { onEmptyCellClickRef.current = onEmptyCellClick; }, [onEmptyCellClick]);
 
   // Stable refs for map geometry (needed in document-level handlers)
   const mapRotationRef = useRef(mapRotation);
@@ -446,27 +444,6 @@ export function EncounterMapRenderer({
     poiIsDraggingRef.current = false;
   }, [editable]);
 
-  // Handle click on SVG background for empty-cell detection (editor mode)
-  const handleSvgBackgroundClick = useCallback((e: React.MouseEvent) => {
-    if (!editable || !onEmptyCellClick) return;
-    // Suppress the click that fires immediately after a POI drag-drop
-    if (poiJustDroppedRef.current) { poiJustDroppedRef.current = false; return; }
-    // Only handle clicks that bubbled from the background (not rooms/POIs)
-    const target = e.target as Element;
-    const isBackground = target.closest('.encounter-map__rooms') === null
-      && target.closest('.encounter-map__pois') === null
-      && target.closest('.encounter-map__doors') === null
-      && target.closest('.encounter-map__token-layer') === null
-      && target.closest('.encounter-map__hull') === null
-      && target.closest('.encounter-map__vents') === null;
-    if (!isBackground) return;
-    const svg = svgRef.current;
-    if (!svg) return;
-    const svgCoords = screenToSVG(svg, e.clientX, e.clientY);
-    const unrotated = inverseRotatePoint(svgCoords.x, svgCoords.y, mapRotation, mapCenterX, mapCenterY);
-    const snapped = snapToGrid(unrotated.x, unrotated.y, unitSize);
-    onEmptyCellClick(snapped.gridX, snapped.gridY);
-  }, [editable, onEmptyCellClick, mapRotation, mapCenterX, mapCenterY, unitSize]);
 
   // -------------------------------------------------------------------
   // Door right-click handler — opens DoorStatusPopup at cursor position.
@@ -491,7 +468,8 @@ export function EncounterMapRenderer({
   }, [isGM, onDoorStatusChange, getEffectiveDoorStatus, openPopover]);
 
   // -------------------------------------------------------------------
-  // Room right-click handler — opens context menu (GM only)
+  // Room right-click handler — opens context menu (GM only).
+  // In editor mode, also computes snapped grid coords for "Add POI".
   // -------------------------------------------------------------------
   const handleRoomContextMenu = useCallback((e: React.MouseEvent, room: GridRoom) => {
     if (!isGM) return;
@@ -499,12 +477,23 @@ export function EncounterMapRenderer({
     e.stopPropagation();
     const container = containerRef.current;
     const rect = container?.getBoundingClientRect();
-    openPopover({ type: 'room', payload: {
+    const payload: EncounterPopover['payload'] & { room: GridRoom } = {
       room,
       x: e.clientX - (rect?.left || 0),
       y: e.clientY - (rect?.top || 0),
-    } });
-  }, [isGM, openPopover]);
+    };
+    if (editable && onEmptyCellClick) {
+      const svg = svgRef.current;
+      if (svg) {
+        const svgCoords = screenToSVG(svg, e.clientX, e.clientY);
+        const unrotated = inverseRotatePoint(svgCoords.x, svgCoords.y, mapRotation, mapCenterX, mapCenterY);
+        const snapped = snapToGrid(unrotated.x, unrotated.y, unitSize);
+        payload.gridX = snapped.gridX;
+        payload.gridY = snapped.gridY;
+      }
+    }
+    openPopover({ type: 'room', payload });
+  }, [isGM, editable, onEmptyCellClick, mapRotation, mapCenterX, mapCenterY, unitSize, openPopover]);
 
   // -------------------------------------------------------------------
   // Room tap handler — shows info popup (player terminal only)
@@ -1268,7 +1257,7 @@ export function EncounterMapRenderer({
           transform: `translate(${viewState.panX}px, ${viewState.panY}px) scale(${viewState.zoom})`,
           transformOrigin: '0 0',
         }}
-        onClick={editable ? handleSvgBackgroundClick : undefined}
+        onContextMenu={editable ? (e) => e.preventDefault() : undefined}
       >
         <defs>
           {/* POI icon symbols — Mothership RPG Map Icons (MIT, László Varga) */}
@@ -1636,8 +1625,12 @@ export function EncounterMapRenderer({
           isVisible={isGM ? isRoomVisible(popover.payload.room.id) : undefined}
           x={popover.payload.x}
           y={popover.payload.y}
-          onToggleVisibility={isGM ? () => {
+          onToggleVisibility={isGM && !editable ? () => {
             onRoomToggle?.(popover.payload.room.id, !isRoomVisible(popover.payload.room.id));
+            closePopover();
+          } : undefined}
+          onAddPoi={editable && onEmptyCellClick && popover.payload.gridX !== undefined ? () => {
+            onEmptyCellClick(popover.payload.gridX!, popover.payload.gridY!);
             closePopover();
           } : undefined}
           onClose={() => closePopover()}
@@ -1678,6 +1671,7 @@ export function EncounterMapRenderer({
           </button>
         </div>
       )}
+
     </div>
   );
 }

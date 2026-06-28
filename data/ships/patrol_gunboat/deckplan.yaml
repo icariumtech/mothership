@@ -47,6 +47,7 @@ decks:
     - [30.5, 20.75]
     - [30.5, 29.75]
     - [20.5, 29.75]
+    poi:
   - id: steerage
     name: STEERAGE
     polygon:
@@ -54,6 +55,7 @@ decks:
     - [24.5, 19.75]
     - [24.5, 16.75]
     - [20.5, 16.75]
+    poi:
   - id: cargo_bay
     name: CARGO BAY
     polygon:
@@ -61,6 +63,7 @@ decks:
     - [30.5, 16.75]
     - [30.5, 19.75]
     - [26.5, 19.75]
+    poi:
   - id: lounge
     name: LOUNGE
     polygon:
@@ -144,6 +147,8 @@ decks:
     - [24.5, 10.25]
     - [24.5, 14.75]
     type: corridor
+    poi:
+    - {id: reactor_core, icon: reactor core, label: "Reactor Core", type: hazard, position: {x: 25, y: 16}}
   doors:
   - {id: engineering_door_0, rooms: [engineering, corridor_3], type: standard, status: CLOSED, along: 0.5}
   - {id: engineering_door_1, rooms: [engineering, corridor_1], type: standard, status: CLOSED, along: 0.5}
@@ -159,3 +164,4 @@ decks:
   - {id: bridge_door_0, rooms: [bridge, corridor_3], type: standard, status: CLOSED, along: 0.5}
   - {id: corridor_1_door_0, rooms: [corridor_1, corridor_3], type: standard, status: CLOSED, along: 0.5}
   - {id: corridor_2_door_0, rooms: [corridor_2, corridor_3], type: standard, status: CLOSED, along: 0.5}
+

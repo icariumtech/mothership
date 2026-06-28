@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-26T01:41:36.128Z",
+  "timestamp": "2026-06-28T03:43:32.982Z",
   "phase": "29",
   "phase_name": "interactive-deckplan-map-editor-with-live-preview-yaml-sync-",
   "phase_dir": ".planning/phases/29-interactive-deckplan-map-editor-with-live-preview-yaml-sync-",
@@ -10,24 +10,33 @@
   "status": "paused",
   "completed_tasks": [
     {"id": 1, "name": "Wire click-to-jump (EDIT-04) — revealRangeInCenter + deltaDecorations", "status": "done", "commit": "218cba4"},
-    {"id": 2, "name": "Wire POI drag-to-move (EDIT-05) and click-to-add (EDIT-06) as surgical edits", "status": "done", "commit": "e389652"},
-    {"id": 3, "name": "Human verification of full editor loop (EDIT-02..06)", "status": "in_progress", "progress": "Preview, deck selector, room click-to-jump, door click-to-jump verified. POI drag, Ctrl+S diff, non-deckplan YAML check still pending."}
+    {"id": 2, "name": "Wire POI drag/add (EDIT-05/06) — applyDeckplanEdit, onPoiMove, onEmptyCellClick", "status": "done", "commit": "e389652"},
+    {"id": 3, "name": "Human verification + bug fixes (ongoing this session)", "status": "in_progress", "progress": "Steps 1-4 verified previously. This session: fixed POI not showing in preview (normalizeClientPoi), fixed map pan during POI drag (usePanZoom guard), fixed cross-room POI move in YAML (buildPoiRoomMoveEdit), fixed spurious POI after drag (poiJustDroppedRef). Steps 5-8 still need sign-off."}
   ],
   "remaining_tasks": [],
   "blockers": [],
   "human_actions_pending": [
     {
-      "action": "Complete remaining verification steps: POI drag (step 5), empty-cell add (step 6), Ctrl+S surgical diff (step 7), non-deckplan YAML shows no preview (step 8)",
-      "context": "Task 3 is a blocking human-verify checkpoint. Steps 1-4 passed. Several bugs were found and fixed during verification — all committed. Resume by running the app and completing steps 5-8, then type 'approved'.",
+      "action": "Commit current fixes, run the app, complete verification steps 5-8, then type 'approved'",
+      "context": "All bug fixes this session are uncommitted. After committing: run pnpm run build && ./start_server.sh, open patrol_gunboat deckplan.yaml in File Editor. Step 5: drag POI to new room → position updates AND entry moves to new room's poi list in YAML. Step 6: click empty cell → New POI stub inserted + highlighted. Step 7: Ctrl+S → git diff shows only edited lines changed, flow-style preserved. Step 8: open location.yaml → no preview pane appears.",
       "blocking": true
     }
   ],
   "decisions": [
-    {"decision": "Added onRoomClick/onDoorClick props to EncounterMapRenderer and MapPreview rather than reusing onRoomToggle", "rationale": "onRoomToggle only fires from right-click context menu; needed a dedicated left-click signal for editor preview", "phase": "29"},
-    {"decision": "Added door click-to-jump (EDIT-04 extension) even though not in original plan scope", "rationale": "User requested during verification; doors have explicit id: fields in YAML so buildIdRangeMap can index them", "phase": "29"},
-    {"decision": "Extended buildIdRangeMap kind union to include 'door'", "rationale": "Doors at deck level in deckplan.yaml have id: fields; walk doors[] seq per deck just like rooms/poi", "phase": "29"}
+    {"decision": "normalizeClientPoi() added to deckToMapData (useDeckplanModel.ts)", "rationale": "Frontend preview did not lift room-level poi[] to top-level; backend normalize_deck_poi does but deckToMapData did not", "phase": "29"},
+    {"decision": ".encounter-map__poi added to usePanZoom closest() guard for mouse and touch", "rationale": "stopPropagation on pointer events does not cancel React synthetic mouse events; closest() is the correct guard pattern", "phase": "29"},
+    {"decision": "buildPoiRoomMoveEdit replaces buildPositionEdit for onPoiMove — point-in-polygon + atomic delete+insert for cross-room moves", "rationale": "POIs are room-scoped in YAML; position-only edit left the entry under the old room", "phase": "29"},
+    {"decision": "poiJustDroppedRef suppresses handleSvgBackgroundClick after drag-drop", "rationale": "Browser fires click after pointerup; without suppression triggered onEmptyCellClick creating a spurious New POI on every drag", "phase": "29"},
+    {"decision": "Added onRoomClick/onDoorClick props to EncounterMapRenderer and MapPreview", "rationale": "onRoomToggle only fires from right-click context menu; needed dedicated left-click signal for editor preview", "phase": "29"}
   ],
-  "uncommitted_files": [],
-  "next_action": "Run the app (pnpm run build + ./start_server.sh from /home/gjohnson/mothership/charon). Open patrol_gunboat deckplan.yaml. Complete verification steps 5-8, then type 'approved' to close the checkpoint and finish Phase 29.",
-  "context_notes": "The executor committed a SUMMARY.md before the checkpoint, but the checkpoint (Task 3) is not yet approved. Several bugs in EncounterMapRenderer were fixed during verification: GM hit targets missing pointer handlers, handleRoomPointerDown had isGM early return, background click filter missing hull/vent classes. All fixes committed on main. The 29-04-SUMMARY.md exists but phase is not complete until checkpoint approved and VERIFICATION.md written."
+  "uncommitted_files": [
+    "data/ships/patrol_gunboat/deckplan.yaml",
+    "src/components/domain/encounter/EncounterMapRenderer.tsx",
+    "src/components/gm/views/FileEditorView.tsx",
+    "src/components/gm/views/deckplan/deckplanYamlEdits.ts",
+    "src/components/gm/views/deckplan/useDeckplanModel.ts",
+    "src/hooks/usePanZoom.ts"
+  ],
+  "next_action": "Commit the 6 modified source files + HANDOFF.json + .continue-here.md. Then run pnpm run build && ./start_server.sh. Open patrol_gunboat deckplan.yaml in File Editor. Complete verification steps 5-8, then type 'approved' to close Phase 29.",
+  "context_notes": "patrol_gunboat/deckplan.yaml has a test reactor_core POI under engineering room at position {x:25, y:25}. Four bugs fixed this session, all uncommitted. Build is TypeScript clean. The 29-04-SUMMARY.md was committed by the executor pre-checkpoint — phase closes when VERIFICATION.md is written after approved."
 }

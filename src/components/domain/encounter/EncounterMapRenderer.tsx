@@ -341,6 +341,7 @@ export function EncounterMapRenderer({
   const POI_DRAG_THRESHOLD = 5;
   const poiPendingDrag = useRef<{ id: string; startX: number; startY: number } | null>(null);
   const poiIsDraggingRef = useRef(false);
+  const poiJustDroppedRef = useRef(false);
   const [poiDragState, setPoiDragState] = useState<{
     id: string;
     ghostX: number;
@@ -422,6 +423,8 @@ export function EncounterMapRenderer({
         }
         setPoiDragState(null);
         poiDragStateRef.current = null;
+        // Suppress the click event that follows pointerup after a drag
+        poiJustDroppedRef.current = true;
       } else if (pending) {
         // Was a tap/click — call onPoiClick
         if (onPoiClickRef.current) onPoiClickRef.current(pending.id);
@@ -446,6 +449,8 @@ export function EncounterMapRenderer({
   // Handle click on SVG background for empty-cell detection (editor mode)
   const handleSvgBackgroundClick = useCallback((e: React.MouseEvent) => {
     if (!editable || !onEmptyCellClick) return;
+    // Suppress the click that fires immediately after a POI drag-drop
+    if (poiJustDroppedRef.current) { poiJustDroppedRef.current = false; return; }
     // Only handle clicks that bubbled from the background (not rooms/POIs)
     const target = e.target as Element;
     const isBackground = target.closest('.encounter-map__rooms') === null

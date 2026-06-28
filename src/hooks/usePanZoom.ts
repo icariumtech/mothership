@@ -119,7 +119,7 @@ export function usePanZoom(containerRef: RefObject<HTMLDivElement | null>) {
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.closest('.encounter-map__door') || target.closest('.encounter-map__token')) return;
+    if (target.closest('.encounter-map__door') || target.closest('.encounter-map__token') || target.closest('.encounter-map__poi')) return;
     isDragging.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY };
     viewStart.current = { panX: viewState.panX, panY: viewState.panY };
@@ -140,6 +140,8 @@ export function usePanZoom(containerRef: RefObject<HTMLDivElement | null>) {
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (tokenTouchActive) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('.encounter-map__poi')) return;
     if (e.touches.length === 1) {
       isDragging.current = true;
       dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };

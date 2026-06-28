@@ -11,7 +11,7 @@ import { DataFileTree } from '../DataFileTree';
 import { gmConsoleApi } from '@/services/gmConsoleApi';
 import { DeckplanPreviewPane } from './deckplan/DeckplanPreviewPane';
 import { buildIdRangeMap } from './deckplan/useDeckplanModel';
-import { buildPositionEdit, buildAddPoiEdit, type TextEdit } from './deckplan/deckplanYamlEdits';
+import { buildPoiRoomMoveEdit, buildAddPoiEdit, type TextEdit } from './deckplan/deckplanYamlEdits';
 import './FileEditorView.css';
 
 const MONOSPACE_FONT = "'Share Tech Mono', 'Cascadia Code', 'Courier New', monospace";
@@ -251,18 +251,16 @@ export function FileEditorView() {
    * → isDirty flips to true. The existing handleSave / writeDataFile / PUT path
    * persists the result (D-15). No new save code needed.
    */
-  const applyDeckplanEdit = useCallback((textEdit: TextEdit | null) => {
+  const applyDeckplanEdit = useCallback((textEdit: TextEdit | TextEdit[] | null) => {
     const editor = editorRef.current;
     const monaco = monacoRef.current;
     if (!textEdit || !editor || !monaco) return;
-
-    const range = new monaco.Range(
-      textEdit.startLine,
-      textEdit.startCol,
-      textEdit.endLine,
-      textEdit.endCol,
-    );
-    editor.executeEdits('deckplan', [{ range, text: textEdit.text }]);
+    const edits = Array.isArray(textEdit) ? textEdit : [textEdit];
+    if (edits.length === 0) return;
+    editor.executeEdits('deckplan', edits.map(te => ({
+      range: new monaco.Range(te.startLine, te.startCol, te.endLine, te.endCol),
+      text: te.text,
+    })));
   }, []);
 
   /**
@@ -276,7 +274,8 @@ export function FileEditorView() {
     const deckId = selectedDeckIdRef.current;
     if (!editor || !deckId) return;
     const liveText = editor.getModel()?.getValue() ?? '';
-    applyDeckplanEdit(buildPositionEdit(liveText, deckId, poiId, x, y));
+    const edits = buildPoiRoomMoveEdit(liveText, deckId, poiId, x, y);
+    if (edits.length > 0) applyDeckplanEdit(edits);
   }, [applyDeckplanEdit]);
 
   /**

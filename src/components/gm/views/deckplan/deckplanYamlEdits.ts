@@ -11,7 +11,7 @@
  * - Handle both flow-style ({x: 1, y: 2}) and block-style position nodes (Pitfall 5)
  */
 
-import { parseDocument, LineCounter } from 'yaml';
+import { parseDocument, LineCounter, parse as parseYaml } from 'yaml';
 
 // ============================================================
 // TextEdit — Monaco-agnostic edit range descriptor
@@ -286,5 +286,196 @@ export function buildAddPoiEdit(
     }
   } catch {
     return null;
+  }
+}
+
+// ============================================================
+// buildPoiRoomMoveEdit
+// ============================================================
+
+/** Ray-casting point-in-polygon test for 2-D grid coordinates. */
+function _pointInPolygon(x: number, y: number, polygon: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Find the first plain-JS room whose polygon contains (x, y). */
+function _findRoomForPoint(rooms: any[], x: number, y: number): any | null {
+  for (const room of rooms) {
+    if (Array.isArray(room.polygon) && _pointInPolygon(x, y, room.polygon)) return room;
+  }
+  return null;
+}
+
+interface PoiOwner {
+  sourceRoomId: string | null;
+  poiItemNode: any;
+}
+
+function _findPoiOwner(deckNode: any, poiId: string): PoiOwner | null {
+  const roomsSeq = deckNode.get?.('rooms', true) as any;
+  if (roomsSeq && Array.isArray(roomsSeq.items)) {
+    for (const roomNode of roomsSeq.items) {
+      const roomId = roomNode?.get?.('id') as string;
+      const roomPoiSeq = roomNode?.get?.('poi', true) as any;
+      if (roomPoiSeq && Array.isArray(roomPoiSeq.items)) {
+        for (const poiItemNode of roomPoiSeq.items) {
+          if (poiItemNode?.get?.('id') === poiId) return { sourceRoomId: roomId, poiItemNode };
+        }
+      }
+    }
+  }
+  const deckPoiSeq = deckNode.get?.('poi', true) as any;
+  if (deckPoiSeq && Array.isArray(deckPoiSeq.items)) {
+    for (const poiItemNode of deckPoiSeq.items) {
+      if (poiItemNode?.get?.('id') === poiId) return { sourceRoomId: null, poiItemNode };
+    }
+  }
+  return null;
+}
+
+function _findPlainPoi(plainDeck: any, poiId: string): any | null {
+  for (const room of plainDeck?.rooms ?? []) {
+    for (const poi of room.poi ?? []) {
+      if (poi?.id === poiId) return poi;
+    }
+  }
+  for (const poi of plainDeck?.poi ?? []) {
+    if (poi?.id === poiId) return poi;
+  }
+  return null;
+}
+
+function _findRoomNodeById(deckNode: any, roomId: string): any | null {
+  const roomsSeq = deckNode.get?.('rooms', true) as any;
+  if (!roomsSeq || !Array.isArray(roomsSeq.items)) return null;
+  for (const roomNode of roomsSeq.items) {
+    if (roomNode?.get?.('id') === roomId) return roomNode;
+  }
+  return null;
+}
+
+/**
+ * Delete a single-line POI sequence item (`    - {id: ...}\n`).
+ * Replaces (startLine, 1) → (startLine+1, 1) with '' to remove the full line.
+ */
+function _buildDeletePoiLineEdit(lineCounter: LineCounter, poiItemNode: any): TextEdit {
+  const startLine = lineCounter.linePos(poiItemNode.range[0]).line;
+  return { startLine, startCol: 1, endLine: startLine + 1, endCol: 1, text: '' };
+}
+
+/**
+ * Build a TextEdit inserting a POI entry into a room's poi list.
+ * Mirrors buildAddPoiEdit but targets a specific room node.
+ */
+function _buildAddPoiToRoomNodeEdit(
+  yamlText: string,
+  lineCounter: LineCounter,
+  roomNode: any,
+  poiData: { id: string; type?: string; icon?: string; name?: string; label?: string },
+  newX: number,
+  newY: number,
+): TextEdit | null {
+  const icon  = poiData.icon  ?? '';
+  const type  = poiData.type  ?? 'item';
+  const label = poiData.label ?? poiData.name ?? '';
+  let poiItem = `- {id: ${poiData.id}, icon: ${icon}`;
+  if (label) poiItem += `, label: "${label}"`;
+  poiItem += `, type: ${type}, position: {x: ${newX}, y: ${newY}}}`;
+
+  const roomPoiSeq = roomNode.get?.('poi', true) as any;
+
+  if (roomPoiSeq && Array.isArray(roomPoiSeq.items) && roomPoiSeq.items.length > 0) {
+    // poi-exists: append after last item
+    const lastItem    = roomPoiSeq.items[roomPoiSeq.items.length - 1];
+    const [, lastEnd] = lastItem.range as [number, number, number];
+    // firstItemCol is 1-based column of `{`; subtract 3 to get 0-based column of `-`
+    const firstItemCol = lineCounter.linePos(roomPoiSeq.items[0].range[0]).col;
+    const indent = ' '.repeat(Math.max(0, firstItemCol - 3));
+    const charAtEnd  = yamlText[lastEnd - 1];
+    const insertByte = charAtEnd === '\n' ? lastEnd - 1 : lastEnd;
+    const pos = lineCounter.linePos(insertByte);
+    return { startLine: pos.line, startCol: pos.col, endLine: pos.line, endCol: pos.col, text: '\n' + indent + poiItem };
+  }
+
+  // poi-absent: insert new `poi:\n- item` after the room's last key
+  if (!Array.isArray(roomNode.items) || roomNode.items.length === 0) return null;
+  const lastPair = roomNode.items[roomNode.items.length - 1];
+  if (!lastPair?.value?.range) return null;
+  const [, lastValEnd] = lastPair.value.range as [number, number, number];
+
+  const idPair = roomNode.items.find((p: any) => p?.key?.value === 'id');
+  const roomKeyCol = idPair?.key?.range ? lineCounter.linePos(idPair.key.range[0]).col : 5;
+  const keyIndent  = ' '.repeat(roomKeyCol - 1);
+
+  const charBefore = yamlText[lastValEnd - 1];
+  const insertByte = charBefore === '\n' ? lastValEnd - 1 : lastValEnd;
+  const pos = lineCounter.linePos(Math.max(0, insertByte));
+  return {
+    startLine: pos.line, startCol: pos.col,
+    endLine:   pos.line, endCol:   pos.col,
+    text: '\n' + keyIndent + 'poi:\n' + keyIndent + poiItem,
+  };
+}
+
+/**
+ * Build TextEdits that move a POI to a new position, re-parenting its YAML entry
+ * to the containing room when the drop lands in a different room.
+ *
+ * - Same room or no containing room: single position-only edit.
+ * - Different room: [deleteFromOldRoom, addToNewRoom] — pass both to
+ *   editor.executeEdits() so Monaco applies them atomically (bottom-to-top order).
+ *
+ * Returns [] on parse error or when the POI has no indexable id.
+ */
+export function buildPoiRoomMoveEdit(
+  yamlText: string,
+  deckId: string,
+  poiId: string,
+  newX: number,
+  newY: number,
+): TextEdit[] {
+  try {
+    const lineCounter = new LineCounter();
+    const doc = parseDocument(yamlText, { lineCounter, keepSourceTokens: true });
+    if (doc.errors.length > 0) return [];
+
+    const plainDeck = (parseYaml(yamlText) as any)?.decks?.find((d: any) => d?.id === deckId);
+    if (!plainDeck) return [];
+
+    const decksSeq = doc.get('decks', true) as any;
+    const deckNode = _findDeckNode(decksSeq, deckId);
+    if (!deckNode) return [];
+
+    const targetRoom = _findRoomForPoint(plainDeck.rooms ?? [], newX, newY);
+    const poiOwner   = _findPoiOwner(deckNode, poiId);
+    const posEdit    = buildPositionEdit(yamlText, deckId, poiId, newX, newY);
+
+    // Same room, no target room, or POI not found by id — position-only edit
+    if (!targetRoom || !poiOwner || poiOwner.sourceRoomId === targetRoom.id) {
+      return posEdit ? [posEdit] : [];
+    }
+
+    // Cross-room move
+    const existingData = _findPlainPoi(plainDeck, poiId);
+    if (!existingData) return posEdit ? [posEdit] : [];
+
+    const targetRoomNode = _findRoomNodeById(deckNode, targetRoom.id);
+    if (!targetRoomNode) return posEdit ? [posEdit] : [];
+
+    const deleteEdit = _buildDeletePoiLineEdit(lineCounter, poiOwner.poiItemNode);
+    const addEdit    = _buildAddPoiToRoomNodeEdit(yamlText, lineCounter, targetRoomNode, existingData, newX, newY);
+    if (!addEdit) return posEdit ? [posEdit] : [];
+
+    return [deleteEdit, addEdit];
+  } catch {
+    return [];
   }
 }

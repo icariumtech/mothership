@@ -194,11 +194,61 @@ export function deckToMapData(
       rooms: deck.rooms ?? [],
       doors: deck.doors ?? [],
       vents: deck.vents ?? [],
-      poi: deck.poi ?? [],
+      poi: normalizeClientPoi(deck),
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Client-side equivalent of the Python normalize_deck_poi: flattens room-level
+ * poi entries into a single top-level list, computing room-center positions for
+ * any entry that omits an explicit position.
+ */
+function normalizeClientPoi(deck: any): any[] {
+  const topPoi: any[] = Array.isArray(deck.poi) ? [...deck.poi] : [];
+  const existingIds = new Set(topPoi.map((p: any) => p?.id).filter(Boolean));
+
+  for (const room of deck.rooms ?? []) {
+    const roomPoi = room.poi;
+    if (!Array.isArray(roomPoi) || roomPoi.length === 0) continue;
+
+    // Compute room center for entries with no explicit position
+    let cx = 0;
+    let cy = 0;
+    if (Array.isArray(room.polygon) && room.polygon.length > 0) {
+      cx = room.polygon.reduce((s: number, p: any) => s + p[0], 0) / room.polygon.length;
+      cy = room.polygon.reduce((s: number, p: any) => s + p[1], 0) / room.polygon.length;
+    } else if (room.circle) {
+      cx = room.circle.cx;
+      cy = room.circle.cy;
+    } else if (Array.isArray(room.rects) && room.rects.length > 0) {
+      cx = room.rects.reduce((s: number, r: any) => s + r.x + r.w / 2, 0) / room.rects.length;
+      cy = room.rects.reduce((s: number, r: any) => s + r.y + r.h / 2, 0) / room.rects.length;
+    }
+
+    for (let idx = 0; idx < roomPoi.length; idx++) {
+      const entry = roomPoi[idx];
+      if (!entry) continue;
+      if (entry.room && existingIds.has(entry.id)) continue;
+
+      const poiId = entry.id || `${room.id}_poi_${idx}`;
+      const pos = entry.position ?? { x: cx, y: cy };
+      topPoi.push({
+        id: poiId,
+        type: entry.type ?? 'item',
+        room: room.id,
+        position: pos,
+        name: entry.label ?? entry.name ?? entry.icon ?? 'POI',
+        icon: entry.icon ?? '',
+        status: entry.status,
+        description: entry.description,
+      });
+    }
+  }
+
+  return topPoi;
 }
 
 // ============================================================

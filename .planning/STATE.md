@@ -2,16 +2,19 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Better Deckplans
-status: executing
-stopped_at: context exhaustion at 76% (2026-06-26)
-last_updated: "2026-06-26T01:36:02.342Z"
-last_activity: 2026-06-26 -- Phase 29 execution started
+current_phase: 31
+current_phase_name: deckplan-format-per-deck-hulls-detail-linework
+status: ready
+stopped_at: Phase 29 complete (2026-06-30)
+last_updated: "2026-06-30T00:00:00.000Z"
+last_activity: 2026-06-30
+last_activity_desc: Phase 29 closed — interactive deckplan map editor shipped
 progress:
   total_phases: 21
-  completed_phases: 20
-  total_plans: 56
-  completed_plans: 55
-  percent: 95
+  completed_phases: 21
+  total_plans: 57
+  completed_plans: 57
+  percent: 98
 ---
 
 # Project State
@@ -25,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-06-12)
 
 ## Current Position
 
-Phase: 29 (interactive-deckplan-map-editor-with-live-preview-yaml-sync-) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 29
-Last activity: 2026-06-26 -- Phase 29 execution started
+Phase: 29 (interactive-deckplan-map-editor-with-live-preview-yaml-sync-) — COMPLETE ✓
+Phase: 31 (deckplan-format-per-deck-hulls-detail-linework) — NEXT
+Status: Ready to plan Phase 31
+Last activity: 2026-06-30 — Phase 29 closed
 
 ## v1.0 Milestone Archive
 
@@ -78,9 +81,9 @@ Items acknowledged and deferred at v2.0 milestone close on 2026-06-12 (all pre-d
 
 ## Session Continuity
 
-Last session: 2026-06-26T01:36:02.329Z
-Stopped at: context exhaustion at 76% (2026-06-26)
-Next step: requirements → roadmap
+Last session: 2026-06-30
+Stopped at: Phase 29 closed cleanly
+Next step: /gsd-plan-phase 31
 
 ## Performance Metrics
 

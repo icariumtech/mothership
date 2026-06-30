@@ -416,6 +416,43 @@ function _buildDeletePoiLineEdit(lineCounter: LineCounter, poiItemNode: any): Te
 }
 
 /**
+ * Delete a POI item line and, if it was the last item in its parent poi: list,
+ * also remove the poi: key line itself so no empty key is left behind.
+ *
+ * poiOwner.sourceRoomId === null → POI is at deck level; clean up deck-level poi:.
+ * poiOwner.sourceRoomId !== null → POI is room-scoped; clean up that room's poi:.
+ */
+function _buildDeletePoiItemWithCleanup(
+  lineCounter: LineCounter,
+  deckNode: any,
+  poiOwner: PoiOwner,
+): TextEdit {
+  const { sourceRoomId, poiItemNode } = poiOwner;
+  const itemLine = lineCounter.linePos(poiItemNode.range[0]).line;
+
+  let poiSeq: any = null;
+  let poiPair: any = null;
+
+  if (sourceRoomId !== null) {
+    const sourceRoomNode = _findRoomNodeById(deckNode, sourceRoomId);
+    if (sourceRoomNode) {
+      poiSeq = sourceRoomNode.get?.('poi', true) as any;
+      poiPair = (sourceRoomNode.items as any[])?.find((p: any) => p?.key?.value === 'poi');
+    }
+  } else {
+    poiSeq = deckNode.get?.('poi', true) as any;
+    poiPair = (deckNode.items as any[])?.find((p: any) => p?.key?.value === 'poi');
+  }
+
+  if (poiSeq && Array.isArray(poiSeq.items) && poiSeq.items.length === 1 && poiPair?.key?.range) {
+    const poiKeyLine = lineCounter.linePos(poiPair.key.range[0]).line;
+    return { startLine: poiKeyLine, startCol: 1, endLine: itemLine + 1, endCol: 1, text: '' };
+  }
+
+  return _buildDeletePoiLineEdit(lineCounter, poiItemNode);
+}
+
+/**
  * Build a TextEdit inserting a POI entry into a room's poi list.
  * Mirrors buildAddPoiEdit but targets a specific room node.
  */
@@ -514,7 +551,7 @@ export function buildPoiRoomMoveEdit(
     const targetRoomNode = _findRoomNodeById(deckNode, targetRoom.id);
     if (!targetRoomNode) return posEdit ? [posEdit] : [];
 
-    const deleteEdit = _buildDeletePoiLineEdit(lineCounter, poiOwner.poiItemNode);
+    const deleteEdit = _buildDeletePoiItemWithCleanup(lineCounter, deckNode, poiOwner);
     const addEdit    = _buildAddPoiToRoomNodeEdit(yamlText, lineCounter, targetRoomNode, existingData, newX, newY);
     if (!addEdit) return posEdit ? [posEdit] : [];
 

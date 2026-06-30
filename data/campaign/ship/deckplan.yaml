@@ -43,6 +43,8 @@ decks:
     - [30, 20]
     - [30, 29]
     - [20, 29]
+    poi:
+    - {id: poi_1782688504836, icon: marker, label: "New POI", type: marker, position: {x: 26, y: 22}}
   - id: steerage
     name: STEERAGE
     polygon:
@@ -50,6 +52,8 @@ decks:
     - [24, 19]
     - [24, 16]
     - [20, 16]
+    poi:
+    - {id: poi_1782688343209, icon: marker, label: "New POI", type: marker, position: {x: 22, y: 18}}
   - id: cargo_bay
     name: CARGO BAY
     polygon:
@@ -84,6 +88,8 @@ decks:
     - [22, 4.25]
     - [22, 8.25]
     - [24, 9.5]
+    poi:
+    - {id: poi_1782621779411, icon: marker, label: "New POI", type: marker, position: {x: 25, y: 7}}
   - id: corridor_1
     name: ''
     polygon:
@@ -140,6 +146,8 @@ decks:
     - [24, 9.5]
     - [24, 14]
     type: corridor
+    poi:
+    - {id: poi_1782688361108, icon: marker, label: "New POI", type: marker, position: {x: 25, y: 15}}
   doors:
   - {id: engineering_door_0, rooms: [engineering, corridor_3], type: standard, status: CLOSED, along: 0.5}
   - {id: engineering_door_1, rooms: [engineering, corridor_1], type: standard, status: CLOSED, along: 0.5}

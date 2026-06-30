@@ -53,9 +53,9 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
 
 </details>
 
-### 🚧 v3.0 Better Deckplans (Phase 29, 31–33)
+### 🚧 v3.0 Better Deckplans (Phase 31–33)
 
-- [ ] Phase 29: Interactive deckplan map editor with live preview, YAML sync, and POI placement
+- [x] Phase 29: Interactive deckplan map editor with live preview, YAML sync, and POI placement — completed 2026-06-30
   - **Goal:** Give the GM a visual way to author deckplan maps — consolidate on `deckplan.yaml` as the sole format, then extend the GM Console file editor with a live map preview, deck selector, click-to-jump, and POI placement/move via surgical text edits.
   - **Depends on:** Phase 28
   - **Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EDIT-05, EDIT-06
@@ -69,7 +69,7 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
     - [x] 29-01-PLAN.md — Consolidate on deckplan.yaml: migrate somnus, remove legacy loaders/fallbacks, schema doc + Django test (Wave 1)
     - [x] 29-02-PLAN.md — Pure YAML model + surgical edit builders (buildIdRangeMap/buildPositionEdit/buildAddPoiEdit) + vitest fixture/tests (Wave 2)
     - [x] 29-03-PLAN.md — Renderer POI editor props + DeckSelector + DeckplanPreviewPane mounted below Monaco (Wave 3)
-    - [ ] 29-04-PLAN.md — Wire click-to-jump, POI drag-to-move, click-to-add into Monaco + human-verify checkpoint (Wave 4)
+    - [x] 29-04-PLAN.md — Wire click-to-jump, POI drag-to-move, click-to-add into Monaco + human-verify checkpoint (Wave 4)
   - Context: `.planning/phases/29-interactive-deckplan-map-editor-with-live-preview-yaml-sync-/29-CONTEXT.md`
 
 - [x] Phase 30: AI map editing — element resolver + targeted edit MCP tools (3/3 plans) — completed 2026-06-06 (executed out of order, ahead of Phase 29; ad-interim, not v3.0 scope)
@@ -129,7 +129,7 @@ See `.planning/milestones/v2.0-ROADMAP.md` for full phase details.
 | 27. MCP Image Upload | v2.0 | 3/3 | ✓ Complete | 2026-05-27 |
 | 28. GM Console File Editor | v2.0 | 3/3 | ✓ Complete | 2026-06-01 |
 | 28.1. Audit Gap Closure (INSERTED) | v2.0 | 3/3 | ✓ Complete | 2026-06-05 |
-| 29. Deckplan Map Editor | v3.0 | 3/4 | In Progress|  |
+| 29. Deckplan Map Editor | v3.0 | 4/4 | ✓ Complete | 2026-06-30 |
 | 30. AI Map Editing MCP Tools | (ad-interim) | 3/3 | ✓ Complete | 2026-06-06 |
 | 31. Deckplan Format — Hulls & Details | v3.0 | 0/? | Not started | - |
 | 32. SVG Converter — Details/Hulls/Circles | v3.0 | 0/? | Not started | - |

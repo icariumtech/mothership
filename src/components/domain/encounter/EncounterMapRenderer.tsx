@@ -342,6 +342,9 @@ export function EncounterMapRenderer({
   const poiPendingDrag = useRef<{ id: string; startX: number; startY: number } | null>(null);
   const poiIsDraggingRef = useRef(false);
   const poiJustDroppedRef = useRef(false);
+  // Keeps the drop position alive until DeckplanPreviewPane's debounced re-parse
+  // updates mapData. Prevents snap-back to old position during the debounce window.
+  const poiCommittedPos = useRef<{ id: string; x: number; y: number } | null>(null);
   const [poiDragState, setPoiDragState] = useState<{
     id: string;
     ghostX: number;
@@ -417,6 +420,9 @@ export function EncounterMapRenderer({
             mapRotationRef.current, mapCenterXRef.current, mapCenterYRef.current,
           );
           const snapped = snapToGrid(unrotated.x, unrotated.y, unitSizeRef.current);
+          // Record drop position before clearing ghost — holds the position visible
+          // until DeckplanPreviewPane's debounced re-parse updates mapData.
+          poiCommittedPos.current = { id: pending.id, x: snapped.gridX, y: snapped.gridY };
           onPoiMoveRef.current(pending.id, snapped.gridX, snapped.gridY);
         }
         setPoiDragState(null);
@@ -1101,10 +1107,16 @@ export function EncounterMapRenderer({
   const renderPoi = (poi: PoiData) => {
     if (!isGM && !isRoomVisible(poi.room)) return null;
 
-    // In editor mode, use the ghost position if this POI is being dragged
+    // In editor mode, use the ghost position if this POI is being dragged.
+    // After drop, use the committed position until mapData catches up (debounce).
     const isBeingDragged = editable && poiDragState?.id === poi.id;
-    const renderX = isBeingDragged ? poiDragState!.ghostX : poi.position.x;
-    const renderY = isBeingDragged ? poiDragState!.ghostY : poi.position.y;
+    const committed = editable ? poiCommittedPos.current : null;
+    const isCommitted = !isBeingDragged && committed?.id === poi.id;
+    if (isCommitted && poi.position.x === committed!.x && poi.position.y === committed!.y) {
+      poiCommittedPos.current = null; // mapData has caught up
+    }
+    const renderX = isBeingDragged ? poiDragState!.ghostX : isCommitted ? committed!.x : poi.position.x;
+    const renderY = isBeingDragged ? poiDragState!.ghostY : isCommitted ? committed!.y : poi.position.y;
 
     const center = view.project({ gx: renderX, gy: renderY });
     const cx = center.x;

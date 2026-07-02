@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Better Deckplans
-current_phase: 31
-current_phase_name: deckplan-format-per-deck-hulls-detail-linework
+current_phase: 29
+current_phase_name: interactive-deckplan-map-editor-with-live-preview-yaml-sync-
 status: ready
-stopped_at: Phase 29 complete (2026-06-30)
-last_updated: "2026-06-30T00:00:00.000Z"
+stopped_at: Phase 31 context gathered
+last_updated: "2026-07-02T23:32:37.820Z"
 last_activity: 2026-06-30
-last_activity_desc: Phase 29 closed — interactive deckplan map editor shipped
+last_activity_desc: Phase 29 closed
 progress:
-  total_phases: 21
-  completed_phases: 21
-  total_plans: 57
-  completed_plans: 57
-  percent: 98
+  total_phases: 22
+  completed_phases: 20
+  total_plans: 56
+  completed_plans: 55
+  percent: 91
 ---
 
 # Project State
@@ -81,8 +81,10 @@ Items acknowledged and deferred at v2.0 milestone close on 2026-06-12 (all pre-d
 
 ## Session Continuity
 
-Last session: 2026-06-30
-Stopped at: Phase 29 closed cleanly
+**Resume file:** .planning/phases/31-deckplan-format-per-deck-hulls-detail-linework/31-CONTEXT.md
+
+Last session: 2026-07-02T23:32:37.799Z
+Stopped at: Phase 31 context gathered
 Next step: /gsd-plan-phase 31
 
 ## Performance Metrics

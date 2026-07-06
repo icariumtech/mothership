@@ -1,192 +1,90 @@
 # Architecture Overview
 
-**Last Updated**: 2026-02-02T00:00:00Z
+**Last Updated**: 2026-07-02
 
 ## System Architecture
 
-**mothership** is a full-stack web application for running Mothership RPG campaigns, featuring a multi-view terminal system with 3D galaxy visualization.
-
-### High-Level Stack
+**janus** is a full-stack GM tool for Mothership RPG campaigns: a multi-view
+shared terminal (players watch on phones/tablets and a table display) driven
+live by a GM console, with 3D galaxy maps, tactical encounter maps, an
+in-fiction AI (JANUS), and an AI-agent-editable data layer.
 
 ```
-Frontend (React + R3F)
-    ↓
-API Layer (Django REST)
-    ↓
-Data Layer (SQLite + File-based YAML)
+GM Console (React) ──POST──▶ Django views
+                              └▶ sync_state(): active_view_store (JSON file)
+                                   └▶ PayloadBuilder → SSE broadcast
+Shared Console (React) ◀──SSE (activeview / shipstatus / data-changed)──┘
+Campaign content: data/ YAML + Markdown (no DB) ◀── DataLoader
+AI agents / MCP: mcp_server.py ──HTTP──▶ /api/gm/data/... file CRUD
 ```
 
 ## Technology Stack
 
-### Backend
-- **Django 5.2.7**: Web framework and routing
-- **SQLite**: Database for ActiveView singleton and broadcast Messages
-- **PyYAML**: YAML file parsing for campaign data
-- **Pillow**: Image generation and processing
+- **Backend**: Django 5.2.7 (single `core` app), PyYAML, SQLite only for the
+  `Message` model + auth. Runtime view state is a file-persisted module store
+  (`core/active_view_store.py` → `var/active_view.json`), **not** a DB model.
+  Gunicorn pinned to `workers=1` (in-memory SSE listeners + JANUS sessions).
+- **Frontend**: React 19 + TypeScript 5.9, Vite 5.4, Ant Design 6, React Three
+  Fiber 9 + drei + postprocessing, GSAP 3.14, Zustand 5, Axios,
+  @monaco-editor/react (GM file editor).
+- **Real-time**: Server-Sent Events (`/api/active-view/stream/`), with a slow
+  polling fallback in the player console. Not WebSockets.
+- **Testing**: Django TestCase (`manage.py test core`), vitest (pure-logic
+  units). TypeScript + Ruff for linting.
 
-### Frontend
-- **React 19**: UI framework with TypeScript
-- **Vite 5.4**: Build tool and dev server
-- **Ant Design 6.1**: UI component library (layout, forms, tabs, icons)
-- **React Three Fiber 9.0**: Declarative 3D rendering (replaces imperative Three.js)
-- **Three.js 0.182**: WebGL 3D engine
-- **@react-three/drei 9.122**: R3F helper components (OrbitControls, Stars, Html)
-- **@react-three/postprocessing**: Post-processing effects (bloom, chromatic aberration)
-- **GSAP 3.14**: Camera transition animations
-- **Axios 1.13**: HTTP client
-- **Zustand 5.0**: State management (typewriter coordination)
+## View State Flow (the core loop)
 
-### Development Tools
-- **TypeScript 5.9**: Type safety
-- **Ruff**: Python linter
-- **pytest**: Backend testing
+1. GM acts in GM console → POST to a `/api/gm/...` endpoint
+2. View calls `sync_state(**changes)` (core/views/active_view.py)
+3. Store updates + persists atomically to `var/active_view.json`
+4. `PayloadBuilder.build(state)` enriches (NPCs, deckplan, location data)
+5. `sse_broadcaster` pushes `activeview` event to every connected client
+6. SharedConsole + GMConsole apply the payload (GM sees a green dot for the
+   players' current view)
 
-## Data Flow Architecture
-
-### View State Management
-
-```
-GM Console (React)
-    → API POST /api/switch-view/
-    → ActiveView Model (Django)
-    → Polling GET /api/active-view/ (2s interval)
-    → Shared Console (React)
-```
-
-### File-based Data Loading
-
-```
-Data Directory (YAML files)
-    → DataLoader.load_all_locations()
-    → Recursive hierarchy traversal
-    → API JSON response
-    → React components
-```
-
-### 3D Map Navigation
-
-```
-User Interaction
-    → SharedConsole state (mapViewMode)
-    → Map component refs (dive/zoom methods)
-    → GSAP camera transitions
-    → R3F useFrame hook (animation)
-    → TypewriterController (RAF-driven)
-```
+Data-file edits (by GM editor or AI agents via MCP) broadcast `data-changed`
+and invalidate the payload/JANUS caches.
 
 ## Multi-View Terminal System
 
-The application supports 7 view types on a shared terminal display:
-
 | View Type | Purpose | Data Source |
 |-----------|---------|-------------|
-| `STANDBY` | Idle animation | Static |
-| `BRIDGE` | Ship bridge dashboard with tabbed interface | File-based (star_map, system_map, orbit_map) |
+| `STANDBY` | Idle animation (+ doc/portrait overlays) | Static |
+| `BRIDGE` | Tabbed dashboard: MAP (3D galaxy/system/orbit), STATUS (ship systems), PERSONNEL, LOGS, JANUS | star/system/orbit_map.yaml, ship.yaml, campaign data |
 | `MESSAGES` | Broadcast messages | SQLite Message model |
-| `COMM_TERMINAL` | NPC terminal message logs | File-based (comms/) |
-| `ENCOUNTER` | Tactical encounter maps | File-based (map/) + SQLite (room visibility) |
-| `SHIP_DASHBOARD` | Ship systems display | Planned |
-| `JANUS_TERMINAL` | AI terminal interface | In-memory session + AI generation |
-
-## React Three Fiber Architecture
-
-**Migration**: Replaced imperative Three.js classes with declarative R3F components (Phase 6 complete).
-
-### Key Benefits
-- **Unified RAF Loop**: Single requestAnimationFrame loop eliminates stuttering
-- **Automatic Disposal**: R3F handles cleanup of geometries, materials, textures
-- **Declarative Props**: React-friendly component patterns
-- **40-50% Code Reduction**: 2,100 lines (R3F) vs 4,500 lines (Three.js)
-
-### Component Hierarchy
-
-```
-Canvas (GalaxyMap/SystemMap/OrbitMap)
-  ├── Suspense (async texture loading)
-  │   └── *Scene (GalaxyScene/SystemScene/OrbitScene)
-  │       ├── *Controls (camera controls)
-  │       ├── Lights (ambient, directional)
-  │       ├── Scene Elements (stars, planets, moons)
-  │       └── TypewriterController (RAF-driven sync)
-  └── PostProcessing (bloom, optional)
-```
-
-### Animation Coordination
-
-All animations synchronized through unified RAF loop:
-- **3D Scene**: useFrame hook for orbital motion, rotations, particles
-- **Camera**: GSAP transitions integrated with useFrame
-- **Typewriter**: TypewriterController synchronized with scene RAF
-- **UI Transitions**: React.startTransition for non-blocking updates
+| `COMM_TERMINAL` | NPC terminal message logs | data comms/ dirs |
+| `ENCOUNTER` | Tactical deck maps (rooms/doors/vents/tokens) | deckplan.yaml + store state |
+| `SHIP_DASHBOARD` | Ship status display | ship.yaml |
+| `JANUS_TERMINAL` | Interactive AI terminal | LocMemCache sessions + Claude API |
 
 ## Data Storage Strategy
 
-### Database (SQLite)
-- **ActiveView**: Singleton tracking current terminal display state
-- **Message**: Broadcast messages from GM to players
-- **User**: Django auth (planned multi-user support)
+- **File-based campaign data** (`data/`): galaxy hierarchy
+  (`data/galaxy/{system}/{body}/{site}/location.yaml`), ships
+  (`data/ships/*/deckplan.yaml` — single-file deckplan format; legacy `map/`
+  dirs are gone), campaign (`crew/`, `npcs/`, `ship/ship.yaml`, sessions,
+  docs), JANUS context (`data/janus/context.yaml`, per-location `janus.yaml`).
+  Canonical schema docs: `docs/schemas/` (synced to janus-skills).
+- **Runtime state**: `var/active_view.json` (atomic writes, threadsafe).
+- **SQLite**: broadcast messages + Django auth only.
+- **Rationale**: git-friendly, AI-agent-editable (MCP file CRUD with path
+  guards + YAML validation), no migrations for content changes.
 
-### File-based (YAML + Markdown)
-- **Locations**: Nested directory hierarchy (unlimited depth)
-  - `data/galaxy/{system}/{body}/{facility}/{deck}/location.yaml`
-- **Maps**: 3D visualization data
-  - `star_map.yaml`, `system_map.yaml`, `orbit_map.yaml`, `manifest.yaml`
-- **Terminals**: Communication logs
-  - `comms/{terminal_slug}/terminal.yaml`
-  - `comms/messages/*.md` (central message store)
-- **Campaign**: Crew roster, missions, notes
-  - `data/campaign/crew.yaml`
+## AI Integration (two directions)
 
-### Design Rationale
-- **No DB sync**: On-demand loading from disk (lightweight, version-control friendly)
-- **Git-friendly**: YAML text files vs binary DB dumps
-- **Infinite nesting**: Hierarchical locations without schema changes
-- **Rapid iteration**: Edit YAML, refresh browser (no migrations)
+1. **JANUS (in-fiction)**: player/GM queries → JanusController → Claude API
+   with location lore → responses queue for GM approval before players see
+   them. Channels: story / bridge / encounter-<slug>.
+2. **AI agents (out-of-fiction)**: `mcp_server.py` exposes read/write/patch/
+   map-edit tools proxying `/api/gm/data/...` so a Claude agent can edit
+   campaign YAML live during prep; edits broadcast `data-changed` to consoles.
 
-## API Endpoints
+## Performance Notes
 
-### Public (No Auth)
-- `GET /api/active-view/` - Current terminal state
-- `GET /api/messages/` - Broadcast messages
-- `GET /api/star-map/` - Galaxy visualization data
-- `GET /api/system-map/{system_slug}/` - Solar system data
-- `GET /api/orbit-map/{system_slug}/{body_slug}/` - Orbital data
-- `GET /api/encounter-map/{location_slug}/` - Encounter map data
-- `GET /api/terminal/{location_slug}/{terminal_slug}/` - Terminal messages
-- `POST /api/janus/submit-query/` - Player submits JANUS query (CSRF exempt)
-- `POST /api/janus/toggle-dialog/` - Toggle JANUS dialog (CSRF exempt)
-- `POST /api/hide-terminal/` - Hide terminal overlay (CSRF exempt)
-
-### GM Only (Login Required)
-- `POST /api/switch-view/` - Change active view
-- `POST /api/show-terminal/` - Show terminal overlay
-- `POST /api/broadcast/` - Send broadcast message
-- `POST /api/encounter/toggle-room/` - Toggle room visibility
-- `POST /api/encounter/set-door-status/` - Set door status
-- `POST /api/encounter/switch-level/` - Switch encounter deck
-- `POST /api/janus/switch-mode/` - Switch JANUS mode (DISPLAY/QUERY)
-- `POST /api/janus/send-message/` - GM sends JANUS message
-- `POST /api/janus/generate/` - Generate AI response for review
-- `POST /api/janus/approve/` - Approve pending AI response
-- `POST /api/janus/reject/` - Reject pending AI response
-- `POST /api/janus/clear/` - Clear JANUS conversation
-
-## Performance Optimizations
-
-### React Three Fiber
-- **Render-on-demand**: `frameloop='demand'` when paused (tab inactive)
-- **Frustum culling**: Automatic (off-screen objects not rendered)
-- **Shared WebGL context**: Single Canvas per map view
-- **Procedural textures**: useMemo to prevent regeneration
-- **High luminance threshold**: 0.9+ for post-processing (selective bloom)
-
-### Frontend
-- **Session persistence**: Tab state, tree expansion in localStorage/sessionStorage
-- **Polling**: 2s interval (not WebSockets, simple deployment)
-- **React.startTransition**: Non-blocking view switches
-- **GSAP RAF integration**: Coordinated with R3F useFrame
-
-### Backend
-- **On-demand loading**: No eager DB joins, lazy file reads
-- **Minimal DB writes**: Only ActiveView and Message in SQLite
-- **Static file serving**: Django serves YAML as static content
+- R3F: render-on-demand when tab inactive, procedural textures memoized,
+  single RAF loop coordinates GSAP camera moves + typewriter.
+- PayloadBuilder caches NPC + ship-deck reads (30s TTL, invalidated on edits);
+  DataLoader itself re-reads disk per call (known hot spot:
+  `load_all_locations()` re-walks the tree multiple times per broadcast).
+- Encounter maps are plain SVG (no canvas/WebGL); token drags throttle
+  through `encounter_state` mutations.

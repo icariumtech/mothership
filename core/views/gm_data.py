@@ -47,6 +47,24 @@ logger = logging.getLogger(__name__)
 _ALLOWED_WRITE_EXTENSIONS = frozenset(('.yaml', '.yml', '.md'))
 
 
+def _announce_data_changed(payload: dict) -> None:
+    """Invalidate stale caches, then broadcast a data-changed SSE event.
+
+    PayloadBuilder caches NPCs/ship-deck data (30 s TTL) and JanusAI caches
+    config/knowledge for process life — without invalidation, clients receive
+    the data-changed event but subsequent broadcasts still serve stale data.
+    Wrapped in try/except: broadcast failure must NOT roll back the write.
+    """
+    from core.janus_ai import clear_janus_cache
+    from core.views.active_view import invalidate_payload_cache
+    try:
+        invalidate_payload_cache()
+        clear_janus_cache()
+        broadcaster.announce_generic('data-changed', payload)
+    except Exception as e:
+        logger.warning('SSE broadcast failed after %s: %s', payload.get('action'), e)
+
+
 def _validate_markdown_frontmatter(content: str) -> None:
     """Validate the YAML frontmatter block of a markdown file, if present.
 
@@ -379,11 +397,7 @@ def api_gm_data_file(request, filepath):
             return JsonResponse({'error': 'Could not write file'}, status=500)
 
         # Broadcast SSE so player terminals update immediately (D-10).
-        # Wrapped in try/except: broadcast failure must NOT roll back the write.
-        try:
-            broadcaster.announce_generic('data-changed', {'path': filepath, 'action': 'write'})
-        except Exception as e:
-            logger.warning('SSE broadcast failed after write: %s', e)
+        _announce_data_changed({'path': filepath, 'action': 'write'})
 
         return JsonResponse({'ok': True, 'path': filepath})
 
@@ -421,10 +435,7 @@ def api_gm_data_file(request, filepath):
             logger.exception('Error writing patched file %s', filepath)
             return JsonResponse({'error': 'Could not write file'}, status=500)
 
-        try:
-            broadcaster.announce_generic('data-changed', {'path': filepath, 'action': 'patch'})
-        except Exception as e:
-            logger.warning('SSE broadcast failed after patch: %s', e)
+        _announce_data_changed({'path': filepath, 'action': 'patch'})
 
         return JsonResponse({'ok': True, 'path': filepath, 'changed_keys': changed_keys})
 
@@ -440,10 +451,7 @@ def api_gm_data_file(request, filepath):
             logger.exception('Error deleting file %s: %s', filepath, e)
             return JsonResponse({'error': 'Could not delete file'}, status=500)
 
-        try:
-            broadcaster.announce_generic('data-changed', {'path': filepath, 'action': 'delete'})
-        except Exception as e:
-            logger.warning('SSE broadcast failed after delete: %s', e)
+        _announce_data_changed({'path': filepath, 'action': 'delete'})
 
         return JsonResponse({'ok': True, 'path': filepath, 'action': 'deleted'})
 
@@ -498,14 +506,7 @@ def api_gm_data_rename(request, filepath):
         logger.exception('Error renaming file %s → %s: %s', filepath, new_path, e)
         return JsonResponse({'error': 'Could not rename file'}, status=500)
 
-    try:
-        broadcaster.announce_generic('data-changed', {
-            'path': filepath,
-            'new_path': new_path,
-            'action': 'rename',
-        })
-    except Exception as e:
-        logger.warning('SSE broadcast failed after rename: %s', e)
+    _announce_data_changed({'path': filepath, 'new_path': new_path, 'action': 'rename'})
 
     return JsonResponse({'ok': True, 'old_path': filepath, 'new_path': new_path})
 
@@ -575,10 +576,7 @@ def api_gm_data_list_append(request, filepath):
         logger.exception('Error writing file %s after list-append', filepath)
         return JsonResponse({'error': 'Could not write file'}, status=500)
 
-    try:
-        broadcaster.announce_generic('data-changed', {'path': filepath, 'action': 'list-append', 'list_key': list_key})
-    except Exception as e:
-        logger.warning('SSE broadcast failed after list-append: %s', e)
+    _announce_data_changed({'path': filepath, 'action': 'list-append', 'list_key': list_key})
 
     return JsonResponse({'ok': True, 'list_key': list_key, 'new_length': len(data[list_key])})
 
@@ -725,12 +723,7 @@ def api_gm_data_map_edit(request, filepath):
         logger.exception('Error writing map-edited file %s', filepath)
         return JsonResponse({'error': 'Could not write file'}, status=500)
 
-    try:
-        broadcaster.announce_generic(
-            'data-changed',
-            {'path': filepath, 'action': 'map-edit', 'element': element['id'], 'op': op})
-    except Exception as e:
-        logger.warning('SSE broadcast failed after map-edit: %s', e)
+    _announce_data_changed({'path': filepath, 'action': 'map-edit', 'element': element['id'], 'op': op})
 
     return JsonResponse(
         {'ok': True, 'element': element['id'], 'kind': kind, 'op': op, 'deck': element['deck']})
@@ -924,10 +917,7 @@ def api_gm_upload_svg_map(request):
         if p.is_file()
     )
 
-    try:
-        broadcaster.announce_generic('data-changed', {'path': out_dir, 'action': 'svg-map-upload'})
-    except Exception as e:
-        logger.warning('SSE broadcast failed after svg-map upload: %s', e)
+    _announce_data_changed({'path': out_dir, 'action': 'svg-map-upload'})
 
     return JsonResponse({
         'ok': True,

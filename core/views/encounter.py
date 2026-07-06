@@ -9,22 +9,16 @@ from core.active_view_store import get_state
 from core.sse_broadcaster import broadcaster
 from core.encounter_utils import normalize_deck_poi
 import core.encounter_state as enc
+from .helpers import post_json, post_only
 
 
 @login_required
-def api_encounter_switch_level(request):
+@post_json
+def api_encounter_switch_level(request, data):
     """
     Switch the current encounter deck/level.
     POST: { level: number, deck_id: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     level = data.get('level', 1)
     deck_id = data.get('deck_id', '')
@@ -37,20 +31,13 @@ def api_encounter_switch_level(request):
 
 
 @login_required
-def api_encounter_toggle_room(request):
+@post_json
+def api_encounter_toggle_room(request, data):
     """
     Toggle room visibility for players.
     POST: { room_id: string, visible?: boolean }
     If visible is not specified, toggles the current state.
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     room_id = data.get('room_id')
     if not room_id:
@@ -97,19 +84,12 @@ def api_encounter_room_visibility(request):
 
 
 @login_required
-def api_encounter_set_vents_visible(request):
+@post_json
+def api_encounter_set_vents_visible(request, data):
     """
     Show or hide all vents for players.
     POST: { visible: boolean }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     visible = bool(data.get('visible', False))
     enc.set_vents_visible(visible)
 
@@ -117,20 +97,13 @@ def api_encounter_set_vents_visible(request):
 
 
 @login_required
-def api_encounter_set_door_status(request):
+@post_json
+def api_encounter_set_door_status(request, data):
     """
     Set door status for a connection (door).
     POST: { connection_id: string, door_status: string }
     Valid statuses: OPEN, CLOSED, LOCKED, SEALED, DAMAGED
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     connection_id = data.get('connection_id')
     door_status = data.get('door_status')
@@ -155,20 +128,13 @@ def api_encounter_set_door_status(request):
 
 
 @csrf_exempt
-def api_encounter_place_token(request):
+@post_json
+def api_encounter_place_token(request, data):
     """
     Place a new token on the encounter map.
     POST: { type: string, name: string, x: int, y: int, image_url?: string, room_id?: string }
     Valid types: player, npc, creature, object
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     token_type = data.get('type')
     name = data.get('name')
@@ -209,19 +175,12 @@ def api_encounter_place_token(request):
 
 
 @csrf_exempt
-def api_encounter_move_token(request):
+@post_json
+def api_encounter_move_token(request, data):
     """
     Move an existing token to a new position.
     POST: { token_id: string, x: int, y: int, room_id?: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     token_id = data.get('token_id')
     x = data.get('x')
@@ -248,19 +207,12 @@ def api_encounter_move_token(request):
 
 
 @csrf_exempt
-def api_encounter_remove_token(request):
+@post_json
+def api_encounter_remove_token(request, data):
     """
     Remove a token from the encounter map.
     POST: { token_id: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     token_id = data.get('token_id')
     if not token_id:
@@ -280,19 +232,12 @@ def api_encounter_remove_token(request):
 
 
 @csrf_exempt
-def api_encounter_update_token_status(request):
+@post_json
+def api_encounter_update_token_status(request, data):
     """
     Update the status list of a token (wounded, dead, panicked, etc.).
     POST: { token_id: string, status: [string] }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     token_id = data.get('token_id')
     status = data.get('status')
@@ -317,14 +262,12 @@ def api_encounter_update_token_status(request):
 
 
 @csrf_exempt
+@post_only
 def api_encounter_clear_tokens(request):
     """
     Clear all tokens from the encounter map.
     POST: {} (empty body)
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     state = get_state()
     slug = state.get('location_slug', '')
@@ -337,21 +280,14 @@ def api_encounter_clear_tokens(request):
 
 
 @login_required
-def api_encounter_toggle_portrait(request):
+@post_json
+def api_encounter_toggle_portrait(request, data):
     """
     Toggle an NPC portrait display on the terminal.
     POST: { npc_id: string }
     If npc_id is already in encounter_active_portraits, removes it (dismiss).
     If not, appends it (show).
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     npc_id = data.get('npc_id', '').strip()
     if not npc_id:

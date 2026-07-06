@@ -13,6 +13,7 @@ from core.data_loader import get_loader
 from core.active_view_store import get_state
 from core.sse_broadcaster import broadcaster, format_sse
 from .active_view import sync_state
+from .helpers import post_json, post_only
 
 logger = logging.getLogger(__name__)
 
@@ -136,19 +137,12 @@ def api_locations(request):
 
 
 @login_required
-def api_broadcast(request):
+@post_json
+def api_broadcast(request, data):
     """
     API endpoint to send a broadcast message.
     POST: { sender: string, content: string, priority: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     content = data.get('content', '').strip()
     if not content:
@@ -201,6 +195,7 @@ def api_personnel(request):
 
 @csrf_exempt
 @login_required
+@post_only
 def api_gm_toggle_npc_met(request):
     """
     GM endpoint — mark whether the players have met an NPC.
@@ -212,9 +207,6 @@ def api_gm_toggle_npc_met(request):
 
     Returns: 200 { npc_id, met } · 400 invalid · 404 unknown npc · 405 non-POST
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
     try:
         body = json.loads(request.body or '{}')
     except (json.JSONDecodeError, ValueError):

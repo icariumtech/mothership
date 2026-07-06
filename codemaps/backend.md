@@ -1,261 +1,150 @@
 # Backend Architecture
 
-**Last Updated**: 2026-02-02T00:00:00Z
+**Last Updated**: 2026-07-02
 
 ## Django Project Structure
 
 ```
-config/                 # Django project
-├── __init__.py
-├── settings.py         # Configuration (DB, static files, apps)
-├── urls.py             # URL routing (includes terminal.urls)
-├── wsgi.py             # WSGI entry point
-└── asgi.py             # ASGI entry point
+config/                     # Django project
+├── settings.py             # Config (DATA_DIR, LocMemCache, workers=1 constraint noted)
+└── urls.py                 # Includes core.urls at root; DEBUG-only static/data serving
 
-terminal/               # Main Django app
-├── __init__.py
-├── apps.py             # App configuration
-├── admin.py            # Django admin registration
-├── models.py           # ActiveView, Message models
-├── views.py            # API endpoints and template views
-├── urls.py             # URL patterns
-├── data_loader.py      # File-based data loading
-├── janus_ai.py        # JANUS AI response generation
-├── janus_session.py   # In-memory JANUS conversation management
-├── janus_knowledge.py # JANUS location-specific knowledge
-└── templates/          # HTML template wrappers
+core/                       # Main (only) Django app
+├── models.py               # Message ORM model only (52 lines, largely vestigial)
+├── urls.py                 # ONE flat urlpatterns list (~75 routes). ORDER MATTERS:
+│                           #   fixed /api/gm/data/... paths must precede <path:filepath>
+├── active_view_store.py    # ★ Runtime view state: threadsafe module-level dict,
+│                           #   persisted to var/active_view.json (atomic tmp+os.replace).
+│                           #   NOT in the DB. Survives gunicorn max_requests recycles.
+├── payload_builder.py      # Builds enriched SSE payload from raw state.
+│                           #   Caches NPCs + ship deckplan (30s TTL).
+│                           #   invalidate_stable_cache() is called via
+│                           #   gm_data._announce_data_changed() on data edits.
+├── sse_broadcaster.py      # SSE fan-out singleton (per-process listener queues)
+├── encounter_state.py      # Centralized get→copy→mutate→sync for encounter dicts
+├── encounter_utils.py      # normalize_deck_poi etc.
+├── data_loader.py          # YAML/MD loader (see below)
+├── janus_controller.py     # JANUS orchestration (submit_query / gm_generate)
+├── janus_ai.py             # Claude API wrapper; per-location instance cache
+├── janus_session.py        # Conversations + pending-approval queue (LocMemCache, 4h TTL)
+├── janus_knowledge.py      # Lore/context loader (data/janus/context.yaml + janus.yaml)
+├── views/                  # Function-based views (no DRF), JsonResponse
+│   ├── __init__.py         # Barrel re-exporting all view names (urls.py uses views.*)
+│   ├── helpers.py          # ★ @post_only / @post_json decorators — POST guard +
+│   │                       #   JSON body parse. @post_json passes parsed body as 2nd
+│   │                       #   arg: def view(request, data, ...). Use for new endpoints.
+│   ├── active_view.py      # sync_state() = THE choke point: update store → build
+│   │                       #   payload → broadcast. Also SSE stream endpoint +
+│   │                       #   invalidate_payload_cache().
+│   ├── navigation.py       # View switching, overlays, bridge selection
+│   ├── encounter.py        # Room/door/vent/token/portrait endpoints
+│   ├── ship.py             # Ship status endpoints; _broadcast_ship_status() helper
+│   ├── janus.py            # Classic + per-<channel> JANUS endpoints (duplicated pairs)
+│   ├── campaign.py         # Crew/NPC/sessions/docs, data-file serving
+│   ├── gm_data.py          # ⚠ 1000+ lines: AI-agent file CRUD API + map-element
+│   │                       #   resolver + SVG/image upload. _announce_data_changed()
+│   │                       #   invalidates payload+janus caches then broadcasts.
+│   ├── maps.py             # Star/system/orbit map JSON
+│   └── display.py          # HTML shell template views
+└── tests/                  # Django TestCase package (test_gm_api, test_data_loader,
+                            #   test_upload_image). Run: python manage.py test core
+
+mcp_server.py (root)        # FastMCP process; tools are httpx proxies to /api/gm/...
+                            #   Unauthenticated by design (trust-network model, D-09)
 ```
 
-## Models (SQLite)
+## State Model — IMPORTANT
 
-### ActiveView (Singleton)
-**Purpose**: Tracks what the shared terminal is currently displaying.
+There is no ActiveView DB model. Runtime view state lives in
+`core/active_view_store.py` (module dict + JSON file at `var/active_view.json`).
+The only ORM model is `Message`. All campaign content is file-based YAML/Markdown
+under `data/` loaded through `DataLoader`.
 
-**Fields**:
-- `view_type`: STANDBY, BRIDGE, ENCOUNTER, COMM_TERMINAL, MESSAGES, SHIP_DASHBOARD, JANUS_TERMINAL
-- `location_slug`: Directory name under data/galaxy/
-- `view_slug`: Specific terminal/map slug
-- `overlay_location_slug`: Location of terminal overlay
-- `overlay_terminal_slug`: Terminal slug for overlay
-- `janus_mode`: DISPLAY, QUERY
-- `janus_location_path`: Path to active JANUS instance
-- `janus_dialog_open`: Whether JANUS dialog is visible
-- `encounter_level`: Current deck/level (1-indexed)
-- `encounter_deck_id`: ID of current deck (e.g., "deck_1")
-- `encounter_room_visibility`: JSON map of room_id → visible (bool)
-- `encounter_door_status`: JSON map of connection_id → door_status string
-- `updated_at`: Timestamp (auto-updated)
-- `updated_by`: ForeignKey to User
+State keys (see `_DEFAULT_STATE` in active_view_store.py): `view_type`,
+`location_slug`, `view_slug`, `bridge_tab/map_mode/label`, `overlay_*_slug`,
+`janus_mode/location_path/dialog_open/active_channel`, `encounter_level/deck_id/
+room_visibility/door_status/vents_visible/tokens_by_location/active_portraits`.
 
-**Methods**:
-- `get_current()`: Get or create singleton instance
-- `save()`: Ensures only one record exists
+**Mutation pattern**: never write the store directly from views — call
+`sync_state(**kwargs)` (views/active_view.py) or the wrappers in
+`encounter_state.py`. This persists + broadcasts in one step.
 
-### Message
-**Purpose**: Broadcast messages sent from ship/station AI to crew.
+## DataLoader (`core/data_loader.py`)
 
-**Fields**:
-- `sender`: Name of AI system (default "JANUS")
-- `content`: Message text
-- `priority`: LOW, NORMAL, HIGH, CRITICAL
-- `created_at`: Timestamp (auto-added)
-- `created_by`: ForeignKey to User (GM)
-- `recipients`: ManyToManyField to User (empty = broadcast)
-- `is_read`: Boolean acknowledgment flag
+Facade over `_TerminalReader` (comms/messages) and `_CampaignReader`
+(crew/NPCs/sessions/docs); DataLoader delegates via thin wrappers.
+`get_loader()` memoizes a single instance; methods re-read disk on every call
+(no result caching — PayloadBuilder caches one layer up).
 
-**Ordering**: `-created_at` (newest first)
+Key methods:
+- `load_all_locations()` — walks data/galaxy/ recursively, injects ships from
+  data/ships/ and campaign ship. ⚠ Called by `find_location_by_slug`,
+  `get_location_path`, `load_orbit_map` — each call re-walks the tree.
+- `load_deckplan(location_dir)` — reads `deckplan.yaml` (single file per
+  location; the legacy `map/` + manifest format is gone).
+- `load_star_map()` / `load_system_map(slug)` / `load_orbit_map(sys, body)`
+- `load_ship_status()` / `save_ship_*` — ship.yaml read/write. Writes go
+  through `_mutate_ship_yaml()`: module lock + atomic tmp-file replace.
+- Terminals: `load_terminals`, `load_terminal`, message filtering by owner.
 
-## Data Loader (File-based)
+## SSE / Real-time Flow
 
-### DataLoader Class
-**Purpose**: Loads campaign data from `data/` directory without DB sync.
-
-**Key Methods**:
-
-#### Location Hierarchy
-- `load_all_locations()`: Recursive load of all locations from galaxy/
-- `load_location_recursive(location_dir)`: Load location + children
-- `find_location_by_slug(slug)`: Search hierarchy for location
-- `get_location_path(slug)`: Return full path as list (e.g., ['sol', 'earth', 'base'])
-- `get_location_by_path(path_slugs)`: Navigate to location by path
-
-#### Maps
-- `load_star_map()`: Load galaxy-level visualization (star_map.yaml)
-- `load_system_map(system_slug)`: Load solar system data (system_map.yaml)
-- `load_orbit_map(system_slug, body_slug)`: Load orbital data (orbit_map.yaml)
-- `load_map(location_dir)`: Load encounter map (supports multi-deck manifests)
-- `load_encounter_manifest(location_dir)`: Load manifest.yaml for multi-deck maps
-- `load_deck_map(location_dir, deck_id)`: Load specific deck's YAML
-
-#### Terminals
-- `load_terminals(location_dir)`: Load all terminals in comms/
-- `load_terminal(terminal_dir)`: Load terminal with inbox/sent messages
-- `load_central_messages(messages_dir)`: Load messages from comms/messages/
-- `filter_messages_for_recipient(messages, owner)`: Filter inbox
-- `filter_messages_for_sender(messages, owner)`: Filter sent
-- `parse_message_file(message_file)`: Parse markdown + YAML frontmatter
-
-#### Campaign Data
-- `load_crew()`: Load crew roster from data/campaign/crew.yaml
-
-**Design Pattern**: Lazy loading on API request (no caching, always fresh from disk).
-
-## Views (API Endpoints)
-
-### Template Views (HTML)
-- `display_view_react()`: Renders shared_console_react.html (shared terminal)
-- `gm_console_react()`: Renders gm_console_react.html (GM control panel)
-- `terminal_view_react()`: Renders player_console_react.html (player messages)
-- `logout_view()`: Custom logout confirmation
-
-### Public API (No Auth)
-- `get_active_view_json()`: Current terminal state (polled every 2s)
-- `get_messages_json()`: Broadcast messages (optional `since` param)
-- `get_star_map_json()`: Galaxy visualization data
-- `get_system_map_json(system_slug)`: Solar system data + facility counts
-- `get_orbit_map_json(system_slug, body_slug)`: Orbital data
-- `api_encounter_map_data(location_slug)`: Encounter map + room visibility
-- `api_encounter_all_decks(location_slug)`: All decks for multi-level maps
-- `api_terminal_data(location_slug, terminal_slug)`: Terminal messages
-- `api_janus_conversation()`: Current JANUS conversation (public)
-- `api_janus_submit_query()`: Player submits query (CSRF exempt)
-- `api_janus_toggle_dialog()`: Toggle JANUS dialog (CSRF exempt)
-- `api_hide_terminal()`: Hide terminal overlay (CSRF exempt)
-
-### GM API (Login Required)
-- `api_locations()`: Location tree for GM Console
-- `api_switch_view()`: Switch active view type/location
-- `api_show_terminal()`: Show terminal overlay on shared display
-- `api_broadcast()`: Send broadcast message
-- `api_encounter_switch_level()`: Switch encounter deck
-- `api_encounter_toggle_room()`: Toggle room visibility
-- `api_encounter_room_visibility()`: Get/set room visibility
-- `api_encounter_set_door_status()`: Set door status (OPEN, CLOSED, LOCKED, etc.)
-- `api_janus_switch_mode()`: Switch JANUS mode (DISPLAY/QUERY)
-- `api_janus_set_location()`: Set active JANUS instance location
-- `api_janus_send_message()`: GM sends JANUS message directly
-- `api_janus_generate()`: Generate AI response for GM review
-- `api_janus_pending()`: Get pending AI responses
-- `api_janus_approve()`: Approve pending response
-- `api_janus_reject()`: Reject pending response
-- `api_janus_clear()`: Clear JANUS conversation
-
-### Helper Functions
-- `get_janus_location_path(active_view)`: Derive JANUS location context
-  - Priority: ENCOUNTER view location → explicit janus_location_path
-
-## JANUS AI System
-
-### JanusSessionManager (janus_session.py)
-**Purpose**: In-memory conversation management (no DB persistence).
-
-**Storage**:
-- `_conversation`: List of JanusMessage objects
-- `_pending_responses`: List of pending AI responses for GM approval
-
-**Methods**:
-- `get_conversation()`: Return conversation history
-- `add_message(message)`: Add message to conversation
-- `add_pending_response(query, response, query_id)`: Queue for approval
-- `approve_response(pending_id, modified_content)`: Approve and add to conversation
-- `reject_response(pending_id)`: Discard pending response
-- `clear_conversation()`: Reset conversation
-- `get_pending_responses()`: List pending for GM
-
-### JanusAI (janus_ai.py)
-**Purpose**: Generate AI responses with location-specific knowledge.
-
-**Features**:
-- Location-aware context (system, planet, facility)
-- Knowledge base from `data/janus/context.yaml`
-- Anthropic Claude integration (planned)
-- Character voice consistency (terse, technical, ominous)
-
-### JanusKnowledgeLoader (janus_knowledge.py)
-**Purpose**: Load location-specific knowledge for JANUS context.
-
-**Methods**:
-- `load_system_knowledge(system_slug)`: Load system-level context
-- `load_location_knowledge(location_path)`: Load facility-specific context
-- `build_context_prompt(location_path)`: Build full context string for AI
-
-## URL Routing
-
-### Public URLs
 ```
-/                        → display_view_react (shared terminal)
-/terminal/               → terminal_view_react (player messages)
-/logout/                 → logout_view
-
-/api/active-view/        → get_active_view_json
-/api/messages/           → get_messages_json
-/api/star-map/           → get_star_map_json
-/api/system-map/<slug>/  → get_system_map_json
-/api/orbit-map/<sys>/<body>/ → get_orbit_map_json
-/api/encounter-map/<slug>/ → api_encounter_map_data
-/api/terminal/<loc>/<term>/ → api_terminal_data
-/api/janus/conversation/ → api_janus_conversation
-/api/janus/submit-query/ → api_janus_submit_query
-/api/janus/toggle-dialog/ → api_janus_toggle_dialog
-/api/hide-terminal/      → api_hide_terminal
+GM action → view → sync_state()/encounter_state helper
+  → active_view_store.update_state() (persist to var/)
+  → PayloadBuilder.build(state)  (enrich: NPCs, deckplan, location)
+  → sse_broadcaster.announce()   (event: activeview)
+Client: useSSE hook listens for 'activeview', 'shipstatus', 'data-changed'
 ```
 
-### GM URLs (Login Required)
-```
-/gmconsole/              → gm_console_react
+Data-file edits (gm_data write/patch/delete/rename/list-append/map-edit/svg-upload)
+go through `_announce_data_changed()`, which invalidates PayloadBuilder + JanusAI
+caches and emits `data-changed`.
 
-/api/locations/          → api_locations
-/api/switch-view/        → api_switch_view
-/api/show-terminal/      → api_show_terminal
-/api/broadcast/          → api_broadcast
-/api/encounter/switch-level/ → api_encounter_switch_level
-/api/encounter/toggle-room/ → api_encounter_toggle_room
-/api/janus/*            → JANUS GM endpoints
-```
+**Scaling constraint**: SSE listeners, JANUS conversations, and pending approvals
+are per-process in-memory — deployment is pinned to gunicorn `workers=1`.
 
-## Data Access Patterns
+## View Conventions
 
-### Typical Request Flow
-```
-1. Browser requests /api/active-view/
-2. views.get_active_view_json()
-3. ActiveView.get_current() (DB query)
-4. For ENCOUNTER: DataLoader.find_location_by_slug() (file read)
-5. JSON serialization
-6. HTTP response
-```
+- JSON POST endpoint: decorate with `@post_json` (from `views/helpers.py`),
+  signature `def view(request, data)`. POST-without-body: `@post_only`.
+  Both return the standard `{'error': ...}` JSON shapes (405/400).
+- Auth: `@login_required` for GM endpoints (outermost decorator); player-facing
+  endpoints are public and often `@csrf_exempt` (players are unauthenticated).
+- Broadcast failures must never fail the request (wrap or use provided helpers).
 
-### Multi-Deck Encounter Loading
+## JANUS AI Pipeline
+
 ```
-1. API request /api/encounter-map/{slug}/?deck_id=deck_2
-2. DataLoader.find_location_by_slug(slug)
-3. DataLoader.load_encounter_manifest(location_dir)
-4. DataLoader.load_deck_map(location_dir, 'deck_2')
-5. Merge with ActiveView.encounter_room_visibility
-6. Return JSON with manifest + current deck + visibility
+views/janus.py → JanusController → JanusSessionManager (LocMemCache convos)
+                                 → JanusAI (Claude API; per-location cache)
+                                 → JanusKnowledgeLoader (context.yaml + janus.yaml)
 ```
 
-### Terminal Message Loading
+- Human-in-the-loop: AI output lands in a pending queue; GM must approve/reject
+  before players see it.
+- Channels: `story`, `bridge`, `encounter-<location_slug>`; classic (no-channel)
+  endpoint variants still exist alongside `<channel>` ones.
+- Model id is hard-coded at `janus_ai.py:148`; no `ANTHROPIC_API_KEY` in env →
+  degrades to configured `fallback_responses`.
+
+## URL Map (high-value routes; see core/urls.py for all ~75)
+
 ```
-1. API request /api/terminal/{location}/{terminal}/
-2. DataLoader.find_location_by_slug(location)
-3. DataLoader.load_terminal(terminal_dir)
-4. Check for comms/messages/ (central store)
-5. Filter messages by owner (inbox: to matches, sent: from matches)
-6. Return JSON with inbox/sent arrays
+/                    shared terminal (players)     /gmconsole/   GM console
+/api/active-view/    current state (GET, public)
+/api/active-view/stream/  SSE stream (public)
+/api/ship-status/    ship.yaml JSON (public)
+/api/gm/data/...     AI-agent file CRUD (list/read/write/patch/rename/
+                     list-append/map-edit/upload-svg-map/upload-image)
+/api/gm/janus/<channel>/{send,pending,approve,reject,generate,clear,mark-read}/
+/api/janus/<channel>/{conversation,submit}/       (public, csrf_exempt)
+/api/gm/encounter/...  room/door/vent/token/portrait mutations
 ```
 
-## Error Handling
+## Testing
 
-### File Not Found
-- Map files: Return 404 with error message JSON
-- Locations: Return `None`, caller handles gracefully
-
-### Invalid Requests
-- Missing required fields: 400 Bad Request
-- Invalid JSON: 400 Bad Request
-- Auth required: 302 Redirect to login
-
-### CSRF Protection
-- Enabled for all POST endpoints except public player actions
-- CSRF exempt: `api_janus_submit_query`, `api_janus_toggle_dialog`, `api_hide_terminal`
+`python manage.py test core` — 63 tests. Coverage is concentrated on the
+gm_data file API; the JANUS pipeline, encounter_state, payload_builder,
+active_view_store, sse_broadcaster and ship endpoints have no tests yet.
+Some data_loader tests skip when sample ship data is absent.

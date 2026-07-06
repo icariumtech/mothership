@@ -7,6 +7,7 @@ from core.active_view_store import get_state
 from core.janus_session import JanusSessionManager, JanusMessage
 from core.janus_controller import JanusController
 from .active_view import sync_state
+from .helpers import post_json, post_only
 
 
 def get_janus_location_path(active_view) -> str:
@@ -73,6 +74,7 @@ def api_janus_conversation(request):
 
 
 @csrf_exempt
+@post_only
 def api_janus_submit_query(request):
     """
     Player submits query to JANUS (only works in Query mode).
@@ -80,9 +82,6 @@ def api_janus_submit_query(request):
     Public endpoint - players submit queries from shared terminal.
     CSRF exempt since this is called from unauthenticated player terminals.
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     # Check if in query mode
     active_view = get_state()
@@ -107,19 +106,12 @@ def api_janus_submit_query(request):
 
 
 @login_required
-def api_janus_switch_mode(request):
+@post_json
+def api_janus_switch_mode(request, data):
     """
     Switch JANUS terminal mode (Display/Query).
     POST: { mode: 'DISPLAY' | 'QUERY' }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     mode = data.get('mode', 'DISPLAY')
     if mode not in ('DISPLAY', 'QUERY'):
@@ -133,19 +125,12 @@ def api_janus_switch_mode(request):
 
 
 @login_required
-def api_janus_set_location(request):
+@post_json
+def api_janus_set_location(request, data):
     """
     Set the active JANUS instance location.
     POST: { location_path: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     location_path = data.get('location_path', '')
 
@@ -157,19 +142,12 @@ def api_janus_set_location(request):
 
 
 @login_required
-def api_janus_send_message(request):
+@post_json
+def api_janus_send_message(request, data):
     """
     GM sends message directly to JANUS terminal.
     POST: { content: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     content = data.get('content', '').strip()
     if not content:
@@ -184,20 +162,13 @@ def api_janus_send_message(request):
 
 
 @login_required
-def api_janus_generate(request):
+@post_json
+def api_janus_generate(request, data):
     """
     GM prompts AI to generate a JANUS response for review.
     POST: { prompt: string }
     Returns a pending response for GM approval.
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     prompt = data.get('prompt', '').strip()
     if not prompt:
@@ -226,19 +197,12 @@ def api_janus_pending(request):
 
 
 @login_required
-def api_janus_approve(request):
+@post_json
+def api_janus_approve(request, data):
     """
     GM approves a pending response.
     POST: { pending_id: string, modified_content?: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     pending_id = data.get('pending_id')
     if not pending_id:
@@ -256,19 +220,12 @@ def api_janus_approve(request):
 
 
 @login_required
-def api_janus_reject(request):
+@post_json
+def api_janus_reject(request, data):
     """
     GM rejects a pending response.
     POST: { pending_id: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     pending_id = data.get('pending_id')
     if not pending_id:
@@ -285,14 +242,12 @@ def api_janus_reject(request):
 
 
 @login_required
+@post_only
 def api_janus_clear(request):
     """
     GM clears the JANUS conversation.
     POST: {}
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     JanusSessionManager.clear_conversation()
     return JsonResponse({'success': True})
@@ -301,6 +256,7 @@ def api_janus_clear(request):
 
 
 @csrf_exempt
+@post_only
 def api_janus_toggle_dialog(request):
     """
     Toggle the JANUS dialog overlay visibility.
@@ -309,9 +265,6 @@ def api_janus_toggle_dialog(request):
     Public endpoint - players can open/close dialog from shared terminal.
     CSRF exempt since this is called from unauthenticated player terminals.
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     try:
         data = json.loads(request.body)
@@ -388,21 +341,13 @@ def api_janus_channel_conversation(request, channel):
 
 
 @csrf_exempt
-def api_janus_channel_submit(request, channel):
+@post_json
+def api_janus_channel_submit(request, data, channel):
     """
     Player submits query to a specific JANUS channel.
     POST: { query: string }
     Public endpoint - players submit queries from terminals.
     """
-    
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    
     query = data.get('query', '').strip()
     if not query:
         return JsonResponse({'error': 'Query required'}, status=400)
@@ -417,20 +362,12 @@ def api_janus_channel_submit(request, channel):
 
 
 @login_required
-def api_janus_channel_send(request, channel):
+@post_json
+def api_janus_channel_send(request, data, channel):
     """
     GM sends message to a specific JANUS channel.
     POST: { content: string }
     """
-    
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    
     content = data.get('content', '').strip()
     if not content:
         return JsonResponse({'error': 'Content required'}, status=400)
@@ -448,15 +385,12 @@ def api_janus_channel_send(request, channel):
 
 
 @login_required
+@post_only
 def api_janus_channel_mark_read(request, channel):
     """
     Mark all messages in a channel as read by GM.
     POST: No body required.
     """
-    
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
     JanusSessionManager.mark_channel_read(channel, request.user.id)
     
     return JsonResponse({'success': True, 'channel': channel})
@@ -483,20 +417,12 @@ def api_janus_channel_pending(request, channel):
 
 
 @login_required
-def api_janus_channel_approve(request, channel):
+@post_json
+def api_janus_channel_approve(request, data, channel):
     """
     Approve a pending AI response for a specific channel.
     POST: { pending_id: string, modified_content?: string }
     """
-    
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-    
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    
     pending_id = data.get('pending_id')
     modified_content = data.get('modified_content')
     
@@ -514,20 +440,12 @@ def api_janus_channel_approve(request, channel):
 
 
 @login_required
-def api_janus_channel_reject(request, channel):
+@post_json
+def api_janus_channel_reject(request, data, channel):
     """
     Reject a pending AI response for a specific channel.
     POST: { pending_id: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     pending_id = data.get('pending_id')
 
     if not pending_id:
@@ -544,21 +462,13 @@ def api_janus_channel_reject(request, channel):
 
 
 @login_required
-def api_janus_channel_generate(request, channel):
+@post_json
+def api_janus_channel_generate(request, data, channel):
     """
     GM prompts AI to generate a JANUS response for a specific channel.
     POST: { prompt: string, context_override?: string }
     Returns a pending response for GM approval.
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     prompt = data.get('prompt', '').strip()
     context_override = data.get('context_override', '').strip()
 
@@ -581,15 +491,12 @@ def api_janus_channel_generate(request, channel):
 
 
 @login_required
+@post_only
 def api_janus_channel_clear(request, channel):
     """
     GM clears conversation for a specific channel.
     POST: {}
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
     JanusSessionManager.clear_conversation(channel)
     return JsonResponse({'success': True, 'channel': channel})
 

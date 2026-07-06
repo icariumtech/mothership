@@ -1,5 +1,7 @@
 # Testing Patterns
 
+> **⚠ STALE (frozen 2026-02-09):** This analysis predates phases 21–31 (v2.0 encounter/door rework, v3.0 deckplan editor). Do not trust structural claims here — regenerate with /gsd-map-codebase or consult codemaps/ and the source directly.
+
 **Analysis Date:** 2026-02-09
 
 ## Test Framework

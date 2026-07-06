@@ -5,12 +5,17 @@ Loads locations, maps, comm terminals, and messages from the data/ directory.
 """
 import logging
 import os
+import tempfile
+import threading
 import yaml
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Callable, Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# Serializes read-modify-write cycles on ship.yaml across threads.
+_ship_yaml_lock = threading.Lock()
 
 
 class _TerminalReader:
@@ -707,80 +712,84 @@ class DataLoader:
         return ship_data
 
     def _save_ship_yaml(self, ship_data: dict) -> None:
-        """Write ship data back to data/campaign/ship/ship.yaml."""
+        """Write ship data back to data/campaign/ship/ship.yaml (atomic replace)."""
         ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'w') as f:
-            yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        fd, tmp_path = tempfile.mkstemp(
+            prefix='.ship.', suffix='.yaml', dir=str(ship_file.parent)
+        )
+        try:
+            with os.fdopen(fd, 'w') as f:
+                yaml.dump(ship_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            os.replace(tmp_path, ship_file)
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
+
+    def _mutate_ship_yaml(self, mutate: Callable[[dict], None]) -> None:
+        """Read-modify-write ship.yaml under a lock so concurrent edits don't lose data."""
+        ship_file = self.data_dir / self.SHIP_YAML_PATH
+        with _ship_yaml_lock:
+            with open(ship_file, 'r') as f:
+                ship_data = yaml.safe_load(f) or {}
+            mutate(ship_data)
+            self._save_ship_yaml(ship_data)
 
     def save_ship_location(self, location_slug: str) -> None:
         """Write the galactic location_slug back to data/campaign/ship/ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        ship_data['location_slug'] = location_slug
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            ship_data['location_slug'] = location_slug
+        self._mutate_ship_yaml(mutate)
 
     def save_ship_system(self, system_name: str, fields: dict) -> None:
         """Update a ship system's fields (status, condition, info) in ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        systems = ship_data.setdefault('systems', {})
-        systems.setdefault(system_name, {}).update(fields)
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            systems = ship_data.setdefault('systems', {})
+            systems.setdefault(system_name, {}).update(fields)
+        self._mutate_ship_yaml(mutate)
 
     def save_ship_integrity(self, field: str, values: dict) -> None:
         """Update hull, armor, or other integrity fields (current, max) in ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        ship_data.setdefault(field, {}).update(values)
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            ship_data.setdefault(field, {}).update(values)
+        self._mutate_ship_yaml(mutate)
 
     def save_ship_resource(self, resource_name: str, values: dict) -> None:
         """Update a resource value (fuel, food, o2, cryopods, escape_pods) in ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        resources = ship_data.setdefault('resources', {})
-        resources.setdefault(resource_name, {}).update(values)
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            resources = ship_data.setdefault('resources', {})
+            resources.setdefault(resource_name, {}).update(values)
+        self._mutate_ship_yaml(mutate)
 
     def save_ship_cargo(self, items: list) -> None:
         """Replace the cargo items list in ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        ship_data.setdefault('cargo', {})['items'] = list(items)
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            ship_data.setdefault('cargo', {})['items'] = list(items)
+        self._mutate_ship_yaml(mutate)
 
     def save_ship_stat(self, stat_name: str, value: int) -> None:
         """Update a ship stat (thrusters, battle, systems) in ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        ship_data.setdefault('stats', {})[stat_name] = value
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            ship_data.setdefault('stats', {})[stat_name] = value
+        self._mutate_ship_yaml(mutate)
 
     def save_system_power(self, system_name: str, allocated: int) -> None:
         """Update a system's power.allocated in ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        systems = ship_data.setdefault('systems', {})
-        systems.setdefault(system_name, {}).setdefault('power', {})['allocated'] = allocated
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            systems = ship_data.setdefault('systems', {})
+            systems.setdefault(system_name, {}).setdefault('power', {})['allocated'] = allocated
+        self._mutate_ship_yaml(mutate)
 
     def save_system_fault_indicator(self, system_name: str, index: int, active: bool) -> None:
         """Toggle a fault indicator's active state for a system in ship.yaml."""
-        ship_file = self.data_dir / self.SHIP_YAML_PATH
-        with open(ship_file, 'r') as f:
-            ship_data = yaml.safe_load(f) or {}
-        systems = ship_data.setdefault('systems', {})
-        faults_list = systems.setdefault(system_name, {}).get('faults', [])
-        if 0 <= index < len(faults_list):
-            faults_list[index]['active'] = active
-        self._save_ship_yaml(ship_data)
+        def mutate(ship_data):
+            systems = ship_data.setdefault('systems', {})
+            faults_list = systems.setdefault(system_name, {}).get('faults', [])
+            if 0 <= index < len(faults_list):
+                faults_list[index]['active'] = active
+        self._mutate_ship_yaml(mutate)
 
 
 def group_messages_by_conversation(messages: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:

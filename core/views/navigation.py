@@ -2,28 +2,21 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from pathlib import Path
-import json
 from core.data_loader import get_loader
 from core.active_view_store import get_state
 from core.sse_broadcaster import broadcaster
 from core.janus_session import JanusSessionManager
 from .active_view import sync_state, build_active_view_payload
+from .helpers import post_json, post_only
 
 
 @login_required
-def api_switch_view(request):
+@post_json
+def api_switch_view(request, data):
     """
     API endpoint to switch the active view.
     POST: { view_type: string, location_slug?: string, view_slug?: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     current = get_state()
     new_view_type = data.get('view_type', 'STANDBY')
@@ -95,19 +88,12 @@ def api_switch_view(request):
 
 
 @login_required
-def api_show_terminal(request):
+@post_json
+def api_show_terminal(request, data):
     """
     API endpoint to show a terminal overlay.
     POST: { location_slug: string, terminal_slug: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     new_state = sync_state(
         overlay_location_slug=data.get('location_slug', ''),
@@ -123,7 +109,8 @@ def api_show_terminal(request):
 
 
 @csrf_exempt
-def api_bridge_selection(request):
+@post_json
+def api_bridge_selection(request, data):
     """
     Public API endpoint to update the player's current bridge map selection.
 
@@ -141,14 +128,6 @@ def api_bridge_selection(request):
     Called by the player terminal when navigating the bridge galaxy/system/orbit map.
     POST: { location_slug?: string, tab?: string, map_mode?: string, label?: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     kwargs = {}
     if 'location_slug' in data:
@@ -169,18 +148,9 @@ def api_bridge_selection(request):
 
 @csrf_exempt
 @login_required
-def api_set_ship_location(request):
+@post_json
+def api_set_ship_location(request, data):
     """GM action: set the ship's current galactic position. Writes to ship.yaml + broadcasts SSE."""
-
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     location_slug = data.get('location_slug', '')
     loader = get_loader()
     loader.save_ship_location(location_slug)
@@ -197,15 +167,13 @@ def api_set_ship_location(request):
 
 
 @csrf_exempt
+@post_only
 def api_hide_terminal(request):
     """
     Public API endpoint to hide the terminal overlay.
     Called by players when they dismiss the terminal dialog.
     POST: {}
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     new_state = sync_state(
         overlay_location_slug='',
@@ -220,14 +188,12 @@ def api_hide_terminal(request):
 
 
 @login_required
+@post_only
 def api_show_doc(request, slug):
     """
     GM endpoint — push a campaign doc to the player display.
     POST: /api/gm/show-doc/<slug>/
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
     new_state = sync_state(overlay_doc_slug=slug)
 
     return JsonResponse({'success': True, 'overlay_doc_slug': slug})
@@ -236,14 +202,12 @@ def api_show_doc(request, slug):
 
 
 @csrf_exempt
+@post_only
 def api_hide_doc(request):
     """
     Public endpoint — hide the document overlay (called by players on dismiss).
     POST: {}
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
     new_state = sync_state(overlay_doc_slug='')
 
     return JsonResponse({'success': True})

@@ -22,6 +22,12 @@ def build_active_view_payload(state: dict) -> dict:
     return _get_builder().build(state)
 
 
+def invalidate_payload_cache() -> None:
+    """Drop PayloadBuilder's stable caches (NPCs, ship deckplan) after a data-file edit."""
+    if _builder is not None:
+        _builder.invalidate_stable_cache()
+
+
 
 
 def sync_state(**kwargs) -> dict:

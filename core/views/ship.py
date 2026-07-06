@@ -1,9 +1,22 @@
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-import json
 from core.data_loader import get_loader
 from core.sse_broadcaster import broadcaster
+from .helpers import post_json
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _broadcast_ship_status(loader):
+    """Push current ship status to SSE clients; failure must not fail the request."""
+    try:
+        ship_data = loader.load_ship_status()
+        if ship_data:
+            broadcaster.announce_ship_status(ship_data)
+    except Exception as e:
+        logger.warning('Failed to broadcast ship status via SSE: %s', e)
 
 
 def api_ship_status(request):
@@ -26,20 +39,13 @@ def api_ship_status(request):
 
 
 @login_required
-def api_ship_toggle_system(request):
+@post_json
+def api_ship_toggle_system(request, data):
     """
     API endpoint to toggle/update ship system status.
     GM only - updates runtime overrides in ActiveView.
     POST: { system: string, status: string, condition?: number, info?: string }
     """
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     system_name = data.get('system', '').strip()
     status = data.get('status', '').strip()
@@ -71,13 +77,7 @@ def api_ship_toggle_system(request):
     loader.save_ship_system(system_name, fields)
 
     # Broadcast updated ship status
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'success': True, 'system': system_name, 'fields': fields})
 
@@ -85,20 +85,13 @@ def api_ship_toggle_system(request):
 
 
 @login_required
-def api_ship_update_fault(request):
+@post_json
+def api_ship_update_fault(request, data):
     """
     API endpoint to toggle a fault indicator on a ship system.
     GM only.
     POST: { system: string, index: number, active: bool }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     system_name = data.get('system', '').strip()
     index = data.get('index', -1)
     active = bool(data.get('active', False))
@@ -109,13 +102,7 @@ def api_ship_update_fault(request):
     loader = get_loader()
     loader.save_system_fault_indicator(system_name, int(index), active)
 
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'ok': True})
 
@@ -123,20 +110,13 @@ def api_ship_update_fault(request):
 
 
 @login_required
-def api_ship_update_integrity(request):
+@post_json
+def api_ship_update_integrity(request, data):
     """
     API endpoint to update ship hull or armor values.
     GM only - updates runtime overrides in ActiveView.
     POST: { field: "hull" | "armor", current?: number, max?: number }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     field = data.get('field', '').strip()
     if field not in ('hull', 'armor'):
         return JsonResponse({'error': 'field must be "hull" or "armor"'}, status=400)
@@ -157,13 +137,7 @@ def api_ship_update_integrity(request):
     loader.save_ship_integrity(field, values)
 
     # Broadcast updated ship status
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'success': True, 'field': field, 'values': values})
 
@@ -171,19 +145,12 @@ def api_ship_update_integrity(request):
 
 
 @csrf_exempt
-def api_ship_update_stat(request):
+@post_json
+def api_ship_update_stat(request, data):
     """
     API endpoint to update a ship stat (thrusters, battle, systems).
     POST: { stat: string, value: int }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     stat = data.get('stat', '').strip()
     valid_stats = ['thrusters', 'battle', 'systems']
     if stat not in valid_stats:
@@ -196,13 +163,7 @@ def api_ship_update_stat(request):
     loader = get_loader()
     loader.save_ship_stat(stat, value)
 
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'success': True, 'stat': stat, 'value': value})
 
@@ -210,20 +171,13 @@ def api_ship_update_stat(request):
 
 
 @login_required
-def api_ship_update_resource(request):
+@post_json
+def api_ship_update_resource(request, data):
     """
     API endpoint to update ship resource values.
     GM only - updates resource fields in ship.yaml.
     POST: { resource: "fuel"|"food"|"o2"|"cryopods"|"escape_pods", current?: number, max?: number, occupied?: number, available?: number, total?: number }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     resource = data.get('resource', '').strip()
     _ship = get_loader().load_ship_status() or {}
     valid_resources = list((_ship.get('resources') or {}).keys())
@@ -246,13 +200,7 @@ def api_ship_update_resource(request):
     loader.save_ship_resource(resource, values)
 
     # Broadcast updated ship status
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'success': True, 'resource': resource, 'values': values})
 
@@ -260,21 +208,14 @@ def api_ship_update_resource(request):
 
 
 @login_required
-def api_ship_update_cargo(request):
+@post_json
+def api_ship_update_cargo(request, data):
     """
     API endpoint to add or remove cargo items.
     Accessible to any logged-in user (players and GM).
     POST: { action: "add", item: "string" }
           { action: "remove", index: number }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     action = data.get('action', '').strip()
     if action not in ('add', 'remove'):
         return JsonResponse({'error': 'action must be "add" or "remove"'}, status=400)
@@ -298,13 +239,7 @@ def api_ship_update_cargo(request):
     loader.save_ship_cargo(items)
 
     # Broadcast updated ship status
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'success': True, 'items': items})
 
@@ -312,19 +247,12 @@ def api_ship_update_cargo(request):
 
 
 @login_required
-def api_ship_reactor_power(request):
+@post_json
+def api_ship_reactor_power(request, data):
     """
     API endpoint for players to adjust reactor power allocation.
     POST: { system: string, amount: int }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     system_name = data.get('system', '').strip()
     amount = data.get('amount')
 
@@ -359,13 +287,7 @@ def api_ship_reactor_power(request):
 
     loader.save_system_power(system_name, amount)
 
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'success': True, 'power_grid': power_grid})
 
@@ -373,19 +295,12 @@ def api_ship_reactor_power(request):
 
 
 @login_required
-def api_ship_reactor_action(request):
+@post_json
+def api_ship_reactor_action(request, data):
     """
     API endpoint for players to trigger emergency reactor actions.
     POST: { action: "emergency_shutdown" | "cold_start" | "vent_plasma" }
     """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
     action = data.get('action', '').strip()
     valid_actions = ('emergency_shutdown', 'cold_start', 'vent_plasma')
     if action not in valid_actions:
@@ -420,13 +335,7 @@ def api_ship_reactor_action(request):
         fields = {'status': 'STRESSED', 'condition': 50, 'warnings': ['Plasma vented — core stabilizing']}
         loader.save_ship_system('reactor', fields)
 
-    try:
-        ship_broadcast_data = loader.load_ship_status()
-        if ship_broadcast_data:
-            broadcaster.announce_ship_status(ship_broadcast_data)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning('Failed to broadcast ship status via SSE: %s', e)
+    _broadcast_ship_status(loader)
 
     return JsonResponse({'success': True, 'action': action, 'fields': fields})
 

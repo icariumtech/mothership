@@ -258,7 +258,7 @@ export type WallSide = 'north' | 'south' | 'east' | 'west';
 export interface GridRoom {
   id: string;
   name: string;         // empty string = corridor/hallway (no label rendered)
-  rects: GridRect[];    // list of axis-aligned rectangles (may be empty for circle/polygon rooms)
+  rects?: GridRect[];   // list of axis-aligned rectangles (absent or empty for circle/polygon rooms)
   circle?: { cx: number; cy: number; r: number };  // circular room (grid coords)
   polygon?: [number, number][];                      // freeform polygon vertices (grid coords)
   holes?: [number, number][][];                      // polygons punched out of the room floor

@@ -79,13 +79,18 @@ room_visibility/door_status/vents_visible/tokens_by_location/active_portraits`.
 
 Facade over `_TerminalReader` (comms/messages) and `_CampaignReader`
 (crew/NPCs/sessions/docs); DataLoader delegates via thin wrappers.
-`get_loader()` memoizes a single instance; methods re-read disk on every call
-(no result caching — PayloadBuilder caches one layer up).
+`get_loader()` memoizes a single instance; most methods re-read disk on every
+call (PayloadBuilder caches one layer up for NPCs/ship-deck).
 
 Key methods:
 - `load_all_locations()` — walks data/galaxy/ recursively, injects ships from
-  data/ships/ and campaign ship. ⚠ Called by `find_location_by_slug`,
-  `get_location_path`, `load_orbit_map` — each call re-walks the tree.
+  data/ships/ and campaign ship. ★ Cached on the DataLoader instance (returns
+  a deep copy — callers like PayloadBuilder mutate location dicts in place, so
+  the cache must never hand out a live reference). Invalidated by
+  `invalidate_locations_cache()`, wired into `gm_data_files._announce_data_changed()`
+  — the single choke point every data-mutating endpoint already calls. Called
+  by `find_location_by_slug`, `get_location_path`, `load_orbit_map` — multiple
+  calls per broadcast now hit the cache instead of re-walking disk.
 - `load_deckplan(location_dir)` — reads `deckplan.yaml` (single file per
   location; the legacy `map/` + manifest format is gone).
 - `load_star_map()` / `load_system_map(slug)` / `load_orbit_map(sys, body)`

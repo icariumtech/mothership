@@ -40,15 +40,17 @@ _ALLOWED_WRITE_EXTENSIONS = frozenset(('.yaml', '.yml', '.md'))
 def _announce_data_changed(payload: dict) -> None:
     """Invalidate stale caches, then broadcast a data-changed SSE event.
 
-    PayloadBuilder caches NPCs/ship-deck data (30 s TTL) and JanusAI caches
-    config/knowledge for process life — without invalidation, clients receive
-    the data-changed event but subsequent broadcasts still serve stale data.
+    PayloadBuilder caches NPCs/ship-deck data (30 s TTL), JanusAI caches
+    config/knowledge for process life, and DataLoader caches the galaxy tree —
+    without invalidation, clients receive the data-changed event but
+    subsequent broadcasts still serve stale data.
     Wrapped in try/except: broadcast failure must NOT roll back the write.
     """
     from core.janus_ai import clear_janus_cache
     from core.views.active_view import invalidate_payload_cache
     from core.sse_broadcaster import broadcaster
     try:
+        get_loader().invalidate_locations_cache()
         invalidate_payload_cache()
         clear_janus_cache()
         broadcaster.announce_generic('data-changed', payload)

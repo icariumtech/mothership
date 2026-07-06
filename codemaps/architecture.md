@@ -84,7 +84,8 @@ and invalidate the payload/JANUS caches.
 - R3F: render-on-demand when tab inactive, procedural textures memoized,
   single RAF loop coordinates GSAP camera moves + typewriter.
 - PayloadBuilder caches NPC + ship-deck reads (30s TTL, invalidated on edits);
-  DataLoader itself re-reads disk per call (known hot spot:
-  `load_all_locations()` re-walks the tree multiple times per broadcast).
+  DataLoader caches `load_all_locations()` on the instance (deep-copied per
+  call, invalidated on any data-file write) so multiple calls per broadcast
+  hit the cache instead of re-walking disk.
 - Encounter maps are plain SVG (no canvas/WebGL); token drags throttle
   through `encounter_state` mutations.

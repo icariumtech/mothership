@@ -3,6 +3,7 @@ Data loader for campaign data from filesystem.
 
 Loads locations, maps, comm terminals, and messages from the data/ directory.
 """
+import copy
 import logging
 import os
 import tempfile
@@ -316,9 +317,34 @@ class DataLoader:
         self.systems_dir = self.galaxy_dir
         self._terminals = _TerminalReader(self.data_dir)
         self._campaign = _CampaignReader(self.data_dir)
+        self._locations_cache: Optional[List[Dict[str, Any]]] = None
+        self._locations_lock = threading.Lock()
 
     def load_all_locations(self) -> List[Dict[str, Any]]:
         """Load all visitable locations, organized as a galaxy hierarchy.
+
+        Cached in-process — one broadcast/request can call this (directly or
+        via find_location_by_slug/get_location_path/load_orbit_map) several
+        times; the tree is only rebuilt from disk after invalidate_locations_cache()
+        is called (wired to core.views.gm_data_files._announce_data_changed, the
+        single choke point for "a data file changed").
+
+        Returns a deep copy every call — callers (e.g. PayloadBuilder) mutate the
+        returned location dicts in place, and a deep copy keeps that from
+        corrupting the shared cache.
+        """
+        with self._locations_lock:
+            if self._locations_cache is None:
+                self._locations_cache = self._build_all_locations()
+            return copy.deepcopy(self._locations_cache)
+
+    def invalidate_locations_cache(self) -> None:
+        """Force load_all_locations() to rebuild the galaxy tree from disk next call."""
+        with self._locations_lock:
+            self._locations_cache = None
+
+    def _build_all_locations(self) -> List[Dict[str, Any]]:
+        """Build the galaxy hierarchy tree from disk (uncached — see load_all_locations).
 
         Builds the tree from the galaxy directory (systems → planets/bodies →
         nested permanent installations like bases and orbital stations), then

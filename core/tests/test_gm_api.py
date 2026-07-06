@@ -362,7 +362,7 @@ class MapEditResolverTests(TestCase):
         ]}]}
 
     def _ids(self, query):
-        from core.views.gm_data import _resolve_map_element
+        from core.views.gm_data_mapedit import _resolve_map_element
         return [m['id'] for m in _resolve_map_element(self._data(), query)['matches']]
 
     def test_exact_id(self):
@@ -385,7 +385,7 @@ class MapEditResolverTests(TestCase):
         self.assertEqual(self._ids('mess_hall__main_corridor__0'), ['mess_hall__main_corridor__0'])
 
     def test_unknown_returns_suggestions(self):
-        from core.views.gm_data import _resolve_map_element
+        from core.views.gm_data_mapedit import _resolve_map_element
         res = _resolve_map_element(self._data(), 'zzzzz')
         self.assertEqual(res['matches'], [])
         self.assertTrue(res['suggestions'])

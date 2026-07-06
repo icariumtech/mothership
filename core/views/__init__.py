@@ -98,14 +98,13 @@ from .campaign import (
     serve_data_file,
 )
 
-from .gm_data import (
+from .gm_data_files import (
     api_gm_data_list,
     api_gm_data_file,
     api_gm_data_list_append,
-    api_gm_data_map_edit,
     api_gm_data_rename,
     api_gm_session_context,
     api_gm_data_schema,
-    api_gm_upload_image,
-    api_gm_upload_svg_map,
 )
+from .gm_data_mapedit import api_gm_data_map_edit
+from .gm_data_uploads import api_gm_upload_image, api_gm_upload_svg_map

@@ -41,9 +41,15 @@ core/                       # Main (only) Django app
 │   ├── ship.py             # Ship status endpoints; _broadcast_ship_status() helper
 │   ├── janus.py            # Classic + per-<channel> JANUS endpoints (duplicated pairs)
 │   ├── campaign.py         # Crew/NPC/sessions/docs, data-file serving
-│   ├── gm_data.py          # ⚠ 1000+ lines: AI-agent file CRUD API + map-element
-│   │                       #   resolver + SVG/image upload. _announce_data_changed()
-│   │                       #   invalidates payload+janus caches then broadcasts.
+│   ├── gm_data_files.py    # AI-agent file CRUD (list/read/write/patch/delete/
+│   │                       #   rename/list-append) + shared helpers: safe_write_yaml,
+│   │                       #   _announce_data_changed (invalidates payload+janus
+│   │                       #   caches then broadcasts data-changed), _deep_merge
+│   ├── gm_data_mapedit.py  # Deckplan element resolver (_resolve_map_element:
+│   │                       #   exact→slug→glob→prefix→fuzzy) + surgical set/add_poi/
+│   │                       #   remove_poi edits. Imports helpers from gm_data_files.
+│   ├── gm_data_uploads.py  # SVG deckplan upload (runs tools/svg_to_map.py) +
+│   │                       #   image upload (portrait/logo/map/misc)
 │   ├── maps.py             # Star/system/orbit map JSON
 │   └── display.py          # HTML shell template views
 └── tests/                  # Django TestCase package (test_gm_api, test_data_loader,

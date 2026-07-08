@@ -196,5 +196,7 @@ Run: `pnpm vitest run` · types: `pnpm run typecheck`.
 4. **`GridRoom.rects` is optional** — always guard (`room.rects ?? []`).
 5. **Two BridgeView.tsx** exist (gm/views vs domain/dashboard) — unrelated
    components; check the import path.
-6. **deckplan YAML edit layer is loosely typed** (`any`-heavy in
-   deckplanYamlEdits/useDeckplanModel) — types don't guarantee shape there.
+6. **deckplan YAML edit layer** (deckplanYamlEdits/useDeckplanModel) is now
+   typed against the `yaml` package's CST classes (`YAMLMap`/`YAMLSeq`/`Scalar`)
+   and domain types (`DeckplanDoc`/`DeckplanDeck`/`DeckplanRoom`/`RawPoiEntry`,
+   exported from `useDeckplanModel.ts`) — zero `any` as of Tier 3 (2026-07).

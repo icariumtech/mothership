@@ -9,8 +9,51 @@
  * vitest unit tests without a DOM or jsdom environment.
  */
 
-import { parseDocument, LineCounter, parse as parseYaml } from 'yaml';
-import type { GridEncounterMapData } from '@/types/encounterMap';
+import { parseDocument, LineCounter, parse as parseYaml, YAMLMap, YAMLSeq, Scalar } from 'yaml';
+import type { GridEncounterMapData, GridRoom, AuthoredDoor, VentPath, PoiData, PoiType } from '@/types/encounterMap';
+
+// ============================================================
+// Plain-JS deckplan shapes (from `yaml.parse()`, not CST)
+// ============================================================
+
+/** Authored POI entry, room-scoped or deck-level — pre-normalization. */
+export interface RawPoiEntry {
+  id?: string;
+  type?: string;
+  room?: string;
+  position?: { x: number; y: number };
+  label?: string;
+  name?: string;
+  icon?: string;
+  status?: string;
+  description?: string;
+}
+
+/** A room as authored in YAML — GridRoom plus an optional inline poi list. */
+export interface DeckplanRoom extends GridRoom {
+  poi?: RawPoiEntry[];
+}
+
+/** A single deck entry in the top-level `decks:` list. */
+export interface DeckplanDeck {
+  id: string;
+  name?: string;
+  unit_size?: number;
+  rotation?: number;
+  hull?: GridEncounterMapData['hull'];
+  rooms?: DeckplanRoom[];
+  doors?: AuthoredDoor[];
+  vents?: VentPath[];
+  poi?: RawPoiEntry[];
+}
+
+/** Plain-JS parse of the whole deckplan YAML document. */
+export interface DeckplanDoc {
+  name?: string;
+  unit_size?: number;
+  hull?: GridEncounterMapData['hull'];
+  decks: DeckplanDeck[];
+}
 
 // ============================================================
 // IdRangeEntry — deck-scoped id → Monaco line/column position
@@ -67,28 +110,31 @@ export function buildIdRangeMap(yamlText: string): Map<string, IdRangeEntry> {
 
     const result = new Map<string, IdRangeEntry>();
 
-    const decksSeq = doc.get('decks', true) as any;
+    const decksSeq = doc.get('decks', true) as YAMLSeq | undefined;
     if (!decksSeq || !Array.isArray(decksSeq.items)) {
       return result;
     }
 
-    for (const deckNode of decksSeq.items) {
+    for (const deckNodeItem of decksSeq.items) {
+      const deckNode = deckNodeItem as YAMLMap;
       if (!deckNode || !Array.isArray(deckNode.items)) continue;
 
       const deckId = deckNode.get('id') as string | undefined;
       if (!deckId) continue;
 
       // Walk rooms[]
-      const roomsSeq = deckNode.get('rooms', true) as any;
+      const roomsSeq = deckNode.get('rooms', true) as YAMLSeq | undefined;
       if (roomsSeq && Array.isArray(roomsSeq.items)) {
-        for (const roomNode of roomsSeq.items) {
+        for (const roomNodeItem of roomsSeq.items) {
+          const roomNode = roomNodeItem as YAMLMap;
           if (!roomNode || !Array.isArray(roomNode.items)) continue;
           _extractIdEntry(roomNode, deckId, 'room', lineCounter, result);
 
           // Also walk per-room poi[] (normalized server-side but may appear in source)
-          const perRoomPoiSeq = roomNode.get('poi', true) as any;
+          const perRoomPoiSeq = roomNode.get('poi', true) as YAMLSeq | undefined;
           if (perRoomPoiSeq && Array.isArray(perRoomPoiSeq.items)) {
-            for (const poiNode of perRoomPoiSeq.items) {
+            for (const poiNodeItem of perRoomPoiSeq.items) {
+              const poiNode = poiNodeItem as YAMLMap;
               if (!poiNode || !Array.isArray(poiNode.items)) continue;
               _extractIdEntry(poiNode, deckId, 'poi', lineCounter, result);
             }
@@ -97,18 +143,20 @@ export function buildIdRangeMap(yamlText: string): Map<string, IdRangeEntry> {
       }
 
       // Walk deck-level poi[]
-      const deckPoiSeq = deckNode.get('poi', true) as any;
+      const deckPoiSeq = deckNode.get('poi', true) as YAMLSeq | undefined;
       if (deckPoiSeq && Array.isArray(deckPoiSeq.items)) {
-        for (const poiNode of deckPoiSeq.items) {
+        for (const poiNodeItem of deckPoiSeq.items) {
+          const poiNode = poiNodeItem as YAMLMap;
           if (!poiNode || !Array.isArray(poiNode.items)) continue;
           _extractIdEntry(poiNode, deckId, 'poi', lineCounter, result);
         }
       }
 
       // Walk deck-level doors[]
-      const doorsSeq = deckNode.get('doors', true) as any;
+      const doorsSeq = deckNode.get('doors', true) as YAMLSeq | undefined;
       if (doorsSeq && Array.isArray(doorsSeq.items)) {
-        for (const doorNode of doorsSeq.items) {
+        for (const doorNodeItem of doorsSeq.items) {
+          const doorNode = doorNodeItem as YAMLMap;
           if (!doorNode || !Array.isArray(doorNode.items)) continue;
           _extractIdEntry(doorNode, deckId, 'door', lineCounter, result);
         }
@@ -127,20 +175,21 @@ export function buildIdRangeMap(yamlText: string): Map<string, IdRangeEntry> {
  * and add it to the result map.
  */
 function _extractIdEntry(
-  node: any,
+  node: YAMLMap,
   deckId: string,
   kind: 'room' | 'poi' | 'door',
   lineCounter: LineCounter,
   result: Map<string, IdRangeEntry>,
 ): void {
   try {
-    const idPair = node.items.find((p: any) => p?.key?.value === 'id');
-    if (!idPair?.key?.range) return;
+    const idPair = node.items.find((p) => (p?.key as Scalar | undefined)?.value === 'id');
+    const idKey = idPair?.key as Scalar | undefined;
+    if (!idKey?.range) return;
 
     const id = node.get('id') as string | undefined;
     if (!id) return;
 
-    const [keyStart, keyEnd] = idPair.key.range as [number, number, number];
+    const [keyStart, keyEnd] = idKey.range;
     const startPos = lineCounter.linePos(keyStart);
     const endPos = lineCounter.linePos(keyEnd);
 
@@ -176,13 +225,13 @@ function _extractIdEntry(
  * @returns GridEncounterMapData or null if the deck is not found
  */
 export function deckToMapData(
-  parsedDeckplan: any,
+  parsedDeckplan: DeckplanDoc | null | undefined,
   deckId: string,
 ): GridEncounterMapData | null {
   try {
     if (!parsedDeckplan || !Array.isArray(parsedDeckplan.decks)) return null;
 
-    const deck = parsedDeckplan.decks.find((d: any) => d?.id === deckId);
+    const deck = parsedDeckplan.decks.find((d) => d?.id === deckId);
     if (!deck) return null;
 
     return {
@@ -206,9 +255,9 @@ export function deckToMapData(
  * poi entries into a single top-level list, computing room-center positions for
  * any entry that omits an explicit position.
  */
-function normalizeClientPoi(deck: any): any[] {
-  const topPoi: any[] = Array.isArray(deck.poi) ? [...deck.poi] : [];
-  const existingIds = new Set(topPoi.map((p: any) => p?.id).filter(Boolean));
+function normalizeClientPoi(deck: DeckplanDeck): PoiData[] {
+  const topPoi: PoiData[] = Array.isArray(deck.poi) ? [...(deck.poi as PoiData[])] : [];
+  const existingIds = new Set(topPoi.map((p) => p?.id).filter(Boolean));
 
   for (const room of deck.rooms ?? []) {
     const roomPoi = room.poi;
@@ -218,26 +267,26 @@ function normalizeClientPoi(deck: any): any[] {
     let cx = 0;
     let cy = 0;
     if (Array.isArray(room.polygon) && room.polygon.length > 0) {
-      cx = room.polygon.reduce((s: number, p: any) => s + p[0], 0) / room.polygon.length;
-      cy = room.polygon.reduce((s: number, p: any) => s + p[1], 0) / room.polygon.length;
+      cx = room.polygon.reduce((s, p) => s + p[0], 0) / room.polygon.length;
+      cy = room.polygon.reduce((s, p) => s + p[1], 0) / room.polygon.length;
     } else if (room.circle) {
       cx = room.circle.cx;
       cy = room.circle.cy;
     } else if (Array.isArray(room.rects) && room.rects.length > 0) {
-      cx = room.rects.reduce((s: number, r: any) => s + r.x + r.w / 2, 0) / room.rects.length;
-      cy = room.rects.reduce((s: number, r: any) => s + r.y + r.h / 2, 0) / room.rects.length;
+      cx = room.rects.reduce((s, r) => s + r.x + r.w / 2, 0) / room.rects.length;
+      cy = room.rects.reduce((s, r) => s + r.y + r.h / 2, 0) / room.rects.length;
     }
 
     for (let idx = 0; idx < roomPoi.length; idx++) {
       const entry = roomPoi[idx];
       if (!entry) continue;
-      if (entry.room && existingIds.has(entry.id)) continue;
+      if (entry.room && entry.id && existingIds.has(entry.id)) continue;
 
       const poiId = entry.id || `${room.id}_poi_${idx}`;
       const pos = entry.position ?? { x: cx, y: cy };
       topPoi.push({
         id: poiId,
-        type: entry.type ?? 'item',
+        type: (entry.type as PoiType) ?? 'item',
         room: room.id,
         position: pos,
         name: entry.label ?? entry.name ?? entry.icon ?? 'POI',
@@ -264,9 +313,9 @@ function normalizeClientPoi(deck: any): any[] {
  * @param yamlText - Raw YAML text
  * @returns Parsed plain object or null
  */
-export function parseYamlSafe(yamlText: string): any {
+export function parseYamlSafe(yamlText: string): DeckplanDoc | null {
   try {
-    return parseYaml(yamlText) ?? null;
+    return (parseYaml(yamlText) as DeckplanDoc) ?? null;
   } catch {
     return null;
   }

@@ -11,7 +11,26 @@
  * - Handle both flow-style ({x: 1, y: 2}) and block-style position nodes (Pitfall 5)
  */
 
-import { parseDocument, LineCounter, parse as parseYaml } from 'yaml';
+import { parseDocument, LineCounter, parse as parseYaml, YAMLMap, YAMLSeq, Scalar } from 'yaml';
+import type { DeckplanDoc, DeckplanDeck, DeckplanRoom, RawPoiEntry } from './useDeckplanModel';
+
+/** Union of CST node kinds that carry a `range` — everything but Alias, which we never hit here. */
+type AnyNode = YAMLMap | YAMLSeq | Scalar;
+
+/** Find the `id:` key node's Scalar wrapper on a parsed CST map, if present. */
+function _idScalar(node: YAMLMap): Scalar | undefined {
+  return node.items.find((p) => (p?.key as Scalar | undefined)?.value === 'id')?.key as Scalar | undefined;
+}
+
+/** Find a key's value node (whatever kind) on a parsed CST map, by key name. */
+function _valueNode(node: YAMLMap, key: string): AnyNode | undefined {
+  return node.items.find((p) => (p?.key as Scalar | undefined)?.value === key)?.value as AnyNode | undefined;
+}
+
+/** Find a key's Pair (key + value nodes) on a parsed CST map, by key name. */
+function _findKeyPair(node: YAMLMap, key: string) {
+  return node.items.find((p) => (p?.key as Scalar | undefined)?.value === key);
+}
 
 // ============================================================
 // TextEdit — Monaco-agnostic edit range descriptor
@@ -49,9 +68,9 @@ function _lineCol(lineCounter: LineCounter, offset: number): { line: number; col
  * Find a deck node by id in the CST decksSeq.
  * Returns the YAML map node or null.
  */
-function _findDeckNode(decksSeq: any, deckId: string): any {
+function _findDeckNode(decksSeq: YAMLSeq | undefined, deckId: string): YAMLMap | null {
   if (!decksSeq || !Array.isArray(decksSeq.items)) return null;
-  for (const deckNode of decksSeq.items) {
+  for (const deckNode of decksSeq.items as YAMLMap[]) {
     if (deckNode?.get?.('id') === deckId) return deckNode;
   }
   return null;
@@ -62,24 +81,24 @@ function _findDeckNode(decksSeq: any, deckId: string): any {
  * Searches deck-level poi[] and per-room poi[].
  * Returns the YAML map node or null.
  */
-function _findPoiNode(deckNode: any, poiId: string): any {
+function _findPoiNode(deckNode: YAMLMap | null, poiId: string): YAMLMap | null {
   if (!deckNode) return null;
 
   // Check deck-level poi[]
-  const deckPoiSeq = deckNode.get?.('poi', true) as any;
+  const deckPoiSeq = deckNode.get?.('poi', true) as YAMLSeq | undefined;
   if (deckPoiSeq && Array.isArray(deckPoiSeq.items)) {
-    for (const poiNode of deckPoiSeq.items) {
+    for (const poiNode of deckPoiSeq.items as YAMLMap[]) {
       if (poiNode?.get?.('id') === poiId) return poiNode;
     }
   }
 
   // Check per-room poi[]
-  const roomsSeq = deckNode.get?.('rooms', true) as any;
+  const roomsSeq = deckNode.get?.('rooms', true) as YAMLSeq | undefined;
   if (roomsSeq && Array.isArray(roomsSeq.items)) {
-    for (const roomNode of roomsSeq.items) {
-      const roomPoiSeq = roomNode?.get?.('poi', true) as any;
+    for (const roomNode of roomsSeq.items as YAMLMap[]) {
+      const roomPoiSeq = roomNode?.get?.('poi', true) as YAMLSeq | undefined;
       if (roomPoiSeq && Array.isArray(roomPoiSeq.items)) {
-        for (const poiNode of roomPoiSeq.items) {
+        for (const poiNode of roomPoiSeq.items as YAMLMap[]) {
           if (poiNode?.get?.('id') === poiId) return poiNode;
         }
       }
@@ -119,7 +138,7 @@ export function buildPositionEdit(
     const doc = parseDocument(yamlText, { lineCounter, keepSourceTokens: true });
     if (doc.errors.length > 0) return null;
 
-    const decksSeq = doc.get('decks', true) as any;
+    const decksSeq = doc.get('decks', true) as YAMLSeq | undefined;
     const deckNode = _findDeckNode(decksSeq, deckId);
     if (!deckNode) return null;
 
@@ -127,10 +146,10 @@ export function buildPositionEdit(
     if (!poiNode) return null;
 
     // Get the position value node — this is the whole value (flow or block map)
-    const posPair = poiNode.items?.find((p: any) => p?.key?.value === 'position');
-    if (!posPair?.value?.range) return null;
+    const posValue = _valueNode(poiNode, 'position');
+    if (!posValue?.range) return null;
 
-    const [rangeStart, rangeEnd] = posPair.value.range as [number, number, number];
+    const [rangeStart, rangeEnd] = posValue.range;
     const startPos = _lineCol(lineCounter, rangeStart);
     const endPos = _lineCol(lineCounter, rangeEnd);
 
@@ -195,7 +214,7 @@ export function buildAddPoiEdit(
     const doc = parseDocument(yamlText, { lineCounter, keepSourceTokens: true });
     if (doc.errors.length > 0) return null;
 
-    const decksSeq = doc.get('decks', true) as any;
+    const decksSeq = doc.get('decks', true) as YAMLSeq | undefined;
     const deckNode = _findDeckNode(decksSeq, deckId);
     if (!deckNode) return null;
 
@@ -206,7 +225,7 @@ export function buildAddPoiEdit(
 
     // Primary path: add POI directly to the room containing (x, y).
     // This keeps the entry room-scoped, matching how the schema organises POIs.
-    const plainDeck = (parseYaml(yamlText) as any)?.decks?.find((d: any) => d?.id === deckId);
+    const plainDeck = (parseYaml(yamlText) as DeckplanDoc | null)?.decks?.find((d) => d?.id === deckId);
     if (plainDeck) {
       const targetRoom = _findRoomForPoint(plainDeck.rooms ?? [], x, y);
       if (targetRoom) {
@@ -222,19 +241,19 @@ export function buildAddPoiEdit(
     const poiItem = `- {id: ${poiStubId}, name: "${name}", type: ${type}, icon: ${icon}, position: {x: ${x}, y: ${y}}}`;
 
     // Check if deck already has a poi: key (even if its value is empty/null)
-    const deckPoiSeq = deckNode.get?.('poi', true) as any;
-    const deckPoiPair = (deckNode.items as any[])?.find((p: any) => p?.key?.value === 'poi');
+    const deckPoiSeq = deckNode.get?.('poi', true) as YAMLSeq | undefined;
+    const deckPoiPair = _findKeyPair(deckNode, 'poi');
     const hasPoiItems = deckPoiSeq && Array.isArray(deckPoiSeq.items) && deckPoiSeq.items.length > 0;
 
     if (hasPoiItems) {
       // poi-exists branch: insert after the last item
-      const lastItem = deckPoiSeq.items[deckPoiSeq.items.length - 1];
+      const lastItem = deckPoiSeq.items[deckPoiSeq.items.length - 1] as AnyNode;
       const [, lastItemValueEnd] = lastItem.range as [number, number, number];
 
       // Determine indentation from the '-' column of the first item.
       // items[0].range[0] points to the value start (the '{' in a flow map),
       // NOT the '-' dash. Scan back to the start of the line to find '-'.
-      const firstItemStart = deckPoiSeq.items[0].range[0] as number;
+      const firstItemStart = (deckPoiSeq.items[0] as AnyNode).range![0];
       const lineStart = yamlText.lastIndexOf('\n', firstItemStart - 1) + 1;
       const linePrefix = yamlText.slice(lineStart, firstItemStart);
       const dashRelIdx = linePrefix.indexOf('-');
@@ -255,10 +274,10 @@ export function buildAddPoiEdit(
         endCol: lineOfInsert.col,
         text: '\n' + indent + poiItem,
       };
-    } else if (deckPoiPair?.key?.range) {
+    } else if ((deckPoiPair?.key as Scalar | undefined)?.range) {
       // poi-empty branch: poi: key exists but value is null (last item was deleted
       // but the key wasn't cleaned up). Insert the new item right after the poi: line.
-      const poiKeyStart = deckPoiPair.key.range[0] as number;
+      const poiKeyStart = (deckPoiPair!.key as Scalar).range![0];
       const keyCol = lineCounter.linePos(poiKeyStart).col; // 1-based col of 'p'
       const itemIndent = ' '.repeat(keyCol - 1 + 2); // 2 more than key indent
 
@@ -282,17 +301,17 @@ export function buildAddPoiEdit(
       if (!Array.isArray(deckNode.items) || deckNode.items.length === 0) return null;
 
       const lastPair = deckNode.items[deckNode.items.length - 1];
-      const lastPairValueRange = lastPair?.value?.range;
+      const lastPairValueRange = (lastPair?.value as AnyNode | null | undefined)?.range;
       if (!lastPairValueRange) return null;
 
-      const [, lastPairValueEnd] = lastPairValueRange as [number, number, number];
+      const [, lastPairValueEnd] = lastPairValueRange;
 
       // Determine the deck key indentation from any existing key (e.g. 'id' key)
       // The deck keys are indented 2 from the sequence item's '-'
       // e.g. '  name:' at col 3 (1-based) = 2 spaces prefix
-      const idPair = deckNode.items.find((p: any) => p?.key?.value === 'id');
-      const deckKeyCol = idPair?.key?.range
-        ? lineCounter.linePos(idPair.key.range[0]).col
+      const idKey = _idScalar(deckNode);
+      const deckKeyCol = idKey?.range
+        ? lineCounter.linePos(idKey.range[0]).col
         : 3; // default: 2 spaces + key
       const keyIndent = ' '.repeat(deckKeyCol - 1); // col-1 spaces before key text
       const itemIndent = keyIndent + '  '; // poi items indented 2 more than key
@@ -351,7 +370,7 @@ function _pointInPolygon(x: number, y: number, polygon: [number, number][]): boo
 }
 
 /** Find the first plain-JS room whose polygon contains (x, y). */
-function _findRoomForPoint(rooms: any[], x: number, y: number): any | null {
+function _findRoomForPoint(rooms: DeckplanRoom[], x: number, y: number): DeckplanRoom | null {
   for (const room of rooms) {
     if (Array.isArray(room.polygon) && _pointInPolygon(x, y, room.polygon)) return room;
   }
@@ -360,32 +379,32 @@ function _findRoomForPoint(rooms: any[], x: number, y: number): any | null {
 
 interface PoiOwner {
   sourceRoomId: string | null;
-  poiItemNode: any;
+  poiItemNode: YAMLMap;
 }
 
-function _findPoiOwner(deckNode: any, poiId: string): PoiOwner | null {
-  const roomsSeq = deckNode.get?.('rooms', true) as any;
+function _findPoiOwner(deckNode: YAMLMap, poiId: string): PoiOwner | null {
+  const roomsSeq = deckNode.get?.('rooms', true) as YAMLSeq | undefined;
   if (roomsSeq && Array.isArray(roomsSeq.items)) {
-    for (const roomNode of roomsSeq.items) {
+    for (const roomNode of roomsSeq.items as YAMLMap[]) {
       const roomId = roomNode?.get?.('id') as string;
-      const roomPoiSeq = roomNode?.get?.('poi', true) as any;
+      const roomPoiSeq = roomNode?.get?.('poi', true) as YAMLSeq | undefined;
       if (roomPoiSeq && Array.isArray(roomPoiSeq.items)) {
-        for (const poiItemNode of roomPoiSeq.items) {
+        for (const poiItemNode of roomPoiSeq.items as YAMLMap[]) {
           if (poiItemNode?.get?.('id') === poiId) return { sourceRoomId: roomId, poiItemNode };
         }
       }
     }
   }
-  const deckPoiSeq = deckNode.get?.('poi', true) as any;
+  const deckPoiSeq = deckNode.get?.('poi', true) as YAMLSeq | undefined;
   if (deckPoiSeq && Array.isArray(deckPoiSeq.items)) {
-    for (const poiItemNode of deckPoiSeq.items) {
+    for (const poiItemNode of deckPoiSeq.items as YAMLMap[]) {
       if (poiItemNode?.get?.('id') === poiId) return { sourceRoomId: null, poiItemNode };
     }
   }
   return null;
 }
 
-function _findPlainPoi(plainDeck: any, poiId: string): any | null {
+function _findPlainPoi(plainDeck: DeckplanDeck | null | undefined, poiId: string): RawPoiEntry | null {
   for (const room of plainDeck?.rooms ?? []) {
     for (const poi of room.poi ?? []) {
       if (poi?.id === poiId) return poi;
@@ -397,10 +416,10 @@ function _findPlainPoi(plainDeck: any, poiId: string): any | null {
   return null;
 }
 
-function _findRoomNodeById(deckNode: any, roomId: string): any | null {
-  const roomsSeq = deckNode.get?.('rooms', true) as any;
+function _findRoomNodeById(deckNode: YAMLMap, roomId: string): YAMLMap | null {
+  const roomsSeq = deckNode.get?.('rooms', true) as YAMLSeq | undefined;
   if (!roomsSeq || !Array.isArray(roomsSeq.items)) return null;
-  for (const roomNode of roomsSeq.items) {
+  for (const roomNode of roomsSeq.items as YAMLMap[]) {
     if (roomNode?.get?.('id') === roomId) return roomNode;
   }
   return null;
@@ -410,8 +429,8 @@ function _findRoomNodeById(deckNode: any, roomId: string): any | null {
  * Delete a single-line POI sequence item (`    - {id: ...}\n`).
  * Replaces (startLine, 1) → (startLine+1, 1) with '' to remove the full line.
  */
-function _buildDeletePoiLineEdit(lineCounter: LineCounter, poiItemNode: any): TextEdit {
-  const startLine = lineCounter.linePos(poiItemNode.range[0]).line;
+function _buildDeletePoiLineEdit(lineCounter: LineCounter, poiItemNode: YAMLMap): TextEdit {
+  const startLine = lineCounter.linePos(poiItemNode.range![0]).line;
   return { startLine, startCol: 1, endLine: startLine + 1, endCol: 1, text: '' };
 }
 
@@ -424,28 +443,29 @@ function _buildDeletePoiLineEdit(lineCounter: LineCounter, poiItemNode: any): Te
  */
 function _buildDeletePoiItemWithCleanup(
   lineCounter: LineCounter,
-  deckNode: any,
+  deckNode: YAMLMap,
   poiOwner: PoiOwner,
 ): TextEdit {
   const { sourceRoomId, poiItemNode } = poiOwner;
-  const itemLine = lineCounter.linePos(poiItemNode.range[0]).line;
+  const itemLine = lineCounter.linePos(poiItemNode.range![0]).line;
 
-  let poiSeq: any = null;
-  let poiPair: any = null;
+  let poiSeq: YAMLSeq | undefined;
+  let poiPair: ReturnType<typeof _findKeyPair>;
 
   if (sourceRoomId !== null) {
     const sourceRoomNode = _findRoomNodeById(deckNode, sourceRoomId);
     if (sourceRoomNode) {
-      poiSeq = sourceRoomNode.get?.('poi', true) as any;
-      poiPair = (sourceRoomNode.items as any[])?.find((p: any) => p?.key?.value === 'poi');
+      poiSeq = sourceRoomNode.get?.('poi', true) as YAMLSeq | undefined;
+      poiPair = _findKeyPair(sourceRoomNode, 'poi');
     }
   } else {
-    poiSeq = deckNode.get?.('poi', true) as any;
-    poiPair = (deckNode.items as any[])?.find((p: any) => p?.key?.value === 'poi');
+    poiSeq = deckNode.get?.('poi', true) as YAMLSeq | undefined;
+    poiPair = _findKeyPair(deckNode, 'poi');
   }
 
-  if (poiSeq && Array.isArray(poiSeq.items) && poiSeq.items.length === 1 && poiPair?.key?.range) {
-    const poiKeyLine = lineCounter.linePos(poiPair.key.range[0]).line;
+  const poiKey = poiPair?.key as Scalar | undefined;
+  if (poiSeq && Array.isArray(poiSeq.items) && poiSeq.items.length === 1 && poiKey?.range) {
+    const poiKeyLine = lineCounter.linePos(poiKey.range[0]).line;
     return { startLine: poiKeyLine, startCol: 1, endLine: itemLine + 1, endCol: 1, text: '' };
   }
 
@@ -459,7 +479,7 @@ function _buildDeletePoiItemWithCleanup(
 function _buildAddPoiToRoomNodeEdit(
   yamlText: string,
   lineCounter: LineCounter,
-  roomNode: any,
+  roomNode: YAMLMap,
   poiData: { id: string; type?: string; icon?: string; name?: string; label?: string },
   newX: number,
   newY: number,
@@ -471,14 +491,14 @@ function _buildAddPoiToRoomNodeEdit(
   if (label) poiItem += `, label: "${label}"`;
   poiItem += `, type: ${type}, position: {x: ${newX}, y: ${newY}}}`;
 
-  const roomPoiSeq = roomNode.get?.('poi', true) as any;
+  const roomPoiSeq = roomNode.get?.('poi', true) as YAMLSeq | undefined;
 
   if (roomPoiSeq && Array.isArray(roomPoiSeq.items) && roomPoiSeq.items.length > 0) {
     // poi-exists: append after last item
-    const lastItem    = roomPoiSeq.items[roomPoiSeq.items.length - 1];
+    const lastItem    = roomPoiSeq.items[roomPoiSeq.items.length - 1] as AnyNode;
     const [, lastEnd] = lastItem.range as [number, number, number];
     // firstItemCol is 1-based column of `{`; subtract 3 to get 0-based column of `-`
-    const firstItemCol = lineCounter.linePos(roomPoiSeq.items[0].range[0]).col;
+    const firstItemCol = lineCounter.linePos((roomPoiSeq.items[0] as AnyNode).range![0]).col;
     const indent = ' '.repeat(Math.max(0, firstItemCol - 3));
     const charAtEnd  = yamlText[lastEnd - 1];
     const insertByte = charAtEnd === '\n' ? lastEnd - 1 : lastEnd;
@@ -489,11 +509,12 @@ function _buildAddPoiToRoomNodeEdit(
   // poi-absent: insert new `poi:\n- item` after the room's last key
   if (!Array.isArray(roomNode.items) || roomNode.items.length === 0) return null;
   const lastPair = roomNode.items[roomNode.items.length - 1];
-  if (!lastPair?.value?.range) return null;
-  const [, lastValEnd] = lastPair.value.range as [number, number, number];
+  const lastPairValue = lastPair?.value as AnyNode | null | undefined;
+  if (!lastPairValue?.range) return null;
+  const [, lastValEnd] = lastPairValue.range;
 
-  const idPair = roomNode.items.find((p: any) => p?.key?.value === 'id');
-  const roomKeyCol = idPair?.key?.range ? lineCounter.linePos(idPair.key.range[0]).col : 5;
+  const idKey = _idScalar(roomNode);
+  const roomKeyCol = idKey?.range ? lineCounter.linePos(idKey.range[0]).col : 5;
   const keyIndent  = ' '.repeat(roomKeyCol - 1);
 
   const charBefore = yamlText[lastValEnd - 1];
@@ -528,10 +549,10 @@ export function buildPoiRoomMoveEdit(
     const doc = parseDocument(yamlText, { lineCounter, keepSourceTokens: true });
     if (doc.errors.length > 0) return [];
 
-    const plainDeck = (parseYaml(yamlText) as any)?.decks?.find((d: any) => d?.id === deckId);
+    const plainDeck = (parseYaml(yamlText) as DeckplanDoc | null)?.decks?.find((d) => d?.id === deckId);
     if (!plainDeck) return [];
 
-    const decksSeq = doc.get('decks', true) as any;
+    const decksSeq = doc.get('decks', true) as YAMLSeq | undefined;
     const deckNode = _findDeckNode(decksSeq, deckId);
     if (!deckNode) return [];
 
@@ -552,7 +573,8 @@ export function buildPoiRoomMoveEdit(
     if (!targetRoomNode) return posEdit ? [posEdit] : [];
 
     const deleteEdit = _buildDeletePoiItemWithCleanup(lineCounter, deckNode, poiOwner);
-    const addEdit    = _buildAddPoiToRoomNodeEdit(yamlText, lineCounter, targetRoomNode, existingData, newX, newY);
+    const addEdit    = _buildAddPoiToRoomNodeEdit(yamlText, lineCounter, targetRoomNode,
+      { ...existingData, id: existingData.id ?? poiId }, newX, newY);
     if (!addEdit) return posEdit ? [posEdit] : [];
 
     return [deleteEdit, addEdit];

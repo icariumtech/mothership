@@ -14,6 +14,9 @@ from .janus_knowledge import JanusKnowledgeLoader
 # Module-level cache for JanusAI instances by location path
 _janus_cache: Dict[str, 'JanusAI'] = {}
 
+# Override via JANUS_MODEL env var to pin a different Claude model/version
+JANUS_MODEL = os.environ.get('JANUS_MODEL', 'claude-sonnet-4-20250514')
+
 
 def get_janus_ai(location_path: str = None) -> 'JanusAI':
     """
@@ -145,7 +148,7 @@ class JanusAI:
 
             # Call Claude API
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model=JANUS_MODEL,
                 max_tokens=self.config.get('max_response_length', 500),
                 system=system_prompt,
                 messages=messages,

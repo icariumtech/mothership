@@ -19,6 +19,20 @@ logger = logging.getLogger(__name__)
 _ship_yaml_lock = threading.Lock()
 
 
+def _split_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
+    """Split `---\\nYAML\\n---\\nbody` markdown content into (frontmatter, body).
+
+    Returns ({}, content) if there's no `---`-delimited frontmatter block.
+    """
+    if not content.startswith('---'):
+        return {}, content
+    parts = content.split('---', 2)
+    if len(parts) < 3:
+        return {}, content
+    frontmatter = yaml.safe_load(parts[1]) or {}
+    return frontmatter, parts[2].strip()
+
+
 class _TerminalReader:
     """Reads comm terminals and messages from the comms/ directory structure.
 
@@ -143,17 +157,7 @@ class _TerminalReader:
         """Parse a message markdown file with YAML frontmatter."""
         with open(message_file, 'r') as f:
             content = f.read()
-        if content.startswith('---'):
-            parts = content.split('---', 2)
-            if len(parts) >= 3:
-                frontmatter = yaml.safe_load(parts[1])
-                message_content = parts[2].strip()
-            else:
-                frontmatter = {}
-                message_content = content
-        else:
-            frontmatter = {}
-            message_content = content
+        frontmatter, message_content = _split_frontmatter(content)
         message_data = {'content': message_content, 'filename': message_file.name, **frontmatter}
         if 'timestamp' in message_data and isinstance(message_data['timestamp'], str):
             try:
@@ -254,17 +258,7 @@ class _CampaignReader:
         """Parse a session markdown file with YAML frontmatter."""
         with open(session_file, 'r') as f:
             content = f.read()
-        if content.startswith('---'):
-            parts = content.split('---', 2)
-            if len(parts) >= 3:
-                frontmatter = yaml.safe_load(parts[1])
-                body_content = parts[2].strip()
-            else:
-                frontmatter = {}
-                body_content = content
-        else:
-            frontmatter = {}
-            body_content = content
+        frontmatter, body_content = _split_frontmatter(content)
         return {'body': body_content, 'filename': session_file.name, **frontmatter}
 
     def load_campaign_docs(self) -> List[Dict[str, Any]]:
@@ -278,11 +272,8 @@ class _CampaignReader:
             title = slug.replace('-', ' ').replace('_', ' ').title()
             with open(doc_file, 'r') as f:
                 content = f.read()
-            if content.startswith('---'):
-                parts = content.split('---', 2)
-                if len(parts) >= 3:
-                    frontmatter = yaml.safe_load(parts[1]) or {}
-                    title = frontmatter.get('title', title)
+            frontmatter, _ = _split_frontmatter(content)
+            title = frontmatter.get('title', title)
             docs.append({'slug': slug, 'title': title})
         return docs
 
@@ -295,13 +286,8 @@ class _CampaignReader:
         with open(doc_file, 'r') as f:
             content = f.read()
         title = slug.replace('-', ' ').replace('_', ' ').title()
-        body = content
-        if content.startswith('---'):
-            parts = content.split('---', 2)
-            if len(parts) >= 3:
-                frontmatter = yaml.safe_load(parts[1]) or {}
-                title = frontmatter.get('title', title)
-                body = parts[2].strip()
+        frontmatter, body = _split_frontmatter(content)
+        title = frontmatter.get('title', title)
         return {'slug': slug, 'title': title, 'content': body}
 
 

@@ -58,9 +58,20 @@ src/
 │       │   └── sections/       # StatusSection (⚠ 1087 tsx + 1729 css),
 │       │                       #   PersonnelSection, LogsSection, JanusSection
 │       ├── encounter/          # Encounter map rendering (player + GM shared)
-│       │   ├── EncounterMapRenderer.tsx  # ⚠ 1689-line SVG renderer: rooms (rects/
-│       │   │                             #   circle/polygon), chamfers, walls, doors,
-│       │   │                             #   vents, hull, POI icons, reveal animation
+│       │   ├── EncounterMapRenderer.tsx  # 780-line orchestrator: pan/zoom, popovers,
+│       │   │                             #   projection/view, top-level SVG structure.
+│       │   │                             #   Delegates rendering to ./renderer/ layers.
+│       │   ├── renderer/       # ★ Layer components extracted from the renderer
+│       │   │   │               #   (Tier 2 decomposition) — each takes explicit props,
+│       │   │   │               #   no shared closures with the parent.
+│       │   │   ├── mapColors.ts        # COLORS, CONNECTION_STYLES, WALL_THICKNESS
+│       │   │   ├── RoomsLayer.tsx      # rect/circle/polygon room rendering + hit targets
+│       │   │   ├── DoorsLayer.tsx      # door visibility gating + DoorSymbol composition
+│       │   │   ├── DoorSymbol.tsx      # pure door SVG (frame/halves/damage/lock/seal)
+│       │   │   ├── PoiLayer.tsx        # POI rendering + owns its own drag state machine
+│       │   │   │                       #   (self-contained, like TokenLayer)
+│       │   │   ├── PoiInfoPopup.tsx    # hover/click POI info card
+│       │   │   └── VentTogglePopup.tsx # GM vent reveal/hide popup (owns click-outside-close)
 │       │   ├── EncounterMapDisplay.tsx   # Player wrapper (routes grid vs legacy)
 │       │   ├── EncounterView.tsx         # Player container (.encounter-view is
 │       │   │                             #   position:fixed — do NOT reuse class in GM)
@@ -171,12 +182,17 @@ Run: `pnpm vitest run` · types: `pnpm run typecheck`.
 
 1. **Dual scene state**: sceneStore was built to replace SharedConsole's
    useState blocks; migration stalled. Prefer the store for new scene state.
-2. **CSS is global** (no CSS Modules). Generic class names collide across
-   files (`.panel-content` ×8, `.panel-wrapper` ×7, `.active`, `.selected`).
-   Namespace new classes (`gm-*` for GM console) and never reuse
-   `.encounter-view`/`.bridge-view` (player position:fixed classes).
-3. **Giant files**: EncounterMapRenderer (1689), SharedConsole (1117),
-   StatusSection (1087+1729 css), gm BridgeView (1038) — read before editing.
+2. **CSS is global** (no CSS Modules). `.panel-content`/`.panel-wrapper`
+   appear in many files but are legitimate ancestor-scoped variant overrides
+   of the shared `Panel.css` component (specificity resolves correctly
+   regardless of load order) — not a live collision, verified 2026-07.
+   The real hazard: bare/unscoped class names. Namespace new classes
+   (`gm-*` for GM console) and never reuse `.encounter-view`/`.bridge-view`
+   (player position:fixed classes) — that collision was real and is fixed.
+3. **Giant files**: SharedConsole (1117), StatusSection (1087+1729 css),
+   gm BridgeView (1038) — read before editing. EncounterMapRenderer was
+   780 lines as of the Tier-2 decomposition (2026-07) — see the `renderer/`
+   subdirectory for the extracted room/door/POI layer components.
 4. **`GridRoom.rects` is optional** — always guard (`room.rects ?? []`).
 5. **Two BridgeView.tsx** exist (gm/views vs domain/dashboard) — unrelated
    components; check the import path.

@@ -131,6 +131,9 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
     // Get R3F camera and size info
     const { camera, size } = useThree();
 
+    // Track the last-processed prop selection (see selection-sync effect below)
+    const prevPropSelectionRef = useRef<{ type: string | null; name: string | null }>({ type: null, name: null });
+
     // Track if we've initialized the camera for this body
     const cameraInitializedRef = useRef<string | null>(null);
     const waitingForInitRef = useRef<string | null>(null);
@@ -555,12 +558,20 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
     );
 
     // Handle selection changes from props
+    //
+    // Compares against the last-processed PROP value (prevPropSelectionRef),
+    // not the live store value. selectedElementProp and storeSelectedElement
+    // both read the same sceneStore, so a prop-vs-store comparison is always
+    // false by the time this effect runs (whichever path wrote the store —
+    // an external list click via props, or a direct 3D click below — updates
+    // both in the same render pass). Direct 3D clicks already call
+    // moveToElement themselves; re-triggering it here for those is a no-op
+    // re-animation to the same target, not a functional bug.
     useEffect(() => {
       const propSelection = selectedElementProp ?? { type: null, name: null };
-      const storeSelection = storeSelectedElement;
+      const prevPropSelection = prevPropSelectionRef.current;
 
-      // If prop selection is different from store, update store
-      if (propSelection.name !== storeSelection.name) {
+      if (propSelection.name !== prevPropSelection.name) {
         if (propSelection.name === null) {
           selectOrbitElement(null, null);
           setTrackedElement(null, null);
@@ -585,9 +596,10 @@ export const OrbitScene = forwardRef<OrbitSceneHandle, OrbitSceneProps>(
           }
         }
       }
+
+      prevPropSelectionRef.current = propSelection;
     }, [
       selectedElementProp,
-      storeSelectedElement,
       data,
       selectOrbitElement,
       setTrackedElement,

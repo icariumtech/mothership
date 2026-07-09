@@ -25,21 +25,28 @@ import { useSSE } from '@hooks/useSSE';
 import { useViewTransition } from '@hooks/useViewTransition';
 import { ViewStatusOverlay } from '@components/ui/ViewStatusOverlay';
 import { SSEConnectionToast } from '@components/ui/SSEConnectionToast';
-import { useSceneStore } from '@/stores/sceneStore';
+import {
+  useSceneStore,
+  useMapViewMode,
+  useGalaxyTransition,
+  useSystemTransition,
+  useOrbitTransition,
+  useStarMapData,
+  useSystemMapData,
+  useOrbitMapData,
+  useCurrentSystemSlug,
+  useCurrentBodySlug,
+  useSelectedSystem,
+  useSelectedPlanet,
+  useSelectedOrbitElement,
+} from '@/stores/sceneStore';
 import { TRANSITION_TIMING, waitForTypewriter } from '@/utils/transitionCoordinator';
-import type { StarMapData } from '../types/starMap';
 import type { SystemMapData, BodyData } from '../types/systemMap';
 import type { MoonData, StationData, SurfaceMarkerData, OrbitMapData } from '../types/orbitMap';
 import type { DoorStatusState, TokenState } from '../types/encounterMap';
 
-// Transition state type
-type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
-
 // View types matching Django's ActiveView model
 type ViewType = 'STANDBY' | 'BRIDGE' | 'ENCOUNTER' | 'COMM_TERMINAL' | 'MESSAGES' | 'SHIP_DASHBOARD';
-
-// Map view modes for BRIDGE view
-type MapViewMode = 'galaxy' | 'system' | 'orbit';
 
 interface ActiveView {
   view_type: ViewType;
@@ -116,8 +123,33 @@ function SharedConsole() {
   const [activeView, setActiveView] = useState<ActiveView | null>(
     window.INITIAL_DATA?.activeView || null
   );
-  const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
-  const [starMapData, setStarMapData] = useState<StarMapData | null>(null);
+  // Map/scene state lives in sceneStore (single source of truth shared with
+  // the R3F scene components — see codemaps/frontend.md "Known Issues" #1).
+  const selectedSystem = useSelectedSystem();
+  const starMapData = useStarMapData();
+  const mapViewMode = useMapViewMode();
+  const currentSystemSlug = useCurrentSystemSlug();
+  const systemMapData = useSystemMapData();
+  const selectedPlanet = useSelectedPlanet();
+  const currentBodySlug = useCurrentBodySlug();
+  const orbitMapData = useOrbitMapData();
+  const { type: selectedOrbitElementType, name: selectedOrbitElement, data: selectedOrbitElementData } = useSelectedOrbitElement();
+  const galaxyTransition = useGalaxyTransition();
+  const systemTransition = useSystemTransition();
+  const orbitTransition = useOrbitTransition();
+
+  const selectSystem = useSceneStore((state) => state.selectSystem);
+  const setStarMapData = useSceneStore((state) => state.setStarMapData);
+  const setMapViewMode = useSceneStore((state) => state.setMapViewMode);
+  const setCurrentSystemSlug = useSceneStore((state) => state.setCurrentSystemSlug);
+  const setSystemMapData = useSceneStore((state) => state.setSystemMapData);
+  const selectPlanet = useSceneStore((state) => state.selectPlanet);
+  const setCurrentBodySlug = useSceneStore((state) => state.setCurrentBodySlug);
+  const setOrbitMapData = useSceneStore((state) => state.setOrbitMapData);
+  const selectOrbitElement = useSceneStore((state) => state.selectOrbitElement);
+  const setGalaxyTransition = useSceneStore((state) => state.setGalaxyTransition);
+  const setSystemTransition = useSceneStore((state) => state.setSystemTransition);
+  const setOrbitTransition = useSceneStore((state) => state.setOrbitTransition);
 
   // Refs for stable SSE callback closures (avoids reconnect storms from dependency changes)
   const activeViewRef = useRef(activeView);
@@ -193,23 +225,6 @@ function SharedConsole() {
   // Map view state
   const [shipData, setShipData] = useState(window.INITIAL_DATA?.shipStatus ?? null);
 
-  const [mapViewMode, setMapViewMode] = useState<MapViewMode>('galaxy');
-  const [currentSystemSlug, setCurrentSystemSlug] = useState<string | null>(null);
-  const [systemMapData, setSystemMapData] = useState<SystemMapData | null>(null);
-  const [selectedPlanet, setSelectedPlanet] = useState<BodyData | null>(null);
-
-  // Orbit view state
-  const [currentBodySlug, setCurrentBodySlug] = useState<string | null>(null);
-  const [orbitMapData, setOrbitMapData] = useState<OrbitMapData | null>(null);
-  const [selectedOrbitElement, setSelectedOrbitElement] = useState<string | null>(null);
-  const [selectedOrbitElementType, setSelectedOrbitElementType] = useState<'moon' | 'station' | 'surface' | null>(null);
-  const [selectedOrbitElementData, setSelectedOrbitElementData] = useState<MoonData | StationData | SurfaceMarkerData | null>(null);
-
-  // Transition state for map switching animations
-  const [galaxyTransition, setGalaxyTransition] = useState<TransitionState>('idle');
-  const [systemTransition, setSystemTransition] = useState<TransitionState>('idle');
-  const [orbitTransition, setOrbitTransition] = useState<TransitionState>('idle');
-
   // Tab state management
   const [activeTab, setActiveTab] = useState<BridgeTab>('status');
   const [tabTransition, setTabTransition] = useState<'idle' | 'transitioning'>('idle');
@@ -241,17 +256,13 @@ function SharedConsole() {
   useEffect(() => {
     if (mapViewMode === 'galaxy') {
       // When in galaxy view, clear all child view states (system and orbit)
-      setSelectedPlanet(null);
-      setSelectedOrbitElement(null);
-      setSelectedOrbitElementType(null);
-      setSelectedOrbitElementData(null);
+      selectPlanet(null);
+      selectOrbitElement(null, null);
     } else if (mapViewMode === 'system') {
       // When in system view, clear only orbit view states
-      setSelectedOrbitElement(null);
-      setSelectedOrbitElementType(null);
-      setSelectedOrbitElementData(null);
+      selectOrbitElement(null, null);
     }
-  }, [mapViewMode]);
+  }, [mapViewMode, selectPlanet, selectOrbitElement]);
 
   // JANUS dialog state
   const [janusDialogOpen, setJanusDialogOpen] = useState(false);
@@ -354,14 +365,12 @@ function SharedConsole() {
 
       // Reset map state when transitioning TO BRIDGE from another view type
       if (newData.view_type === 'BRIDGE' && previousViewType !== 'BRIDGE') {
-        setSelectedSystem(null);
+        selectSystem(null);
         setMapViewMode('galaxy');
         setCurrentSystemSlug(null);
-        setSelectedPlanet(null);
+        selectPlanet(null);
         setCurrentBodySlug(null);
-        setSelectedOrbitElement(null);
-        setSelectedOrbitElementType(null);
-        setSelectedOrbitElementData(null);
+        selectOrbitElement(null, null);
         setActiveTab('status');
       }
 
@@ -551,8 +560,8 @@ function SharedConsole() {
   }, [infoPanelContent, infoPanelVisible, startTypewriter, completeTypewriter]);
 
   const handleSystemSelect = useCallback((systemName: string) => {
-    setSelectedSystem(prev => prev === systemName ? null : systemName);
-  }, []);
+    selectSystem(systemName);
+  }, [selectSystem]);
 
   const handleBackToGalaxyInternal = useCallback(async () => {
     // Check transition lock
@@ -565,7 +574,7 @@ function SharedConsole() {
     try {
       // Phase 0: If a planet is selected, deselect it first and wait for animation
       if (selectedPlanet) {
-        setSelectedPlanet(null);
+        selectPlanet(null);
         // Wait for deselect camera animation (return to default view)
         await new Promise(resolve => setTimeout(resolve, 1500)); // 1500ms for returnToDefault animation
       }
@@ -577,7 +586,7 @@ function SharedConsole() {
       // Phase 2: Switch to galaxy view with React.startTransition
       startTransition(() => {
         setMapViewMode('galaxy');
-        setSelectedPlanet(null);
+        selectPlanet(null);
         setGalaxyTransition('transitioning-in');
       });
 
@@ -600,18 +609,18 @@ function SharedConsole() {
     } finally {
       transitionLockRef.current = false;
     }
-  }, [selectedSystem, selectedPlanet]);
+  }, [selectedSystem, selectedPlanet, selectPlanet, setMapViewMode, setSystemTransition, setGalaxyTransition, setCurrentSystemSlug, setSystemMapData]);
 
   // Debounced version with transition guard
   const [handleBackToGalaxy] = useTransitionGuard(handleBackToGalaxyInternal, 300);
 
   const handleSystemLoaded = useCallback((data: SystemMapData | null) => {
     setSystemMapData(data);
-  }, []);
+  }, [setSystemMapData]);
 
   const handlePlanetSelect = useCallback((planetData: BodyData | null) => {
-    setSelectedPlanet(planetData);
-  }, []);
+    selectPlanet(planetData);
+  }, [selectPlanet]);
 
 
   const handleBackToSystemInternal = useCallback(async () => {
@@ -625,9 +634,7 @@ function SharedConsole() {
     try {
       // Phase 0: If an orbit element is selected, deselect it first and wait for animation
       if (selectedOrbitElement) {
-        setSelectedOrbitElement(null);
-        setSelectedOrbitElementType(null);
-        setSelectedOrbitElementData(null);
+        selectOrbitElement(null, null);
         // Wait for deselect camera animation (return to default view)
         await new Promise(resolve => setTimeout(resolve, 800)); // 800ms for returnToDefault animation
       }
@@ -638,9 +645,7 @@ function SharedConsole() {
 
       // Phase 2: Switch to system view with React.startTransition
       startTransition(() => {
-        setSelectedOrbitElement(null);
-        setSelectedOrbitElementType(null);
-        setSelectedOrbitElementData(null);
+        selectOrbitElement(null, null);
         setMapViewMode('system');
         setSystemTransition('transitioning-in');
       });
@@ -663,14 +668,14 @@ function SharedConsole() {
     } finally {
       transitionLockRef.current = false;
     }
-  }, [selectedPlanet, selectedOrbitElement]);
+  }, [selectedPlanet, selectedOrbitElement, selectOrbitElement, setOrbitTransition, setMapViewMode, setSystemTransition, setCurrentBodySlug]);
 
   // Debounced version with transition guard
   const [handleBackToSystem] = useTransitionGuard(handleBackToSystemInternal, 300);
 
   const handleOrbitMapLoaded = useCallback((data: OrbitMapData | null) => {
     setOrbitMapData(data);
-  }, []);
+  }, [setOrbitMapData]);
 
   // Sync bridge tab to backend so GM console can track it
   useEffect(() => {
@@ -701,15 +706,11 @@ function SharedConsole() {
 
   const handleOrbitElementSelect = useCallback((elementType: string | null, elementData: MoonData | StationData | SurfaceMarkerData | null) => {
     if (elementType && elementData) {
-      setSelectedOrbitElement(elementData.name);
-      setSelectedOrbitElementType(elementType as 'moon' | 'station' | 'surface');
-      setSelectedOrbitElementData(elementData);
+      selectOrbitElement(elementType as 'moon' | 'station' | 'surface', elementData);
     } else {
-      setSelectedOrbitElement(null);
-      setSelectedOrbitElementType(null);
-      setSelectedOrbitElementData(null);
+      selectOrbitElement(null, null);
     }
-  }, []);
+  }, [selectOrbitElement]);
 
   // Navigate from galaxy to system view - with transition guard and RAF coordination
   const handleDiveToSystemInternal = useCallback(async (systemName: string) => {
@@ -746,7 +747,7 @@ function SharedConsole() {
       // Phase 1: Select system and wait for camera animation + typewriter to complete
       if (selectedSystem !== systemName) {
         // Select the system - this triggers all the UI updates (reticle, info panel, camera)
-        setSelectedSystem(systemName);
+        selectSystem(systemName);
 
         // Wait one frame for React to re-render and show reticle/info panel
         await new Promise(resolve => requestAnimationFrame(() => resolve(undefined)));
@@ -781,7 +782,7 @@ function SharedConsole() {
     } finally {
       transitionLockRef.current = false;
     }
-  }, [starMapData, selectedSystem]);
+  }, [starMapData, selectedSystem, selectSystem, setSystemMapData, setGalaxyTransition, setMapViewMode, setCurrentSystemSlug, setSystemTransition]);
 
   // Debounced version with transition guard (300ms minimum between calls)
   const [handleDiveToSystem] = useTransitionGuard(handleDiveToSystemInternal, 300);
@@ -815,7 +816,7 @@ function SharedConsole() {
       // Phase 1: Select planet and wait for camera animation + typewriter to complete
       if (selectedPlanet?.location_slug !== planetSlug) {
         // Select the planet - triggers camera animation, reticle, and info panel
-        setSelectedPlanet(planet);
+        selectPlanet(planet);
 
         // Wait one frame for React to re-render
         await new Promise(resolve => requestAnimationFrame(() => resolve(undefined)));
@@ -855,7 +856,7 @@ function SharedConsole() {
       setPaused(false);
       transitionLockRef.current = false;
     }
-  }, [systemMapData, selectedPlanet]);
+  }, [systemMapData, selectedPlanet, selectPlanet, setOrbitMapData, setPaused, setSystemTransition, setMapViewMode, setCurrentBodySlug, setOrbitTransition]);
 
   // Debounced version with transition guard
   const [handleOrbitMapNavigate] = useTransitionGuard(handleOrbitMapNavigateInternal, 300);

@@ -25,7 +25,7 @@ import { SelectionReticle } from './shared';
 import {
   useSceneStore,
   useStarMapData,
-  useTransitionState,
+  useGalaxyTransition,
   useIsPaused,
 } from './hooks/useSceneStore';
 import { useGalaxyCamera } from './hooks/useGalaxyCamera';
@@ -66,7 +66,7 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
 
     // Get data from store or props
     const storeData = useStarMapData();
-    const transitionState = useTransitionState();
+    const galaxyTransition = useGalaxyTransition();
     const storePaused = useIsPaused();
 
     // Use props if provided, otherwise fall back to store
@@ -124,7 +124,10 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
           await moveToSystem(systemName);
         },
         positionCameraOnSystem: (systemName: string) => {
-          selectSystem(systemName);
+          // Reposition only — does NOT call selectSystem. The only caller
+          // (handleBackToGalaxyInternal) passes the already-selected system;
+          // selectSystem's toggle logic would deselect it since it's called
+          // with the current selection, not a new one.
           positionOnSystem(systemName);
         },
         getStarPositions: () => starPositions,
@@ -207,7 +210,7 @@ export const GalaxyScene = forwardRef<GalaxySceneHandle, GalaxySceneProps>(
 
         {/* Camera controls */}
         <GalaxyControls
-          enabled={!paused && transitionState === 'idle'}
+          enabled={!paused && galaxyTransition === 'idle'}
         />
       </>
     );

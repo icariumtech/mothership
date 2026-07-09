@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-**Last Updated**: 2026-07-02
+**Last Updated**: 2026-07-08
 
 React 19 + TypeScript + Vite, Ant Design 6, React Three Fiber 9, GSAP, Zustand.
 Three Vite entry points: `SharedConsole` (player display), `GMConsole` (GM
@@ -11,9 +11,10 @@ control center), `PlayerConsole` (legacy minimal message view).
 ```
 src/
 ├── entries/
-│   ├── SharedConsole.tsx       # ⚠ 1100-line player-side container: SSE routing,
-│   │                           #   ~30 useState hooks, view transitions (see
-│   │                           #   "Known Issues" — duplicates sceneStore state)
+│   ├── SharedConsole.tsx       # 1100-line player-side container: SSE routing,
+│   │                           #   view transitions. Map/scene state (selection,
+│   │                           #   view mode, transitions) now lives in
+│   │                           #   sceneStore, not local useState (2026-07).
 │   ├── GMConsole.tsx           # GM shell: ViewRail + active GM view + SSE
 │   └── PlayerConsole.tsx       # Legacy player message list
 │
@@ -163,10 +164,15 @@ localStorage). Two-way wiring:
 
 ## State Management
 
-- **sceneStore (Zustand)**: 3D scene state; R3F components read via selector
-  hooks (`useMapViewMode`, `useSelectedPlanet`, ...).
-- **SharedConsole local state**: ⚠ still holds ~30 useState mirrors of the same
-  scene state (stalled migration — see Known Issues).
+- **sceneStore (Zustand)**: single source of truth for map/scene state
+  (selection, view mode, per-layer transitions, camera, animations,
+  typewriter). SharedConsole reads via selector hooks (`useMapViewMode`,
+  `useSelectedPlanet`, ...) and writes via store actions instead of local
+  `useState` (migrated 2026-07 — see Known Issues item 1). `GalaxyMap`/
+  `SystemMap`/`OrbitMap`/`StarMapPanel` still receive these as props from
+  SharedConsole (which now sources them from the store) rather than
+  subscribing to the store directly — a deliberate scope decision to avoid
+  touching the R3F rendering internals of 4+ files in one pass.
 - **Backend is the source of truth** for view state: GM actions POST →
   `sync_state()` → SSE → both consoles update.
 - sessionStorage: bridge tab; localStorage: tree expansion, editor path/split.
@@ -180,8 +186,22 @@ Run: `pnpm vitest run` · types: `pnpm run typecheck`.
 
 ## Known Issues / Gotchas
 
-1. **Dual scene state**: sceneStore was built to replace SharedConsole's
-   useState blocks; migration stalled. Prefer the store for new scene state.
+1. **Scene state migration (2026-07)**: SharedConsole's map/selection/transition
+   useState hooks (selectedSystem, starMapData, mapViewMode, systemMapData,
+   selectedPlanet, orbitMapData, selectedOrbitElement, galaxy/system/orbit
+   transitions) moved into sceneStore — 28→17 useState hooks in SharedConsole.
+   `sceneStore.TransitionState` was redesigned from a single global enum to
+   three independent per-layer fields (`galaxyTransition`/`systemTransition`/
+   `orbitTransition`), since a galaxy→system dive has galaxy 'transitioning-out'
+   while system is simultaneously 'transitioning-in'. Fixed a latent bug as a
+   byproduct: `GalaxyScene` read the old single `transitionState` from the
+   store to gate `GalaxyControls`, but nothing ever wrote it (SharedConsole's
+   transition state was local-only) — the gate was permanently a no-op. It now
+   reads the live `galaxyTransition` field. `SystemScene`/`OrbitScene` were
+   unaffected — they already received transition state via props, not the
+   store. Remaining 17 useState hooks in SharedConsole (dialogs/overlays,
+   active tab, encounter tokens, performance mode, corp branding) are
+   legitimately component-local, not scene state.
 2. **CSS is global** (no CSS Modules). `.panel-content`/`.panel-wrapper`
    appear in many files but are legitimate ancestor-scoped variant overrides
    of the shared `Panel.css` component (specificity resolves correctly

@@ -9,8 +9,9 @@ export {
   useSceneStore,
   // View state selectors
   useMapViewMode,
-  useTransitionState,
-  useTransitionProgress,
+  useGalaxyTransition,
+  useSystemTransition,
+  useOrbitTransition,
   // API data selectors
   useStarMapData,
   useSystemMapData,

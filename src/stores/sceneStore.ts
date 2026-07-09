@@ -13,13 +13,11 @@ import type { OrbitMapData, MoonData, StationData, SurfaceMarkerData } from '../
 // View modes for the map display
 export type MapViewMode = 'galaxy' | 'system' | 'orbit';
 
-// Transition states for coordinated animations
-export type TransitionState =
-  | 'idle'
-  | 'diving'       // Zooming into a target (galaxy->system, system->orbit)
-  | 'zooming-out'  // Zooming out to parent view
-  | 'fading-in'    // Fading in after view switch
-  | 'fading-out';  // Fading out before view switch
+// Per-layer transition state for coordinated fade animations. Each of the
+// three map layers (galaxy/system/orbit) tracks its own state independently
+// since e.g. a galaxy->system dive has galaxy 'transitioning-out' while
+// system is simultaneously 'transitioning-in' for the duration of the fade.
+export type TransitionState = 'idle' | 'transitioning-out' | 'transitioning-in';
 
 // Selected orbit element with type discrimination
 export interface SelectedOrbitElement {
@@ -56,9 +54,10 @@ export interface TypewriterState {
 export interface SceneState {
   // View state
   mapViewMode: MapViewMode;
-  transitionState: TransitionState;
-  transitionProgress: number;  // 0-1 for animation progress
-  transitionTarget: string | null;  // Target system/planet/element being transitioned to
+  // Per-layer transition state — see TransitionState doc comment above.
+  galaxyTransition: TransitionState;
+  systemTransition: TransitionState;
+  orbitTransition: TransitionState;
 
   // API data (fetched from backend)
   starMapData: StarMapData | null;
@@ -92,10 +91,10 @@ export interface SceneState {
  */
 export interface SceneActions {
   // View transitions
-  startTransition: (target: string, transitionType: TransitionState) => void;
-  completeTransition: () => void;
   setMapViewMode: (mode: MapViewMode) => void;
-  updateTransitionProgress: (progress: number) => void;
+  setGalaxyTransition: (state: TransitionState) => void;
+  setSystemTransition: (state: TransitionState) => void;
+  setOrbitTransition: (state: TransitionState) => void;
 
   // API data setters
   setStarMapData: (data: StarMapData | null) => void;
@@ -140,9 +139,9 @@ export interface SceneActions {
  */
 const initialState: SceneState = {
   mapViewMode: 'galaxy',
-  transitionState: 'idle',
-  transitionProgress: 0,
-  transitionTarget: null,
+  galaxyTransition: 'idle',
+  systemTransition: 'idle',
+  orbitTransition: 'idle',
 
   starMapData: null,
   systemMapData: null,
@@ -188,21 +187,10 @@ export const useSceneStore = create<SceneState & SceneActions>()((set, get) => (
   ...initialState,
 
   // View transitions
-  startTransition: (target, transitionType) => set({
-    transitionState: transitionType,
-    transitionTarget: target,
-    transitionProgress: 0,
-  }),
-
-  completeTransition: () => set({
-    transitionState: 'idle',
-    transitionTarget: null,
-    transitionProgress: 1,
-  }),
-
   setMapViewMode: (mode) => set({ mapViewMode: mode }),
-
-  updateTransitionProgress: (progress) => set({ transitionProgress: progress }),
+  setGalaxyTransition: (state) => set({ galaxyTransition: state }),
+  setSystemTransition: (state) => set({ systemTransition: state }),
+  setOrbitTransition: (state) => set({ orbitTransition: state }),
 
   // API data setters
   setStarMapData: (data) => set({ starMapData: data }),
@@ -288,8 +276,9 @@ export const useSceneStore = create<SceneState & SceneActions>()((set, get) => (
 
 // View state selectors
 export const useMapViewMode = () => useSceneStore((state) => state.mapViewMode);
-export const useTransitionState = () => useSceneStore((state) => state.transitionState);
-export const useTransitionProgress = () => useSceneStore((state) => state.transitionProgress);
+export const useGalaxyTransition = () => useSceneStore((state) => state.galaxyTransition);
+export const useSystemTransition = () => useSceneStore((state) => state.systemTransition);
+export const useOrbitTransition = () => useSceneStore((state) => state.orbitTransition);
 
 // API data selectors
 export const useStarMapData = () => useSceneStore((state) => state.starMapData);

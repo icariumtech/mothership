@@ -30,7 +30,6 @@ const MIGRATED_FILES = [
   'data/galaxy/kepler-442/kepler-442b/base_alpha/deckplan.yaml',
   'data/ships/patrol_gunboat/deckplan.yaml',
   'data/campaign/ship/deckplan.yaml',
-  'data/ships/ship_gamma/deckplan.yaml',
 ];
 
 function decksFor(doc: MapDocLike): DeckLike[] {

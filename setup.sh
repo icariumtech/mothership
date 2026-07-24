@@ -43,9 +43,13 @@ echo ""
 
 # Step 1: Create Python virtual environment
 echo "Step 1/6: Creating Python virtual environment..."
-if [ -d ".venv" ]; then
+if [ -x ".venv/bin/pip" ]; then
     echo "Virtual environment already exists, skipping..."
 else
+    if [ -d ".venv" ]; then
+        echo "Found incomplete virtual environment (missing pip), recreating..."
+        rm -rf .venv
+    fi
     python3 -m venv .venv
     echo "✓ Virtual environment created"
 fi
@@ -71,7 +75,17 @@ if [ -f ".env" ]; then
     echo ".env file already exists, skipping..."
 else
     cp .env.example .env
-    echo "✓ Created .env file from .env.example"
+    python - <<'PYEOF'
+import re
+import pathlib
+from django.core.management.utils import get_random_secret_key
+
+env_path = pathlib.Path(".env")
+content = env_path.read_text()
+content = re.sub(r"^SECRET_KEY=.*$", f"SECRET_KEY={get_random_secret_key()}", content, flags=re.MULTILINE)
+env_path.write_text(content)
+PYEOF
+    echo "✓ Created .env file from .env.example (generated SECRET_KEY)"
     echo "NOTE: Edit .env to add your ANTHROPIC_API_KEY if using JANUS AI features"
 fi
 echo ""
